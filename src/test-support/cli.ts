@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { main } from "../runtimes/cli/main.js";
 
-type CliIo = Parameters<typeof main>[1];
+type CliIo = NonNullable<Parameters<typeof main>[1]>;
 
 interface CapturedCliIo {
   io: CliIo;
