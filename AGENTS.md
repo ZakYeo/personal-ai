@@ -17,6 +17,13 @@
 
 - Always add or update tests for implementation changes.
 - Add integration tests when a change spans multiple parts of the system, such as multiple adapters, ports, application services, runtime boundaries, feature plugins, or CLI/service flows.
+- Use the layered helpers in `src/test-support/` when they fit:
+  - `core-assistant.ts` for core assistant config, clocks, commands, interpreters, and feature fixtures.
+  - `feature-contract.ts` for feature metadata, handling, execution, and rejection expectations.
+  - `deterministic-scenarios.ts` for named deterministic command/config/response fixtures.
+  - `cli.ts` for CLI runtime-boundary tests with captured IO, temporary config files, and deterministic `ask` invocations.
+- Keep runtime-boundary tests human-facing: assert captured stdout/stderr, exit codes, and graceful failure responses rather than bypassing the CLI boundary.
+- Do not collapse test support into one global harness; keep helpers layered by core, feature, deterministic scenario, and runtime/CLI responsibility.
 
 ## Development Scripts
 

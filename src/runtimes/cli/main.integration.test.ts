@@ -1,156 +1,139 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { main } from "./main.js";
+import { createCliIo, runAsk, runCli } from "../../test-support/cli.js";
+import {
+  deterministicNowIso,
+  deterministicScenarios,
+  disabledCalendarConfig,
+  enabledDeterministicConfig,
+  runtimeFailureConfig,
+  runtimeFailureDiagnostic,
+  runtimeFailureResponse,
+} from "../../test-support/deterministic-scenarios.js";
 
 describe("personal-ai ask CLI", () => {
   it("prints the calendar response", async () => {
-    const { io, stdout, stderr } = createIo();
-
     await expect(
-      main(
-        [
-          "ask",
-          "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?",
-        ],
-        io,
-      ),
-    ).resolves.toBe(0);
-    expect(stdout).toEqual(["The upcoming wedding is on 2026-09-12.\n"]);
-    expect(stderr).toEqual([]);
+      runAsk({ text: deterministicScenarios.calendarWedding.text }),
+    ).resolves.toEqual({
+      exitCode: 0,
+      stdout: [`${deterministicScenarios.calendarWedding.response.text}\n`],
+      stderr: [],
+    });
   });
 
   it("prints the messaging draft response", async () => {
-    const { io, stdout } = createIo();
-
     await expect(
-      main(
-        ["ask", "Hey Jarvis, can you respond to that WhatsApp message for me?"],
-        io,
-      ),
-    ).resolves.toBe(0);
-    expect(stdout).toEqual([
-      'Drafted a whatsapp reply: "Thanks for the message. I will take a look and get back to you shortly."\n',
-    ]);
+      runAsk({ text: deterministicScenarios.messagingWhatsappDraft.text }),
+    ).resolves.toMatchObject({
+      exitCode: 0,
+      stdout: [
+        `${deterministicScenarios.messagingWhatsappDraft.response.text}\n`,
+      ],
+    });
   });
 
   it("prints the alarm confirmation response with a fixed clock", async () => {
-    const { io, stdout } = createIo({
-      PERSONAL_AI_FIXED_NOW: "2026-06-26T09:00:00.000Z",
-    });
-
     await expect(
-      main(["ask", "Hey Jarvis, set an alarm to ping me in 10 minutes."], io),
-    ).resolves.toBe(0);
-    expect(stdout).toEqual([
-      "I need confirmation before doing that. Please confirm yes or no.\n",
-    ]);
+      runAsk({
+        env: { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
+        text: deterministicScenarios.alarmCreateNeedsConfirmation.text,
+      }),
+    ).resolves.toMatchObject({
+      exitCode: 0,
+      stdout: [
+        `${deterministicScenarios.alarmCreateNeedsConfirmation.response.text}\n`,
+      ],
+    });
   });
 
   it("creates an alarm when an explicit config does not require confirmation", async () => {
-    const configPath = await writeConfig({
-      assistant: {
-        name: "Jarvis",
-        wakePhrases: ["hey jarvis"],
-      },
-      features: {
-        calendar: { enabled: true },
-        messaging: { enabled: true },
-        alarms: { enabled: true },
-      },
-    });
-    const { io, stdout } = createIo({
-      PERSONAL_AI_FIXED_NOW: "2026-06-26T09:00:00.000Z",
-    });
-
     await expect(
-      main(
-        [
-          "ask",
-          "--config",
-          configPath,
-          "Hey Jarvis, set an alarm to ping me in 10 minutes.",
-        ],
-        io,
-      ),
-    ).resolves.toBe(0);
-    expect(stdout).toEqual([
-      "Alarm set for 2026-06-26T09:10:00.000Z (ping me).\n",
-    ]);
+      runAsk({
+        config: enabledDeterministicConfig,
+        env: { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
+        text: deterministicScenarios.alarmCreateWithoutConfirmation.text,
+      }),
+    ).resolves.toMatchObject({
+      exitCode: 0,
+      stdout: [
+        `${deterministicScenarios.alarmCreateWithoutConfirmation.response.text}\n`,
+      ],
+    });
   });
 
   it("prints the empty alarm list response", async () => {
-    const { io, stdout } = createIo();
-
-    await expect(main(["ask", "Hey Jarvis, list my alarms"], io)).resolves.toBe(
-      0,
-    );
-    expect(stdout).toEqual(["There are no alarms set.\n"]);
+    await expect(
+      runAsk({ text: deterministicScenarios.alarmListEmpty.text }),
+    ).resolves.toMatchObject({
+      exitCode: 0,
+      stdout: [`${deterministicScenarios.alarmListEmpty.response.text}\n`],
+    });
   });
 
   it("does not persist in-memory alarms between separate CLI invocations", async () => {
-    const first = createIo({
-      PERSONAL_AI_FIXED_NOW: "2026-06-26T09:00:00.000Z",
-    });
-    const second = createIo({
-      PERSONAL_AI_FIXED_NOW: "2026-06-26T09:00:00.000Z",
-    });
-
     await expect(
-      main(
-        ["ask", "Hey Jarvis, set an alarm to ping me in 10 minutes."],
-        first.io,
-      ),
-    ).resolves.toBe(0);
+      runAsk({
+        env: { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
+        text: deterministicScenarios.alarmCreateNeedsConfirmation.text,
+      }),
+    ).resolves.toMatchObject({ exitCode: 0 });
     await expect(
-      main(["ask", "Hey Jarvis, list my alarms"], second.io),
-    ).resolves.toBe(0);
-    expect(second.stdout).toEqual(["There are no alarms set.\n"]);
+      runAsk({
+        env: { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
+        text: deterministicScenarios.alarmListEmpty.text,
+      }),
+    ).resolves.toMatchObject({
+      exitCode: 0,
+      stdout: [`${deterministicScenarios.alarmListEmpty.response.text}\n`],
+    });
   });
 
   it("prints a deterministic unknown response", async () => {
-    const { io, stdout } = createIo();
-
-    await expect(main(["ask", "Hey Jarvis, what is this?"], io)).resolves.toBe(
-      0,
-    );
-    expect(stdout).toEqual([
-      "I could not map that to a deterministic command.\n",
-    ]);
+    await expect(
+      runAsk({ text: deterministicScenarios.unknown.text }),
+    ).resolves.toMatchObject({
+      exitCode: 0,
+      stdout: [`${deterministicScenarios.unknown.response.text}\n`],
+    });
   });
 
   it("prints a deterministic unsupported response", async () => {
-    const configPath = await writeConfig({
-      assistant: {
-        name: "Jarvis",
-        wakePhrases: ["hey jarvis"],
-      },
-      features: {
-        calendar: { enabled: false },
-        messaging: { enabled: true },
-        alarms: { enabled: true },
-      },
-    });
-    const { io, stdout } = createIo();
-
     await expect(
-      main(
-        [
-          "ask",
-          "--config",
-          configPath,
-          "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?",
-        ],
-        io,
-      ),
-    ).resolves.toBe(0);
-    expect(stdout).toEqual([
-      "I do not have an enabled feature for calendar.search_events.\n",
-    ]);
+      runAsk({
+        config: disabledCalendarConfig,
+        text: deterministicScenarios.unsupportedCalendar.text,
+      }),
+    ).resolves.toMatchObject({
+      exitCode: 0,
+      stdout: [`${deterministicScenarios.unsupportedCalendar.response.text}\n`],
+    });
   });
 
   it("returns usage for invalid input", async () => {
-    const { io, stdout, stderr } = createIo();
+    await expect(runCli(["ask"])).resolves.toEqual({
+      exitCode: 1,
+      stdout: [],
+      stderr: [
+        'Usage: personal-ai ask [--config path/to/config.json] "command text"\n',
+      ],
+    });
+  });
+
+  it("prints a graceful response and diagnostics when runtime setup fails", async () => {
+    await expect(
+      runAsk({
+        config: runtimeFailureConfig,
+        text: deterministicScenarios.alarmListEmpty.text,
+      }),
+    ).resolves.toEqual({
+      exitCode: 1,
+      stdout: [`${runtimeFailureResponse.text}\n`],
+      stderr: [`${runtimeFailureDiagnostic}\n`],
+    });
+  });
+
+  it("still supports direct injected IO for low-level CLI boundary coverage", async () => {
+    const { io, stdout, stderr } = createCliIo();
 
     await expect(main(["ask"], io)).resolves.toBe(1);
     expect(stdout).toEqual([]);
@@ -158,60 +141,4 @@ describe("personal-ai ask CLI", () => {
       'Usage: personal-ai ask [--config path/to/config.json] "command text"\n',
     ]);
   });
-
-  it("prints a graceful response and diagnostics when runtime setup fails", async () => {
-    const configPath = await writeConfig({
-      assistant: {
-        name: "",
-        wakePhrases: ["hey jarvis"],
-      },
-      features: {},
-    });
-    const { io, stdout, stderr } = createIo();
-
-    await expect(
-      main(["ask", "--config", configPath, "Hey Jarvis, list my alarms"], io),
-    ).resolves.toBe(1);
-    expect(stdout).toEqual(["I hit a problem and could not complete that.\n"]);
-    expect(stderr).toEqual([
-      "Runtime failure: Config assistant.name must be a non-empty string.\n",
-    ]);
-  });
 });
-
-function createIo(env: NodeJS.ProcessEnv = {}): {
-  io: Parameters<typeof main>[1];
-  stderr: string[];
-  stdout: string[];
-} {
-  const stdout: string[] = [];
-  const stderr: string[] = [];
-
-  return {
-    io: {
-      env,
-      stdout: createWriter(stdout),
-      stderr: createWriter(stderr),
-    },
-    stdout,
-    stderr,
-  };
-}
-
-function createWriter(writes: string[]): Pick<NodeJS.WriteStream, "write"> {
-  return {
-    write: (chunk: string | Uint8Array) => {
-      writes.push(String(chunk));
-      return true;
-    },
-  };
-}
-
-async function writeConfig(config: unknown): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), "personal-ai-cli-"));
-  const configPath = join(directory, "config.json");
-
-  await writeFile(configPath, JSON.stringify(config));
-
-  return configPath;
-}
