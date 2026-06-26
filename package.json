@@ -4,11 +4,15 @@
   "private": true,
   "type": "module",
   "description": "Local-first personal assistant built with a ports-and-adapters architecture.",
+  "bin": {
+    "personal-ai": "src/runtimes/cli/main.ts"
+  },
   "engines": {
     "node": ">=22.0.0",
     "npm": ">=10.0.0"
   },
   "scripts": {
+    "cli": "tsx src/runtimes/cli/main.ts",
     "test": "vitest",
     "lint": "eslint .",
     "format": "prettier . --write",
