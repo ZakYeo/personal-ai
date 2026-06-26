@@ -76,6 +76,11 @@ synthesized file through a configured command. Runtime failures preserve
 diagnostics internally and produce the same safe CLI/voice fallback behavior as
 the mock voice loop.
 
+Shared voice-turn orchestration, voice result metadata, and fallback semantics
+belong in neutral voice runtime modules. Mock voice and desktop voice runtimes
+should compose different adapters into the same shared loop rather than importing
+generic control-flow behavior from one runtime-specific module into another.
+
 ### Raspberry Pi Runtime
 
 The Raspberry Pi runtime is a later target.
@@ -153,6 +158,14 @@ features:
 
 The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in deterministic runtime currently uses JSON with `intent.provider`, `voice` adapter IDs, optional `desktopVoice` command settings, and per-feature `adapter` IDs. The important rule is that provider, voice, and feature selection must be configuration-driven. Text-only runtimes may ignore the `voice` and `desktopVoice` sections, but voice runtimes must reject missing or unregistered voice adapter IDs during composition. Desktop voice runtimes must also reject missing desktop command settings for selected command-based adapters. Desktop voice command adapters replace `{input}`, `{output}`, and `{text}` placeholders in configured argument values.
 
+Runtime composition should resolve broad optional configuration into
+runtime-specific validated shapes before adapter construction. For a voice
+runtime, the resolved shape should contain all required voice adapter IDs. For a
+desktop voice runtime, the resolved shape should also contain the command
+settings needed by selected command-based adapters. This keeps optional config
+handling at the boundary instead of spreading `undefined` checks through the
+runtime loop or adapter registry.
+
 ## Process Lifecycle
 
 Runtimes should own:
@@ -166,6 +179,7 @@ Runtimes should own:
 - Final catch-all error handling at the human interaction boundary.
 - Graceful response fallback for CLI, voice, and service loops.
 - Shared runtime-boundary fallback and diagnostic logging policy.
+- Canonical configuration selection and adapter lookup policy for the runtime.
 
 The assistant core should expose application behavior, not process lifecycle behavior.
 

@@ -21,6 +21,23 @@ The docs in `docs/` are the source of truth for implementation decisions:
 
 Keep `README.md`, `AGENTS.md`, and every document in `docs/` updated with the codebase. Any change to behavior, architecture, tooling, or workflow should include the matching documentation change in the same thin slice.
 
+## Architecture Rulings
+
+These generalized rules come from early code review findings and should guide
+future slices:
+
+- High-risk capabilities fail closed and require confirmation by default unless
+  a documented, tested exception justifies otherwise.
+- Shared runtime loops, result metadata, and fallback semantics live in neutral
+  runtime-owned modules rather than one runtime-specific module importing them
+  from another.
+- Adapter/config selection policy should be canonical: missing-config,
+  adapter-ID lookup, and unregistered-adapter handling should not drift across
+  duplicated registry helpers.
+- Runtime composition should resolve broad optional config into
+  runtime-specific validated shapes before constructing adapters or starting
+  loops.
+
 ## Current Status
 
 This repository has the deterministic assistant foundation, mock voice loop, and

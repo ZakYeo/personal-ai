@@ -79,6 +79,59 @@ Machine-specific command names, arguments, and timeouts belong in local config
 under the desktop voice settings and should not be hard-coded into the assistant
 core or checked-in deterministic default config.
 
+## Safety Defaults
+
+Capability safety should fail closed. A capability marked `risk: "high"` should
+require confirmation by default unless the documentation, capability metadata,
+and tests all make a narrower exception explicit. Runtime configuration may add
+confirmation requirements for lower-risk or environment-specific cases, but it
+should not silently downgrade the default safety posture of high-risk
+capabilities.
+
+Development or test fixtures may exercise an unconfirmed high-risk path only
+when the fixture name and test expectation make that override obvious. Production
+or user-facing default configuration should not depend on remembering to list
+every high-risk capability in `confirmationRequiredCapabilities`.
+
+## Shared Runtime Ownership
+
+When two runtimes share a control-loop behavior, result shape, fallback policy,
+or diagnostic contract, that behavior belongs in a neutral runtime-owned module.
+Do not make one runtime import shared orchestration from another runtime's
+environment-specific module, such as desktop voice importing the generic voice
+turn loop from a mock voice runtime module.
+
+Runtime-specific files should primarily compose dependencies, load or validate
+environment-specific configuration, and expose the runtime entry point. Shared
+loop semantics should have names that describe the shared concept, not the first
+runtime that happened to need them.
+
+## Canonical Selection Policy
+
+Configuration-driven selection logic should have one canonical implementation
+per policy. Adapter ID lookup, missing-config errors, and unregistered-adapter
+errors are runtime composition policy, not incidental helper code to duplicate
+inside every registry. When a new adapter family repeats the same selection
+shape, extract the selector before adding more branches.
+
+The same rule applies to safety policy, fallback policy, and config resolution:
+centralize the policy where drift would create inconsistent user-facing or
+operator-facing behavior.
+
+## Resolved Runtime Configuration
+
+Broad application config may represent optional sections because different
+runtimes need different settings. Runtime composition should narrow that broad
+config into a resolved runtime-specific type before constructing adapters or
+starting loops.
+
+For example, a text runtime may ignore missing voice config, but a voice runtime
+should resolve and validate a config shape where input, wake word,
+speech-to-text, text-to-speech, and audio output adapter IDs are present. A
+desktop voice runtime should similarly resolve command settings for the selected
+command-based adapters. Avoid carrying deeply optional config through code that
+requires those values; make the runtime boundary prove the invariant once.
+
 ## Allowed Responsibilities
 
 ### Core

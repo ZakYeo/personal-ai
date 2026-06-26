@@ -15,6 +15,10 @@
 - Follow the failure-handling rule documented in `docs/03-boundaries-and-rules.md` and `docs/04-runtime-plan.md`: low-level code may throw, but human-facing runtime boundaries must catch final failures, log useful diagnostics, and produce a graceful CLI/voice/service response whenever possible. Feature failure responses must preserve diagnostics internally without echoing raw provider, adapter, credential, or stack details to the user.
 - Runtime boundaries should use the assistant diagnostic-aware outcome path when they need internal diagnostics; keep `AssistantResponse` safe for humans.
 - Keep shared human-boundary fallback and diagnostic policy in the runtimes-owned helper instead of duplicating it across CLI, voice, or service loops.
+- High-risk capabilities should fail closed: mark them as requiring confirmation by default unless a documented, tested exception justifies otherwise.
+- Shared runtime control-loop behavior, result metadata, and fallback semantics should live in neutral runtime-owned modules, not in one runtime-specific module imported by another.
+- Keep adapter/config selection policy canonical. Do not duplicate missing-config, adapter-ID lookup, or unregistered-adapter handling across registries when one shared runtime helper can own it.
+- Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Voice runtimes must compose voice input, wake word, speech-to-text, text-to-speech, and audio output through configured adapter IDs; do not construct voice adapters as implicit defaults.
 - Desktop voice runtimes should use explicit local config for command-based STT/TTS and SoX input/output; keep machine-specific commands out of `config/default.json`.
 - Keep simulated spoken output separate from fallback text output; CLI boundaries should use explicit voice result metadata rather than inferring stdout writes from voice status.

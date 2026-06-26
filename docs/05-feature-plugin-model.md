@@ -81,6 +81,13 @@ Higher-risk actions should support confirmation before execution. The exact conf
 
 Milestone 1.5 intentionally uses a thin confirmation policy. If a capability requires confirmation, the assistant stops before feature execution and returns a yes/no confirmation prompt. It does not yet persist pending commands or resume them in a later turn.
 
+High-risk capability safety should fail closed. A capability marked
+`risk: "high"` should require confirmation by default unless the feature's
+documentation, metadata, and tests explicitly justify a narrower exception.
+Configuration may add confirmation requirements for environment-specific cases,
+but user-facing defaults should not rely on configuration remembering every
+high-risk capability.
+
 ## Feature Authoring Conventions
 
 Each feature should make its command contract explicit in `capabilities`.
@@ -89,7 +96,8 @@ For each capability:
 
 - Use a stable capability name such as `alarm.create`.
 - Set `risk` to `low` or `high`.
-- Set `requiresConfirmation` only when the feature itself should always stop before execution.
+- Set `requiresConfirmation` for high-risk capabilities unless there is an
+  explicit documented exception.
 - Declare expected command parameters with type metadata and required/minimum/positive rules.
 - Keep parameter validation generic where possible; domain-specific parsing belongs in the feature or adapter.
 
@@ -108,6 +116,7 @@ Tests for a new feature should cover:
 - Feature-local failure cases.
 - Assistant-level validation for malformed structured commands when the feature introduces new parameter shapes.
 - Confirmation behavior when the capability is risky or configured to require confirmation.
+- Any explicit no-confirmation exception for a high-risk capability.
 
 ## Initial Features
 
