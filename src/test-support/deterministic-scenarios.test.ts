@@ -15,12 +15,13 @@ describe("deterministic scenario fixtures", () => {
     expect(deterministicNowIso).toBe("2026-06-26T09:00:00.000Z");
     expect(deterministicNow.toISOString()).toBe(deterministicNowIso);
     expect(enabledDeterministicConfig.features).toEqual({
-      calendar: { enabled: true },
-      messaging: { enabled: true },
-      alarms: { enabled: true },
+      calendar: { enabled: true, adapter: "mock" },
+      messaging: { enabled: true, adapter: "mock" },
+      alarms: { enabled: true, adapter: "local" },
     });
     expect(defaultDeterministicConfig.features.alarms).toEqual({
       enabled: true,
+      adapter: "local",
       confirmationRequiredCapabilities: ["alarm.create"],
     });
     expect(disabledCalendarConfig.features.calendar).toEqual({

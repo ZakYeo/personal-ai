@@ -3,15 +3,21 @@
     "name": "Jarvis",
     "wakePhrases": ["hey jarvis"]
   },
+  "intent": {
+    "provider": "deterministic"
+  },
   "features": {
     "calendar": {
-      "enabled": true
+      "enabled": true,
+      "adapter": "mock"
     },
     "messaging": {
-      "enabled": true
+      "enabled": true,
+      "adapter": "mock"
     },
     "alarms": {
       "enabled": true,
+      "adapter": "local",
       "confirmationRequiredCapabilities": ["alarm.create"]
     }
   }

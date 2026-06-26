@@ -10,11 +10,15 @@ describe("loadConfig", () => {
         name: "Jarvis",
         wakePhrases: ["hey jarvis"],
       },
+      intent: {
+        provider: "deterministic",
+      },
       features: {
-        calendar: { enabled: true },
-        messaging: { enabled: true },
+        calendar: { enabled: true, adapter: "mock" },
+        messaging: { enabled: true, adapter: "mock" },
         alarms: {
           enabled: true,
+          adapter: "local",
           confirmationRequiredCapabilities: ["alarm.create"],
         },
       },
@@ -32,6 +36,9 @@ describe("loadConfig", () => {
           name: "Friday",
           wakePhrases: ["hey friday"],
         },
+        intent: {
+          provider: "deterministic",
+        },
         features: {
           calendar: { enabled: false },
         },
@@ -42,6 +49,9 @@ describe("loadConfig", () => {
       assistant: {
         name: "Friday",
         wakePhrases: ["hey friday"],
+      },
+      intent: {
+        provider: "deterministic",
       },
       features: {
         calendar: { enabled: false },
@@ -58,6 +68,9 @@ describe("parseAssistantConfig", () => {
           name: "",
           wakePhrases: ["hey jarvis"],
         },
+        intent: {
+          provider: "deterministic",
+        },
         features: {},
       }),
     ).toThrow("Config assistant.name must be a non-empty string.");
@@ -69,6 +82,9 @@ describe("parseAssistantConfig", () => {
         assistant: {
           name: "Jarvis",
           wakePhrases: ["hey jarvis"],
+        },
+        intent: {
+          provider: "deterministic",
         },
         features: {
           calendar: { enabled: "yes" },
@@ -84,9 +100,13 @@ describe("parseAssistantConfig", () => {
           name: "Jarvis",
           wakePhrases: ["hey jarvis"],
         },
+        intent: {
+          provider: "deterministic",
+        },
         features: {
           alarms: {
             enabled: true,
+            adapter: "local",
             confirmationRequiredCapabilities: ["alarm.create"],
           },
         },
@@ -96,9 +116,13 @@ describe("parseAssistantConfig", () => {
         name: "Jarvis",
         wakePhrases: ["hey jarvis"],
       },
+      intent: {
+        provider: "deterministic",
+      },
       features: {
         alarms: {
           enabled: true,
+          adapter: "local",
           confirmationRequiredCapabilities: ["alarm.create"],
         },
       },
@@ -112,6 +136,9 @@ describe("parseAssistantConfig", () => {
           name: "Jarvis",
           wakePhrases: ["hey jarvis"],
         },
+        intent: {
+          provider: "deterministic",
+        },
         features: {
           alarms: {
             enabled: true,
@@ -122,5 +149,34 @@ describe("parseAssistantConfig", () => {
     ).toThrow(
       'Config feature "alarms".confirmationRequiredCapabilities must be a string array.',
     );
+  });
+
+  it("rejects missing intent provider config", () => {
+    expect(() =>
+      parseAssistantConfig({
+        assistant: {
+          name: "Jarvis",
+          wakePhrases: ["hey jarvis"],
+        },
+        features: {},
+      }),
+    ).toThrow("Config intent section must be a JSON object.");
+  });
+
+  it("rejects invalid feature adapter IDs", () => {
+    expect(() =>
+      parseAssistantConfig({
+        assistant: {
+          name: "Jarvis",
+          wakePhrases: ["hey jarvis"],
+        },
+        intent: {
+          provider: "deterministic",
+        },
+        features: {
+          calendar: { enabled: true, adapter: "" },
+        },
+      }),
+    ).toThrow('Config feature "calendar".adapter must be a non-empty string.');
   });
 });

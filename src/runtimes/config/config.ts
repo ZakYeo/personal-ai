@@ -25,6 +25,7 @@ export function parseAssistantConfig(value: unknown): AssistantConfig {
   }
 
   const assistant = value.assistant;
+  const intent = value.intent;
   const features = value.features;
 
   if (!isRecord(assistant)) {
@@ -46,10 +47,21 @@ export function parseAssistantConfig(value: unknown): AssistantConfig {
     throw new Error("Config features section must be a JSON object.");
   }
 
+  if (!isRecord(intent)) {
+    throw new Error("Config intent section must be a JSON object.");
+  }
+
+  if (typeof intent.provider !== "string" || intent.provider.length === 0) {
+    throw new Error("Config intent.provider must be a non-empty string.");
+  }
+
   return {
     assistant: {
       name: assistant.name,
       wakePhrases: assistant.wakePhrases,
+    },
+    intent: {
+      provider: intent.provider,
     },
     features: parseFeatures(features),
   };
@@ -73,11 +85,33 @@ function parseFeatures(
 
     features[featureId] = {
       enabled: featureConfig.enabled,
+      ...parseFeatureAdapter(featureId, featureConfig),
       ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
     };
   }
 
   return features;
+}
+
+function parseFeatureAdapter(
+  featureId: string,
+  featureConfig: Record<string, unknown>,
+): Pick<AssistantConfig["features"][string], "adapter"> {
+  const value = featureConfig.adapter;
+
+  if (value === undefined) {
+    return {};
+  }
+
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(
+      `Config feature "${featureId}".adapter must be a non-empty string.`,
+    );
+  }
+
+  return {
+    adapter: value,
+  };
 }
 
 function parseConfirmationRequiredCapabilities(

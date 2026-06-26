@@ -15,6 +15,7 @@ Included:
 - Local/in-memory alarm feature.
 - CLI runtime for text input.
 - Config loading.
+- Config-driven deterministic runtime composition for intent provider and feature adapter IDs.
 - Unit tests for example commands.
 - Dependency graph enforcement.
 

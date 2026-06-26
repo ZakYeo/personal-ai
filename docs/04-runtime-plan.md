@@ -75,9 +75,8 @@ voice:
   text_to_speech: mock
   voice_id: default
 
-llm:
-  provider: mock
-  model: deterministic-v1
+intent:
+  provider: deterministic
 
 features:
   calendar:
@@ -91,7 +90,7 @@ features:
     adapter: local
 ```
 
-The final format can be JSON, YAML, TOML, or TypeScript config. The important rule is that provider and feature selection must be configuration-driven.
+The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in deterministic runtime currently uses JSON with `intent.provider` and per-feature `adapter` IDs. The important rule is that provider and feature selection must be configuration-driven.
 
 ## Process Lifecycle
 

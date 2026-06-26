@@ -33,6 +33,9 @@ export function createAssistantConfig(
       name: "Jarvis",
       wakePhrases: ["hey jarvis"],
     },
+    intent: {
+      provider: "deterministic",
+    },
     features,
   };
 }

@@ -19,6 +19,9 @@ describe("feature contract test support", () => {
         name: "Jarvis",
         wakePhrases: ["hey jarvis"],
       },
+      intent: {
+        provider: "deterministic",
+      },
       features: {
         test: { enabled: true },
       },

@@ -5,16 +5,17 @@ export const deterministicNow = new Date("2026-06-26T09:00:00.000Z");
 export const deterministicNowIso = deterministicNow.toISOString();
 
 export const enabledDeterministicConfig = createAssistantConfig({
-  calendar: { enabled: true },
-  messaging: { enabled: true },
-  alarms: { enabled: true },
+  calendar: { enabled: true, adapter: "mock" },
+  messaging: { enabled: true, adapter: "mock" },
+  alarms: { enabled: true, adapter: "local" },
 });
 
 export const defaultDeterministicConfig = createAssistantConfig({
-  calendar: { enabled: true },
-  messaging: { enabled: true },
+  calendar: { enabled: true, adapter: "mock" },
+  messaging: { enabled: true, adapter: "mock" },
   alarms: {
     enabled: true,
+    adapter: "local",
     confirmationRequiredCapabilities: ["alarm.create"],
   },
 });
@@ -85,14 +86,17 @@ export const deterministicScenarios = {
 
 export const disabledCalendarConfig: AssistantConfig = createAssistantConfig({
   calendar: { enabled: false },
-  messaging: { enabled: true },
-  alarms: { enabled: true },
+  messaging: { enabled: true, adapter: "mock" },
+  alarms: { enabled: true, adapter: "local" },
 });
 
 export const runtimeFailureConfig: AssistantConfig = {
   assistant: {
     name: "",
     wakePhrases: ["hey jarvis"],
+  },
+  intent: {
+    provider: "deterministic",
   },
   features: {},
 };

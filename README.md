@@ -19,7 +19,7 @@ The docs in `docs/` are the source of truth for implementation decisions:
 
 ## Current Status
 
-This repository has the deterministic Milestone 1 assistant foundation: TypeScript tooling, architecture checks, a text CLI runtime, deterministic intent interpretation, mock calendar and messaging features, and local in-memory alarm storage behind an adapter-owned port implementation.
+This repository has the deterministic Milestone 1 assistant foundation: TypeScript tooling, architecture checks, a text CLI runtime, config-driven deterministic intent and feature adapter composition, mock calendar and messaging features, and local in-memory alarm storage behind an adapter-owned port implementation.
 
 ## Development
 

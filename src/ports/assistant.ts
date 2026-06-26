@@ -27,10 +27,14 @@ export interface AssistantConfig {
     name: string;
     wakePhrases: string[];
   };
+  intent: {
+    provider: string;
+  };
   features: Record<
     string,
     {
       enabled: boolean;
+      adapter?: string;
       confirmationRequiredCapabilities?: string[];
     }
   >;

@@ -60,4 +60,47 @@ describe("createDeterministicRuntime", () => {
       assistant.handleText(deterministicScenarios.alarmListEmpty.text),
     ).resolves.toEqual(deterministicScenarios.alarmListEmpty.response);
   });
+
+  it("rejects unknown intent providers during composition", async () => {
+    await expect(
+      createDeterministicRuntime({
+        config: {
+          ...enabledDeterministicConfig,
+          intent: { provider: "unknown" },
+        },
+      }),
+    ).rejects.toThrow('Config intent.provider "unknown" is not registered.');
+  });
+
+  it("rejects enabled features without registered adapters", async () => {
+    await expect(
+      createDeterministicRuntime({
+        config: {
+          ...enabledDeterministicConfig,
+          features: {
+            ...enabledDeterministicConfig.features,
+            calendar: { enabled: true, adapter: "unknown" },
+          },
+        },
+      }),
+    ).rejects.toThrow(
+      'Config feature "calendar" adapter "unknown" is not registered.',
+    );
+  });
+
+  it("rejects enabled features without adapter IDs", async () => {
+    await expect(
+      createDeterministicRuntime({
+        config: {
+          ...enabledDeterministicConfig,
+          features: {
+            ...enabledDeterministicConfig.features,
+            calendar: { enabled: true },
+          },
+        },
+      }),
+    ).rejects.toThrow(
+      'Config feature "calendar".adapter must be set for enabled features.',
+    );
+  });
 });
