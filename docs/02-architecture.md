@@ -101,6 +101,7 @@ Expected ports include:
 - `ClockPort`
 - `ConfigPort`
 - `MemoryPort`
+- `AlarmStore`
 
 ## Adapters
 
@@ -113,7 +114,7 @@ Initial adapters should be deterministic and local:
 - Mock text-to-speech adapter.
 - Mock calendar adapter.
 - Mock messaging adapter.
-- Local/in-memory alarm adapter.
+- Local/in-memory alarm storage adapter implementing the alarm store port.
 
 Later adapters can integrate with real providers:
 

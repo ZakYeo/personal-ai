@@ -1,9 +1,7 @@
 import { createAssistant } from "../core/assistant/index.js";
 import { DeterministicIntentInterpreter } from "../adapters/mock/deterministic-intent-interpreter.js";
-import {
-  createAlarmFeature,
-  createInMemoryAlarmStore,
-} from "../features/alarms/alarm-feature.js";
+import { createInMemoryAlarmStore } from "../adapters/local/in-memory-alarm-store.js";
+import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
 import { createCalendarFeature } from "../features/calendar/calendar-feature.js";
 import { createMessagingFeature } from "../features/messaging/messaging-feature.js";
 import type { Assistant } from "../core/assistant/index.js";

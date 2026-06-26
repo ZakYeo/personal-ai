@@ -1,7 +1,5 @@
-import {
-  createAlarmFeature,
-  createInMemoryAlarmStore,
-} from "./alarm-feature.js";
+import { createAlarmFeature } from "./alarm-feature.js";
+import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
 import {
   createFeatureCommand,
   createFeatureContext,
@@ -14,7 +12,7 @@ const context = createFeatureContext();
 
 describe("createAlarmFeature", () => {
   it("declares alarm capability metadata", () => {
-    const feature = createAlarmFeature(createInMemoryAlarmStore());
+    const feature = createAlarmFeature(createTestAlarmStore());
 
     expectCapabilityMetadata(feature, {
       name: "alarm.create",
@@ -33,7 +31,7 @@ describe("createAlarmFeature", () => {
   });
 
   it("handles alarm create and list commands", () => {
-    const feature = createAlarmFeature(createInMemoryAlarmStore());
+    const feature = createAlarmFeature(createTestAlarmStore());
 
     expectFeatureHandles(feature, "alarm.create", "calendar.search_events");
     expectFeatureHandles(feature, "alarm.list", "calendar.search_events");
@@ -41,7 +39,7 @@ describe("createAlarmFeature", () => {
 
   it("creates deterministic alarms using the injected clock", async () => {
     await expectFeatureExecution(
-      createAlarmFeature(createInMemoryAlarmStore()),
+      createAlarmFeature(createTestAlarmStore()),
       createFeatureCommand("alarm.create", {
         label: "ping me",
         minutesFromNow: 10,
@@ -63,7 +61,7 @@ describe("createAlarmFeature", () => {
   });
 
   it("lists alarms from the in-memory store", async () => {
-    const feature = createAlarmFeature(createInMemoryAlarmStore());
+    const feature = createAlarmFeature(createTestAlarmStore());
 
     await feature.execute(
       createFeatureCommand("alarm.create", {
@@ -86,7 +84,7 @@ describe("createAlarmFeature", () => {
 
   it("returns a deterministic empty-list response", async () => {
     await expectFeatureExecution(
-      createAlarmFeature(createInMemoryAlarmStore()),
+      createAlarmFeature(createTestAlarmStore()),
       createFeatureCommand("alarm.list"),
       {},
       {
@@ -96,3 +94,14 @@ describe("createAlarmFeature", () => {
     );
   });
 });
+
+function createTestAlarmStore(): AlarmStore {
+  const alarms: AlarmRecord[] = [];
+
+  return {
+    add: (alarm) => {
+      alarms.push(alarm);
+    },
+    list: () => [...alarms],
+  };
+}

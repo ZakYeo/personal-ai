@@ -7,28 +7,7 @@ import type {
   FeaturePlugin,
   FeatureResult,
 } from "../../ports/feature.js";
-
-interface AlarmRecord {
-  id: string;
-  label: string;
-  scheduledFor: string;
-}
-
-interface AlarmStore {
-  add(alarm: AlarmRecord): void;
-  list(): AlarmRecord[];
-}
-
-export function createInMemoryAlarmStore(): AlarmStore {
-  const alarms: AlarmRecord[] = [];
-
-  return {
-    add: (alarm) => {
-      alarms.push(alarm);
-    },
-    list: () => [...alarms],
-  };
-}
+import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
 
 export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
   return {

@@ -73,6 +73,7 @@ Voice response is a best-effort invariant: an exception in command handling shou
 - Hardware or OS-specific behavior.
 - Provider SDK usage.
 - Mock implementations.
+- Local persistence implementations behind application-owned ports.
 - Translating external data into application-owned types.
 
 ### Runtimes
