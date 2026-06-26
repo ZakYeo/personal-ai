@@ -26,14 +26,20 @@
 - Development should follow TDD in thin slices: each slice starts with a focused failing test or test update, ends with passing validation for that slice, and is committed as one singular commit.
 - Always add or update tests for implementation changes.
 - Add integration tests when a change spans multiple parts of the system, such as multiple adapters, ports, application services, runtime boundaries, feature plugins, or CLI/service flows.
+- Each production layer should have a matching test-support layer, and tests should exercise the narrowest public boundary that proves the behavior.
 - Use the layered helpers in `src/test-support/` when they fit:
   - `core-assistant.ts` for core assistant config, clocks, commands, interpreters, and decoded-args feature fixtures.
   - `feature-contract.ts` for feature command/context builders, metadata, handling, execution, and rejection expectations.
   - `deterministic-scenarios.ts` for named deterministic command/config/response fixtures.
   - `cli.ts` for CLI runtime-boundary tests with captured IO, temporary config files, and deterministic `ask` invocations.
+- Add focused harness helpers before repeated setup spreads across tests, especially for cross-layer runtime, voice, service, adapter, or feature composition.
+- Keep scenario data separate from runtime composition helpers whenever possible.
+- Harness helpers should compose dependencies and remove setup noise without hiding the behavior under test.
 - Keep runtime-boundary tests human-facing: assert captured stdout/stderr, exit codes, and graceful failure responses rather than bypassing the CLI boundary.
 - Feature fixture handlers should use decoded `request.args` by default; use raw feature plugin fixtures only when a test explicitly covers lower-level contract behavior.
-- Do not collapse test support into one global harness; keep helpers layered by core, feature, deterministic scenario, and runtime/CLI responsibility.
+- Do not collapse test support into one global harness; keep helpers layered by core, feature contract, deterministic scenario, CLI, voice runtime, adapter contract, service runtime, and similar responsibilities.
+- Production code must not import from `src/test-support/`.
+- Prefer future slices whose diffs stay localized to one production module, one matching test file, one focused harness file if needed, and the relevant docs.
 
 ## Development Scripts
 

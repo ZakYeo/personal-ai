@@ -98,4 +98,15 @@ Shared test utilities live in `src/test-support/` and are layered by responsibil
 - `deterministic-scenarios.ts` - named deterministic command, config, response, and runtime-failure fixtures.
 - `cli.ts` - runtime-boundary helpers for captured stdout/stderr, temporary config files, and deterministic `ask` invocations.
 
-Prefer these helpers for new tests when they remove setup duplication, but keep behavior-specific assertions visible in the test that owns them. Feature fixtures should exercise decoded `request.args` by default; use raw plugin fixtures only for tests that intentionally cover malformed or lower-level feature contracts.
+Each production layer should have a matching test-support layer, and tests
+should exercise the narrowest public boundary that proves the behavior. Prefer
+these helpers for new tests when they remove setup duplication, but keep
+behavior-specific assertions visible in the test that owns them. Add focused
+harness helpers before repeated setup spreads across tests, especially for
+cross-layer runtime, voice, service, adapter, or feature composition. Keep
+scenario data separate from runtime composition helpers whenever possible.
+
+Feature fixtures should exercise decoded `request.args` by default; use raw
+plugin fixtures only for tests that intentionally cover malformed or lower-level
+feature contracts. Production code must not import from `src/test-support/`, and
+test support should stay layered instead of becoming one global harness.

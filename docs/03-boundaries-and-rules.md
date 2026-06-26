@@ -8,6 +8,22 @@ This document defines the modularity rules for the repository. These rules shoul
 
 Implementation work should be broken into thin, committable TDD slices. Each slice starts with a focused failing test or test update, implements the smallest change that passes, updates matching documentation, and lands as one singular commit.
 
+## Harness Design Rules
+
+Each architectural layer should have a matching test-support layer, and tests should exercise the narrowest public boundary that proves the behavior.
+
+- Core tests should use core assistant harness helpers.
+- Feature tests should use feature contract helpers and decoded `request.args` by default.
+- Runtime tests should use runtime harness helpers and assert runtime-level outcomes.
+- CLI tests should assert captured stdout, stderr, exit codes, and graceful fallback text.
+- Voice tests should assert voice-turn results, spoken output metadata, fallback output, and diagnostics.
+- Scenario fixtures should stay separate from runtime composition helpers.
+- Shared setup that crosses ports, adapters, runtimes, or features should move into a focused `src/test-support/` helper before it spreads across multiple tests.
+- Test-support helpers should compose dependencies and remove setup noise without hiding the behavior under test.
+- Do not collapse test support into one global harness; keep helpers layered by core, feature contract, deterministic scenario, CLI, voice runtime, adapter contract, service runtime, and similar responsibilities.
+- Production code must not import from `src/test-support/`.
+- New feature, adapter, or runtime slices should usually touch one production module, one matching test file, one focused harness file if needed, and the relevant docs.
+
 ## Dependency Direction
 
 The intended dependency direction is:
