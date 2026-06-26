@@ -53,9 +53,9 @@ Useful scripts:
 
 Shared test utilities live in `src/test-support/` and are layered by responsibility:
 
-- `core-assistant.ts` - assistant config, clock, command, interpreter, and feature builders for core pipeline tests.
+- `core-assistant.ts` - assistant config, clock, command, interpreter, and decoded-args feature builders for core pipeline tests.
 - `feature-contract.ts` - feature command/context builders plus helpers for capability metadata, handling, execution, and rejection expectations.
 - `deterministic-scenarios.ts` - named deterministic command, config, response, and runtime-failure fixtures.
 - `cli.ts` - runtime-boundary helpers for captured stdout/stderr, temporary config files, and deterministic `ask` invocations.
 
-Prefer these helpers for new tests when they remove setup duplication, but keep behavior-specific assertions visible in the test that owns them.
+Prefer these helpers for new tests when they remove setup duplication, but keep behavior-specific assertions visible in the test that owns them. Feature fixtures should exercise decoded `request.args` by default; use raw plugin fixtures only for tests that intentionally cover malformed or lower-level feature contracts.

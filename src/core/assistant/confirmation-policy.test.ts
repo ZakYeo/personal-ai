@@ -58,8 +58,6 @@ function createFeature(id: string): FeaturePlugin {
   return createTestFeature({
     id,
     displayName: id,
-    capabilities: [],
-    execute: () => Promise.resolve({ text: "unused" }),
   });
 }
 

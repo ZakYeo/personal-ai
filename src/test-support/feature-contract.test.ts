@@ -7,7 +7,7 @@ import {
   expectFeatureRejects,
   featureContractNow,
 } from "./feature-contract.js";
-import type { FeaturePlugin } from "../ports/feature.js";
+import { defineCapability, defineFeature } from "../ports/feature.js";
 
 describe("feature contract test support", () => {
   it("creates feature contexts with a fixed clock and default config", () => {
@@ -30,20 +30,13 @@ describe("feature contract test support", () => {
 
   it("asserts capability metadata and feature behavior", async () => {
     const feature = createFeature({
-      capabilities: [
-        {
-          name: "test.echo",
-          risk: "low",
-          parameters: { message: { type: "string", required: true } },
-        },
-      ],
       execute: (request) => {
-        if (request.command.parameters.message === "fail") {
+        if (request.args.message === "fail") {
           return Promise.reject(new Error("fixture failure"));
         }
 
         return Promise.resolve({
-          text: String(request.command.parameters.message),
+          text: request.args.message,
         });
       },
     });
@@ -69,13 +62,22 @@ describe("feature contract test support", () => {
   });
 });
 
-function createFeature(
-  overrides: Pick<FeaturePlugin, "capabilities" | "execute"> &
-    Pick<Partial<FeaturePlugin>, "canHandle">,
-): FeaturePlugin {
-  return {
+function createFeature(overrides: {
+  execute: Parameters<
+    typeof defineCapability<{
+      message: { type: "string"; required: true };
+    }>
+  >[0]["execute"];
+}) {
+  return defineFeature({
     id: "test",
     displayName: "Test",
-    ...overrides,
-  };
+    capabilities: {
+      "test.echo": defineCapability({
+        risk: "low",
+        parameters: { message: { type: "string", required: true } },
+        execute: overrides.execute,
+      }),
+    },
+  });
 }

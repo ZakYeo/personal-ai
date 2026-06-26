@@ -22,15 +22,13 @@ describe("createAssistant", () => {
       Promise.resolve({ text: "Handled deterministically." }),
     );
     const feature = createFeature({
-      capabilities: [
-        {
-          name: "test.echo",
-          risk: "low",
-          parameters: {
-            message: { type: "string", required: true },
-          },
+      capability: {
+        name: "test.echo",
+        risk: "low",
+        parameters: {
+          message: { type: "string", required: true },
         },
-      ],
+      },
       execute,
     });
     const assistant = createAssistant({
@@ -166,15 +164,13 @@ describe("createAssistant", () => {
   it("returns an invalid response without executing a malformed command", async () => {
     const execute = vi.fn(() => Promise.resolve({ text: "Should not run." }));
     const feature = createFeature({
-      capabilities: [
-        {
-          name: "test.echo",
-          risk: "low",
-          parameters: {
-            message: { type: "string", required: true },
-          },
+      capability: {
+        name: "test.echo",
+        risk: "low",
+        parameters: {
+          message: { type: "string", required: true },
         },
-      ],
+      },
       execute,
     });
     const assistant = createAssistant({
@@ -194,15 +190,13 @@ describe("createAssistant", () => {
   it("does not execute commands with non-finite numeric parameters", async () => {
     const execute = vi.fn(() => Promise.resolve({ text: "Should not run." }));
     const feature = createFeature({
-      capabilities: [
-        {
-          name: "test.echo",
-          risk: "low",
-          parameters: {
-            count: { type: "number", required: true },
-          },
+      capability: {
+        name: "test.echo",
+        risk: "low",
+        parameters: {
+          count: { type: "number", required: true },
         },
-      ],
+      },
       execute,
     });
     const assistant = createAssistant({

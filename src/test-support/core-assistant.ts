@@ -7,10 +7,14 @@ import type {
 } from "../ports/assistant.js";
 import type {
   FeatureArguments,
+  FeatureArgsFromParameters,
+  FeatureCapability,
+  FeatureCapabilityParameters,
   FeatureExecutionRequest,
   FeaturePlugin,
   FeatureResult,
 } from "../ports/feature.js";
+import { defineCapability, defineFeature } from "../ports/feature.js";
 import type {
   IntentInterpretation,
   IntentInterpreterPort,
@@ -86,7 +90,58 @@ export function createInterpreter(
   };
 }
 
-export function createFeature(
+export function createFeature<
+  const TParameters extends FeatureCapabilityParameters = Record<string, never>,
+>(overrides: TestFeatureOverrides<TParameters> = {}): FeaturePlugin {
+  const capability = overrides.capability ?? {
+    name: "test.echo",
+    risk: "low",
+    parameters: {} as TParameters,
+  };
+  const parameters = capability.parameters ?? ({} as TParameters);
+  const execute =
+    overrides.execute ??
+    (() =>
+      Promise.resolve({
+        text: "Handled.",
+      }));
+
+  return defineFeature({
+    id: overrides.id ?? "test",
+    displayName: overrides.displayName ?? "Test",
+    capabilities: {
+      [capability.name]: defineCapability({
+        risk: capability.risk,
+        ...(capability.requiresConfirmation === undefined
+          ? {}
+          : { requiresConfirmation: capability.requiresConfirmation }),
+        parameters,
+        execute,
+      }),
+    },
+    ...(overrides.canHandle ? { canHandle: overrides.canHandle } : {}),
+  });
+}
+
+interface TestFeatureOverrides<
+  TParameters extends FeatureCapabilityParameters = FeatureCapabilityParameters,
+> {
+  id?: string;
+  displayName?: string;
+  canHandle?: (command: AssistantCommand, context: AssistantContext) => boolean;
+  capability?: Omit<FeatureCapability, "parameters"> & {
+    parameters?: TParameters;
+  };
+  execute?: (
+    request: FeatureExecutionRequest<
+      string,
+      FeatureArgsFromParameters<TParameters>
+    >,
+    context: AssistantContext,
+  ) => Promise<FeatureResult>;
+}
+
+export function createRawFeature(
   overrides: Partial<{
     id: string;
     displayName: string;
