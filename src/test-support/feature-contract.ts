@@ -2,24 +2,50 @@ import type {
   AssistantCommand,
   AssistantConfig,
   AssistantContext,
+  AssistantCommandParameters,
 } from "../ports/assistant.js";
 import type {
   FeatureCapability,
   FeaturePlugin,
   FeatureResult,
 } from "../ports/feature.js";
-import {
-  createAssistantConfig,
-  createCommand,
-  createFixedClock,
-} from "./core-assistant.js";
+
+export const featureContractNow = new Date("2026-06-26T09:00:00.000Z");
 
 export function createFeatureContext(
-  config: AssistantConfig = createAssistantConfig(),
+  config: AssistantConfig = createFeatureConfig(),
 ): AssistantContext {
   return {
-    clock: createFixedClock(),
+    clock: {
+      now: () => featureContractNow,
+    },
     config,
+  };
+}
+
+function createFeatureConfig(
+  features: AssistantConfig["features"] = {
+    test: { enabled: true },
+  },
+): AssistantConfig {
+  return {
+    assistant: {
+      name: "Jarvis",
+      wakePhrases: ["hey jarvis"],
+    },
+    features,
+  };
+}
+
+export function createFeatureCommand(
+  capability: string,
+  parameters: AssistantCommandParameters = {},
+  rawText = "feature command",
+): AssistantCommand {
+  return {
+    capability,
+    parameters,
+    rawText,
   };
 }
 
@@ -36,12 +62,12 @@ export function expectFeatureHandles(
   unsupportedCapability: string,
   context: AssistantContext = createFeatureContext(),
 ): void {
-  expect(feature.canHandle(createCommand(supportedCapability), context)).toBe(
-    true,
-  );
-  expect(feature.canHandle(createCommand(unsupportedCapability), context)).toBe(
-    false,
-  );
+  expect(
+    feature.canHandle(createFeatureCommand(supportedCapability), context),
+  ).toBe(true);
+  expect(
+    feature.canHandle(createFeatureCommand(unsupportedCapability), context),
+  ).toBe(false);
 }
 
 export async function expectFeatureExecution(

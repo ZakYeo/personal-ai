@@ -1,17 +1,19 @@
 import {
+  createFeatureCommand,
   createFeatureContext,
   expectCapabilityMetadata,
   expectFeatureExecution,
   expectFeatureHandles,
   expectFeatureRejects,
+  featureContractNow,
 } from "./feature-contract.js";
-import { createCommand, createFeature } from "./core-assistant.js";
+import type { FeaturePlugin } from "../ports/feature.js";
 
 describe("feature contract test support", () => {
   it("creates feature contexts with a fixed clock and default config", () => {
     const context = createFeatureContext();
 
-    expect(context.clock.now()).toEqual(new Date("2026-06-26T09:00:00.000Z"));
+    expect(context.clock.now()).toEqual(featureContractNow);
     expect(context.config).toEqual({
       assistant: {
         name: "Jarvis",
@@ -50,13 +52,23 @@ describe("feature contract test support", () => {
     expectFeatureHandles(feature, "test.echo", "calendar.search_events");
     await expectFeatureExecution(
       feature,
-      createCommand("test.echo", { message: "hello" }),
+      createFeatureCommand("test.echo", { message: "hello" }),
       { text: "hello" },
     );
     await expectFeatureRejects(
       feature,
-      createCommand("test.echo", { message: "fail" }),
+      createFeatureCommand("test.echo", { message: "fail" }),
       "fixture failure",
     );
   });
 });
+
+function createFeature(
+  overrides: Pick<FeaturePlugin, "capabilities" | "canHandle" | "execute">,
+): FeaturePlugin {
+  return {
+    id: "test",
+    displayName: "Test",
+    ...overrides,
+  };
+}

@@ -1,6 +1,6 @@
 import { createCalendarFeature } from "./calendar-feature.js";
-import { createCommand } from "../../test-support/core-assistant.js";
 import {
+  createFeatureCommand,
   createFeatureContext,
   expectCapabilityMetadata,
   expectFeatureExecution,
@@ -32,7 +32,9 @@ describe("createCalendarFeature", () => {
   it("returns the fixture wedding date", async () => {
     await expectFeatureExecution(
       createCalendarFeature(),
-      createCommand("calendar.search_events", { query: "upcoming wedding" }),
+      createFeatureCommand("calendar.search_events", {
+        query: "upcoming wedding",
+      }),
       {
         text: "The upcoming wedding is on 2026-09-12.",
         data: {
@@ -48,7 +50,7 @@ describe("createCalendarFeature", () => {
   it("returns a deterministic no-match response", async () => {
     await expectFeatureExecution(
       createCalendarFeature(),
-      createCommand("calendar.search_events", { query: "dentist" }),
+      createFeatureCommand("calendar.search_events", { query: "dentist" }),
       {
         text: 'I could not find a calendar event matching "dentist".',
       },

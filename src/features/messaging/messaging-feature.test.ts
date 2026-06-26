@@ -1,6 +1,6 @@
 import { createMessagingFeature } from "./messaging-feature.js";
-import { createCommand } from "../../test-support/core-assistant.js";
 import {
+  createFeatureCommand,
   createFeatureContext,
   expectCapabilityMetadata,
   expectFeatureExecution,
@@ -32,7 +32,7 @@ describe("createMessagingFeature", () => {
   it("creates a deterministic draft without sending", async () => {
     await expectFeatureExecution(
       createMessagingFeature(),
-      createCommand("messaging.draft_reply", { channel: "whatsapp" }),
+      createFeatureCommand("messaging.draft_reply", { channel: "whatsapp" }),
       {
         text: 'Drafted a whatsapp reply: "Thanks for the message. I will take a look and get back to you shortly."',
         data: {

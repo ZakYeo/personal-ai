@@ -52,7 +52,7 @@ Useful scripts:
 Shared test utilities live in `src/test-support/` and are layered by responsibility:
 
 - `core-assistant.ts` - assistant config, clock, command, interpreter, and feature builders for core pipeline tests.
-- `feature-contract.ts` - helpers for feature capability metadata, handling, execution, and rejection expectations.
+- `feature-contract.ts` - feature command/context builders plus helpers for capability metadata, handling, execution, and rejection expectations.
 - `deterministic-scenarios.ts` - named deterministic command, config, response, and runtime-failure fixtures.
 - `cli.ts` - runtime-boundary helpers for captured stdout/stderr, temporary config files, and deterministic `ask` invocations.
 

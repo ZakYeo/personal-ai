@@ -2,8 +2,8 @@ import {
   createAlarmFeature,
   createInMemoryAlarmStore,
 } from "./alarm-feature.js";
-import { createCommand } from "../../test-support/core-assistant.js";
 import {
+  createFeatureCommand,
   createFeatureContext,
   expectCapabilityMetadata,
   expectFeatureExecution,
@@ -35,19 +35,24 @@ describe("createAlarmFeature", () => {
   it("handles alarm create and list commands", () => {
     const feature = createAlarmFeature(createInMemoryAlarmStore());
 
-    expect(feature.canHandle(createCommand("alarm.create"), context)).toBe(
+    expect(
+      feature.canHandle(createFeatureCommand("alarm.create"), context),
+    ).toBe(true);
+    expect(feature.canHandle(createFeatureCommand("alarm.list"), context)).toBe(
       true,
     );
-    expect(feature.canHandle(createCommand("alarm.list"), context)).toBe(true);
     expect(
-      feature.canHandle(createCommand("calendar.search_events"), context),
+      feature.canHandle(
+        createFeatureCommand("calendar.search_events"),
+        context,
+      ),
     ).toBe(false);
   });
 
   it("creates deterministic alarms using the injected clock", async () => {
     await expectFeatureExecution(
       createAlarmFeature(createInMemoryAlarmStore()),
-      createCommand("alarm.create", {
+      createFeatureCommand("alarm.create", {
         label: "ping me",
         minutesFromNow: 10,
       }),
@@ -67,7 +72,7 @@ describe("createAlarmFeature", () => {
     const feature = createAlarmFeature(createInMemoryAlarmStore());
 
     await feature.execute(
-      createCommand("alarm.create", {
+      createFeatureCommand("alarm.create", {
         label: "ping me",
         minutesFromNow: 10,
       }),
@@ -75,7 +80,7 @@ describe("createAlarmFeature", () => {
     );
 
     await expect(
-      feature.execute(createCommand("alarm.list"), context),
+      feature.execute(createFeatureCommand("alarm.list"), context),
     ).resolves.toEqual({
       text: "Alarms: alarm-1 at 2026-06-26T09:10:00.000Z (ping me).",
     });
@@ -84,7 +89,7 @@ describe("createAlarmFeature", () => {
   it("returns a deterministic empty-list response", async () => {
     await expectFeatureExecution(
       createAlarmFeature(createInMemoryAlarmStore()),
-      createCommand("alarm.list"),
+      createFeatureCommand("alarm.list"),
       {
         text: "There are no alarms set.",
       },
@@ -101,7 +106,7 @@ describe("createAlarmFeature", () => {
   ])("rejects %s alarm timing", async (_caseName, parameters) => {
     await expectFeatureRejects(
       createAlarmFeature(createInMemoryAlarmStore()),
-      createCommand("alarm.create", parameters),
+      createFeatureCommand("alarm.create", parameters),
       "Alarm minutesFromNow must be a positive finite number.",
       context,
     );
