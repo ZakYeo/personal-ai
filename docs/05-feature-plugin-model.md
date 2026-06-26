@@ -79,6 +79,30 @@ Higher-risk examples:
 
 Higher-risk actions should support confirmation before execution. The exact confirmation model can be implemented later, but the feature contract should leave room for it.
 
+Milestone 1.5 intentionally uses a thin confirmation policy. If a capability requires confirmation, the assistant stops before feature execution and returns a yes/no confirmation prompt. It does not yet persist pending commands or resume them in a later turn.
+
+## Feature Authoring Conventions
+
+Each feature should make its command contract explicit in `capabilities`.
+
+For each capability:
+
+- Use a stable capability name such as `alarm.create`.
+- Set `risk` to `low` or `high`.
+- Set `requiresConfirmation` only when the feature itself should always stop before execution.
+- Declare expected command parameters with type metadata and required/minimum/positive rules.
+- Keep parameter validation generic where possible; domain-specific parsing belongs in the feature or adapter.
+
+Feature execution should assume the core has already selected an enabled feature, matched capability metadata, validated structured command parameters, and applied confirmation policy. Feature code may still throw if its own responsibility cannot be completed; runtime-facing boundaries map final failures into graceful assistant responses.
+
+Tests for a new feature should cover:
+
+- The feature capability metadata.
+- Valid command execution.
+- Feature-local failure cases.
+- Assistant-level validation for malformed structured commands when the feature introduces new parameter shapes.
+- Confirmation behavior when the capability is risky or configured to require confirmation.
+
 ## Initial Features
 
 The initial deterministic features should be:
@@ -128,7 +152,7 @@ Hey Jarvis, set an alarm to ping me in 10 minutes.
 Expected behavior:
 
 ```text
-Create a deterministic alarm record and return confirmation.
+Create a deterministic alarm record only after confirmation policy allows execution.
 ```
 
 ## Feature Registration
