@@ -1,34 +1,34 @@
 import type {
-  FeatureExecutionRequest,
+  FeatureArgsFromParameters,
+  FeatureCapabilityParameters,
   FeaturePlugin,
   FeatureResult,
 } from "../../ports/feature.js";
+import { defineCapability, defineFeature } from "../../ports/feature.js";
 
-type MessagingDraftReplyRequest = FeatureExecutionRequest<
-  "messaging.draft_reply",
-  {
-    channel?: string;
-  }
+const messagingDraftReplyParameters = {
+  channel: { type: "string" },
+} as const satisfies FeatureCapabilityParameters;
+
+type MessagingDraftReplyArgs = FeatureArgsFromParameters<
+  typeof messagingDraftReplyParameters
 >;
 
-export function createMessagingFeature(): FeaturePlugin<MessagingDraftReplyRequest> {
-  return {
+export function createMessagingFeature(): FeaturePlugin {
+  return defineFeature({
     id: "messaging",
     displayName: "Mock Messaging",
-    capabilities: [
-      {
-        name: "messaging.draft_reply",
+    capabilities: {
+      "messaging.draft_reply": defineCapability({
         risk: "low",
-        parameters: {
-          channel: { type: "string" },
-        },
-      },
-    ],
-    execute: (request) => Promise.resolve(draftReply(request.args)),
-  };
+        parameters: messagingDraftReplyParameters,
+        execute: (request) => draftReply(request.args),
+      }),
+    },
+  });
 }
 
-function draftReply(args: MessagingDraftReplyRequest["args"]): FeatureResult {
+function draftReply(args: MessagingDraftReplyArgs): FeatureResult {
   const channel = args.channel ?? "message";
   const draft =
     "Thanks for the message. I will take a look and get back to you shortly.";

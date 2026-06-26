@@ -23,7 +23,7 @@ interface CliDependencies {
 }
 
 interface ProcessState {
-  exitCode?: number;
+  exitCode?: NodeJS.Process["exitCode"];
 }
 
 export async function main(

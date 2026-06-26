@@ -1,8 +1,10 @@
 import type {
-  FeatureExecutionRequest,
+  FeatureArgsFromParameters,
+  FeatureCapabilityParameters,
   FeaturePlugin,
   FeatureResult,
 } from "../../ports/feature.js";
+import { defineCapability, defineFeature } from "../../ports/feature.js";
 
 interface CalendarEventFixture {
   id: string;
@@ -18,33 +20,29 @@ const calendarEvents: CalendarEventFixture[] = [
   },
 ];
 
-type CalendarSearchEventsRequest = FeatureExecutionRequest<
-  "calendar.search_events",
-  {
-    query: string;
-  }
+const calendarSearchEventsParameters = {
+  query: { type: "string", required: true },
+} as const satisfies FeatureCapabilityParameters;
+
+type CalendarSearchEventsArgs = FeatureArgsFromParameters<
+  typeof calendarSearchEventsParameters
 >;
 
-export function createCalendarFeature(): FeaturePlugin<CalendarSearchEventsRequest> {
-  return {
+export function createCalendarFeature(): FeaturePlugin {
+  return defineFeature({
     id: "calendar",
     displayName: "Mock Calendar",
-    capabilities: [
-      {
-        name: "calendar.search_events",
+    capabilities: {
+      "calendar.search_events": defineCapability({
         risk: "low",
-        parameters: {
-          query: { type: "string", required: true },
-        },
-      },
-    ],
-    execute: (request) => Promise.resolve(searchEvents(request.args)),
-  };
+        parameters: calendarSearchEventsParameters,
+        execute: (request) => searchEvents(request.args),
+      }),
+    },
+  });
 }
 
-function searchEvents(
-  args: CalendarSearchEventsRequest["args"],
-): FeatureResult {
+function searchEvents(args: CalendarSearchEventsArgs): FeatureResult {
   const query = args.query.toLowerCase();
   const event = calendarEvents.find((candidate) =>
     candidate.title.toLowerCase().includes(query),
