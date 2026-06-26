@@ -13,6 +13,11 @@
 - Keep implementation changes aligned with the ports-and-adapters architecture and dependency boundaries documented there.
 - Follow the failure-handling rule documented in `docs/03-boundaries-and-rules.md` and `docs/04-runtime-plan.md`: low-level code may throw, but human-facing runtime boundaries must catch final failures, log useful diagnostics, and produce a graceful CLI/voice/service response whenever possible.
 
+## Testing Expectations
+
+- Always add or update tests for implementation changes.
+- Add integration tests when a change spans multiple parts of the system, such as multiple adapters, ports, application services, runtime boundaries, feature plugins, or CLI/service flows.
+
 ## Development Scripts
 
 - `npm test` - run Vitest.
