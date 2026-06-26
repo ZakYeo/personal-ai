@@ -1,93 +1,63 @@
 import { createDeterministicRuntime } from "./deterministic-runtime.js";
-import type { AssistantConfig } from "../ports/assistant.js";
-
-const config: AssistantConfig = {
-  assistant: {
-    name: "Jarvis",
-    wakePhrases: ["hey jarvis"],
-  },
-  features: {
-    calendar: { enabled: true },
-    messaging: { enabled: true },
-    alarms: { enabled: true },
-  },
-};
+import {
+  deterministicNow,
+  deterministicScenarios,
+  disabledCalendarConfig,
+  enabledDeterministicConfig,
+} from "../test-support/deterministic-scenarios.js";
 
 describe("createDeterministicRuntime", () => {
   it("wires enabled features into the assistant", async () => {
     const assistant = await createDeterministicRuntime({
-      config,
-      now: new Date("2026-06-26T09:00:00.000Z"),
+      config: enabledDeterministicConfig,
+      now: deterministicNow,
     });
 
     await expect(
-      assistant.handleText(
-        "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?",
-      ),
-    ).resolves.toEqual({
-      status: "ok",
-      text: "The upcoming wedding is on 2026-09-12.",
-    });
+      assistant.handleText(deterministicScenarios.calendarWedding.text),
+    ).resolves.toEqual(deterministicScenarios.calendarWedding.response);
   });
 
   it("respects disabled features from config", async () => {
     const assistant = await createDeterministicRuntime({
-      config: {
-        ...config,
-        features: {
-          ...config.features,
-          calendar: { enabled: false },
-        },
-      },
+      config: disabledCalendarConfig,
     });
 
     await expect(
-      assistant.handleText(
-        "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?",
-      ),
-    ).resolves.toEqual({
-      status: "unsupported",
-      text: "I do not have an enabled feature for calendar.search_events.",
-    });
+      assistant.handleText(deterministicScenarios.unsupportedCalendar.text),
+    ).resolves.toEqual(deterministicScenarios.unsupportedCalendar.response);
   });
 
   it("keeps alarm state within one composed runtime", async () => {
     const assistant = await createDeterministicRuntime({
-      config,
-      now: new Date("2026-06-26T09:00:00.000Z"),
+      config: enabledDeterministicConfig,
+      now: deterministicNow,
     });
 
     await assistant.handleText(
-      "Hey Jarvis, set an alarm to ping me in 10 minutes.",
+      deterministicScenarios.alarmCreateWithoutConfirmation.text,
     );
 
     await expect(
-      assistant.handleText("Hey Jarvis, list my alarms"),
-    ).resolves.toEqual({
-      status: "ok",
-      text: "Alarms: alarm-1 at 2026-06-26T09:10:00.000Z (ping me).",
-    });
+      assistant.handleText(deterministicScenarios.alarmListWithOne.text),
+    ).resolves.toEqual(deterministicScenarios.alarmListWithOne.response);
   });
 
   it("requires confirmation for alarm creation in the default config", async () => {
     const assistant = await createDeterministicRuntime({
-      now: new Date("2026-06-26T09:00:00.000Z"),
+      now: deterministicNow,
     });
 
     await expect(
       assistant.handleText(
-        "Hey Jarvis, set an alarm to ping me in 10 minutes.",
+        deterministicScenarios.alarmCreateNeedsConfirmation.text,
       ),
-    ).resolves.toEqual({
-      status: "needs_confirmation",
-      text: "I need confirmation before doing that. Please confirm yes or no.",
-    });
+    ).resolves.toEqual(
+      deterministicScenarios.alarmCreateNeedsConfirmation.response,
+    );
 
     await expect(
-      assistant.handleText("Hey Jarvis, list my alarms"),
-    ).resolves.toEqual({
-      status: "ok",
-      text: "There are no alarms set.",
-    });
+      assistant.handleText(deterministicScenarios.alarmListEmpty.text),
+    ).resolves.toEqual(deterministicScenarios.alarmListEmpty.response);
   });
 });
