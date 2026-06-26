@@ -10,11 +10,14 @@ The implementation should define a feature contract similar to:
 
 ```ts
 interface FeaturePlugin {
-  id: string
-  displayName: string
-  capabilities: Capability[]
-  canHandle(command: AssistantCommand, context: AssistantContext): boolean
-  execute(command: AssistantCommand, context: AssistantContext): Promise<FeatureResult>
+  id: string;
+  displayName: string;
+  capabilities: Capability[];
+  canHandle(command: AssistantCommand, context: AssistantContext): boolean;
+  execute(
+    command: AssistantCommand,
+    context: AssistantContext,
+  ): Promise<FeatureResult>;
 }
 ```
 

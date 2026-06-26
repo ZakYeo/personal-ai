@@ -1,0 +1,40 @@
+{
+  "name": "personal-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first personal assistant built with a ports-and-adapters architecture.",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "test": "vitest",
+    "lint": "eslint .",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "typecheck": "tsc --noEmit",
+    "knip": "knip",
+    "architecture:check": "depcruise src --config .dependency-cruiser.cjs",
+    "architecture:graph": "depcruise src --config .dependency-cruiser.cjs --output-type dot",
+    "check": "npm run lint && npm run format:check && npm run knip && npm run architecture:check && npm test -- --run && npm run typecheck"
+  },
+  "lint-staged": {
+    "*.{js,cjs,mjs,ts,tsx,json,jsonc,md,yml,yaml,css,scss}": "prettier --write",
+    "*.{js,cjs,mjs,ts,tsx}": "eslint --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "@types/node": "^22.10.5",
+    "dependency-cruiser": "^16.8.0",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^9.1.0",
+    "knip": "^5.41.1",
+    "lint-staged": "^15.3.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0",
+    "vitest": "^4.1.9"
+  }
+}

@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+set -eu
+
+npm exec lint-staged
+npm test -- --run
+npm run knip
+npm run architecture:check

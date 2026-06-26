@@ -17,4 +17,29 @@ The docs in `docs/` are the source of truth for implementation decisions:
 
 ## Current Status
 
-This repository is in the planning stage. No application code has been implemented yet.
+This repository has TypeScript project boilerplate and architecture/tooling checks.
+No assistant product behavior has been implemented yet.
+
+## Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+The repository uses native Git hooks from `.githooks/`. Configure them with:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Useful scripts:
+
+- `npm test` - run Vitest.
+- `npm run lint` - run ESLint.
+- `npm run format:check` - check Prettier formatting.
+- `npm run knip` - check for unused files, exports, and dependencies.
+- `npm run architecture:check` - enforce dependency boundaries.
+- `npm run typecheck` - run TypeScript without emitting files.
+- `npm run check` - run the full validation suite.

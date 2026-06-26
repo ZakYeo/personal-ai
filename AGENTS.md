@@ -11,3 +11,13 @@
   - `docs/05-feature-plugin-model.md`
   - `docs/06-implementation-roadmap.md`
 - Keep implementation changes aligned with the ports-and-adapters architecture and dependency boundaries documented there.
+
+## Development Scripts
+
+- `npm test` - run Vitest.
+- `npm run lint` - run ESLint.
+- `npm run format:check` - check Prettier formatting.
+- `npm run knip` - check for unused files, exports, and dependencies.
+- `npm run architecture:check` - enforce dependency boundaries.
+- `npm run typecheck` - run TypeScript without emitting files.
+- `npm run check` - run the full validation suite.
