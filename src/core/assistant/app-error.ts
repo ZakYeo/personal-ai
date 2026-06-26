@@ -12,6 +12,7 @@ export interface AppError {
   message: string;
   capability?: string;
   cause?: unknown;
+  publicMessage?: string;
 }
 
 export function createAppError(error: AppError): AppError {
@@ -40,7 +41,7 @@ export function mapAppErrorToResponse(error: AppError): AssistantResponse {
     case "feature_failure":
       return {
         status: "error",
-        text: `I could not complete that command: ${error.message}`,
+        text: error.publicMessage ?? "I could not complete that command.",
       };
     case "unexpected":
       return {

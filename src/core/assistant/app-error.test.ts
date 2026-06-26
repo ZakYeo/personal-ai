@@ -30,7 +30,7 @@ describe("mapAppErrorToResponse", () => {
     {
       category: "feature_failure",
       expectedStatus: "error",
-      expectedText: "I could not complete that command: fixture failure",
+      expectedText: "I could not complete that command.",
     },
     {
       category: "unexpected",
@@ -52,6 +52,23 @@ describe("mapAppErrorToResponse", () => {
     ).toEqual({
       status: expectedStatus,
       text: expectedText,
+    });
+  });
+
+  it("uses explicit public text for feature failures without exposing diagnostics", () => {
+    expect(
+      mapAppErrorToResponse(
+        createAppError({
+          category: "feature_failure",
+          capability: "alarm.create",
+          cause: new Error("provider token secret fixture failure"),
+          message: "provider token secret fixture failure",
+          publicMessage: "I could not set that alarm.",
+        }),
+      ),
+    ).toEqual({
+      status: "error",
+      text: "I could not set that alarm.",
     });
   });
 });

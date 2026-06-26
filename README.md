@@ -4,7 +4,7 @@ Personal AI is planned as a voice-activated assistant that runs on a desktop fir
 
 The first implementation should be deterministic: mock AI, mock voice, and mock feature adapters before any external API integrations are introduced.
 
-Failure handling follows a human-facing boundary rule: low-level modules may throw, but runtimes should catch final unhandled errors, log diagnostic detail, and return or speak a graceful response whenever possible. Voice interactions should prefer a safe fallback response over silence.
+Failure handling follows a human-facing boundary rule: low-level modules may throw, but runtimes should catch final unhandled errors, log diagnostic detail, and return or speak a graceful response whenever possible. Feature failures preserve diagnostic causes internally while returning safe public text. Voice interactions should prefer a safe fallback response over silence.
 
 ## Documentation
 

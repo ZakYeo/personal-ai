@@ -114,7 +114,8 @@ describe("createAssistant", () => {
 
   it("returns an error response when feature execution fails", async () => {
     const failingFeature = createFeature({
-      execute: () => Promise.reject(new Error("fixture failure")),
+      execute: () =>
+        Promise.reject(new Error("provider token secret fixture failure")),
     });
     const assistant = createAssistant({
       clock,
@@ -125,7 +126,7 @@ describe("createAssistant", () => {
 
     await expect(assistant.handleText("hello")).resolves.toEqual({
       status: "error",
-      text: "I could not complete that command: fixture failure",
+      text: "I could not complete that command.",
     });
   });
 
