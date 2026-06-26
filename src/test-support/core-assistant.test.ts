@@ -67,6 +67,9 @@ describe("core assistant test support", () => {
     });
     expect(execute).toHaveBeenCalledWith(
       command,
+      {
+        message: "hello",
+      },
       expect.objectContaining({
         config: createAssistantConfig({ test: { enabled: true } }),
       }),

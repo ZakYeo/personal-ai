@@ -5,7 +5,11 @@ import type {
   AssistantContext,
   ClockPort,
 } from "../ports/assistant.js";
-import type { FeaturePlugin, FeatureResult } from "../ports/feature.js";
+import type {
+  FeatureArguments,
+  FeaturePlugin,
+  FeatureResult,
+} from "../ports/feature.js";
 import type {
   IntentInterpretation,
   IntentInterpreterPort,
@@ -88,6 +92,7 @@ export function createFeature(
     ) => boolean;
     execute: (
       command: AssistantCommand,
+      args: FeatureArguments,
       context: AssistantContext,
     ) => Promise<FeatureResult>;
     capabilities: FeaturePlugin["capabilities"];

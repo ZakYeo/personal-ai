@@ -25,7 +25,6 @@ describe("createMessagingFeature", () => {
       createMessagingFeature(),
       "messaging.draft_reply",
       "messaging.send_reply",
-      context,
     );
   });
 
@@ -33,6 +32,7 @@ describe("createMessagingFeature", () => {
     await expectFeatureExecution(
       createMessagingFeature(),
       createFeatureCommand("messaging.draft_reply", { channel: "whatsapp" }),
+      { channel: "whatsapp" },
       {
         text: 'Drafted a whatsapp reply: "Thanks for the message. I will take a look and get back to you shortly."',
         data: {

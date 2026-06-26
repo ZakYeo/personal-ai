@@ -6,6 +6,7 @@ import type {
 } from "../ports/assistant.js";
 import type {
   FeatureCapability,
+  FeatureArguments,
   FeaturePlugin,
   FeatureResult,
 } from "../ports/feature.js";
@@ -76,19 +77,23 @@ export function expectFeatureHandles(
 export async function expectFeatureExecution(
   feature: FeaturePlugin,
   command: AssistantCommand,
+  args: FeatureArguments,
   expected: FeatureResult,
   context: AssistantContext = createFeatureContext(),
 ): Promise<void> {
-  await expect(feature.execute(command, context)).resolves.toEqual(expected);
+  await expect(feature.execute(command, args, context)).resolves.toEqual(
+    expected,
+  );
 }
 
 export async function expectFeatureRejects(
   feature: FeaturePlugin,
   command: AssistantCommand,
+  args: FeatureArguments,
   expectedMessage: string,
   context: AssistantContext = createFeatureContext(),
 ): Promise<void> {
-  await expect(feature.execute(command, context)).rejects.toThrow(
+  await expect(feature.execute(command, args, context)).rejects.toThrow(
     expectedMessage,
   );
 }

@@ -2,7 +2,11 @@ import type {
   AssistantCommand,
   AssistantContext,
 } from "../../ports/assistant.js";
-import type { FeaturePlugin, FeatureResult } from "../../ports/feature.js";
+import type {
+  FeatureArguments,
+  FeaturePlugin,
+  FeatureResult,
+} from "../../ports/feature.js";
 
 interface AlarmRecord {
   id: string;
@@ -42,11 +46,13 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
       },
       { name: "alarm.list", risk: "low", parameters: {} },
     ],
-    execute: (command: AssistantCommand, context: AssistantContext) => {
+    execute: (
+      command: AssistantCommand,
+      args: FeatureArguments,
+      context: AssistantContext,
+    ) => {
       if (command.capability === "alarm.create") {
-        return Promise.resolve().then(() =>
-          createAlarm(command, context, store),
-        );
+        return Promise.resolve(createAlarm(args, context, store));
       }
 
       return Promise.resolve(listAlarms(store));
@@ -55,12 +61,12 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
 }
 
 function createAlarm(
-  command: AssistantCommand,
+  args: FeatureArguments,
   context: AssistantContext,
   store: AlarmStore,
 ): FeatureResult {
-  const minutesFromNow = parseMinutesFromNow(command.parameters.minutesFromNow);
-  const label = String(command.parameters.label ?? "alarm");
+  const minutesFromNow = args.minutesFromNow as number;
+  const label = typeof args.label === "string" ? args.label : "alarm";
   const scheduledFor = new Date(
     context.clock.now().getTime() + minutesFromNow * 60_000,
   ).toISOString();
@@ -80,14 +86,6 @@ function createAlarm(
       scheduledFor: alarm.scheduledFor,
     },
   };
-}
-
-function parseMinutesFromNow(value: unknown): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    throw new Error("Alarm minutesFromNow must be a positive finite number.");
-  }
-
-  return value;
 }
 
 function listAlarms(store: AlarmStore): FeatureResult {

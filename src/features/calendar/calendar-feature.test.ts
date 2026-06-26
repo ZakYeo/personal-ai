@@ -25,7 +25,6 @@ describe("createCalendarFeature", () => {
       createCalendarFeature(),
       "calendar.search_events",
       "alarm.create",
-      context,
     );
   });
 
@@ -35,6 +34,7 @@ describe("createCalendarFeature", () => {
       createFeatureCommand("calendar.search_events", {
         query: "upcoming wedding",
       }),
+      { query: "upcoming wedding" },
       {
         text: "The upcoming wedding is on 2026-09-12.",
         data: {
@@ -51,6 +51,7 @@ describe("createCalendarFeature", () => {
     await expectFeatureExecution(
       createCalendarFeature(),
       createFeatureCommand("calendar.search_events", { query: "dentist" }),
+      { query: "dentist" },
       {
         text: 'I could not find a calendar event matching "dentist".',
       },

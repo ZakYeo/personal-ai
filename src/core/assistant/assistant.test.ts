@@ -17,9 +17,21 @@ const clock = createFixedClock();
 
 describe("createAssistant", () => {
   it("routes interpreted commands to an enabled feature", async () => {
-    const command = createCommand("test.echo");
+    const command = createCommand("test.echo", { message: "hello" });
+    const execute = vi.fn(() =>
+      Promise.resolve({ text: "Handled deterministically." }),
+    );
     const feature = createFeature({
-      execute: () => Promise.resolve({ text: "Handled deterministically." }),
+      capabilities: [
+        {
+          name: "test.echo",
+          risk: "low",
+          parameters: {
+            message: { type: "string", required: true },
+          },
+        },
+      ],
+      execute,
     });
     const assistant = createAssistant({
       clock,
@@ -32,6 +44,14 @@ describe("createAssistant", () => {
       status: "ok",
       text: "Handled deterministically.",
     });
+    expect(execute).toHaveBeenCalledWith(
+      command,
+      { message: "hello" },
+      {
+        clock,
+        config,
+      },
+    );
   });
 
   it("returns the interpreter response for unknown intent", async () => {

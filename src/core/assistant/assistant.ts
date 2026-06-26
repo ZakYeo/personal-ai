@@ -7,7 +7,7 @@ import type {
 import type { FeaturePlugin } from "../../ports/feature.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import { createAppError, mapAppErrorToResponse } from "./app-error.js";
-import { validateCommandForCapability } from "./command-validation.js";
+import { decodeCommandForCapability } from "./command-validation.js";
 import { evaluateConfirmationPolicy } from "./confirmation-policy.js";
 
 export interface AssistantDependencies {
@@ -88,13 +88,10 @@ export function createAssistant(
           );
         }
 
-        const validationError = validateCommandForCapability(
-          command,
-          capability,
-        );
+        const decodedCommand = decodeCommandForCapability(command, capability);
 
-        if (validationError) {
-          return mapAppErrorToResponse(validationError);
+        if (!decodedCommand.ok) {
+          return mapAppErrorToResponse(decodedCommand.error);
         }
 
         const confirmationError = evaluateConfirmationPolicy(
@@ -107,7 +104,11 @@ export function createAssistant(
           return mapAppErrorToResponse(confirmationError);
         }
 
-        const result = await feature.execute(command, context);
+        const result = await feature.execute(
+          command,
+          decodedCommand.args,
+          context,
+        );
 
         return {
           status: "ok",

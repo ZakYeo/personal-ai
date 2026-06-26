@@ -1,5 +1,9 @@
 import type { AssistantCommand } from "../../ports/assistant.js";
-import type { FeaturePlugin, FeatureResult } from "../../ports/feature.js";
+import type {
+  FeatureArguments,
+  FeaturePlugin,
+  FeatureResult,
+} from "../../ports/feature.js";
 
 export function createMessagingFeature(): FeaturePlugin {
   return {
@@ -14,13 +18,13 @@ export function createMessagingFeature(): FeaturePlugin {
         },
       },
     ],
-    execute: (command: AssistantCommand) =>
-      Promise.resolve(draftReply(command)),
+    execute: (_command: AssistantCommand, args: FeatureArguments) =>
+      Promise.resolve(draftReply(args)),
   };
 }
 
-function draftReply(command: AssistantCommand): FeatureResult {
-  const channel = String(command.parameters.channel ?? "message");
+function draftReply(args: FeatureArguments): FeatureResult {
+  const channel = typeof args.channel === "string" ? args.channel : "message";
   const draft =
     "Thanks for the message. I will take a look and get back to you shortly.";
 

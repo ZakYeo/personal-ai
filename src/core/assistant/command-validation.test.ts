@@ -1,4 +1,7 @@
-import { validateCommandForCapability } from "./command-validation.js";
+import {
+  decodeCommandForCapability,
+  validateCommandForCapability,
+} from "./command-validation.js";
 import type { AssistantCommand } from "../../ports/assistant.js";
 import type { FeatureCapability } from "../../ports/feature.js";
 import { createCommand as createAssistantCommand } from "../../test-support/core-assistant.js";
@@ -20,6 +23,35 @@ describe("validateCommandForCapability", () => {
         capability,
       ),
     ).toBeUndefined();
+  });
+
+  it("decodes validated command parameters into feature arguments", () => {
+    expect(
+      decodeCommandForCapability(
+        createCommand({ label: "ping me", minutesFromNow: 10 }),
+        capability,
+      ),
+    ).toEqual({
+      ok: true,
+      args: {
+        label: "ping me",
+        minutesFromNow: 10,
+      },
+    });
+  });
+
+  it("omits absent optional parameters from decoded feature arguments", () => {
+    expect(
+      decodeCommandForCapability(
+        createCommand({ minutesFromNow: 10 }),
+        capability,
+      ),
+    ).toEqual({
+      ok: true,
+      args: {
+        minutesFromNow: 10,
+      },
+    });
   });
 
   it("rejects missing required parameters", () => {

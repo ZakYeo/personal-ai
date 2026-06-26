@@ -52,11 +52,13 @@ describe("feature contract test support", () => {
     await expectFeatureExecution(
       feature,
       createFeatureCommand("test.echo", { message: "hello" }),
+      { message: "hello" },
       { text: "hello" },
     );
     await expectFeatureRejects(
       feature,
       createFeatureCommand("test.echo", { message: "fail" }),
+      { message: "fail" },
       "fixture failure",
     );
   });

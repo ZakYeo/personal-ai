@@ -23,6 +23,8 @@ export interface FeatureResult {
   data?: AssistantCommandParameters;
 }
 
+export type FeatureArguments = Record<string, string | number | boolean>;
+
 export interface FeaturePlugin {
   id: string;
   displayName: string;
@@ -30,6 +32,7 @@ export interface FeaturePlugin {
   canHandle?(command: AssistantCommand, context: AssistantContext): boolean;
   execute(
     command: AssistantCommand,
+    args: FeatureArguments,
     context: AssistantContext,
   ): Promise<FeatureResult>;
 }
