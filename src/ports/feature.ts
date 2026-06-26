@@ -111,6 +111,17 @@ type AnyDefinedCapability = Omit<FeatureCapability, "name" | "parameters"> & {
   execute: unknown;
 };
 type DefinedCapabilityHandlers = Record<string, AnyDefinedCapability>;
+type CapabilityHandlerForRequest<TRequest extends FeatureExecutionRequest> =
+  TRequest extends FeatureExecutionRequest<infer TCapability, infer TArgs>
+    ? Omit<FeatureCapability, "name" | "parameters"> & {
+        parameters: FeatureCapabilityParameters;
+        execute(
+          this: void,
+          request: FeatureExecutionRequest<TCapability, TArgs>,
+          context: AssistantContext,
+        ): MaybePromise<FeatureResult>;
+      }
+    : never;
 
 type ParametersForCapability<TCapability> =
   TCapability extends DefinedCapability<infer TParameters>
@@ -166,21 +177,30 @@ export function defineFeature<
         }
       : {}),
     async execute(request, context) {
-      const handler = handlers.get(request.capability);
-
-      if (!handler) {
-        throw new Error(
-          `${definition.id} cannot execute ${request.capability}.`,
-        );
-      }
-
-      const execute = handler.execute as (
-        this: void,
-        request: FeatureExecutionRequest<string, FeatureArguments>,
-        context: AssistantContext,
-      ) => MaybePromise<FeatureResult>;
-
-      return execute(request, context);
+      return executeSelectedCapability(
+        definition.id,
+        handlers.get(request.capability),
+        request,
+        context,
+      );
     },
   };
+}
+
+function executeSelectedCapability<TRequest extends FeatureExecutionRequest>(
+  featureId: string,
+  handler: AnyDefinedCapability | undefined,
+  request: TRequest,
+  context: AssistantContext,
+): MaybePromise<FeatureResult> {
+  if (!handler) {
+    throw new Error(`${featureId} cannot execute ${request.capability}.`);
+  }
+
+  // The runtime key lookup above selects the handler by the same capability
+  // name carried by the request. TypeScript cannot retain that map-key
+  // correlation, so this cast is isolated at the dispatch boundary.
+  const selectedHandler = handler as CapabilityHandlerForRequest<TRequest>;
+
+  return selectedHandler.execute(request, context);
 }

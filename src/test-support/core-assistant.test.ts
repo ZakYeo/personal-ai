@@ -48,7 +48,7 @@ describe("core assistant test support", () => {
   it("creates commands, interpreters, features, and assistant harnesses", async () => {
     const command = createCommand("test.echo", { message: "hello" });
     const execute = vi.fn(
-      (request: FeatureExecutionRequest<"test.echo", { message: string }>) => {
+      (request: FeatureExecutionRequest<string, { message: string }>) => {
         const message: string = request.args.message;
 
         return Promise.resolve({

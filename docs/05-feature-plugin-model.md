@@ -97,6 +97,8 @@ Feature execution should assume the core has already selected an enabled feature
 
 Feature authors should keep the declared parameter object literal stable with `as const satisfies FeatureCapabilityParameters` when it is shared outside the builder. This preserves literal metadata such as `required: true`, allowing `defineCapability` to make required arguments non-optional and optional arguments optional in the handler.
 
+The central `defineFeature` dispatcher should route execution by the selected capability name only. Requests for undeclared capability names must fail before any declared handler runs, preserving the structural tie between capability metadata and handler arguments.
+
 Shared feature test helpers should teach the same contract: normal feature fixtures should be authored through `defineCapability` and `defineFeature`, and handlers should assert behavior through decoded `request.args`. Raw `FeaturePlugin` fixtures are reserved for tests that intentionally exercise lower-level or malformed feature contracts.
 
 Tests for a new feature should cover:
