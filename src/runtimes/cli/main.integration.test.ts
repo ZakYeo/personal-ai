@@ -92,6 +92,25 @@ describe("personal-ai ask CLI", () => {
     });
   });
 
+  it("prints a graceful response and diagnostics when voice setup fails", async () => {
+    const configPath = await writeTempConfig({
+      ...enabledDeterministicConfig,
+      voice: {
+        speechToText: "unknown",
+      },
+    });
+
+    await expect(
+      runCli(["voice-once", "--config", configPath]),
+    ).resolves.toEqual({
+      exitCode: 1,
+      stderr: [
+        'Runtime failure: Config voice.speechToText "unknown" is not registered.\n',
+      ],
+      stdout: ["I hit a problem and could not complete that.\n"],
+    });
+  });
+
   it("creates an alarm when an explicit config does not require confirmation", async () => {
     await expect(
       runAsk({
