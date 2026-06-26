@@ -101,6 +101,34 @@ describe("createAssistant", () => {
     });
   });
 
+  it("returns an invalid response without executing a malformed command", async () => {
+    const execute = vi.fn(() => Promise.resolve({ text: "Should not run." }));
+    const feature = createFeature({
+      capabilities: [
+        {
+          name: "test.echo",
+          risk: "low",
+          parameters: {
+            message: { type: "string", required: true },
+          },
+        },
+      ],
+      execute,
+    });
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [feature],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+    });
+
+    await expect(assistant.handleText("hello")).resolves.toEqual({
+      status: "invalid",
+      text: "I could not use that command: test.echo requires message.",
+    });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
   it("does not interpret empty input", async () => {
     const interpret = vi.fn(() =>
       Promise.resolve({ command: createCommand("test.echo") }),
@@ -146,12 +174,15 @@ function createFeature(
       command: AssistantCommand,
       context: AssistantContext,
     ) => Promise<FeatureResult>;
+    capabilities: FeaturePlugin["capabilities"];
   }>,
 ): FeaturePlugin {
   return {
     id: overrides.id ?? "test",
     displayName: "Test",
-    capabilities: [{ name: "test.echo", risk: "low" }],
+    capabilities: overrides.capabilities ?? [
+      { name: "test.echo", risk: "low" },
+    ],
     canHandle: overrides.canHandle ?? (() => true),
     execute:
       overrides.execute ??

@@ -31,8 +31,15 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
     id: "alarms",
     displayName: "Local Alarms",
     capabilities: [
-      { name: "alarm.create", risk: "low" },
-      { name: "alarm.list", risk: "low" },
+      {
+        name: "alarm.create",
+        risk: "high",
+        parameters: {
+          label: { type: "string" },
+          minutesFromNow: { type: "number", required: true, positive: true },
+        },
+      },
+      { name: "alarm.list", risk: "low", parameters: {} },
     ],
     canHandle: (command: AssistantCommand) =>
       command.capability === "alarm.create" ||

@@ -19,7 +19,15 @@ export function createCalendarFeature(): FeaturePlugin {
   return {
     id: "calendar",
     displayName: "Mock Calendar",
-    capabilities: [{ name: "calendar.search_events", risk: "low" }],
+    capabilities: [
+      {
+        name: "calendar.search_events",
+        risk: "low",
+        parameters: {
+          query: { type: "string", required: true },
+        },
+      },
+    ],
     canHandle: (command: AssistantCommand) =>
       command.capability === "calendar.search_events",
     execute: (command: AssistantCommand) =>

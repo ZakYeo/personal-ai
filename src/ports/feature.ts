@@ -7,6 +7,14 @@ import type {
 export interface FeatureCapability {
   name: string;
   risk: "low" | "high";
+  parameters?: Record<string, FeatureCapabilityParameter>;
+}
+
+export interface FeatureCapabilityParameter {
+  type: "string" | "number" | "boolean";
+  required?: boolean;
+  minimum?: number;
+  positive?: boolean;
 }
 
 export interface FeatureResult {

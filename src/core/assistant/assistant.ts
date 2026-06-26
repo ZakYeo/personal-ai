@@ -6,6 +6,8 @@ import type {
 } from "../../ports/assistant.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
+import { createAppError, mapAppErrorToResponse } from "./app-error.js";
+import { validateCommandForCapability } from "./command-validation.js";
 
 export interface AssistantDependencies {
   clock: ClockPort;
@@ -60,13 +62,39 @@ export function createAssistant(
       );
 
       if (!feature) {
-        return {
-          status: "unsupported",
-          text: `I do not have an enabled feature for ${command.capability}.`,
-        };
+        return mapAppErrorToResponse(
+          createAppError({
+            category: "unsupported",
+            capability: command.capability,
+            message: `No enabled feature can handle ${command.capability}.`,
+          }),
+        );
       }
 
       try {
+        const capability = feature.capabilities.find(
+          (candidate) => candidate.name === command.capability,
+        );
+
+        if (!capability) {
+          return mapAppErrorToResponse(
+            createAppError({
+              category: "unsupported",
+              capability: command.capability,
+              message: `${feature.id} does not declare ${command.capability}.`,
+            }),
+          );
+        }
+
+        const validationError = validateCommandForCapability(
+          command,
+          capability,
+        );
+
+        if (validationError) {
+          return mapAppErrorToResponse(validationError);
+        }
+
         const result = await feature.execute(command, context);
 
         return {
@@ -77,10 +105,14 @@ export function createAssistant(
         const message =
           error instanceof Error ? error.message : "Unknown feature error";
 
-        return {
-          status: "error",
-          text: `I could not complete that command: ${message}`,
-        };
+        return mapAppErrorToResponse(
+          createAppError({
+            category: "feature_failure",
+            capability: command.capability,
+            cause: error,
+            message,
+          }),
+        );
       }
     },
   };

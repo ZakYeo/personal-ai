@@ -5,7 +5,15 @@ export function createMessagingFeature(): FeaturePlugin {
   return {
     id: "messaging",
     displayName: "Mock Messaging",
-    capabilities: [{ name: "messaging.draft_reply", risk: "low" }],
+    capabilities: [
+      {
+        name: "messaging.draft_reply",
+        risk: "low",
+        parameters: {
+          channel: { type: "string" },
+        },
+      },
+    ],
     canHandle: (command: AssistantCommand) =>
       command.capability === "messaging.draft_reply",
     execute: (command: AssistantCommand) =>

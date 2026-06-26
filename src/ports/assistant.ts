@@ -2,6 +2,8 @@ export type AssistantResponseStatus =
   | "ok"
   | "unknown"
   | "unsupported"
+  | "invalid"
+  | "needs_confirmation"
   | "error";
 
 export interface AssistantResponse {
