@@ -1,0 +1,17 @@
+{
+  "assistant": {
+    "name": "Jarvis",
+    "wakePhrases": ["hey jarvis"]
+  },
+  "features": {
+    "calendar": {
+      "enabled": true
+    },
+    "messaging": {
+      "enabled": true
+    },
+    "alarms": {
+      "enabled": true
+    }
+  }
+}
