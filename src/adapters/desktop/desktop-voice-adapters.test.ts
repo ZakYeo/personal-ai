@@ -1,7 +1,6 @@
 import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execPath } from "node:process";
 import {
   CommandSpeechToText,
   CommandTextToSpeech,
@@ -13,12 +12,8 @@ import {
 describe("desktop voice adapters", () => {
   it("captures audio to a file with a configured command", async () => {
     const adapter = new SoxAudioInput({
-      args: [
-        "-e",
-        "require('node:fs').writeFileSync(process.argv[1], 'audio');",
-        "{output}",
-      ],
-      command: execPath,
+      args: ["-c", 'printf audio > "$1"', "sh", "{output}"],
+      command: "/bin/sh",
     });
 
     const audio = await adapter.capture();
@@ -30,12 +25,8 @@ describe("desktop voice adapters", () => {
 
   it("transcribes captured audio with a configured command", async () => {
     const adapter = new CommandSpeechToText({
-      args: [
-        "-e",
-        "process.stdout.write(`Hey Jarvis from ${process.argv[1]}`);",
-        "{input}",
-      ],
-      command: execPath,
+      args: ["-c", "printf 'Hey Jarvis from %s' \"$1\"", "sh", "{input}"],
+      command: "/bin/sh",
     });
 
     await expect(
@@ -64,13 +55,8 @@ describe("desktop voice adapters", () => {
 
   it("synthesizes speech to a file with a configured command", async () => {
     const adapter = new CommandTextToSpeech({
-      args: [
-        "-e",
-        "require('node:fs').writeFileSync(process.argv[2], process.argv[1]);",
-        "{text}",
-        "{output}",
-      ],
-      command: execPath,
+      args: ["-c", 'printf \'%s\' "$1" > "$2"', "sh", "{text}", "{output}"],
+      command: "/bin/sh",
     });
 
     const speech = await adapter.synthesize("Alarm set.");
@@ -86,13 +72,8 @@ describe("desktop voice adapters", () => {
     const directory = await mkdtemp(join(tmpdir(), "personal-ai-play-"));
     const markerPath = join(directory, "played.txt");
     const adapter = new SoxAudioOutput({
-      args: [
-        "-e",
-        "require('node:fs').writeFileSync(process.argv[2], process.argv[1]);",
-        "{input}",
-        markerPath,
-      ],
-      command: execPath,
+      args: ["-c", 'printf \'%s\' "$1" > "$2"', "sh", "{input}", markerPath],
+      command: "/bin/sh",
     });
 
     await adapter.play({

@@ -94,6 +94,39 @@ describe("personal-ai ask CLI", () => {
     });
   });
 
+  it("runs one desktop voice turn with configured command adapters", async () => {
+    const configPath = await writeTempConfig(
+      createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+    );
+
+    await expect(
+      runCli(["desktop-voice-once", "--config", configPath]),
+    ).resolves.toEqual({
+      exitCode: 0,
+      stdout: [`${deterministicScenarios.alarmListEmpty.response.text}\n`],
+      stderr: [],
+    });
+  });
+
+  it("prints a graceful response and diagnostics when desktop voice setup fails", async () => {
+    const configPath = await writeTempConfig({
+      ...createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+      desktopVoice: {
+        audioInput: createNodeCommand('printf audio > "$1"', "{output}"),
+      },
+    });
+
+    await expect(
+      runCli(["desktop-voice-once", "--config", configPath]),
+    ).resolves.toEqual({
+      exitCode: 1,
+      stderr: [
+        "Runtime failure: Config desktopVoice.speechToText must be configured.\n",
+      ],
+      stdout: ["I hit a problem and could not complete that.\n"],
+    });
+  });
+
   it("prints a graceful response and diagnostics when voice setup fails", async () => {
     const configPath = await writeTempConfig({
       ...enabledDeterministicConfig,
@@ -194,7 +227,7 @@ describe("personal-ai ask CLI", () => {
       exitCode: 1,
       stdout: [],
       stderr: [
-        'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n',
+        'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n       personal-ai desktop-voice-once [--config path/to/config.json]\n',
       ],
     });
   });
@@ -278,7 +311,39 @@ describe("personal-ai ask CLI", () => {
     await expect(main(["ask"], io)).resolves.toBe(1);
     expect(stdout).toEqual([]);
     expect(stderr).toEqual([
-      'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n',
+      'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n       personal-ai desktop-voice-once [--config path/to/config.json]\n',
     ]);
   });
 });
+
+function createDesktopVoiceConfig(transcript: string) {
+  return {
+    ...enabledDeterministicConfig,
+    desktopVoice: {
+      audioInput: createNodeCommand('printf audio > "$1"', "{output}"),
+      audioOutput: createNodeCommand(""),
+      speechToText: createNodeCommand(
+        `printf '%s' ${JSON.stringify(transcript)}`,
+      ),
+      textToSpeech: createNodeCommand(
+        'printf \'%s\' "$1" > "$2"',
+        "{text}",
+        "{output}",
+      ),
+    },
+    voice: {
+      audioOutput: "sox-play",
+      input: "sox-rec",
+      speechToText: "command",
+      textToSpeech: "command",
+      wakeWord: "text-prefix",
+    },
+  };
+}
+
+function createNodeCommand(script: string, ...args: string[]) {
+  return {
+    args: ["-c", script, "sh", ...args],
+    command: "/bin/sh",
+  };
+}

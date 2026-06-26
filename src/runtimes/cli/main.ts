@@ -8,6 +8,7 @@ import {
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
+import { createDesktopVoiceRuntime } from "../voice/desktop-voice-runtime.js";
 import { createMockVoiceRuntime } from "../voice/mock-voice-runtime.js";
 import type { AssistantResponse } from "../../ports/assistant.js";
 import type { Assistant } from "../../core/assistant/index.js";
@@ -25,7 +26,7 @@ interface ParsedAskCommand {
 }
 
 interface ParsedVoiceCommand {
-  kind: "voice-once";
+  kind: "desktop-voice-once" | "voice-once";
   configPath?: string;
   utterance?: string;
 }
@@ -33,6 +34,7 @@ interface ParsedVoiceCommand {
 type ParsedCliCommand = ParsedAskCommand | ParsedVoiceCommand;
 
 interface CliDependencies {
+  createDesktopVoiceRuntime?: typeof createDesktopVoiceRuntime;
   createRuntime?: typeof createDeterministicRuntime;
   createVoiceRuntime?: typeof createMockVoiceRuntime;
 }
@@ -57,7 +59,7 @@ export async function main(
     return 1;
   }
 
-  if (parsed.kind === "voice-once") {
+  if (parsed.kind === "voice-once" || parsed.kind === "desktop-voice-once") {
     const result = await handleVoiceCommand(parsed, io, dependencies);
 
     if (!result.outputWritten) {
@@ -67,10 +69,15 @@ export async function main(
     return result.response.status === "error" ? 1 : 0;
   }
 
-  const response = await handleRuntimeCommand(parsed, io, dependencies);
+  if (parsed.kind === "ask") {
+    const response = await handleRuntimeCommand(parsed, io, dependencies);
 
-  io.stdout.write(`${response.text}\n`);
-  return response.status === "error" ? 1 : 0;
+    io.stdout.write(`${response.text}\n`);
+    return response.status === "error" ? 1 : 0;
+  }
+
+  io.stderr.write(`${usage()}\n`);
+  return 1;
 }
 
 if (
@@ -160,7 +167,9 @@ async function handleVoiceCommand(
 ): Promise<{ outputWritten: boolean; response: AssistantResponse }> {
   try {
     const createVoiceRuntime =
-      dependencies.createVoiceRuntime ?? createMockVoiceRuntime;
+      parsed.kind === "desktop-voice-once"
+        ? (dependencies.createDesktopVoiceRuntime ?? createDesktopVoiceRuntime)
+        : (dependencies.createVoiceRuntime ?? createMockVoiceRuntime);
     const runtime = await createVoiceRuntime(
       buildVoiceRuntimeOptions(parsed, io.env, io),
     );
@@ -194,6 +203,10 @@ function parseCliCommand(args: string[]): ParsedCliCommand | undefined {
 
   if (args[0] === "voice-once") {
     return parseVoiceCommand(args);
+  }
+
+  if (args[0] === "desktop-voice-once") {
+    return parseDesktopVoiceCommand(args);
   }
 
   return undefined;
@@ -268,9 +281,38 @@ function parseVoiceCommand(args: string[]): ParsedVoiceCommand | undefined {
   };
 }
 
+function parseDesktopVoiceCommand(
+  args: string[],
+): ParsedVoiceCommand | undefined {
+  let configPath: string | undefined;
+
+  for (let index = 1; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === "--config") {
+      const nextArg = args[index + 1];
+
+      if (!nextArg) {
+        return undefined;
+      }
+
+      configPath = nextArg;
+      index += 1;
+    } else {
+      return undefined;
+    }
+  }
+
+  return {
+    kind: "desktop-voice-once",
+    ...(configPath ? { configPath } : {}),
+  };
+}
+
 function usage(): string {
   return [
     'Usage: personal-ai ask [--config path/to/config.json] "command text"',
     '       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]',
+    "       personal-ai desktop-voice-once [--config path/to/config.json]",
   ].join("\n");
 }

@@ -19,7 +19,7 @@ import {
 } from "../human-boundary.js";
 import { createMockVoiceAdapters } from "./mock-voice-adapter-registry.js";
 
-interface VoiceRuntimeIo {
+export interface VoiceRuntimeIo {
   fallbackOutput?: { write(chunk: string): boolean | void };
   stderr?: { write(chunk: string): boolean | void };
 }
@@ -34,7 +34,7 @@ export interface VoiceRuntimeDependencies {
   wakeWord: WakeWordPort;
 }
 
-interface VoiceTurnResult {
+export interface VoiceTurnResult {
   response: AssistantResponse;
   spokenText?: string;
   status: "spoken" | "ignored" | "fallback_output";
@@ -98,8 +98,12 @@ export async function runVoiceTurn(
 ): Promise<VoiceTurnResult> {
   try {
     const audio = await dependencies.audioInput.capture();
+    const transcript = await dependencies.speechToText.transcribe(audio);
     const detection = await dependencies.wakeWord.detect({
-      audio,
+      audio: {
+        ...audio,
+        text: transcript.text,
+      },
       wakePhrases: dependencies.config.assistant.wakePhrases,
     });
 
@@ -114,7 +118,6 @@ export async function runVoiceTurn(
       };
     }
 
-    const transcript = await dependencies.speechToText.transcribe(audio);
     const response = await handleAssistantText(
       dependencies.assistant,
       transcript.text,
