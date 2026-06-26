@@ -16,10 +16,11 @@ import type {
   TextToSpeechPort,
   WakeWordPort,
 } from "../../ports/voice.js";
+import {
+  requireDesktopVoiceConfig,
+  requireVoiceConfig,
+} from "../config/config.js";
 import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
-
-type DesktopVoiceConfig = NonNullable<AssistantConfig["desktopVoice"]>;
-type DesktopVoiceCommandKey = keyof DesktopVoiceConfig;
 
 interface DesktopVoiceAdapters {
   audioInput: AudioInputPort;
@@ -32,46 +33,36 @@ interface DesktopVoiceAdapters {
 export function createDesktopVoiceAdapters(
   config: AssistantConfig,
 ): DesktopVoiceAdapters {
+  const voice = requireVoiceConfig(config);
+  const desktopVoice = requireDesktopVoiceConfig(config);
+
   return {
     audioInput: selectConfiguredVoiceAdapter(
-      config,
+      voice,
       "input",
       desktopVoiceAdapterRegistry.input,
-    )(getDesktopVoiceCommand(config, "audioInput")),
+    )(desktopVoice.audioInput),
     audioOutput: selectConfiguredVoiceAdapter(
-      config,
+      voice,
       "audioOutput",
       desktopVoiceAdapterRegistry.audioOutput,
-    )(getDesktopVoiceCommand(config, "audioOutput")),
+    )(desktopVoice.audioOutput),
     speechToText: selectConfiguredVoiceAdapter(
-      config,
+      voice,
       "speechToText",
       desktopVoiceAdapterRegistry.speechToText,
-    )(getDesktopVoiceCommand(config, "speechToText")),
+    )(desktopVoice.speechToText),
     textToSpeech: selectConfiguredVoiceAdapter(
-      config,
+      voice,
       "textToSpeech",
       desktopVoiceAdapterRegistry.textToSpeech,
-    )(getDesktopVoiceCommand(config, "textToSpeech")),
+    )(desktopVoice.textToSpeech),
     wakeWord: selectConfiguredVoiceAdapter(
-      config,
+      voice,
       "wakeWord",
       desktopVoiceAdapterRegistry.wakeWord,
     )(),
   };
-}
-
-function getDesktopVoiceCommand(
-  config: AssistantConfig,
-  key: DesktopVoiceCommandKey,
-): VoiceCommandConfig {
-  const command = config.desktopVoice?.[key];
-
-  if (!command) {
-    throw new Error(`Config desktopVoice.${key} must be configured.`);
-  }
-
-  return command;
 }
 
 const desktopVoiceAdapterRegistry = {

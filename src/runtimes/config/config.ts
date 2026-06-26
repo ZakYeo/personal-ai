@@ -1,6 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import type { AssistantConfig } from "../../ports/assistant.js";
+import type {
+  AssistantConfig,
+  VoiceCommandConfig,
+} from "../../ports/assistant.js";
 
 const defaultConfigPath = fileURLToPath(
   new URL("../../../config/default.json", import.meta.url),
@@ -8,6 +11,21 @@ const defaultConfigPath = fileURLToPath(
 
 interface LoadConfigOptions {
   configPath?: string;
+}
+
+export interface ResolvedVoiceConfig {
+  audioOutput: string;
+  input: string;
+  speechToText: string;
+  textToSpeech: string;
+  wakeWord: string;
+}
+
+interface ResolvedDesktopVoiceConfig {
+  audioInput: VoiceCommandConfig;
+  audioOutput: VoiceCommandConfig;
+  speechToText: VoiceCommandConfig;
+  textToSpeech: VoiceCommandConfig;
 }
 
 export async function loadConfig(
@@ -66,6 +84,29 @@ export function parseAssistantConfig(value: unknown): AssistantConfig {
       provider: intent.provider,
     },
     features: parseFeatures(features),
+  };
+}
+
+export function requireVoiceConfig(
+  config: AssistantConfig,
+): ResolvedVoiceConfig {
+  return {
+    input: requireVoiceAdapterConfig(config, "input"),
+    wakeWord: requireVoiceAdapterConfig(config, "wakeWord"),
+    speechToText: requireVoiceAdapterConfig(config, "speechToText"),
+    textToSpeech: requireVoiceAdapterConfig(config, "textToSpeech"),
+    audioOutput: requireVoiceAdapterConfig(config, "audioOutput"),
+  };
+}
+
+export function requireDesktopVoiceConfig(
+  config: AssistantConfig,
+): ResolvedDesktopVoiceConfig {
+  return {
+    audioInput: requireDesktopVoiceCommand(config, "audioInput"),
+    audioOutput: requireDesktopVoiceCommand(config, "audioOutput"),
+    speechToText: requireDesktopVoiceCommand(config, "speechToText"),
+    textToSpeech: requireDesktopVoiceCommand(config, "textToSpeech"),
   };
 }
 
@@ -160,6 +201,19 @@ function parseVoice(value: unknown): Pick<AssistantConfig, "voice"> {
   };
 }
 
+function requireVoiceAdapterConfig(
+  config: AssistantConfig,
+  key: keyof ResolvedVoiceConfig,
+): string {
+  const adapterId = config.voice?.[key];
+
+  if (adapterId === undefined) {
+    throw new Error(`Config voice.${key} must be configured.`);
+  }
+
+  return adapterId;
+}
+
 function parseVoiceAdapter<
   TKey extends keyof NonNullable<AssistantConfig["voice"]>,
 >(
@@ -203,6 +257,19 @@ function parseFeatures(
   }
 
   return features;
+}
+
+function requireDesktopVoiceCommand(
+  config: AssistantConfig,
+  key: keyof ResolvedDesktopVoiceConfig,
+): VoiceCommandConfig {
+  const command = config.desktopVoice?.[key];
+
+  if (!command) {
+    throw new Error(`Config desktopVoice.${key} must be configured.`);
+  }
+
+  return command;
 }
 
 function parseFeatureAdapter(

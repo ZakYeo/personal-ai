@@ -13,6 +13,7 @@ import type {
   TextToSpeechPort,
   WakeWordPort,
 } from "../../ports/voice.js";
+import { requireVoiceConfig } from "../config/config.js";
 import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
 
 interface MockVoiceAdapterRegistryOptions {
@@ -31,29 +32,31 @@ export function createMockVoiceAdapters(
   config: AssistantConfig,
   options: MockVoiceAdapterRegistryOptions,
 ): MockVoiceAdapters {
+  const voice = requireVoiceConfig(config);
+
   return {
     audioInput: selectConfiguredVoiceAdapter(
-      config,
+      voice,
       "input",
       mockVoiceAdapterRegistry.input,
     )(options),
     audioOutput: selectConfiguredVoiceAdapter(
-      config,
+      voice,
       "audioOutput",
       mockVoiceAdapterRegistry.audioOutput,
     )(),
     speechToText: selectConfiguredVoiceAdapter(
-      config,
+      voice,
       "speechToText",
       mockVoiceAdapterRegistry.speechToText,
     )(),
     textToSpeech: selectConfiguredVoiceAdapter(
-      config,
+      voice,
       "textToSpeech",
       mockVoiceAdapterRegistry.textToSpeech,
     )(),
     wakeWord: selectConfiguredVoiceAdapter(
-      config,
+      voice,
       "wakeWord",
       mockVoiceAdapterRegistry.wakeWord,
     )(),

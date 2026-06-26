@@ -1,7 +1,12 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadConfig, parseAssistantConfig } from "./config.js";
+import {
+  loadConfig,
+  parseAssistantConfig,
+  requireDesktopVoiceConfig,
+  requireVoiceConfig,
+} from "./config.js";
 
 describe("loadConfig", () => {
   it("loads the default checked-in config", async () => {
@@ -330,5 +335,113 @@ describe("parseAssistantConfig", () => {
         },
       }),
     ).toThrow('Config feature "calendar".adapter must be a non-empty string.');
+  });
+});
+
+describe("runtime config resolvers", () => {
+  it("resolves required voice adapter IDs for voice runtimes", () => {
+    expect(
+      requireVoiceConfig(
+        parseAssistantConfig({
+          assistant: {
+            name: "Jarvis",
+            wakePhrases: ["hey jarvis"],
+          },
+          intent: {
+            provider: "deterministic",
+          },
+          voice: {
+            input: "mock",
+            wakeWord: "mock",
+            speechToText: "mock",
+            textToSpeech: "mock",
+            audioOutput: "mock",
+          },
+          features: {},
+        }),
+      ),
+    ).toEqual({
+      input: "mock",
+      wakeWord: "mock",
+      speechToText: "mock",
+      textToSpeech: "mock",
+      audioOutput: "mock",
+    });
+  });
+
+  it("rejects missing required voice adapter IDs", () => {
+    expect(() =>
+      requireVoiceConfig(
+        parseAssistantConfig({
+          assistant: {
+            name: "Jarvis",
+            wakePhrases: ["hey jarvis"],
+          },
+          intent: {
+            provider: "deterministic",
+          },
+          voice: {
+            input: "mock",
+          },
+          features: {},
+        }),
+      ),
+    ).toThrow("Config voice.wakeWord must be configured.");
+  });
+
+  it("resolves required desktop voice command settings", () => {
+    const command = {
+      command: "fake-command",
+      args: ["{input}"],
+      timeoutMs: 2000,
+    };
+
+    expect(
+      requireDesktopVoiceConfig(
+        parseAssistantConfig({
+          assistant: {
+            name: "Jarvis",
+            wakePhrases: ["hey jarvis"],
+          },
+          desktopVoice: {
+            audioInput: command,
+            audioOutput: command,
+            speechToText: command,
+            textToSpeech: command,
+          },
+          intent: {
+            provider: "deterministic",
+          },
+          features: {},
+        }),
+      ),
+    ).toEqual({
+      audioInput: command,
+      audioOutput: command,
+      speechToText: command,
+      textToSpeech: command,
+    });
+  });
+
+  it("rejects missing required desktop voice command settings", () => {
+    expect(() =>
+      requireDesktopVoiceConfig(
+        parseAssistantConfig({
+          assistant: {
+            name: "Jarvis",
+            wakePhrases: ["hey jarvis"],
+          },
+          desktopVoice: {
+            audioInput: {
+              command: "fake-rec",
+            },
+          },
+          intent: {
+            provider: "deterministic",
+          },
+          features: {},
+        }),
+      ),
+    ).toThrow("Config desktopVoice.audioOutput must be configured.");
   });
 });
