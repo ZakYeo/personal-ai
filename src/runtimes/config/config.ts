@@ -60,12 +60,84 @@ export function parseAssistantConfig(value: unknown): AssistantConfig {
       name: assistant.name,
       wakePhrases: assistant.wakePhrases,
     },
+    ...parseDesktopVoice(value.desktopVoice),
     ...parseVoice(value.voice),
     intent: {
       provider: intent.provider,
     },
     features: parseFeatures(features),
   };
+}
+
+function parseDesktopVoice(
+  value: unknown,
+): Pick<AssistantConfig, "desktopVoice"> {
+  if (value === undefined) {
+    return {};
+  }
+
+  if (!isRecord(value)) {
+    throw new Error("Config desktopVoice section must be a JSON object.");
+  }
+
+  return {
+    desktopVoice: {
+      ...parseVoiceCommand("audioInput", value.audioInput),
+      ...parseVoiceCommand("audioOutput", value.audioOutput),
+      ...parseVoiceCommand("speechToText", value.speechToText),
+      ...parseVoiceCommand("textToSpeech", value.textToSpeech),
+    },
+  };
+}
+
+function parseVoiceCommand<
+  TKey extends keyof NonNullable<AssistantConfig["desktopVoice"]>,
+>(
+  key: TKey,
+  value: unknown,
+): Partial<Pick<NonNullable<AssistantConfig["desktopVoice"]>, TKey>> {
+  if (value === undefined) {
+    return {};
+  }
+
+  if (!isRecord(value)) {
+    throw new Error(`Config desktopVoice.${key} must be a JSON object.`);
+  }
+
+  if (typeof value.command !== "string" || value.command.length === 0) {
+    throw new Error(
+      `Config desktopVoice.${key}.command must be a non-empty string.`,
+    );
+  }
+
+  if (
+    value.args !== undefined &&
+    (!Array.isArray(value.args) ||
+      !value.args.every((argument) => typeof argument === "string"))
+  ) {
+    throw new Error(`Config desktopVoice.${key}.args must be a string array.`);
+  }
+
+  const timeoutMs = value.timeoutMs;
+
+  if (
+    timeoutMs !== undefined &&
+    (typeof timeoutMs !== "number" ||
+      !Number.isInteger(timeoutMs) ||
+      timeoutMs <= 0)
+  ) {
+    throw new Error(
+      `Config desktopVoice.${key}.timeoutMs must be a positive integer.`,
+    );
+  }
+
+  return {
+    [key]: {
+      command: value.command,
+      ...(value.args ? { args: value.args } : {}),
+      ...(timeoutMs ? { timeoutMs } : {}),
+    },
+  } as Pick<NonNullable<AssistantConfig["desktopVoice"]>, TKey>;
 }
 
 function parseVoice(value: unknown): Pick<AssistantConfig, "voice"> {

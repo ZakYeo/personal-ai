@@ -27,6 +27,12 @@ export interface AssistantConfig {
     name: string;
     wakePhrases: string[];
   };
+  desktopVoice?: {
+    audioInput?: VoiceCommandConfig;
+    audioOutput?: VoiceCommandConfig;
+    speechToText?: VoiceCommandConfig;
+    textToSpeech?: VoiceCommandConfig;
+  };
   voice?: {
     input?: string;
     wakeWord?: string;
@@ -45,6 +51,12 @@ export interface AssistantConfig {
       confirmationRequiredCapabilities?: string[];
     }
   >;
+}
+
+export interface VoiceCommandConfig {
+  args?: string[];
+  command: string;
+  timeoutMs?: number;
 }
 
 export interface AssistantContext {

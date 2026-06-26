@@ -174,6 +174,95 @@ describe("parseAssistantConfig", () => {
     });
   });
 
+  it("parses desktop voice command config", () => {
+    expect(
+      parseAssistantConfig({
+        assistant: {
+          name: "Jarvis",
+          wakePhrases: ["hey jarvis"],
+        },
+        desktopVoice: {
+          speechToText: {
+            command: "fake-stt",
+            args: ["--input", "{input}"],
+            timeoutMs: 2000,
+          },
+          textToSpeech: {
+            command: "fake-tts",
+            args: ["--text", "{text}", "--output", "{output}"],
+          },
+        },
+        intent: {
+          provider: "deterministic",
+        },
+        features: {},
+      }),
+    ).toEqual({
+      assistant: {
+        name: "Jarvis",
+        wakePhrases: ["hey jarvis"],
+      },
+      desktopVoice: {
+        speechToText: {
+          command: "fake-stt",
+          args: ["--input", "{input}"],
+          timeoutMs: 2000,
+        },
+        textToSpeech: {
+          command: "fake-tts",
+          args: ["--text", "{text}", "--output", "{output}"],
+        },
+      },
+      intent: {
+        provider: "deterministic",
+      },
+      features: {},
+    });
+  });
+
+  it("rejects invalid desktop voice command config", () => {
+    expect(() =>
+      parseAssistantConfig({
+        assistant: {
+          name: "Jarvis",
+          wakePhrases: ["hey jarvis"],
+        },
+        desktopVoice: {
+          speechToText: {
+            command: "",
+          },
+        },
+        intent: {
+          provider: "deterministic",
+        },
+        features: {},
+      }),
+    ).toThrow(
+      "Config desktopVoice.speechToText.command must be a non-empty string.",
+    );
+  });
+
+  it("rejects invalid desktop voice command args", () => {
+    expect(() =>
+      parseAssistantConfig({
+        assistant: {
+          name: "Jarvis",
+          wakePhrases: ["hey jarvis"],
+        },
+        desktopVoice: {
+          textToSpeech: {
+            command: "fake-tts",
+            args: ["--text", 1],
+          },
+        },
+        intent: {
+          provider: "deterministic",
+        },
+        features: {},
+      }),
+    ).toThrow("Config desktopVoice.textToSpeech.args must be a string array.");
+  });
+
   it("rejects invalid voice adapter IDs", () => {
     expect(() =>
       parseAssistantConfig({
