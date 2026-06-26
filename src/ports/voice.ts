@@ -1,4 +1,5 @@
 export interface CapturedAudio {
+  filePath?: string;
   text: string;
 }
 
@@ -12,6 +13,7 @@ export interface SpeechTranscript {
 }
 
 export interface SynthesizedSpeech {
+  filePath?: string;
   text: string;
 }
 
