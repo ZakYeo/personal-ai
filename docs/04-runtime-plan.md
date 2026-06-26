@@ -43,6 +43,19 @@ It should:
 - Fall back to text/log output if text-to-speech or audio output fails.
 - Use mock adapters until the core flow is stable.
 
+Milestone 2 starts with a deterministic mock voice loop exposed through:
+
+```bash
+personal-ai voice-once --utterance "Hey Jarvis, list my alarms"
+```
+
+This command simulates one voice turn with mock audio input, wake detection,
+speech-to-text, text-to-speech, and audio output adapters. It still composes the
+same assistant core as the text CLI. Missing wake phrases are ignored
+deterministically, assistant diagnostics are logged internally, command handling
+failures produce the safe fallback response, and speech output failures fall
+back to text output.
+
 ### Raspberry Pi Runtime
 
 The Raspberry Pi runtime is a later target.
@@ -72,9 +85,10 @@ assistant:
 
 voice:
   input: mock
-  speech_to_text: mock
-  text_to_speech: mock
-  voice_id: default
+  wakeWord: mock
+  speechToText: mock
+  textToSpeech: mock
+  audioOutput: mock
 
 intent:
   provider: deterministic
@@ -91,7 +105,7 @@ features:
     adapter: local
 ```
 
-The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in deterministic runtime currently uses JSON with `intent.provider` and per-feature `adapter` IDs. The important rule is that provider and feature selection must be configuration-driven.
+The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in deterministic runtime currently uses JSON with `intent.provider`, `voice` adapter IDs, and per-feature `adapter` IDs. The important rule is that provider, voice, and feature selection must be configuration-driven.
 
 ## Process Lifecycle
 

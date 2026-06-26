@@ -37,6 +37,7 @@
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run build` - compile the production JavaScript output.
 - `npm run cli -- ask "..."` - run the deterministic text CLI in development.
+- `npm run cli -- voice-once --utterance "..."` - run one simulated mock voice turn.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.
 - `npm run package:sort:check` - check deterministic `package.json` ordering.
