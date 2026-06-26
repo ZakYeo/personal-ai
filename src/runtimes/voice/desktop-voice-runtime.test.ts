@@ -32,4 +32,23 @@ describe("desktop voice runtime", () => {
       "Config desktopVoice.speechToText must be configured.",
     );
   });
+
+  it("rejects unregistered desktop voice adapter IDs during composition", async () => {
+    await expect(
+      createDesktopVoiceRuntime({
+        config: {
+          ...createDesktopVoiceConfig(
+            deterministicScenarios.alarmListEmpty.text,
+          ),
+          voice: {
+            input: "sox-rec",
+            wakeWord: "text-prefix",
+            speechToText: "unknown",
+            textToSpeech: "command",
+            audioOutput: "sox-play",
+          },
+        },
+      }),
+    ).rejects.toThrow('Config voice.speechToText "unknown" is not registered.');
+  });
 });
