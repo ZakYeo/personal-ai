@@ -13,9 +13,7 @@ import type {
   TextToSpeechPort,
   WakeWordPort,
 } from "../../ports/voice.js";
-
-type VoiceConfig = NonNullable<AssistantConfig["voice"]>;
-type VoiceAdapterKey = keyof VoiceConfig;
+import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
 
 interface MockVoiceAdapterRegistryOptions {
   utterance: string;
@@ -34,52 +32,32 @@ export function createMockVoiceAdapters(
   options: MockVoiceAdapterRegistryOptions,
 ): MockVoiceAdapters {
   return {
-    audioInput: createVoiceAdapter(
+    audioInput: selectConfiguredVoiceAdapter(
       config,
       "input",
       mockVoiceAdapterRegistry.input,
     )(options),
-    audioOutput: createVoiceAdapter(
+    audioOutput: selectConfiguredVoiceAdapter(
       config,
       "audioOutput",
       mockVoiceAdapterRegistry.audioOutput,
     )(),
-    speechToText: createVoiceAdapter(
+    speechToText: selectConfiguredVoiceAdapter(
       config,
       "speechToText",
       mockVoiceAdapterRegistry.speechToText,
     )(),
-    textToSpeech: createVoiceAdapter(
+    textToSpeech: selectConfiguredVoiceAdapter(
       config,
       "textToSpeech",
       mockVoiceAdapterRegistry.textToSpeech,
     )(),
-    wakeWord: createVoiceAdapter(
+    wakeWord: selectConfiguredVoiceAdapter(
       config,
       "wakeWord",
       mockVoiceAdapterRegistry.wakeWord,
     )(),
   };
-}
-
-function createVoiceAdapter<TAdapter, TOptions extends unknown[]>(
-  config: AssistantConfig,
-  key: VoiceAdapterKey,
-  registry: Record<string, (...options: TOptions) => TAdapter>,
-): (...options: TOptions) => TAdapter {
-  const adapterId = config.voice?.[key];
-
-  if (adapterId === undefined) {
-    throw new Error(`Config voice.${key} must be configured.`);
-  }
-
-  const createAdapter = registry[adapterId];
-
-  if (!createAdapter) {
-    throw new Error(`Config voice.${key} "${adapterId}" is not registered.`);
-  }
-
-  return createAdapter;
 }
 
 const mockVoiceAdapterRegistry = {

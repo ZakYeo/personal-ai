@@ -16,9 +16,8 @@ import type {
   TextToSpeechPort,
   WakeWordPort,
 } from "../../ports/voice.js";
+import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
 
-type VoiceConfig = NonNullable<AssistantConfig["voice"]>;
-type VoiceAdapterKey = keyof VoiceConfig;
 type DesktopVoiceConfig = NonNullable<AssistantConfig["desktopVoice"]>;
 type DesktopVoiceCommandKey = keyof DesktopVoiceConfig;
 
@@ -34,52 +33,32 @@ export function createDesktopVoiceAdapters(
   config: AssistantConfig,
 ): DesktopVoiceAdapters {
   return {
-    audioInput: createVoiceAdapter(
+    audioInput: selectConfiguredVoiceAdapter(
       config,
       "input",
       desktopVoiceAdapterRegistry.input,
     )(getDesktopVoiceCommand(config, "audioInput")),
-    audioOutput: createVoiceAdapter(
+    audioOutput: selectConfiguredVoiceAdapter(
       config,
       "audioOutput",
       desktopVoiceAdapterRegistry.audioOutput,
     )(getDesktopVoiceCommand(config, "audioOutput")),
-    speechToText: createVoiceAdapter(
+    speechToText: selectConfiguredVoiceAdapter(
       config,
       "speechToText",
       desktopVoiceAdapterRegistry.speechToText,
     )(getDesktopVoiceCommand(config, "speechToText")),
-    textToSpeech: createVoiceAdapter(
+    textToSpeech: selectConfiguredVoiceAdapter(
       config,
       "textToSpeech",
       desktopVoiceAdapterRegistry.textToSpeech,
     )(getDesktopVoiceCommand(config, "textToSpeech")),
-    wakeWord: createVoiceAdapter(
+    wakeWord: selectConfiguredVoiceAdapter(
       config,
       "wakeWord",
       desktopVoiceAdapterRegistry.wakeWord,
     )(),
   };
-}
-
-function createVoiceAdapter<TAdapter, TOptions extends unknown[]>(
-  config: AssistantConfig,
-  key: VoiceAdapterKey,
-  registry: Record<string, (...options: TOptions) => TAdapter>,
-): (...options: TOptions) => TAdapter {
-  const adapterId = config.voice?.[key];
-
-  if (adapterId === undefined) {
-    throw new Error(`Config voice.${key} must be configured.`);
-  }
-
-  const createAdapter = registry[adapterId];
-
-  if (!createAdapter) {
-    throw new Error(`Config voice.${key} "${adapterId}" is not registered.`);
-  }
-
-  return createAdapter;
 }
 
 function getDesktopVoiceCommand(
