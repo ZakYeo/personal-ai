@@ -121,6 +121,7 @@ Runtimes should own:
 - Logging setup.
 - Final catch-all error handling at the human interaction boundary.
 - Graceful response fallback for CLI, voice, and service loops.
+- Shared runtime-boundary fallback and diagnostic logging policy.
 
 The assistant core should expose application behavior, not process lifecycle behavior.
 

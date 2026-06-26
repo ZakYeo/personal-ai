@@ -1,6 +1,5 @@
 import { createDeterministicRuntime } from "../deterministic-runtime.js";
 import type { Assistant } from "../../core/assistant/index.js";
-import type { AppError } from "../../core/assistant/app-error.js";
 import type {
   AssistantConfig,
   AssistantResponse,
@@ -13,12 +12,12 @@ import type {
   WakeWordPort,
 } from "../../ports/voice.js";
 import { loadConfig } from "../config/config.js";
+import {
+  logFeatureDiagnostics,
+  logRuntimeFailure,
+  safeRuntimeFallbackResponse,
+} from "../human-boundary.js";
 import { createMockVoiceAdapters } from "./mock-voice-adapter-registry.js";
-
-const fallbackResponse: AssistantResponse = {
-  status: "error",
-  text: "I hit a problem and could not complete that.",
-};
 
 interface VoiceRuntimeIo {
   fallbackOutput?: { write(chunk: string): boolean | void };
@@ -129,10 +128,14 @@ export async function runVoiceTurn(
   } catch (error) {
     logRuntimeFailure(error, io);
 
-    const status = await speakResponse(dependencies, fallbackResponse, io);
+    const status = await speakResponse(
+      dependencies,
+      safeRuntimeFallbackResponse,
+      io,
+    );
 
     return {
-      response: fallbackResponse,
+      response: safeRuntimeFallbackResponse,
       status,
     };
   }
@@ -146,13 +149,13 @@ async function handleAssistantText(
   try {
     const outcome = await assistant.handleTextWithDiagnostics(text);
 
-    logDiagnostics(outcome.diagnostics ?? [], io);
+    logFeatureDiagnostics(outcome.diagnostics ?? [], io);
 
     return outcome.response;
   } catch (error) {
     logRuntimeFailure(error, io);
 
-    return fallbackResponse;
+    return safeRuntimeFallbackResponse;
   }
 }
 
@@ -172,36 +175,4 @@ async function speakResponse(
 
     return "fallback_output";
   }
-}
-
-function logDiagnostics(diagnostics: AppError[], io: VoiceRuntimeIo): void {
-  for (const diagnostic of diagnostics) {
-    if (diagnostic.category === "feature_failure") {
-      const capability = diagnostic.capability
-        ? ` in ${diagnostic.capability}`
-        : "";
-
-      io.stderr?.write(`Feature failure${capability}: ${diagnostic.message}\n`);
-
-      if (diagnostic.cause !== undefined) {
-        io.stderr?.write(
-          `Feature failure cause${capability}: ${formatDiagnosticCause(diagnostic.cause)}\n`,
-        );
-      }
-    }
-  }
-}
-
-function logRuntimeFailure(error: unknown, io: VoiceRuntimeIo): void {
-  const message = error instanceof Error ? error.message : String(error);
-
-  io.stderr?.write(`Runtime failure: ${message}\n`);
-}
-
-function formatDiagnosticCause(cause: unknown): string {
-  if (cause instanceof Error) {
-    return cause.stack ?? cause.message;
-  }
-
-  return String(cause);
 }

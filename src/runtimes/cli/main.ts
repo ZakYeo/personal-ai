@@ -3,10 +3,14 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDeterministicRuntime } from "../deterministic-runtime.js";
+import {
+  logFeatureDiagnostics,
+  logRuntimeFailure,
+  safeRuntimeFallbackResponse,
+} from "../human-boundary.js";
 import { createMockVoiceRuntime } from "../voice/mock-voice-runtime.js";
 import type { AssistantResponse } from "../../ports/assistant.js";
 import type { Assistant } from "../../core/assistant/index.js";
-import type { AppError } from "../../core/assistant/app-error.js";
 
 interface CliIo {
   env: NodeJS.ProcessEnv;
@@ -93,7 +97,7 @@ export async function runCliEntryPoint(
     processState.exitCode = await run();
   } catch (error) {
     logRuntimeFailure(error, io);
-    io.stdout.write("I hit a problem and could not complete that.\n");
+    io.stdout.write(`${safeRuntimeFallbackResponse.text}\n`);
     processState.exitCode = 1;
   }
 }
@@ -139,16 +143,13 @@ async function handleRuntimeCommand(
     const runtime = await createRuntime(buildRuntimeOptions(parsed, io.env));
     const outcome = await handleRuntimeText(runtime, parsed.commandText);
 
-    logDiagnostics(outcome.diagnostics ?? [], io);
+    logFeatureDiagnostics(outcome.diagnostics ?? [], io);
 
     return outcome.response;
   } catch (error) {
     logRuntimeFailure(error, io);
 
-    return {
-      status: "error",
-      text: "I hit a problem and could not complete that.",
-    };
+    return safeRuntimeFallbackResponse;
   }
 }
 
@@ -174,10 +175,7 @@ async function handleVoiceCommand(
 
     return {
       outputWritten: false,
-      response: {
-        status: "error",
-        text: "I hit a problem and could not complete that.",
-      },
+      response: safeRuntimeFallbackResponse,
     };
   }
 }
@@ -187,38 +185,6 @@ function handleRuntimeText(
   commandText: string,
 ): ReturnType<Assistant["handleTextWithDiagnostics"]> {
   return runtime.handleTextWithDiagnostics(commandText);
-}
-
-function logDiagnostics(diagnostics: AppError[], io: CliIo): void {
-  for (const diagnostic of diagnostics) {
-    if (diagnostic.category === "feature_failure") {
-      const capability = diagnostic.capability
-        ? ` in ${diagnostic.capability}`
-        : "";
-
-      io.stderr.write(`Feature failure${capability}: ${diagnostic.message}\n`);
-
-      if (diagnostic.cause !== undefined) {
-        io.stderr.write(
-          `Feature failure cause${capability}: ${formatDiagnosticCause(diagnostic.cause)}\n`,
-        );
-      }
-    }
-  }
-}
-
-function logRuntimeFailure(error: unknown, io: CliIo): void {
-  const message = error instanceof Error ? error.message : String(error);
-
-  io.stderr.write(`Runtime failure: ${message}\n`);
-}
-
-function formatDiagnosticCause(cause: unknown): string {
-  if (cause instanceof Error) {
-    return cause.stack ?? cause.message;
-  }
-
-  return String(cause);
 }
 
 function parseCliCommand(args: string[]): ParsedCliCommand | undefined {
