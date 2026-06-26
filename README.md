@@ -37,17 +37,35 @@ The repository uses native Git hooks from `.githooks/`. Configure them with:
 git config core.hooksPath .githooks
 ```
 
+The repository is local-only for now, so the pre-commit hook intentionally runs
+more than a typical staged-file check: staged formatting/lint fixes first, then
+parallel package sorting, secret scanning, Knip, architecture, tests, typecheck,
+and binary checks. Once there is a remote to push to, pre-push is the full
+repository confidence gate through `npm run check`.
+
 Useful scripts:
 
+- `npm run architecture:check` - enforce dependency boundaries.
+- `npm run bin:check` - compile and verify the published CLI bin points at runnable output.
 - `npm test` - run Vitest.
+- `npm run test:run` - run Vitest once without watch mode.
+- `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run build` - compile the production JavaScript output.
 - `npm run cli -- ask "..."` - run the deterministic text CLI in development.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.
+- `npm run package:sort:check` - check deterministic `package.json` ordering.
+- `npm run docs:lint` - lint Markdown documentation.
+- `npm run spellcheck` - run CSpell over the repository.
+- `npm run secrets:check` - scan tracked content for likely secrets.
 - `npm run knip` - check for unused files, exports, and dependencies.
-- `npm run architecture:check` - enforce dependency boundaries.
+- `npm run duplicates` - check for copy/paste duplication in `src` and `test`.
 - `npm run typecheck` - run TypeScript without emitting files.
 - `npm run check` - run the full validation suite.
+
+Coverage is available through `npm run test:coverage`, but it is not part of
+`npm run check` yet. Keep thresholds modest until the baseline has had time to
+settle.
 
 ## Test Support
 

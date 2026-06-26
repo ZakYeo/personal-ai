@@ -101,6 +101,35 @@ Acceptance criteria:
 - Future feature changes should normally touch feature-local code/tests plus registration, not broad test setup files.
 - `npm run check` passes after the harness refactor.
 
+## Milestone 1.7: Tooling and Repository Hygiene
+
+Goal: give humans and coding agents fast, local feedback before the project grows more adapters and runtimes.
+
+Included:
+
+- Stricter type-aware ESLint rules.
+- Vitest-specific lint rules for test files.
+- Import hygiene and fast ESLint boundary feedback.
+- Package sorting, Markdown linting, spellcheck, secret scanning, duplication checks, and improved Knip configuration.
+- V8 coverage reporting with modest thresholds.
+- Commit message validation with conventional commits.
+- A temporarily stronger pre-commit hook while the repository is local-only.
+- A pre-push hook that runs the full validation suite once there is a remote to push to.
+
+Excluded:
+
+- High global coverage requirements.
+- Making duplicate detection a hard pre-commit gate.
+- Remote setup or pushing changes anywhere.
+
+Acceptance criteria:
+
+- `npm run check` passes.
+- `npm run test:coverage` passes.
+- `.githooks/pre-commit` passes.
+- Commit messages are validated by `.githooks/commit-msg`.
+- Tooling and hook behavior are documented in `README.md`, `AGENTS.md`, and `docs/`.
+
 ## Milestone 2: Mock Voice Loop
 
 Goal: introduce the voice pipeline shape while keeping behavior deterministic.

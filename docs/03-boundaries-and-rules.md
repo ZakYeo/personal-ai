@@ -95,24 +95,40 @@ The initial implementation should include architecture enforcement tooling.
 Preferred tools:
 
 - `dependency-cruiser` for dependency graph rules.
-- `ESLint` for code quality and TypeScript linting.
+- `ESLint` for code quality, TypeScript safety, test rules, import hygiene, and fast local boundary feedback.
 - `Prettier` for formatting.
 - `Vitest` for tests.
+- `Knip` for unused files, exports, and dependencies.
+- `sort-package-json` for deterministic `package.json` ordering.
+- `markdownlint-cli2` and `cspell` for documentation hygiene.
+- `secretlint` for secret scanning.
+- `jscpd` for relaxed duplication detection.
+- `commitlint` for readable conventional commit history.
 
 Expected scripts:
 
 ```json
 {
   "scripts": {
-    "test": "vitest",
-    "lint": "eslint .",
     "architecture:check": "depcruise src --config .dependency-cruiser.cjs",
-    "architecture:graph": "depcruise src --config .dependency-cruiser.cjs --output-type dot"
+    "architecture:graph": "depcruise src --config .dependency-cruiser.cjs --output-type dot",
+    "check": "npm run lint && npm run format:check && npm run package:sort:check && npm run docs:lint && npm run spellcheck && npm run secrets:check && npm run knip && npm run duplicates && npm run architecture:check && npm run bin:check && npm run test:run && npm run typecheck",
+    "docs:lint": "markdownlint-cli2 \"**/*.md\"",
+    "duplicates": "jscpd src test",
+    "lint": "eslint .",
+    "package:sort:check": "sort-package-json --check",
+    "secrets:check": "secretlint \"**/*\"",
+    "spellcheck": "cspell .",
+    "test": "vitest",
+    "test:coverage": "vitest --run --coverage",
+    "test:run": "vitest --run"
   }
 }
 ```
 
-The exact scripts can change during implementation, but there must be an automated architecture check before real provider adapters are introduced.
+The exact scripts can change during implementation, but there must be an automated architecture check before real provider adapters are introduced. Dependency-cruiser remains the authority for architecture graph rules; ESLint restricted imports are a faster feedback layer for common mistakes while editing.
+
+Because the repository is currently local-only, the pre-commit hook intentionally runs staged formatting/lint fixes followed by parallel package sorting, secret scanning, Knip, architecture, tests, typecheck, and binary checks. Once a remote exists, pre-push should be treated as the full repository confidence gate through `npm run check`.
 
 ## Dependency-Cruiser Rules
 
