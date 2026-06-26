@@ -8,6 +8,7 @@ import type { FeaturePlugin } from "../../ports/feature.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import { createAppError, mapAppErrorToResponse } from "./app-error.js";
 import { validateCommandForCapability } from "./command-validation.js";
+import { evaluateConfirmationPolicy } from "./confirmation-policy.js";
 
 export interface AssistantDependencies {
   clock: ClockPort;
@@ -93,6 +94,16 @@ export function createAssistant(
 
         if (validationError) {
           return mapAppErrorToResponse(validationError);
+        }
+
+        const confirmationError = evaluateConfirmationPolicy(
+          feature,
+          capability,
+          dependencies.config,
+        );
+
+        if (confirmationError) {
+          return mapAppErrorToResponse(confirmationError);
         }
 
         const result = await feature.execute(command, context);

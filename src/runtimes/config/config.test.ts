@@ -13,7 +13,10 @@ describe("loadConfig", () => {
       features: {
         calendar: { enabled: true },
         messaging: { enabled: true },
-        alarms: { enabled: true },
+        alarms: {
+          enabled: true,
+          confirmationRequiredCapabilities: ["alarm.create"],
+        },
       },
     });
   });
@@ -72,5 +75,52 @@ describe("parseAssistantConfig", () => {
         },
       }),
     ).toThrow('Config feature "calendar".enabled must be a boolean.');
+  });
+
+  it("parses confirmation-required capabilities", () => {
+    expect(
+      parseAssistantConfig({
+        assistant: {
+          name: "Jarvis",
+          wakePhrases: ["hey jarvis"],
+        },
+        features: {
+          alarms: {
+            enabled: true,
+            confirmationRequiredCapabilities: ["alarm.create"],
+          },
+        },
+      }),
+    ).toEqual({
+      assistant: {
+        name: "Jarvis",
+        wakePhrases: ["hey jarvis"],
+      },
+      features: {
+        alarms: {
+          enabled: true,
+          confirmationRequiredCapabilities: ["alarm.create"],
+        },
+      },
+    });
+  });
+
+  it("rejects invalid confirmation-required capabilities", () => {
+    expect(() =>
+      parseAssistantConfig({
+        assistant: {
+          name: "Jarvis",
+          wakePhrases: ["hey jarvis"],
+        },
+        features: {
+          alarms: {
+            enabled: true,
+            confirmationRequiredCapabilities: [1],
+          },
+        },
+      }),
+    ).toThrow(
+      'Config feature "alarms".confirmationRequiredCapabilities must be a string array.',
+    );
   });
 });

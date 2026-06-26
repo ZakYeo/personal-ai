@@ -11,7 +11,8 @@
       "enabled": true
     },
     "alarms": {
-      "enabled": true
+      "enabled": true,
+      "confirmationRequiredCapabilities": ["alarm.create"]
     }
   }
 }

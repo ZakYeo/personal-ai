@@ -34,6 +34,7 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
       {
         name: "alarm.create",
         risk: "high",
+        requiresConfirmation: false,
         parameters: {
           label: { type: "string" },
           minutesFromNow: { type: "number", required: true, positive: true },

@@ -129,6 +129,34 @@ describe("createAssistant", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
+  it("returns a confirmation response without executing when policy requires confirmation", async () => {
+    const execute = vi.fn(() => Promise.resolve({ text: "Should not run." }));
+    const assistant = createAssistant({
+      clock,
+      config: {
+        ...config,
+        features: {
+          test: {
+            enabled: true,
+            confirmationRequiredCapabilities: ["test.echo"],
+          },
+        },
+      },
+      features: [
+        createFeature({
+          execute,
+        }),
+      ],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+    });
+
+    await expect(assistant.handleText("hello")).resolves.toEqual({
+      status: "needs_confirmation",
+      text: "I need confirmation before doing that. Please confirm yes or no.",
+    });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
   it("does not interpret empty input", async () => {
     const interpret = vi.fn(() =>
       Promise.resolve({ command: createCommand("test.echo") }),

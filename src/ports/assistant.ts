@@ -27,7 +27,13 @@ export interface AssistantConfig {
     name: string;
     wakePhrases: string[];
   };
-  features: Record<string, { enabled: boolean }>;
+  features: Record<
+    string,
+    {
+      enabled: boolean;
+      confirmationRequiredCapabilities?: string[];
+    }
+  >;
 }
 
 export interface AssistantContext {

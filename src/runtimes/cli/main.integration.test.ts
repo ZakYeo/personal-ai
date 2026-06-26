@@ -1,3 +1,6 @@
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { main } from "./main.js";
 
 describe("personal-ai ask CLI", () => {
@@ -31,13 +34,45 @@ describe("personal-ai ask CLI", () => {
     ]);
   });
 
-  it("prints the alarm creation response with a fixed clock", async () => {
+  it("prints the alarm confirmation response with a fixed clock", async () => {
     const { io, stdout } = createIo({
       PERSONAL_AI_FIXED_NOW: "2026-06-26T09:00:00.000Z",
     });
 
     await expect(
       main(["ask", "Hey Jarvis, set an alarm to ping me in 10 minutes."], io),
+    ).resolves.toBe(0);
+    expect(stdout).toEqual([
+      "I need confirmation before doing that. Please confirm yes or no.\n",
+    ]);
+  });
+
+  it("creates an alarm when an explicit config does not require confirmation", async () => {
+    const configPath = await writeConfig({
+      assistant: {
+        name: "Jarvis",
+        wakePhrases: ["hey jarvis"],
+      },
+      features: {
+        calendar: { enabled: true },
+        messaging: { enabled: true },
+        alarms: { enabled: true },
+      },
+    });
+    const { io, stdout } = createIo({
+      PERSONAL_AI_FIXED_NOW: "2026-06-26T09:00:00.000Z",
+    });
+
+    await expect(
+      main(
+        [
+          "ask",
+          "--config",
+          configPath,
+          "Hey Jarvis, set an alarm to ping me in 10 minutes.",
+        ],
+        io,
+      ),
     ).resolves.toBe(0);
     expect(stdout).toEqual([
       "Alarm set for 2026-06-26T09:10:00.000Z (ping me).\n",
@@ -71,6 +106,47 @@ describe("personal-ai ask CLI", () => {
       main(["ask", "Hey Jarvis, list my alarms"], second.io),
     ).resolves.toBe(0);
     expect(second.stdout).toEqual(["There are no alarms set.\n"]);
+  });
+
+  it("prints a deterministic unknown response", async () => {
+    const { io, stdout } = createIo();
+
+    await expect(main(["ask", "Hey Jarvis, what is this?"], io)).resolves.toBe(
+      0,
+    );
+    expect(stdout).toEqual([
+      "I could not map that to a deterministic command.\n",
+    ]);
+  });
+
+  it("prints a deterministic unsupported response", async () => {
+    const configPath = await writeConfig({
+      assistant: {
+        name: "Jarvis",
+        wakePhrases: ["hey jarvis"],
+      },
+      features: {
+        calendar: { enabled: false },
+        messaging: { enabled: true },
+        alarms: { enabled: true },
+      },
+    });
+    const { io, stdout } = createIo();
+
+    await expect(
+      main(
+        [
+          "ask",
+          "--config",
+          configPath,
+          "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?",
+        ],
+        io,
+      ),
+    ).resolves.toBe(0);
+    expect(stdout).toEqual([
+      "I do not have an enabled feature for calendar.search_events.\n",
+    ]);
   });
 
   it("returns usage for invalid input", async () => {
@@ -110,4 +186,13 @@ function createWriter(writes: string[]): Pick<NodeJS.WriteStream, "write"> {
       return true;
     },
   };
+}
+
+async function writeConfig(config: unknown): Promise<string> {
+  const directory = await mkdtemp(join(tmpdir(), "personal-ai-cli-"));
+  const configPath = join(directory, "config.json");
+
+  await writeFile(configPath, JSON.stringify(config));
+
+  return configPath;
 }

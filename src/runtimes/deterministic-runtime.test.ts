@@ -68,4 +68,26 @@ describe("createDeterministicRuntime", () => {
       text: "Alarms: alarm-1 at 2026-06-26T09:10:00.000Z (ping me).",
     });
   });
+
+  it("requires confirmation for alarm creation in the default config", async () => {
+    const assistant = await createDeterministicRuntime({
+      now: new Date("2026-06-26T09:00:00.000Z"),
+    });
+
+    await expect(
+      assistant.handleText(
+        "Hey Jarvis, set an alarm to ping me in 10 minutes.",
+      ),
+    ).resolves.toEqual({
+      status: "needs_confirmation",
+      text: "I need confirmation before doing that. Please confirm yes or no.",
+    });
+
+    await expect(
+      assistant.handleText("Hey Jarvis, list my alarms"),
+    ).resolves.toEqual({
+      status: "ok",
+      text: "There are no alarms set.",
+    });
+  });
 });

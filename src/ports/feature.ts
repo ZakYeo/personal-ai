@@ -7,6 +7,7 @@ import type {
 export interface FeatureCapability {
   name: string;
   risk: "low" | "high";
+  requiresConfirmation?: boolean;
   parameters?: Record<string, FeatureCapabilityParameter>;
 }
 

@@ -73,10 +73,38 @@ function parseFeatures(
 
     features[featureId] = {
       enabled: featureConfig.enabled,
+      ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
     };
   }
 
   return features;
+}
+
+function parseConfirmationRequiredCapabilities(
+  featureId: string,
+  featureConfig: Record<string, unknown>,
+): Pick<
+  AssistantConfig["features"][string],
+  "confirmationRequiredCapabilities"
+> {
+  const value = featureConfig.confirmationRequiredCapabilities;
+
+  if (value === undefined) {
+    return {};
+  }
+
+  if (
+    !Array.isArray(value) ||
+    !value.every((capability) => typeof capability === "string")
+  ) {
+    throw new Error(
+      `Config feature "${featureId}".confirmationRequiredCapabilities must be a string array.`,
+    );
+  }
+
+  return {
+    confirmationRequiredCapabilities: value,
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
