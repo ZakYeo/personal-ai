@@ -118,6 +118,7 @@ Shared test utilities live in `src/test-support/` and are layered by responsibil
 - `runtime-composition.ts` - deterministic runtime composition helpers for fixed clocks, temporary config files, and focused invalid config overrides.
 - `cli.ts` - runtime-boundary helpers for captured stdout/stderr, temporary config files, and deterministic `ask` invocations.
 - `voice-runtime.ts` - voice runtime dependency builders, captured fallback writers, throwing assistants, and deterministic utterances.
+- `desktop-voice-runtime.ts` - desktop voice command config builders and focused desktop runtime config variants.
 
 Each production layer should have a matching test-support layer, and tests
 should exercise the narrowest public boundary that proves the behavior. Prefer
@@ -125,7 +126,10 @@ these helpers for new tests when they remove setup duplication, but keep
 behavior-specific assertions visible in the test that owns them. Add focused
 harness helpers before repeated setup spreads across tests, especially for
 cross-layer runtime, voice, service, adapter, or feature composition. Keep
-scenario data separate from runtime composition helpers whenever possible.
+scenario data separate from runtime composition helpers whenever possible. When
+a runtime introduces config shape or adapter composition fixtures, create a
+matching focused test-support helper before broad CLI or service tests accumulate
+reusable builders.
 
 Feature fixtures should exercise decoded `request.args` by default; use raw
 plugin fixtures only for tests that intentionally cover malformed or lower-level

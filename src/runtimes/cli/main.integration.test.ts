@@ -16,6 +16,12 @@ import {
   runtimeFailureResponse,
   voiceEnabledDeterministicConfig,
 } from "../../test-support/deterministic-runtime-fixtures.js";
+import {
+  createDesktopVoiceConfig,
+  withDesktopSpeechToTextFailure,
+  withoutDesktopAudioInput,
+  withoutDesktopSpeechToText,
+} from "../../test-support/desktop-voice-runtime.js";
 
 describe("personal-ai ask CLI", () => {
   it("prints the calendar response", async () => {
@@ -109,16 +115,11 @@ describe("personal-ai ask CLI", () => {
   });
 
   it("prints a graceful response and diagnostics when desktop voice setup fails", async () => {
-    const config = createDesktopVoiceConfig(
-      deterministicScenarios.alarmListEmpty.text,
+    const configPath = await writeTempConfig(
+      withoutDesktopSpeechToText(
+        createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+      ),
     );
-    const configPath = await writeTempConfig({
-      ...config,
-      desktopVoice: {
-        ...config.desktopVoice,
-        speechToText: undefined,
-      },
-    });
 
     await expect(
       runCli(["desktop-voice-once", "--config", configPath]),
@@ -132,16 +133,11 @@ describe("personal-ai ask CLI", () => {
   });
 
   it("prints a graceful response and diagnostics when desktop audio command config is missing", async () => {
-    const config = createDesktopVoiceConfig(
-      deterministicScenarios.alarmListEmpty.text,
+    const configPath = await writeTempConfig(
+      withoutDesktopAudioInput(
+        createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+      ),
     );
-    const configPath = await writeTempConfig({
-      ...config,
-      desktopVoice: {
-        ...config.desktopVoice,
-        audioInput: undefined,
-      },
-    });
 
     await expect(
       runCli(["desktop-voice-once", "--config", configPath]),
@@ -155,16 +151,13 @@ describe("personal-ai ask CLI", () => {
   });
 
   it("logs desktop voice command stderr without exposing it in stdout", async () => {
-    const configPath = await writeTempConfig({
-      ...createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
-      desktopVoice: {
-        ...createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text)
-          .desktopVoice,
-        speechToText: createNodeCommand(
-          "printf 'stt provider token failure' >&2; exit 12",
-        ),
-      },
-    });
+    const configPath = await writeTempConfig(
+      withDesktopSpeechToTextFailure(
+        createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+        "stt provider token failure",
+        12,
+      ),
+    );
 
     await expect(
       runCli(["desktop-voice-once", "--config", configPath]),
@@ -366,35 +359,3 @@ describe("personal-ai ask CLI", () => {
     ]);
   });
 });
-
-function createDesktopVoiceConfig(transcript: string) {
-  return {
-    ...enabledDeterministicConfig,
-    desktopVoice: {
-      audioInput: createNodeCommand('printf audio > "$1"', "{output}"),
-      audioOutput: createNodeCommand(""),
-      speechToText: createNodeCommand(
-        `printf '%s' ${JSON.stringify(transcript)}`,
-      ),
-      textToSpeech: createNodeCommand(
-        'printf \'%s\' "$1" > "$2"',
-        "{text}",
-        "{output}",
-      ),
-    },
-    voice: {
-      audioOutput: "sox-play",
-      input: "sox-rec",
-      speechToText: "command",
-      textToSpeech: "command",
-      wakeWord: "text-prefix",
-    },
-  };
-}
-
-function createNodeCommand(script: string, ...args: string[]) {
-  return {
-    args: ["-c", script, "sh", ...args],
-    command: "/bin/sh",
-  };
-}

@@ -259,6 +259,12 @@ Implemented structure:
 - The checked-in default config remains mock and deterministic; desktop voice
   uses an explicit local config.
 
+Harness follow-up:
+
+- Desktop voice command config builders live in focused desktop voice test
+  support so broad CLI tests assert human-facing behavior without owning
+  reusable runtime fixture setup.
+
 ## Milestone 4: Real Provider Experiments
 
 Goal: add real adapters one at a time without changing core behavior.

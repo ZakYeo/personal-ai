@@ -36,7 +36,9 @@
   - `runtime-composition.ts` for deterministic runtime composition, temporary config files, and focused invalid config overrides.
   - `cli.ts` for CLI runtime-boundary tests with captured IO, temporary config files, and deterministic `ask` invocations.
   - `voice-runtime.ts` for voice runtime dependency builders, captured fallback writers, throwing assistants, and deterministic utterances.
+  - `desktop-voice-runtime.ts` for desktop voice command config builders and focused desktop runtime config variants.
 - Add focused harness helpers before repeated setup spreads across tests, especially for cross-layer runtime, voice, service, adapter, or feature composition.
+- When a runtime introduces config shape or adapter composition fixtures, add a matching focused `src/test-support/` helper before broad CLI or service tests accumulate reusable builders.
 - Keep scenario data separate from runtime composition helpers whenever possible.
 - Harness helpers should compose dependencies and remove setup noise without hiding the behavior under test.
 - Keep runtime-boundary tests human-facing: assert captured stdout/stderr, exit codes, and graceful failure responses rather than bypassing the CLI boundary.
