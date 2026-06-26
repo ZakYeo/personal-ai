@@ -42,6 +42,14 @@ export function validateCommandForCapability(
       });
     }
 
+    if (definition.type === "number" && !Number.isFinite(value)) {
+      return createAppError({
+        category: "validation",
+        capability: command.capability,
+        message: `${command.capability} parameter ${parameterName} must be finite.`,
+      });
+    }
+
     if (
       definition.type === "number" &&
       typeof value === "number" &&

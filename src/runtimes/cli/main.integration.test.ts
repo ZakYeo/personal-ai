@@ -158,6 +158,25 @@ describe("personal-ai ask CLI", () => {
       'Usage: personal-ai ask [--config path/to/config.json] "command text"\n',
     ]);
   });
+
+  it("prints a graceful response and diagnostics when runtime setup fails", async () => {
+    const configPath = await writeConfig({
+      assistant: {
+        name: "",
+        wakePhrases: ["hey jarvis"],
+      },
+      features: {},
+    });
+    const { io, stdout, stderr } = createIo();
+
+    await expect(
+      main(["ask", "--config", configPath, "Hey Jarvis, list my alarms"], io),
+    ).resolves.toBe(1);
+    expect(stdout).toEqual(["I hit a problem and could not complete that.\n"]);
+    expect(stderr).toEqual([
+      "Runtime failure: Config assistant.name must be a non-empty string.\n",
+    ]);
+  });
 });
 
 function createIo(env: NodeJS.ProcessEnv = {}): {

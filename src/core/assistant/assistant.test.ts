@@ -129,6 +129,39 @@ describe("createAssistant", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
+  it("does not execute commands with non-finite numeric parameters", async () => {
+    const execute = vi.fn(() => Promise.resolve({ text: "Should not run." }));
+    const feature = createFeature({
+      capabilities: [
+        {
+          name: "test.echo",
+          risk: "low",
+          parameters: {
+            count: { type: "number", required: true },
+          },
+        },
+      ],
+      execute,
+    });
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [feature],
+      intentInterpreter: createInterpreter({
+        ...createCommand("test.echo"),
+        parameters: {
+          count: Number.NaN,
+        },
+      }),
+    });
+
+    await expect(assistant.handleText("hello")).resolves.toEqual({
+      status: "invalid",
+      text: "I could not use that command: test.echo parameter count must be finite.",
+    });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
   it("returns a confirmation response without executing when policy requires confirmation", async () => {
     const execute = vi.fn(() => Promise.resolve({ text: "Should not run." }));
     const assistant = createAssistant({

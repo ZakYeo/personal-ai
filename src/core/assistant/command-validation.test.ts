@@ -57,6 +57,21 @@ describe("validateCommandForCapability", () => {
     });
   });
 
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    "rejects non-finite numeric parameters: %s",
+    (minutesFromNow) => {
+      expect(
+        validateCommandForCapability(
+          createCommand({ minutesFromNow }),
+          capability,
+        ),
+      ).toMatchObject({
+        category: "validation",
+        message: "alarm.create parameter minutesFromNow must be finite.",
+      });
+    },
+  );
+
   it("rejects unsupported parameters", () => {
     expect(
       validateCommandForCapability(

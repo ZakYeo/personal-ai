@@ -3,6 +3,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDeterministicRuntime } from "../deterministic-runtime.js";
+import type { AssistantResponse } from "../../ports/assistant.js";
 
 interface CliIo {
   env: NodeJS.ProcessEnv;
@@ -30,13 +31,10 @@ export async function main(
     return 1;
   }
 
-  const runtime = await createDeterministicRuntime(
-    buildRuntimeOptions(parsed, io.env),
-  );
-  const response = await runtime.handleText(parsed.commandText);
+  const response = await handleRuntimeCommand(parsed, io);
 
   io.stdout.write(`${response.text}\n`);
-  return 0;
+  return response.status === "error" ? 1 : 0;
 }
 
 if (
@@ -65,6 +63,28 @@ function buildRuntimeOptions(
     ...(parsed.configPath ? { configPath: parsed.configPath } : {}),
     ...(fixedNow ? { now: new Date(fixedNow) } : {}),
   };
+}
+
+async function handleRuntimeCommand(
+  parsed: ParsedAskCommand,
+  io: CliIo,
+): Promise<AssistantResponse> {
+  try {
+    const runtime = await createDeterministicRuntime(
+      buildRuntimeOptions(parsed, io.env),
+    );
+
+    return await runtime.handleText(parsed.commandText);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    io.stderr.write(`Runtime failure: ${message}\n`);
+
+    return {
+      status: "error",
+      text: "I hit a problem and could not complete that.",
+    };
+  }
 }
 
 function parseAskCommand(args: string[]): ParsedAskCommand | undefined {
