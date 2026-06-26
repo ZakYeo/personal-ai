@@ -134,6 +134,9 @@ describe("personal-ai ask CLI", () => {
 
   it("logs assistant diagnostics without exposing them in the response", async () => {
     const { io, stdout, stderr } = createCliIo();
+    const cause = new Error("provider token secret fixture failure");
+    cause.stack =
+      "Error: provider token secret fixture failure\n    at feature fixture";
 
     await expect(
       main(["ask", "fail safely"], io, {
@@ -154,7 +157,7 @@ describe("personal-ai ask CLI", () => {
                   {
                     category: "feature_failure",
                     capability: "test.echo",
-                    cause: new Error("provider token secret fixture failure"),
+                    cause,
                     message: "provider token secret fixture failure",
                   },
                 ],
@@ -171,6 +174,7 @@ describe("personal-ai ask CLI", () => {
     expect(stderr[1]).toContain(
       "Feature failure cause in test.echo: Error: provider token secret fixture failure",
     );
+    expect(stderr[1]).toContain("at feature fixture");
   });
 
   it("prints a graceful response when the executable entrypoint rejects", async () => {
