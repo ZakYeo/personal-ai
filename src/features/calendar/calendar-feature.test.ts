@@ -1,73 +1,58 @@
 import { createCalendarFeature } from "./calendar-feature.js";
-import type {
-  AssistantCommand,
-  AssistantContext,
-} from "../../ports/assistant.js";
+import { createCommand } from "../../test-support/core-assistant.js";
+import {
+  createFeatureContext,
+  expectCapabilityMetadata,
+  expectFeatureExecution,
+  expectFeatureHandles,
+} from "../../test-support/feature-contract.js";
 
-const context: AssistantContext = {
-  clock: {
-    now: () => new Date("2026-06-26T09:00:00.000Z"),
-  },
-  config: {
-    assistant: {
-      name: "Jarvis",
-      wakePhrases: ["hey jarvis"],
-    },
-    features: {},
-  },
-};
+const context = createFeatureContext();
 
 describe("createCalendarFeature", () => {
-  it("handles calendar search commands", () => {
-    const feature = createCalendarFeature();
-
-    expect(
-      feature.canHandle(createCommand("calendar.search_events"), context),
-    ).toBe(true);
-    expect(feature.canHandle(createCommand("alarm.create"), context)).toBe(
-      false,
-    );
-  });
-
-  it("returns the fixture wedding date", async () => {
-    const feature = createCalendarFeature();
-
-    await expect(
-      feature.execute(
-        createCommand("calendar.search_events", { query: "upcoming wedding" }),
-        context,
-      ),
-    ).resolves.toEqual({
-      text: "The upcoming wedding is on 2026-09-12.",
-      data: {
-        eventId: "wedding-2026",
-        date: "2026-09-12",
-        title: "Upcoming wedding",
+  it("declares searchable calendar event metadata", () => {
+    expectCapabilityMetadata(createCalendarFeature(), {
+      name: "calendar.search_events",
+      risk: "low",
+      parameters: {
+        query: { type: "string", required: true },
       },
     });
   });
 
-  it("returns a deterministic no-match response", async () => {
-    const feature = createCalendarFeature();
+  it("handles calendar search commands", () => {
+    expectFeatureHandles(
+      createCalendarFeature(),
+      "calendar.search_events",
+      "alarm.create",
+      context,
+    );
+  });
 
-    await expect(
-      feature.execute(
-        createCommand("calendar.search_events", { query: "dentist" }),
-        context,
-      ),
-    ).resolves.toEqual({
-      text: 'I could not find a calendar event matching "dentist".',
-    });
+  it("returns the fixture wedding date", async () => {
+    await expectFeatureExecution(
+      createCalendarFeature(),
+      createCommand("calendar.search_events", { query: "upcoming wedding" }),
+      {
+        text: "The upcoming wedding is on 2026-09-12.",
+        data: {
+          eventId: "wedding-2026",
+          date: "2026-09-12",
+          title: "Upcoming wedding",
+        },
+      },
+      context,
+    );
+  });
+
+  it("returns a deterministic no-match response", async () => {
+    await expectFeatureExecution(
+      createCalendarFeature(),
+      createCommand("calendar.search_events", { query: "dentist" }),
+      {
+        text: 'I could not find a calendar event matching "dentist".',
+      },
+      context,
+    );
   });
 });
-
-function createCommand(
-  capability: string,
-  parameters: AssistantCommand["parameters"] = {},
-): AssistantCommand {
-  return {
-    capability,
-    parameters,
-    rawText: "fixture",
-  };
-}

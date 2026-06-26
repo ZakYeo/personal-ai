@@ -1,61 +1,48 @@
 import { createMessagingFeature } from "./messaging-feature.js";
-import type {
-  AssistantCommand,
-  AssistantContext,
-} from "../../ports/assistant.js";
+import { createCommand } from "../../test-support/core-assistant.js";
+import {
+  createFeatureContext,
+  expectCapabilityMetadata,
+  expectFeatureExecution,
+  expectFeatureHandles,
+} from "../../test-support/feature-contract.js";
 
-const context: AssistantContext = {
-  clock: {
-    now: () => new Date("2026-06-26T09:00:00.000Z"),
-  },
-  config: {
-    assistant: {
-      name: "Jarvis",
-      wakePhrases: ["hey jarvis"],
-    },
-    features: {},
-  },
-};
+const context = createFeatureContext();
 
 describe("createMessagingFeature", () => {
-  it("handles messaging draft commands", () => {
-    const feature = createMessagingFeature();
-
-    expect(
-      feature.canHandle(createCommand("messaging.draft_reply"), context),
-    ).toBe(true);
-    expect(
-      feature.canHandle(createCommand("messaging.send_reply"), context),
-    ).toBe(false);
-  });
-
-  it("creates a deterministic draft without sending", async () => {
-    const feature = createMessagingFeature();
-
-    await expect(
-      feature.execute(
-        createCommand("messaging.draft_reply", { channel: "whatsapp" }),
-        context,
-      ),
-    ).resolves.toEqual({
-      text: 'Drafted a whatsapp reply: "Thanks for the message. I will take a look and get back to you shortly."',
-      data: {
-        channel: "whatsapp",
-        draft:
-          "Thanks for the message. I will take a look and get back to you shortly.",
-        sent: false,
+  it("declares draft reply metadata", () => {
+    expectCapabilityMetadata(createMessagingFeature(), {
+      name: "messaging.draft_reply",
+      risk: "low",
+      parameters: {
+        channel: { type: "string" },
       },
     });
   });
-});
 
-function createCommand(
-  capability: string,
-  parameters: AssistantCommand["parameters"] = {},
-): AssistantCommand {
-  return {
-    capability,
-    parameters,
-    rawText: "fixture",
-  };
-}
+  it("handles messaging draft commands", () => {
+    expectFeatureHandles(
+      createMessagingFeature(),
+      "messaging.draft_reply",
+      "messaging.send_reply",
+      context,
+    );
+  });
+
+  it("creates a deterministic draft without sending", async () => {
+    await expectFeatureExecution(
+      createMessagingFeature(),
+      createCommand("messaging.draft_reply", { channel: "whatsapp" }),
+      {
+        text: 'Drafted a whatsapp reply: "Thanks for the message. I will take a look and get back to you shortly."',
+        data: {
+          channel: "whatsapp",
+          draft:
+            "Thanks for the message. I will take a look and get back to you shortly.",
+          sent: false,
+        },
+      },
+      context,
+    );
+  });
+});

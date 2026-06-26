@@ -2,25 +2,36 @@ import {
   createAlarmFeature,
   createInMemoryAlarmStore,
 } from "./alarm-feature.js";
-import type {
-  AssistantCommand,
-  AssistantContext,
-} from "../../ports/assistant.js";
+import { createCommand } from "../../test-support/core-assistant.js";
+import {
+  createFeatureContext,
+  expectCapabilityMetadata,
+  expectFeatureExecution,
+  expectFeatureRejects,
+} from "../../test-support/feature-contract.js";
 
-const context: AssistantContext = {
-  clock: {
-    now: () => new Date("2026-06-26T09:00:00.000Z"),
-  },
-  config: {
-    assistant: {
-      name: "Jarvis",
-      wakePhrases: ["hey jarvis"],
-    },
-    features: {},
-  },
-};
+const context = createFeatureContext();
 
 describe("createAlarmFeature", () => {
+  it("declares alarm capability metadata", () => {
+    const feature = createAlarmFeature(createInMemoryAlarmStore());
+
+    expectCapabilityMetadata(feature, {
+      name: "alarm.create",
+      risk: "high",
+      requiresConfirmation: false,
+      parameters: {
+        label: { type: "string" },
+        minutesFromNow: { type: "number", required: true, positive: true },
+      },
+    });
+    expectCapabilityMetadata(feature, {
+      name: "alarm.list",
+      risk: "low",
+      parameters: {},
+    });
+  });
+
   it("handles alarm create and list commands", () => {
     const feature = createAlarmFeature(createInMemoryAlarmStore());
 
@@ -34,24 +45,22 @@ describe("createAlarmFeature", () => {
   });
 
   it("creates deterministic alarms using the injected clock", async () => {
-    const feature = createAlarmFeature(createInMemoryAlarmStore());
-
-    await expect(
-      feature.execute(
-        createCommand("alarm.create", {
-          label: "ping me",
-          minutesFromNow: 10,
-        }),
-        context,
-      ),
-    ).resolves.toEqual({
-      text: "Alarm set for 2026-06-26T09:10:00.000Z (ping me).",
-      data: {
-        id: "alarm-1",
+    await expectFeatureExecution(
+      createAlarmFeature(createInMemoryAlarmStore()),
+      createCommand("alarm.create", {
         label: "ping me",
-        scheduledFor: "2026-06-26T09:10:00.000Z",
+        minutesFromNow: 10,
+      }),
+      {
+        text: "Alarm set for 2026-06-26T09:10:00.000Z (ping me).",
+        data: {
+          id: "alarm-1",
+          label: "ping me",
+          scheduledFor: "2026-06-26T09:10:00.000Z",
+        },
       },
-    });
+      context,
+    );
   });
 
   it("lists alarms from the in-memory store", async () => {
@@ -73,13 +82,14 @@ describe("createAlarmFeature", () => {
   });
 
   it("returns a deterministic empty-list response", async () => {
-    const feature = createAlarmFeature(createInMemoryAlarmStore());
-
-    await expect(
-      feature.execute(createCommand("alarm.list"), context),
-    ).resolves.toEqual({
-      text: "There are no alarms set.",
-    });
+    await expectFeatureExecution(
+      createAlarmFeature(createInMemoryAlarmStore()),
+      createCommand("alarm.list"),
+      {
+        text: "There are no alarms set.",
+      },
+      context,
+    );
   });
 
   it.each([
@@ -89,21 +99,11 @@ describe("createAlarmFeature", () => {
     ["negative", { minutesFromNow: -5 }],
     ["string", { minutesFromNow: "10" }],
   ])("rejects %s alarm timing", async (_caseName, parameters) => {
-    const feature = createAlarmFeature(createInMemoryAlarmStore());
-
-    await expect(
-      feature.execute(createCommand("alarm.create", parameters), context),
-    ).rejects.toThrow("Alarm minutesFromNow must be a positive finite number.");
+    await expectFeatureRejects(
+      createAlarmFeature(createInMemoryAlarmStore()),
+      createCommand("alarm.create", parameters),
+      "Alarm minutesFromNow must be a positive finite number.",
+      context,
+    );
   });
 });
-
-function createCommand(
-  capability: string,
-  parameters: AssistantCommand["parameters"] = {},
-): AssistantCommand {
-  return {
-    capability,
-    parameters,
-    rawText: "fixture",
-  };
-}
