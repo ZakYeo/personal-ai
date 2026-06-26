@@ -35,6 +35,39 @@ Acceptance criteria:
 - Core code does not import adapters or runtimes.
 - Architecture check passes.
 
+## Milestone 1.5: Core Safety and Extension Foundation
+
+Goal: make the assistant core pipeline explicit and make future feature work mechanical before adding voice or real providers.
+
+Included:
+
+- Core command validation stage.
+- Confirmation policy stage.
+- Application-owned error taxonomy.
+- Feature capability metadata for risk and confirmation behavior.
+- Feature authoring conventions for capabilities, validation, execution, and tests.
+- Config-driven confirmation requirements for risky commands.
+- Unit tests for validation, confirmation decisions, and error normalization.
+- Integration tests proving the CLI still returns graceful deterministic responses.
+
+Excluded:
+
+- Real voice input or output.
+- Real provider integrations.
+- Persistent multi-turn confirmation storage unless needed for the minimal confirmation policy.
+- New product capabilities beyond what is needed to prove the foundation.
+
+Acceptance criteria:
+
+- Structured commands are validated before feature execution.
+- Invalid commands return deterministic assistant responses without executing features.
+- Capabilities can declare risk and confirmation requirements.
+- Configuration can require confirmation for selected capabilities.
+- Confirmation-required commands stop before side effects and ask for yes/no confirmation.
+- Expected error categories are mapped to graceful assistant responses.
+- Unexpected errors are still logged or preserved for diagnostics at runtime boundaries.
+- Adding a new feature requires feature-local code plus registration, without core changes.
+
 ## Milestone 2: Mock Voice Loop
 
 Goal: introduce the voice pipeline shape while keeping behavior deterministic.
