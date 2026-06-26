@@ -66,7 +66,7 @@ Acceptance criteria:
 - Configuration can require confirmation for selected capabilities.
 - Confirmation-required commands stop before side effects and ask for yes/no confirmation.
 - Expected error categories are mapped to graceful assistant responses.
-- Unexpected errors are still logged or preserved for diagnostics at runtime boundaries.
+- Unexpected errors and feature failure causes are preserved for diagnostics and logged at runtime boundaries without exposing raw details in assistant responses.
 - Adding a new feature requires feature-local code plus registration, without core changes.
 
 ## Milestone 1.6: Test Harness and Authoring Ergonomics
@@ -79,6 +79,7 @@ Included:
 - Test config builders for common enabled-feature and confirmation-policy shapes.
 - CLI integration test helpers for captured IO, temporary config files, and deterministic `ask` invocations.
 - Feature contract test helpers for capability metadata, validation expectations, and execution behavior.
+- Typed feature authoring helpers that derive handler argument types from declared capability parameter metadata.
 - Shared deterministic scenario fixtures for existing calendar, messaging, alarm, unsupported, unknown, and runtime-failure flows.
 - Refactor existing tests enough to prove the harness reduces repetition without hiding important behavior.
 

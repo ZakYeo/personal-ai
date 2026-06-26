@@ -4,7 +4,7 @@ Personal AI is planned as a voice-activated assistant that runs on a desktop fir
 
 The first implementation should be deterministic: mock AI, mock voice, and mock feature adapters before any external API integrations are introduced.
 
-Failure handling follows a human-facing boundary rule: low-level modules may throw, but runtimes should catch final unhandled errors, log diagnostic detail, and return or speak a graceful response whenever possible. Feature failures preserve diagnostic causes internally while returning safe public text. Voice interactions should prefer a safe fallback response over silence.
+Failure handling follows a human-facing boundary rule: low-level modules may throw, but runtimes should catch final unhandled errors, log diagnostic detail, and return or speak a graceful response whenever possible. Feature failures preserve diagnostic causes through the assistant's diagnostic-aware outcome path while returning safe public text. Voice interactions should prefer a safe fallback response over silence.
 
 ## Documentation
 
@@ -20,6 +20,8 @@ The docs in `docs/` are the source of truth for implementation decisions:
 ## Current Status
 
 This repository has the deterministic Milestone 1 assistant foundation: TypeScript tooling, architecture checks, a text CLI runtime, config-driven deterministic intent and feature adapter composition, mock calendar and messaging features, and local in-memory alarm storage behind an adapter-owned port implementation.
+
+Feature plugins are authored with `defineFeature` and `defineCapability` so handler `request.args` types are derived from declared capability parameter metadata.
 
 ## Development
 

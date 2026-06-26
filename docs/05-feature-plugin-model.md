@@ -93,7 +93,9 @@ For each capability:
 - Declare expected command parameters with type metadata and required/minimum/positive rules.
 - Keep parameter validation generic where possible; domain-specific parsing belongs in the feature or adapter.
 
-Feature execution should assume the core has already selected an enabled feature, matched capability metadata, decoded validated command parameters into typed feature arguments, and applied confirmation policy. Features should receive a typed execution request containing the selected capability, the original command, and decoded arguments. Feature-local handlers should model their supported capabilities as concrete request or argument types and use decoded `request.args` for command inputs instead of reparsing raw `AssistantCommand.parameters`. Feature code may still throw if its own responsibility cannot be completed; runtime-facing boundaries map final failures into graceful assistant responses.
+Feature execution should assume the core has already selected an enabled feature, matched capability metadata, decoded validated command parameters into typed feature arguments, and applied confirmation policy. Features should receive a typed execution request containing the selected capability, the original command, and decoded arguments. Feature-local handlers should model their supported capabilities through `defineCapability` and `defineFeature` so TypeScript derives `request.args` from declared parameter metadata. Feature code should use decoded `request.args` for command inputs instead of reparsing raw `AssistantCommand.parameters`. Feature code may still throw if its own responsibility cannot be completed; runtime-facing boundaries map final failures into graceful assistant responses while preserving diagnostics internally.
+
+Feature authors should keep the declared parameter object literal stable with `as const satisfies FeatureCapabilityParameters` when it is shared outside the builder. This preserves literal metadata such as `required: true`, allowing `defineCapability` to make required arguments non-optional and optional arguments optional in the handler.
 
 Tests for a new feature should cover:
 

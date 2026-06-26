@@ -41,6 +41,8 @@ Low-level modules may raise or throw errors when they cannot complete their resp
 
 Human-facing boundaries must normalize failures into graceful outcomes. CLI, voice, desktop, and Raspberry Pi runtimes should catch unhandled errors at the control-loop boundary, log the real error details, and return or speak a safe assistant response whenever possible. Application errors may preserve diagnostic causes and internal messages, but feature failure responses must not echo provider, adapter, credential, or stack details to the user.
 
+The assistant core exposes a public response-only path for simple callers and a diagnostic-aware outcome path for runtimes. Runtimes should use the diagnostic-aware path when available, log preserved application diagnostics internally, and print or speak only the safe assistant response.
+
 Voice response is a best-effort invariant: an exception in command handling should not leave the human with silence if the runtime can still produce a fallback response. If text-to-speech or audio output also fails, the runtime should fall back to text/log output and keep enough diagnostics for debugging.
 
 ## Allowed Responsibilities
@@ -53,7 +55,7 @@ Voice response is a best-effort invariant: an exception in command handling shou
 - Command validation.
 - Confirmation policy.
 - Response shaping.
-- Normalizing expected feature failures into assistant responses where practical.
+- Normalizing expected feature failures into assistant responses while preserving diagnostics for runtime boundaries.
 
 ### Ports
 

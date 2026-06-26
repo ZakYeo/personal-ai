@@ -18,6 +18,7 @@ It should:
 - Load deterministic mock configuration.
 - Invoke the assistant core.
 - Print the assistant response.
+- Use the assistant's diagnostic-aware outcome path and log internal diagnostics to stderr.
 - Print a graceful failure response instead of exposing raw exceptions to the user.
 - Support repeatable tests.
 
@@ -110,6 +111,8 @@ The assistant core should expose application behavior, not process lifecycle beh
 ## Failure Handling
 
 Runtimes are the last line of defense before a failure reaches a human. Lower-level code may throw, but runtime control loops should catch unhandled errors, preserve diagnostic detail in logs, and return a safe response such as "I hit a problem and could not complete that." Core-level feature failures should also preserve diagnostic causes while returning safe public text rather than raw exception messages.
+
+Runtime code should prefer the assistant's diagnostic-aware outcome method over the response-only method. The CLI logs preserved feature diagnostics to stderr, writes only the safe response to stdout, and routes even executable entrypoint rejections through the same graceful fallback text with diagnostics logged separately.
 
 For voice runtimes, producing some response is more important than preserving the exact internal error message. If command handling fails, the runtime should attempt a spoken fallback. If speech output fails, it should fall back to text or logs rather than silently ending the interaction.
 
