@@ -6,7 +6,9 @@ import {
 import {
   deterministicScenarios,
   enabledDeterministicConfig,
+  mockVoiceConfig,
   runtimeFailureResponse,
+  voiceEnabledDeterministicConfig,
 } from "../../test-support/deterministic-scenarios.js";
 import type { Assistant } from "../../core/assistant/index.js";
 
@@ -14,7 +16,7 @@ describe("mock voice runtime", () => {
   it("runs a simulated voice command through the assistant core", async () => {
     const spoken: string[] = [];
     const runtime = await createMockVoiceRuntime({
-      config: enabledDeterministicConfig,
+      config: voiceEnabledDeterministicConfig,
       utterance: deterministicScenarios.calendarWedding.text,
       io: {
         fallbackOutput: {
@@ -103,11 +105,20 @@ describe("mock voice runtime", () => {
         config: {
           ...enabledDeterministicConfig,
           voice: {
+            ...mockVoiceConfig,
             speechToText: "unknown",
           },
         },
       }),
     ).rejects.toThrow('Config voice.speechToText "unknown" is not registered.');
+  });
+
+  it("rejects missing voice adapters during composition", async () => {
+    await expect(
+      createMockVoiceRuntime({
+        config: enabledDeterministicConfig,
+      }),
+    ).rejects.toThrow("Config voice.input must be configured.");
   });
 });
 
@@ -146,7 +157,7 @@ function createVoiceDependencies(
         return Promise.resolve();
       },
     },
-    config: enabledDeterministicConfig,
+    config: voiceEnabledDeterministicConfig,
     speechToText: {
       transcribe: (audio) => Promise.resolve({ text: audio.text }),
     },

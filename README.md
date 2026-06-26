@@ -26,6 +26,10 @@ messaging features, local in-memory alarm storage behind an adapter-owned port
 implementation, voice ports, mock voice adapters, and a simulated one-turn voice
 CLI.
 
+Voice runtime composition is config-driven: `voice-once` requires configured
+voice adapter IDs for input, wake word, speech-to-text, text-to-speech, and
+audio output. The default config uses the mock adapters for each slot.
+
 Feature plugins are authored with `defineFeature` and `defineCapability` so handler `request.args` types are derived from declared capability parameter metadata.
 
 ## Development

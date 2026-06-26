@@ -1,6 +1,14 @@
 import type { AssistantConfig, AssistantResponse } from "../ports/assistant.js";
 import { createAssistantConfig } from "./core-assistant.js";
 
+export const mockVoiceConfig = {
+  input: "mock",
+  wakeWord: "mock",
+  speechToText: "mock",
+  textToSpeech: "mock",
+  audioOutput: "mock",
+} satisfies NonNullable<AssistantConfig["voice"]>;
+
 export const deterministicNow = new Date("2026-06-26T09:00:00.000Z");
 export const deterministicNowIso = deterministicNow.toISOString();
 
@@ -9,6 +17,11 @@ export const enabledDeterministicConfig = createAssistantConfig({
   messaging: { enabled: true, adapter: "mock" },
   alarms: { enabled: true, adapter: "local" },
 });
+
+export const voiceEnabledDeterministicConfig: AssistantConfig = {
+  ...enabledDeterministicConfig,
+  voice: mockVoiceConfig,
+};
 
 export const defaultDeterministicConfig = createAssistantConfig({
   calendar: { enabled: true, adapter: "mock" },

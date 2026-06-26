@@ -10,9 +10,11 @@ import {
   deterministicScenarios,
   disabledCalendarConfig,
   enabledDeterministicConfig,
+  mockVoiceConfig,
   runtimeFailureConfig,
   runtimeFailureDiagnostic,
   runtimeFailureResponse,
+  voiceEnabledDeterministicConfig,
 } from "../../test-support/deterministic-scenarios.js";
 
 describe("personal-ai ask CLI", () => {
@@ -60,7 +62,7 @@ describe("personal-ai ask CLI", () => {
   });
 
   it("runs one simulated voice turn with an explicit utterance and config", async () => {
-    const configPath = await writeTempConfig(enabledDeterministicConfig);
+    const configPath = await writeTempConfig(voiceEnabledDeterministicConfig);
 
     await expect(
       runCli(
@@ -96,6 +98,7 @@ describe("personal-ai ask CLI", () => {
     const configPath = await writeTempConfig({
       ...enabledDeterministicConfig,
       voice: {
+        ...mockVoiceConfig,
         speechToText: "unknown",
       },
     });
@@ -107,6 +110,18 @@ describe("personal-ai ask CLI", () => {
       stderr: [
         'Runtime failure: Config voice.speechToText "unknown" is not registered.\n',
       ],
+      stdout: ["I hit a problem and could not complete that.\n"],
+    });
+  });
+
+  it("prints a graceful response and diagnostics when voice config is missing", async () => {
+    const configPath = await writeTempConfig(enabledDeterministicConfig);
+
+    await expect(
+      runCli(["voice-once", "--config", configPath]),
+    ).resolves.toEqual({
+      exitCode: 1,
+      stderr: ["Runtime failure: Config voice.input must be configured.\n"],
       stdout: ["I hit a problem and could not complete that.\n"],
     });
   });

@@ -54,7 +54,9 @@ speech-to-text, text-to-speech, and audio output adapters. It still composes the
 same assistant core as the text CLI. Missing wake phrases are ignored
 deterministically, assistant diagnostics are logged internally, command handling
 failures produce the safe fallback response, and speech output failures fall
-back to text output.
+back to text output. The voice runtime must require configured adapter IDs for
+every voice adapter slot it composes; mock adapters are selected by explicit
+`mock` IDs, not by absent configuration.
 
 ### Raspberry Pi Runtime
 
@@ -105,7 +107,7 @@ features:
     adapter: local
 ```
 
-The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in deterministic runtime currently uses JSON with `intent.provider`, `voice` adapter IDs, and per-feature `adapter` IDs. The important rule is that provider, voice, and feature selection must be configuration-driven.
+The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in deterministic runtime currently uses JSON with `intent.provider`, `voice` adapter IDs, and per-feature `adapter` IDs. The important rule is that provider, voice, and feature selection must be configuration-driven. Text-only runtimes may ignore the `voice` section, but voice runtimes must reject missing or unregistered voice adapter IDs during composition.
 
 ## Process Lifecycle
 

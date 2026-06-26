@@ -1,11 +1,4 @@
 import { createDeterministicRuntime } from "../deterministic-runtime.js";
-import {
-  MockAudioInput,
-  MockAudioOutput,
-  MockSpeechToText,
-  MockTextToSpeech,
-  MockWakeWordDetector,
-} from "../../adapters/mock/mock-voice-adapters.js";
 import type { Assistant } from "../../core/assistant/index.js";
 import type { AppError } from "../../core/assistant/app-error.js";
 import type {
@@ -20,6 +13,7 @@ import type {
   WakeWordPort,
 } from "../../ports/voice.js";
 import { loadConfig } from "../config/config.js";
+import { createMockVoiceAdapters } from "./mock-voice-adapter-registry.js";
 
 const fallbackResponse: AssistantResponse = {
   status: "error",
@@ -72,19 +66,24 @@ export async function createMockVoiceRuntime(
     options.utterance ??
     "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?";
 
-  assertMockVoiceConfig(config);
+  const voiceAdapters = createMockVoiceAdapters(config, {
+    utterance,
+    ...(options.io?.fallbackOutput
+      ? { fallbackOutput: options.io.fallbackOutput }
+      : {}),
+  });
 
   const dependencies: VoiceRuntimeDependencies = {
     assistant: await createDeterministicRuntime({
       config,
       ...(options.now ? { now: options.now } : {}),
     }),
-    audioInput: new MockAudioInput(utterance),
-    audioOutput: new MockAudioOutput(options.io?.fallbackOutput),
+    audioInput: voiceAdapters.audioInput,
+    audioOutput: voiceAdapters.audioOutput,
     config,
-    speechToText: new MockSpeechToText(),
-    textToSpeech: new MockTextToSpeech(),
-    wakeWord: new MockWakeWordDetector(),
+    speechToText: voiceAdapters.speechToText,
+    textToSpeech: voiceAdapters.textToSpeech,
+    wakeWord: voiceAdapters.wakeWord,
   };
 
   return {
@@ -172,25 +171,6 @@ async function speakResponse(
     io.fallbackOutput?.write(`${response.text}\n`);
 
     return "fallback_output";
-  }
-}
-
-function assertMockVoiceConfig(config: AssistantConfig): void {
-  const voice = config.voice ?? {};
-
-  assertRegisteredVoiceAdapter("input", voice.input);
-  assertRegisteredVoiceAdapter("wakeWord", voice.wakeWord);
-  assertRegisteredVoiceAdapter("speechToText", voice.speechToText);
-  assertRegisteredVoiceAdapter("textToSpeech", voice.textToSpeech);
-  assertRegisteredVoiceAdapter("audioOutput", voice.audioOutput);
-}
-
-function assertRegisteredVoiceAdapter(
-  key: keyof NonNullable<AssistantConfig["voice"]>,
-  adapter: string | undefined,
-): void {
-  if (adapter !== undefined && adapter !== "mock") {
-    throw new Error(`Config voice.${key} "${adapter}" is not registered.`);
   }
 }
 
