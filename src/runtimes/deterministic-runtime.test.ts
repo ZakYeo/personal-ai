@@ -1,17 +1,17 @@
-import { createDeterministicRuntime } from "./deterministic-runtime.js";
 import {
-  deterministicNow,
   deterministicScenarios,
   disabledCalendarConfig,
-  enabledDeterministicConfig,
 } from "../test-support/deterministic-scenarios.js";
+import {
+  createDeterministicRuntimeHarness,
+  createRuntimeConfigWithMissingFeatureAdapter,
+  createRuntimeConfigWithUnknownFeatureAdapter,
+  createRuntimeConfigWithUnknownIntentProvider,
+} from "../test-support/runtime-composition.js";
 
 describe("createDeterministicRuntime", () => {
   it("wires enabled features into the assistant", async () => {
-    const assistant = await createDeterministicRuntime({
-      config: enabledDeterministicConfig,
-      now: deterministicNow,
-    });
+    const assistant = await createDeterministicRuntimeHarness();
 
     await expect(
       assistant.handleText(deterministicScenarios.calendarWedding.text),
@@ -19,7 +19,7 @@ describe("createDeterministicRuntime", () => {
   });
 
   it("respects disabled features from config", async () => {
-    const assistant = await createDeterministicRuntime({
+    const assistant = await createDeterministicRuntimeHarness({
       config: disabledCalendarConfig,
     });
 
@@ -29,10 +29,7 @@ describe("createDeterministicRuntime", () => {
   });
 
   it("keeps alarm state within one composed runtime", async () => {
-    const assistant = await createDeterministicRuntime({
-      config: enabledDeterministicConfig,
-      now: deterministicNow,
-    });
+    const assistant = await createDeterministicRuntimeHarness();
 
     await assistant.handleText(
       deterministicScenarios.alarmCreateWithoutConfirmation.text,
@@ -44,8 +41,8 @@ describe("createDeterministicRuntime", () => {
   });
 
   it("requires confirmation for alarm creation in the default config", async () => {
-    const assistant = await createDeterministicRuntime({
-      now: deterministicNow,
+    const assistant = await createDeterministicRuntimeHarness({
+      useRuntimeDefaultConfig: true,
     });
 
     await expect(
@@ -63,25 +60,16 @@ describe("createDeterministicRuntime", () => {
 
   it("rejects unknown intent providers during composition", async () => {
     await expect(
-      createDeterministicRuntime({
-        config: {
-          ...enabledDeterministicConfig,
-          intent: { provider: "unknown" },
-        },
+      createDeterministicRuntimeHarness({
+        config: createRuntimeConfigWithUnknownIntentProvider(),
       }),
     ).rejects.toThrow('Config intent.provider "unknown" is not registered.');
   });
 
   it("rejects enabled features without registered adapters", async () => {
     await expect(
-      createDeterministicRuntime({
-        config: {
-          ...enabledDeterministicConfig,
-          features: {
-            ...enabledDeterministicConfig.features,
-            calendar: { enabled: true, adapter: "unknown" },
-          },
-        },
+      createDeterministicRuntimeHarness({
+        config: createRuntimeConfigWithUnknownFeatureAdapter(),
       }),
     ).rejects.toThrow(
       'Config feature "calendar" adapter "unknown" is not registered.',
@@ -90,14 +78,8 @@ describe("createDeterministicRuntime", () => {
 
   it("rejects enabled features without adapter IDs", async () => {
     await expect(
-      createDeterministicRuntime({
-        config: {
-          ...enabledDeterministicConfig,
-          features: {
-            ...enabledDeterministicConfig.features,
-            calendar: { enabled: true },
-          },
-        },
+      createDeterministicRuntimeHarness({
+        config: createRuntimeConfigWithMissingFeatureAdapter(),
       }),
     ).rejects.toThrow(
       'Config feature "calendar".adapter must be set for enabled features.',
