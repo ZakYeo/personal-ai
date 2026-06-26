@@ -53,17 +53,11 @@ describe("mock voice adapters", () => {
     ).resolves.toEqual({ text: "There are no alarms set." });
   });
 
-  it("records and writes spoken output", async () => {
-    const writes: string[] = [];
-    const output = new MockAudioOutput({
-      write: (chunk) => {
-        writes.push(chunk);
-      },
-    });
+  it("records spoken output without writing text output", async () => {
+    const output = new MockAudioOutput();
 
     await output.play({ text: "There are no alarms set." });
 
     expect(output.played).toEqual([{ text: "There are no alarms set." }]);
-    expect(writes).toEqual(["There are no alarms set.\n"]);
   });
 });

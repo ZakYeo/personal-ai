@@ -36,10 +36,17 @@ export interface VoiceRuntimeDependencies {
 
 interface VoiceTurnResult {
   response: AssistantResponse;
+  spokenText?: string;
   status: "spoken" | "ignored" | "fallback_output";
+  textOutputWritten: boolean;
   transcript?: string;
   wakePhrase?: string;
 }
+
+type VoiceSpeechOutputResult = Pick<
+  VoiceTurnResult,
+  "spokenText" | "status" | "textOutputWritten"
+>;
 
 interface MockVoiceRuntimeOptions {
   config?: AssistantConfig;
@@ -65,12 +72,7 @@ export async function createMockVoiceRuntime(
     options.utterance ??
     "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?";
 
-  const voiceAdapters = createMockVoiceAdapters(config, {
-    utterance,
-    ...(options.io?.fallbackOutput
-      ? { fallbackOutput: options.io.fallbackOutput }
-      : {}),
-  });
+  const voiceAdapters = createMockVoiceAdapters(config, { utterance });
 
   const dependencies: VoiceRuntimeDependencies = {
     assistant: await createDeterministicRuntime({
@@ -108,6 +110,7 @@ export async function runVoiceTurn(
           text: "Wake phrase not detected.",
         },
         status: "ignored",
+        textOutputWritten: false,
       };
     }
 
@@ -117,18 +120,18 @@ export async function runVoiceTurn(
       transcript.text,
       io,
     );
-    const status = await speakResponse(dependencies, response, io);
+    const speechOutput = await speakResponse(dependencies, response, io);
 
     return {
       response,
-      status,
+      ...speechOutput,
       transcript: transcript.text,
       ...(detection.phrase ? { wakePhrase: detection.phrase } : {}),
     };
   } catch (error) {
     logRuntimeFailure(error, io);
 
-    const status = await speakResponse(
+    const speechOutput = await speakResponse(
       dependencies,
       safeRuntimeFallbackResponse,
       io,
@@ -136,7 +139,7 @@ export async function runVoiceTurn(
 
     return {
       response: safeRuntimeFallbackResponse,
-      status,
+      ...speechOutput,
     };
   }
 }
@@ -163,16 +166,23 @@ async function speakResponse(
   dependencies: VoiceRuntimeDependencies,
   response: AssistantResponse,
   io: VoiceRuntimeIo,
-): Promise<VoiceTurnResult["status"]> {
+): Promise<VoiceSpeechOutputResult> {
   try {
     const speech = await dependencies.textToSpeech.synthesize(response.text);
     await dependencies.audioOutput.play(speech);
 
-    return "spoken";
+    return {
+      spokenText: speech.text,
+      status: "spoken",
+      textOutputWritten: false,
+    };
   } catch (error) {
     logRuntimeFailure(error, io);
     io.fallbackOutput?.write(`${response.text}\n`);
 
-    return "fallback_output";
+    return {
+      status: "fallback_output",
+      textOutputWritten: Boolean(io.fallbackOutput),
+    };
   }
 }

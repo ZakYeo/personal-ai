@@ -14,28 +14,19 @@ import type { Assistant } from "../../core/assistant/index.js";
 
 describe("mock voice runtime", () => {
   it("runs a simulated voice command through the assistant core", async () => {
-    const spoken: string[] = [];
     const runtime = await createMockVoiceRuntime({
       config: voiceEnabledDeterministicConfig,
       utterance: deterministicScenarios.calendarWedding.text,
-      io: {
-        fallbackOutput: {
-          write: (chunk) => {
-            spoken.push(chunk);
-          },
-        },
-      },
     });
 
     await expect(runtime.runOnce()).resolves.toEqual({
       response: deterministicScenarios.calendarWedding.response,
+      spokenText: deterministicScenarios.calendarWedding.response.text,
       status: "spoken",
+      textOutputWritten: false,
       transcript: deterministicScenarios.calendarWedding.text,
       wakePhrase: "hey jarvis",
     });
-    expect(spoken).toEqual([
-      `${deterministicScenarios.calendarWedding.response.text}\n`,
-    ]);
   });
 
   it("ignores utterances without the wake phrase", async () => {
@@ -51,6 +42,7 @@ describe("mock voice runtime", () => {
         text: "Wake phrase not detected.",
       },
       status: "ignored",
+      textOutputWritten: false,
     });
   });
 
@@ -70,7 +62,9 @@ describe("mock voice runtime", () => {
       }),
     ).resolves.toMatchObject({
       response: runtimeFailureResponse,
+      spokenText: runtimeFailureResponse.text,
       status: "spoken",
+      textOutputWritten: false,
     });
     expect(spoken).toEqual([`${runtimeFailureResponse.text}\n`]);
     expect(stderr).toEqual(["Runtime failure: raw assistant failure\n"]);
@@ -92,6 +86,7 @@ describe("mock voice runtime", () => {
     ).resolves.toMatchObject({
       response: deterministicScenarios.alarmListEmpty.response,
       status: "fallback_output",
+      textOutputWritten: true,
     });
     expect(fallbackOutput).toEqual([
       `${deterministicScenarios.alarmListEmpty.response.text}\n`,

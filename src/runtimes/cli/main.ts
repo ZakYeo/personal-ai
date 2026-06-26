@@ -167,7 +167,7 @@ async function handleVoiceCommand(
     const result = await runtime.runOnce();
 
     return {
-      outputWritten: result.status !== "ignored",
+      outputWritten: result.textOutputWritten,
       response: result.response,
     };
   } catch (error) {

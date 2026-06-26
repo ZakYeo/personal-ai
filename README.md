@@ -31,6 +31,9 @@ CLI.
 Voice runtime composition is config-driven: `voice-once` requires configured
 voice adapter IDs for input, wake word, speech-to-text, text-to-speech, and
 audio output. The default config uses the mock adapters for each slot.
+Simulated speech is kept separate from CLI fallback text output; the CLI prints
+text from explicit voice runtime result metadata instead of audio adapter write
+side effects.
 
 Feature plugins are authored with `defineFeature` and `defineCapability` so handler `request.args` types are derived from declared capability parameter metadata.
 

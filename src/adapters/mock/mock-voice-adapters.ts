@@ -48,13 +48,8 @@ export class MockTextToSpeech implements TextToSpeechPort {
 export class MockAudioOutput implements AudioOutputPort {
   readonly played: SynthesizedSpeech[] = [];
 
-  constructor(
-    private readonly writer?: { write(chunk: string): boolean | void },
-  ) {}
-
   play(speech: SynthesizedSpeech): Promise<void> {
     this.played.push(speech);
-    this.writer?.write(`${speech.text}\n`);
 
     return Promise.resolve();
   }

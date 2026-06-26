@@ -18,7 +18,6 @@ type VoiceConfig = NonNullable<AssistantConfig["voice"]>;
 type VoiceAdapterKey = keyof VoiceConfig;
 
 interface MockVoiceAdapterRegistryOptions {
-  fallbackOutput?: { write(chunk: string): boolean | void };
   utterance: string;
 }
 
@@ -44,7 +43,7 @@ export function createMockVoiceAdapters(
       config,
       "audioOutput",
       mockVoiceAdapterRegistry.audioOutput,
-    )(options),
+    )(),
     speechToText: createVoiceAdapter(
       config,
       "speechToText",
@@ -98,8 +97,7 @@ const mockVoiceAdapterRegistry = {
     mock: () => new MockTextToSpeech(),
   },
   audioOutput: {
-    mock: (options: MockVoiceAdapterRegistryOptions) =>
-      new MockAudioOutput(options.fallbackOutput),
+    mock: () => new MockAudioOutput(),
   },
 } satisfies {
   input: Record<
@@ -109,8 +107,5 @@ const mockVoiceAdapterRegistry = {
   wakeWord: Record<string, () => WakeWordPort>;
   speechToText: Record<string, () => SpeechToTextPort>;
   textToSpeech: Record<string, () => TextToSpeechPort>;
-  audioOutput: Record<
-    string,
-    (options: MockVoiceAdapterRegistryOptions) => AudioOutputPort
-  >;
+  audioOutput: Record<string, () => AudioOutputPort>;
 };
