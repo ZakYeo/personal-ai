@@ -2,7 +2,9 @@ import { createAlarmFeature } from "./alarm-feature.js";
 import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
 import {
   createFeatureCommand,
+  createFeatureExecutionRequest,
   createFeatureContext,
+  createTypedFeatureCommand,
   expectCapabilityMetadata,
   expectFeatureExecution,
   expectFeatureHandles,
@@ -64,19 +66,24 @@ describe("createAlarmFeature", () => {
     const feature = createAlarmFeature(createTestAlarmStore());
 
     await feature.execute(
-      createFeatureCommand("alarm.create", {
-        label: "ping me",
-        minutesFromNow: 10,
-      }),
-      {
-        label: "ping me",
-        minutesFromNow: 10,
-      },
+      createFeatureExecutionRequest(
+        createTypedFeatureCommand("alarm.create", {
+          label: "ping me",
+          minutesFromNow: 10,
+        }),
+        {
+          label: "ping me",
+          minutesFromNow: 10,
+        },
+      ),
       context,
     );
 
     await expect(
-      feature.execute(createFeatureCommand("alarm.list"), {}, context),
+      feature.execute(
+        createFeatureExecutionRequest(createTypedFeatureCommand("alarm.list")),
+        context,
+      ),
     ).resolves.toEqual({
       text: "Alarms: alarm-1 at 2026-06-26T09:10:00.000Z (ping me).",
     });

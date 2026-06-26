@@ -105,8 +105,11 @@ export function createAssistant(
         }
 
         const result = await feature.execute(
-          command,
-          decodedCommand.args,
+          {
+            capability: command.capability,
+            command,
+            args: decodedCommand.args,
+          },
           context,
         );
 

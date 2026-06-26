@@ -72,9 +72,12 @@ describe("core assistant test support", () => {
       text: "Handled by helper.",
     });
     expect(execute).toHaveBeenCalledWith(
-      command,
       {
-        message: "hello",
+        capability: "test.echo",
+        command,
+        args: {
+          message: "hello",
+        },
       },
       expect.objectContaining({
         config: createAssistantConfig({ test: { enabled: true } }),

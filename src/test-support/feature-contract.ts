@@ -5,8 +5,9 @@ import type {
   AssistantCommandParameters,
 } from "../ports/assistant.js";
 import type {
-  FeatureCapability,
   FeatureArguments,
+  FeatureCapability,
+  FeatureExecutionRequest,
   FeaturePlugin,
   FeatureResult,
 } from "../ports/feature.js";
@@ -53,6 +54,18 @@ export function createFeatureCommand(
   };
 }
 
+export function createTypedFeatureCommand<TCapability extends string>(
+  capability: TCapability,
+  parameters: AssistantCommandParameters = {},
+  rawText = "feature command",
+): AssistantCommand & { capability: TCapability } {
+  return {
+    capability,
+    parameters,
+    rawText,
+  };
+}
+
 export function expectCapabilityMetadata(
   feature: FeaturePlugin,
   expected: FeatureCapability,
@@ -84,9 +97,9 @@ export async function expectFeatureExecution(
   expected: FeatureResult,
   context: AssistantContext = createFeatureContext(),
 ): Promise<void> {
-  await expect(feature.execute(command, args, context)).resolves.toEqual(
-    expected,
-  );
+  await expect(
+    feature.execute(createFeatureExecutionRequest(command, args), context),
+  ).resolves.toEqual(expected);
 }
 
 export async function expectFeatureRejects(
@@ -96,7 +109,31 @@ export async function expectFeatureRejects(
   expectedMessage: string,
   context: AssistantContext = createFeatureContext(),
 ): Promise<void> {
-  await expect(feature.execute(command, args, context)).rejects.toThrow(
-    expectedMessage,
-  );
+  await expect(
+    feature.execute(createFeatureExecutionRequest(command, args), context),
+  ).rejects.toThrow(expectedMessage);
+}
+
+export function createFeatureExecutionRequest<TCapability extends string>(
+  command: AssistantCommand & { capability: TCapability },
+): FeatureExecutionRequest<TCapability, Record<string, never>>;
+export function createFeatureExecutionRequest<
+  TCapability extends string,
+  TArgs extends object,
+>(
+  command: AssistantCommand & { capability: TCapability },
+  args: TArgs,
+): FeatureExecutionRequest<TCapability, TArgs>;
+export function createFeatureExecutionRequest<
+  TCapability extends string,
+  TArgs extends object,
+>(
+  command: AssistantCommand & { capability: TCapability },
+  args: TArgs | Record<string, never> = {},
+): FeatureExecutionRequest<TCapability, TArgs | Record<string, never>> {
+  return {
+    capability: command.capability,
+    command,
+    args,
+  };
 }

@@ -1,6 +1,5 @@
-import type { AssistantCommand } from "../../ports/assistant.js";
 import type {
-  FeatureArguments,
+  FeatureExecutionRequest,
   FeaturePlugin,
   FeatureResult,
 } from "../../ports/feature.js";
@@ -19,7 +18,14 @@ const calendarEvents: CalendarEventFixture[] = [
   },
 ];
 
-export function createCalendarFeature(): FeaturePlugin {
+type CalendarSearchEventsRequest = FeatureExecutionRequest<
+  "calendar.search_events",
+  {
+    query: string;
+  }
+>;
+
+export function createCalendarFeature(): FeaturePlugin<CalendarSearchEventsRequest> {
   return {
     id: "calendar",
     displayName: "Mock Calendar",
@@ -32,13 +38,14 @@ export function createCalendarFeature(): FeaturePlugin {
         },
       },
     ],
-    execute: (_command: AssistantCommand, args: FeatureArguments) =>
-      Promise.resolve(searchEvents(args)),
+    execute: (request) => Promise.resolve(searchEvents(request.args)),
   };
 }
 
-function searchEvents(args: FeatureArguments): FeatureResult {
-  const query = String(args.query).toLowerCase();
+function searchEvents(
+  args: CalendarSearchEventsRequest["args"],
+): FeatureResult {
+  const query = args.query.toLowerCase();
   const event = calendarEvents.find((candidate) =>
     candidate.title.toLowerCase().includes(query),
   );

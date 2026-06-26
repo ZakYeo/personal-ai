@@ -37,12 +37,14 @@ describe("feature contract test support", () => {
           parameters: { message: { type: "string", required: true } },
         },
       ],
-      execute: (command) => {
-        if (command.parameters.message === "fail") {
+      execute: (request) => {
+        if (request.command.parameters.message === "fail") {
           return Promise.reject(new Error("fixture failure"));
         }
 
-        return Promise.resolve({ text: String(command.parameters.message) });
+        return Promise.resolve({
+          text: String(request.command.parameters.message),
+        });
       },
     });
 

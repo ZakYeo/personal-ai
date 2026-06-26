@@ -15,8 +15,7 @@ interface FeaturePlugin {
   capabilities: Capability[];
   canHandle?(command: AssistantCommand, context: AssistantContext): boolean;
   execute(
-    command: AssistantCommand,
-    args: FeatureArguments,
+    request: FeatureExecutionRequest,
     context: AssistantContext,
   ): Promise<FeatureResult>;
 }
@@ -94,7 +93,7 @@ For each capability:
 - Declare expected command parameters with type metadata and required/minimum/positive rules.
 - Keep parameter validation generic where possible; domain-specific parsing belongs in the feature or adapter.
 
-Feature execution should assume the core has already selected an enabled feature, matched capability metadata, decoded validated command parameters into typed feature arguments, and applied confirmation policy. Features should use the decoded arguments for command inputs instead of reparsing raw `AssistantCommand.parameters`. Feature code may still throw if its own responsibility cannot be completed; runtime-facing boundaries map final failures into graceful assistant responses.
+Feature execution should assume the core has already selected an enabled feature, matched capability metadata, decoded validated command parameters into typed feature arguments, and applied confirmation policy. Features should receive a typed execution request containing the selected capability, the original command, and decoded arguments. Feature-local handlers should model their supported capabilities as concrete request or argument types and use decoded `request.args` for command inputs instead of reparsing raw `AssistantCommand.parameters`. Feature code may still throw if its own responsibility cannot be completed; runtime-facing boundaries map final failures into graceful assistant responses.
 
 Tests for a new feature should cover:
 

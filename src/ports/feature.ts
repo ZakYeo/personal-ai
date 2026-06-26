@@ -23,16 +23,27 @@ export interface FeatureResult {
   data?: AssistantCommandParameters;
 }
 
-export type FeatureArguments = Record<string, string | number | boolean>;
+export type FeatureArgumentValue = string | number | boolean;
+export type FeatureArguments = Record<string, FeatureArgumentValue>;
 
-export interface FeaturePlugin {
+export interface FeatureExecutionRequest<
+  TCapability extends string = string,
+  TArgs extends object = FeatureArguments,
+> {
+  capability: TCapability;
+  command: AssistantCommand & { capability: TCapability };
+  args: TArgs;
+}
+
+export interface FeaturePlugin<
+  TExecutionRequest extends FeatureExecutionRequest = FeatureExecutionRequest,
+> {
   id: string;
   displayName: string;
   capabilities: FeatureCapability[];
   canHandle?(command: AssistantCommand, context: AssistantContext): boolean;
   execute(
-    command: AssistantCommand,
-    args: FeatureArguments,
+    request: TExecutionRequest,
     context: AssistantContext,
   ): Promise<FeatureResult>;
 }

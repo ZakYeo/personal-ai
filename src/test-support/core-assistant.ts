@@ -7,6 +7,7 @@ import type {
 } from "../ports/assistant.js";
 import type {
   FeatureArguments,
+  FeatureExecutionRequest,
   FeaturePlugin,
   FeatureResult,
 } from "../ports/feature.js";
@@ -94,8 +95,7 @@ export function createFeature(
       context: AssistantContext,
     ) => boolean;
     execute: (
-      command: AssistantCommand,
-      args: FeatureArguments,
+      request: FeatureExecutionRequest<string, FeatureArguments>,
       context: AssistantContext,
     ) => Promise<FeatureResult>;
     capabilities: FeaturePlugin["capabilities"];

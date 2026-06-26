@@ -1,15 +1,27 @@
+import type { AssistantContext } from "../../ports/assistant.js";
 import type {
-  AssistantCommand,
-  AssistantContext,
-} from "../../ports/assistant.js";
-import type {
-  FeatureArguments,
+  FeatureExecutionRequest,
   FeaturePlugin,
   FeatureResult,
 } from "../../ports/feature.js";
 import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
 
-export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
+type AlarmCreateRequest = FeatureExecutionRequest<
+  "alarm.create",
+  {
+    label?: string;
+    minutesFromNow: number;
+  }
+>;
+type AlarmListRequest = FeatureExecutionRequest<
+  "alarm.list",
+  Record<string, never>
+>;
+type AlarmExecutionRequest = AlarmCreateRequest | AlarmListRequest;
+
+export function createAlarmFeature(
+  store: AlarmStore,
+): FeaturePlugin<AlarmExecutionRequest> {
   return {
     id: "alarms",
     displayName: "Local Alarms",
@@ -25,13 +37,9 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
       },
       { name: "alarm.list", risk: "low", parameters: {} },
     ],
-    execute: (
-      command: AssistantCommand,
-      args: FeatureArguments,
-      context: AssistantContext,
-    ) => {
-      if (command.capability === "alarm.create") {
-        return Promise.resolve(createAlarm(args, context, store));
+    execute: (request, context: AssistantContext) => {
+      if (request.capability === "alarm.create") {
+        return Promise.resolve(createAlarm(request.args, context, store));
       }
 
       return Promise.resolve(listAlarms(store));
@@ -40,14 +48,13 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
 }
 
 function createAlarm(
-  args: FeatureArguments,
+  args: AlarmCreateRequest["args"],
   context: AssistantContext,
   store: AlarmStore,
 ): FeatureResult {
-  const minutesFromNow = args.minutesFromNow as number;
-  const label = typeof args.label === "string" ? args.label : "alarm";
+  const label = args.label ?? "alarm";
   const scheduledFor = new Date(
-    context.clock.now().getTime() + minutesFromNow * 60_000,
+    context.clock.now().getTime() + args.minutesFromNow * 60_000,
   ).toISOString();
   const alarm: AlarmRecord = {
     id: `alarm-${store.list().length + 1}`,

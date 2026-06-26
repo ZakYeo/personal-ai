@@ -45,8 +45,11 @@ describe("createAssistant", () => {
       text: "Handled deterministically.",
     });
     expect(execute).toHaveBeenCalledWith(
-      command,
-      { message: "hello" },
+      {
+        capability: "test.echo",
+        command,
+        args: { message: "hello" },
+      },
       {
         clock,
         config,
