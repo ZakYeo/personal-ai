@@ -6,6 +6,13 @@
   "intent": {
     "provider": "deterministic"
   },
+  "voice": {
+    "input": "mock",
+    "wakeWord": "mock",
+    "speechToText": "mock",
+    "textToSpeech": "mock",
+    "audioOutput": "mock"
+  },
   "features": {
     "calendar": {
       "enabled": true,

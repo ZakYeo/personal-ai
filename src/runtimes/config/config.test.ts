@@ -13,6 +13,13 @@ describe("loadConfig", () => {
       intent: {
         provider: "deterministic",
       },
+      voice: {
+        input: "mock",
+        wakeWord: "mock",
+        speechToText: "mock",
+        textToSpeech: "mock",
+        audioOutput: "mock",
+      },
       features: {
         calendar: { enabled: true, adapter: "mock" },
         messaging: { enabled: true, adapter: "mock" },
@@ -127,6 +134,62 @@ describe("parseAssistantConfig", () => {
         },
       },
     });
+  });
+
+  it("parses voice adapter IDs", () => {
+    expect(
+      parseAssistantConfig({
+        assistant: {
+          name: "Jarvis",
+          wakePhrases: ["hey jarvis"],
+        },
+        intent: {
+          provider: "deterministic",
+        },
+        voice: {
+          input: "mock",
+          wakeWord: "mock",
+          speechToText: "mock",
+          textToSpeech: "mock",
+          audioOutput: "mock",
+        },
+        features: {},
+      }),
+    ).toEqual({
+      assistant: {
+        name: "Jarvis",
+        wakePhrases: ["hey jarvis"],
+      },
+      intent: {
+        provider: "deterministic",
+      },
+      voice: {
+        input: "mock",
+        wakeWord: "mock",
+        speechToText: "mock",
+        textToSpeech: "mock",
+        audioOutput: "mock",
+      },
+      features: {},
+    });
+  });
+
+  it("rejects invalid voice adapter IDs", () => {
+    expect(() =>
+      parseAssistantConfig({
+        assistant: {
+          name: "Jarvis",
+          wakePhrases: ["hey jarvis"],
+        },
+        intent: {
+          provider: "deterministic",
+        },
+        voice: {
+          speechToText: "",
+        },
+        features: {},
+      }),
+    ).toThrow("Config voice.speechToText must be a non-empty string.");
   });
 
   it("rejects invalid confirmation-required capabilities", () => {

@@ -60,11 +60,51 @@ export function parseAssistantConfig(value: unknown): AssistantConfig {
       name: assistant.name,
       wakePhrases: assistant.wakePhrases,
     },
+    ...parseVoice(value.voice),
     intent: {
       provider: intent.provider,
     },
     features: parseFeatures(features),
   };
+}
+
+function parseVoice(value: unknown): Pick<AssistantConfig, "voice"> {
+  if (value === undefined) {
+    return {};
+  }
+
+  if (!isRecord(value)) {
+    throw new Error("Config voice section must be a JSON object.");
+  }
+
+  return {
+    voice: {
+      ...parseVoiceAdapter("input", value.input),
+      ...parseVoiceAdapter("wakeWord", value.wakeWord),
+      ...parseVoiceAdapter("speechToText", value.speechToText),
+      ...parseVoiceAdapter("textToSpeech", value.textToSpeech),
+      ...parseVoiceAdapter("audioOutput", value.audioOutput),
+    },
+  };
+}
+
+function parseVoiceAdapter<
+  TKey extends keyof NonNullable<AssistantConfig["voice"]>,
+>(
+  key: TKey,
+  value: unknown,
+): Partial<Pick<NonNullable<AssistantConfig["voice"]>, TKey>> {
+  if (value === undefined) {
+    return {};
+  }
+
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`Config voice.${key} must be a non-empty string.`);
+  }
+
+  return {
+    [key]: value,
+  } as Pick<NonNullable<AssistantConfig["voice"]>, TKey>;
 }
 
 function parseFeatures(

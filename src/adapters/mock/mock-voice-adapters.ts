@@ -10,10 +10,6 @@ import type {
   WakeWordRequest,
 } from "../../ports/voice.js";
 
-interface VoiceOutputWriter {
-  write(chunk: string): boolean | void;
-}
-
 export class MockAudioInput implements AudioInputPort {
   constructor(private readonly utterance: string) {}
 
@@ -52,7 +48,9 @@ export class MockTextToSpeech implements TextToSpeechPort {
 export class MockAudioOutput implements AudioOutputPort {
   readonly played: SynthesizedSpeech[] = [];
 
-  constructor(private readonly writer?: VoiceOutputWriter) {}
+  constructor(
+    private readonly writer?: { write(chunk: string): boolean | void },
+  ) {}
 
   play(speech: SynthesizedSpeech): Promise<void> {
     this.played.push(speech);

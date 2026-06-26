@@ -27,6 +27,13 @@ export interface AssistantConfig {
     name: string;
     wakePhrases: string[];
   };
+  voice?: {
+    input?: string;
+    wakeWord?: string;
+    speechToText?: string;
+    textToSpeech?: string;
+    audioOutput?: string;
+  };
   intent: {
     provider: string;
   };
