@@ -158,6 +158,56 @@ Acceptance criteria:
 - The same assistant core handles text and voice-originated commands.
 - Voice-specific code remains outside the core.
 
+## Milestone 2.1: Harness Hardening
+
+Goal: harden the test-support layers before adding more product, provider, or
+runtime milestones so future work stays obvious, modular, and localized.
+
+This milestone should follow the Harness Design Rules in
+`docs/03-boundaries-and-rules.md`: each architectural layer should have a
+matching test-support layer, tests should use the narrowest public boundary that
+proves the behavior, and shared setup should move into focused harness helpers
+before it spreads across tests.
+
+Included:
+
+- Voice runtime test-support helpers for arranging voice dependencies, fallback
+  writers, throwing assistants, and deterministic utterances.
+- Runtime composition harness helpers for overriding one dependency at a time
+  without rebuilding the full deterministic app graph in each test.
+- Clearer separation between deterministic scenario data, config fixtures, and
+  runtime composition helpers.
+- Reusable feature contract patterns that make new feature tests mechanical
+  without hiding feature-specific behavior.
+- Focused tests proving the harness helpers preserve the intended public
+  boundaries.
+- Documentation updates that keep `README.md`, `AGENTS.md`, and `docs/`
+  aligned with the hardened harness structure.
+
+Excluded:
+
+- New product capabilities.
+- New provider integrations.
+- New runtime types.
+- Broad rewrites of passing tests that do not improve locality.
+- A single global test harness that couples unrelated layers together.
+
+Acceptance criteria:
+
+- Voice runtime tests can be written without local ad hoc dependency builders.
+- Runtime composition tests can swap one adapter, feature, interpreter, clock, or
+  config input without duplicating production wiring.
+- Scenario fixtures describe behavior and expected outcomes separately from
+  runtime composition.
+- New feature tests can rely on reusable feature contract patterns and decoded
+  `request.args` by default.
+- Harness helpers remain layered by responsibility and production code cannot
+  import from `src/test-support/`.
+- Future feature, adapter, and runtime slices should usually touch one
+  production module, one matching test file, one focused harness file if needed,
+  and relevant docs.
+- `npm run check` passes after the harness hardening refactor.
+
 ## Milestone 3: Desktop Voice Runtime
 
 Goal: run the assistant locally on a computer using real or semi-real voice input/output adapters.

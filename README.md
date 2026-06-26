@@ -39,6 +39,11 @@ side effects.
 
 Feature plugins are authored with `defineFeature` and `defineCapability` so handler `request.args` types are derived from declared capability parameter metadata.
 
+The next documented cleanup gate is the Harness Hardening milestone in the
+implementation roadmap. It references the Harness Design Rules in
+`docs/03-boundaries-and-rules.md` and is intended to tighten test-support layers
+before more product, provider, or runtime milestones are added.
+
 ## Development
 
 Work should be broken into thin, committable slices using TDD. For each slice,
