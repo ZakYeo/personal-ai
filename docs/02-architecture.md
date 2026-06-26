@@ -112,6 +112,9 @@ Initial adapters should be deterministic and local:
 - Mock LLM adapter.
 - Mock speech-to-text adapter.
 - Mock text-to-speech adapter.
+- Command-based desktop speech-to-text adapter.
+- Command-based desktop text-to-speech adapter.
+- SoX-compatible desktop audio input and output adapters.
 - Mock calendar adapter.
 - Mock messaging adapter.
 - Local/in-memory alarm storage adapter implementing the alarm store port.

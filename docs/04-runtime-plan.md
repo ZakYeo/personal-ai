@@ -41,7 +41,8 @@ It should:
 - Speak or print the response.
 - Speak a graceful fallback response when command handling fails.
 - Fall back to text/log output if text-to-speech or audio output fails.
-- Use mock adapters until the core flow is stable.
+- Use command-based desktop adapters before adding native audio libraries or
+  provider SDKs.
 
 Milestone 2 starts with a deterministic mock voice loop exposed through:
 
@@ -59,6 +60,21 @@ fallback text output so CLI text printing does not depend on audio adapter side
 effects. The voice runtime must require configured adapter IDs for every voice
 adapter slot it composes; mock adapters are selected by explicit `mock` IDs,
 not by absent configuration.
+
+Milestone 3 adds a one-turn desktop voice runtime exposed through:
+
+```bash
+personal-ai desktop-voice-once --config path/to/desktop-config.json
+```
+
+This command composes the same assistant core with configured desktop voice
+adapters. The first desktop adapter set is dependency-light: `sox-rec` records
+audio through a configured command, `command` STT reads transcript text from
+stdout, `text-prefix` detects wake phrases from transcript text, `command` TTS
+writes synthesized audio through a configured command, and `sox-play` plays the
+synthesized file through a configured command. Runtime failures preserve
+diagnostics internally and produce the same safe CLI/voice fallback behavior as
+the mock voice loop.
 
 ### Raspberry Pi Runtime
 
@@ -94,6 +110,22 @@ voice:
   textToSpeech: mock
   audioOutput: mock
 
+desktopVoice:
+  speechToText:
+    command: your-stt-command
+    args:
+      - "--input"
+      - "{input}"
+    timeoutMs: 30000
+  textToSpeech:
+    command: your-tts-command
+    args:
+      - "--text"
+      - "{text}"
+      - "--output"
+      - "{output}"
+    timeoutMs: 30000
+
 intent:
   provider: deterministic
 
@@ -109,7 +141,7 @@ features:
     adapter: local
 ```
 
-The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in deterministic runtime currently uses JSON with `intent.provider`, `voice` adapter IDs, and per-feature `adapter` IDs. The important rule is that provider, voice, and feature selection must be configuration-driven. Text-only runtimes may ignore the `voice` section, but voice runtimes must reject missing or unregistered voice adapter IDs during composition.
+The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in deterministic runtime currently uses JSON with `intent.provider`, `voice` adapter IDs, optional `desktopVoice` command settings, and per-feature `adapter` IDs. The important rule is that provider, voice, and feature selection must be configuration-driven. Text-only runtimes may ignore the `voice` and `desktopVoice` sections, but voice runtimes must reject missing or unregistered voice adapter IDs during composition. Desktop voice command adapters replace `{input}`, `{output}`, and `{text}` placeholders in configured argument values.
 
 ## Process Lifecycle
 

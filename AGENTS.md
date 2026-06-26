@@ -16,6 +16,7 @@
 - Runtime boundaries should use the assistant diagnostic-aware outcome path when they need internal diagnostics; keep `AssistantResponse` safe for humans.
 - Keep shared human-boundary fallback and diagnostic policy in the runtimes-owned helper instead of duplicating it across CLI, voice, or service loops.
 - Voice runtimes must compose voice input, wake word, speech-to-text, text-to-speech, and audio output through configured adapter IDs; do not construct voice adapters as implicit defaults.
+- Desktop voice runtimes should use explicit local config for command-based STT/TTS and SoX input/output; keep machine-specific commands out of `config/default.json`.
 - Keep simulated spoken output separate from fallback text output; CLI boundaries should use explicit voice result metadata rather than inferring stdout writes from voice status.
 - Author feature capabilities with `defineCapability`/`defineFeature` so decoded handler arguments stay structurally tied to declared parameter metadata.
 - Keep `README.md`, `AGENTS.md`, and every file in `docs/` updated and consistent with the codebase whenever behavior, architecture, tooling, or workflow changes.
@@ -52,6 +53,7 @@
 - `npm run build` - compile the production JavaScript output.
 - `npm run cli -- ask "..."` - run the deterministic text CLI in development.
 - `npm run cli -- voice-once --utterance "..."` - run one simulated mock voice turn.
+- `npm run cli -- desktop-voice-once --config path/to/desktop-config.json` - run one configured desktop voice turn.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.
 - `npm run package:sort:check` - check deterministic `package.json` ordering.

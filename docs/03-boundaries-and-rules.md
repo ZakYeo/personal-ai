@@ -73,6 +73,11 @@ Voice runtimes should keep spoken output semantics separate from text fallback o
 
 Voice adapter selection must be explicit at runtime composition boundaries. A voice runtime may use mock adapters, but it should select them through configured adapter IDs for input, wake word, speech-to-text, text-to-speech, and audio output rather than by constructing implicit defaults.
 
+Desktop voice command settings are runtime configuration, not core behavior.
+Machine-specific command names, arguments, and timeouts belong in local config
+under the desktop voice settings and should not be hard-coded into the assistant
+core or checked-in deterministic default config.
+
 ## Allowed Responsibilities
 
 ### Core

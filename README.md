@@ -23,12 +23,14 @@ Keep `README.md`, `AGENTS.md`, and every document in `docs/` updated with the co
 
 ## Current Status
 
-This repository has the deterministic assistant foundation and mock voice loop:
+This repository has the deterministic assistant foundation, mock voice loop, and
+first desktop voice runtime:
 TypeScript tooling, architecture checks, a text CLI runtime, config-driven
 deterministic intent and feature adapter composition, mock calendar and
 messaging features, local in-memory alarm storage behind an adapter-owned port
 implementation, voice ports, mock voice adapters, and a simulated one-turn voice
-CLI.
+CLI. The desktop runtime composes command-based desktop voice adapters for one
+turn through `desktop-voice-once`.
 
 Voice runtime composition is config-driven: `voice-once` requires configured
 voice adapter IDs for input, wake word, speech-to-text, text-to-speech, and
@@ -36,6 +38,14 @@ audio output. The default config uses the mock adapters for each slot.
 Simulated speech is kept separate from CLI fallback text output; the CLI prints
 text from explicit voice runtime result metadata instead of audio adapter write
 side effects.
+
+Desktop voice composition is also config-driven. `desktop-voice-once` supports
+`sox-rec` microphone capture, `text-prefix` wake phrase detection, command-based
+speech-to-text, command-based text-to-speech, and `sox-play` audio output. The
+checked-in default config remains mock and deterministic; desktop voice should
+use an explicit local config with `voice` adapter IDs and `desktopVoice` command
+settings. On this development machine, `rec` and `play` are available; STT and
+TTS commands are intentionally user-configured and not bundled.
 
 Feature plugins are authored with `defineFeature` and `defineCapability` so
 handler `request.args` types are derived from declared capability parameter
@@ -81,6 +91,7 @@ Useful scripts:
 - `npm run build` - compile the production JavaScript output.
 - `npm run cli -- ask "..."` - run the deterministic text CLI in development.
 - `npm run cli -- voice-once --utterance "..."` - run one simulated mock voice turn.
+- `npm run cli -- desktop-voice-once --config path/to/desktop-config.json` - run one configured desktop voice turn.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.
 - `npm run package:sort:check` - check deterministic `package.json` ordering.
@@ -120,3 +131,45 @@ Feature fixtures should exercise decoded `request.args` by default; use raw
 plugin fixtures only for tests that intentionally cover malformed or lower-level
 feature contracts. Production code must not import from `src/test-support/`, and
 test support should stay layered instead of becoming one global harness.
+
+## Desktop Voice Config
+
+Use a local config file for desktop voice so machine-specific commands stay out
+of `config/default.json`. The command adapters replace `{input}`, `{output}`,
+and `{text}` placeholders in argument values.
+
+```json
+{
+  "assistant": {
+    "name": "Jarvis",
+    "wakePhrases": ["hey jarvis"]
+  },
+  "intent": {
+    "provider": "deterministic"
+  },
+  "voice": {
+    "input": "sox-rec",
+    "wakeWord": "text-prefix",
+    "speechToText": "command",
+    "textToSpeech": "command",
+    "audioOutput": "sox-play"
+  },
+  "desktopVoice": {
+    "speechToText": {
+      "command": "your-stt-command",
+      "args": ["--input", "{input}"],
+      "timeoutMs": 30000
+    },
+    "textToSpeech": {
+      "command": "your-tts-command",
+      "args": ["--text", "{text}", "--output", "{output}"],
+      "timeoutMs": 30000
+    }
+  },
+  "features": {
+    "calendar": { "enabled": true, "adapter": "mock" },
+    "messaging": { "enabled": true, "adapter": "mock" },
+    "alarms": { "enabled": true, "adapter": "local" }
+  }
+}
+```

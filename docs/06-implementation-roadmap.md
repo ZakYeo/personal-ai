@@ -224,6 +224,8 @@ Implemented structure:
 
 ## Milestone 3: Desktop Voice Runtime
 
+Status: implemented.
+
 Goal: run the assistant locally on a computer using real or semi-real voice input/output adapters.
 
 Included:
@@ -244,6 +246,18 @@ Acceptance criteria:
 - The assistant can be activated and used by voice on the development machine.
 - The desktop runtime composes existing core and feature modules.
 - Mock providers can still be selected through configuration.
+
+Implemented structure:
+
+- `desktop-voice-once` runs one configured desktop voice turn from the CLI.
+- Desktop voice composition selects `sox-rec`, `text-prefix`, command STT,
+  command TTS, and `sox-play` through configured adapter IDs.
+- `desktopVoice` config owns machine-specific command, argument, and timeout
+  settings for desktop voice commands.
+- Command adapters preserve subprocess diagnostics internally while runtime
+  boundaries return or speak safe fallback responses.
+- The checked-in default config remains mock and deterministic; desktop voice
+  uses an explicit local config.
 
 ## Milestone 4: Real Provider Experiments
 
