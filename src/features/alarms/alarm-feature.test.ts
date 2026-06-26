@@ -17,7 +17,7 @@ describe("createAlarmFeature", () => {
     expectCapabilityMetadata(feature, {
       name: "alarm.create",
       risk: "high",
-      requiresConfirmation: false,
+      requiresConfirmation: true,
       parameters: {
         label: { type: "string" },
         minutesFromNow: { type: "number", required: true, positive: true },

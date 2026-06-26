@@ -13,7 +13,11 @@ export function evaluateConfirmationPolicy(
       capability.name,
     ) === true;
 
-  if (capability.requiresConfirmation === true || configRequiresConfirmation) {
+  if (
+    capability.risk === "high" ||
+    capability.requiresConfirmation === true ||
+    configRequiresConfirmation
+  ) {
     return createAppError({
       category: "confirmation_required",
       capability: capability.name,

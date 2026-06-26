@@ -77,14 +77,14 @@ describe("personal-ai ask CLI", () => {
           "--config",
           configPath,
           "--utterance",
-          deterministicScenarios.alarmCreateWithoutConfirmation.text,
+          deterministicScenarios.alarmCreateNeedsConfirmation.text,
         ],
         { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
       ),
     ).resolves.toMatchObject({
       exitCode: 0,
       stdout: [
-        `${deterministicScenarios.alarmCreateWithoutConfirmation.response.text}\n`,
+        `${deterministicScenarios.alarmCreateNeedsConfirmation.response.text}\n`,
       ],
       stderr: [],
     });
@@ -203,17 +203,17 @@ describe("personal-ai ask CLI", () => {
     });
   });
 
-  it("creates an alarm when an explicit config does not require confirmation", async () => {
+  it("requires confirmation for high-risk alarms even when config omits confirmation requirements", async () => {
     await expect(
       runAsk({
         config: enabledDeterministicConfig,
         env: { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
-        text: deterministicScenarios.alarmCreateWithoutConfirmation.text,
+        text: deterministicScenarios.alarmCreateNeedsConfirmation.text,
       }),
     ).resolves.toMatchObject({
       exitCode: 0,
       stdout: [
-        `${deterministicScenarios.alarmCreateWithoutConfirmation.response.text}\n`,
+        `${deterministicScenarios.alarmCreateNeedsConfirmation.response.text}\n`,
       ],
     });
   });

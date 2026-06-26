@@ -43,6 +43,24 @@ describe("evaluateConfirmationPolicy", () => {
     });
   });
 
+  it("requires confirmation for all high-risk capabilities", () => {
+    expect(
+      evaluateConfirmationPolicy(
+        createFeature("alarms"),
+        {
+          ...createCapability("alarm.create"),
+          risk: "high",
+        },
+        createAssistantConfig({
+          alarms: { enabled: true },
+        }),
+      ),
+    ).toMatchObject({
+      category: "confirmation_required",
+      capability: "alarm.create",
+    });
+  });
+
   it("allows capabilities without metadata or config confirmation requirements", () => {
     expect(
       evaluateConfirmationPolicy(

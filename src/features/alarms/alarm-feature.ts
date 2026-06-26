@@ -24,7 +24,7 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
     capabilities: {
       "alarm.create": defineCapability({
         risk: "high",
-        requiresConfirmation: false,
+        requiresConfirmation: true,
         parameters: alarmCreateParameters,
         execute: (request, context: AssistantContext) =>
           createAlarm(request.args, context, store),

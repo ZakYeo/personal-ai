@@ -26,16 +26,20 @@ describe("createDeterministicRuntime", () => {
     ).resolves.toEqual(deterministicScenarios.unsupportedCalendar.response);
   });
 
-  it("keeps alarm state within one composed runtime", async () => {
+  it("requires confirmation for high-risk alarm creation", async () => {
     const assistant = await createDeterministicRuntimeHarness();
 
-    await assistant.handleText(
-      deterministicScenarios.alarmCreateWithoutConfirmation.text,
+    await expect(
+      assistant.handleText(
+        deterministicScenarios.alarmCreateNeedsConfirmation.text,
+      ),
+    ).resolves.toEqual(
+      deterministicScenarios.alarmCreateNeedsConfirmation.response,
     );
 
     await expect(
-      assistant.handleText(deterministicScenarios.alarmListWithOne.text),
-    ).resolves.toEqual(deterministicScenarios.alarmListWithOne.response);
+      assistant.handleText(deterministicScenarios.alarmListEmpty.text),
+    ).resolves.toEqual(deterministicScenarios.alarmListEmpty.response);
   });
 
   it("requires confirmation for alarm creation in the default config", async () => {

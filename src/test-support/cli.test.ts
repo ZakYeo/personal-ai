@@ -25,12 +25,12 @@ describe("CLI integration test support", () => {
       runAsk({
         config: enabledDeterministicConfig,
         env: { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
-        text: deterministicScenarios.alarmCreateWithoutConfirmation.text,
+        text: deterministicScenarios.alarmCreateNeedsConfirmation.text,
       }),
     ).resolves.toEqual({
       exitCode: 0,
       stdout: [
-        `${deterministicScenarios.alarmCreateWithoutConfirmation.response.text}\n`,
+        `${deterministicScenarios.alarmCreateNeedsConfirmation.response.text}\n`,
       ],
       stderr: [],
     });

@@ -16,13 +16,9 @@ describe("runtime composition test support", () => {
   it("creates deterministic runtimes with a fixed clock by default", async () => {
     const assistant = await createDeterministicRuntimeHarness();
 
-    await assistant.handleText(
-      deterministicScenarios.alarmCreateWithoutConfirmation.text,
-    );
-
     await expect(
-      assistant.handleText(deterministicScenarios.alarmListWithOne.text),
-    ).resolves.toEqual(deterministicScenarios.alarmListWithOne.response);
+      assistant.handleText(deterministicScenarios.calendarWedding.text),
+    ).resolves.toEqual(deterministicScenarios.calendarWedding.response);
   });
 
   it("overrides config and config path one input at a time", async () => {
@@ -64,10 +60,10 @@ describe("runtime composition test support", () => {
 
     await expect(
       assistant.handleText(
-        deterministicScenarios.alarmCreateWithoutConfirmation.text,
+        deterministicScenarios.alarmCreateNeedsConfirmation.text,
       ),
-    ).resolves.toMatchObject({
-      text: "Alarm set for 2026-06-26T09:11:00.000Z (ping me).",
-    });
+    ).resolves.toEqual(
+      deterministicScenarios.alarmCreateNeedsConfirmation.response,
+    );
   });
 });

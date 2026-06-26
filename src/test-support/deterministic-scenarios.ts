@@ -20,13 +20,6 @@ export const deterministicScenarios = {
       text: 'Drafted a whatsapp reply: "Thanks for the message. I will take a look and get back to you shortly."',
     },
   },
-  alarmCreateWithoutConfirmation: {
-    text: "Hey Jarvis, set an alarm to ping me in 10 minutes.",
-    response: {
-      status: "ok",
-      text: "Alarm set for 2026-06-26T09:10:00.000Z (ping me).",
-    },
-  },
   alarmCreateNeedsConfirmation: {
     text: "Hey Jarvis, set an alarm to ping me in 10 minutes.",
     response: {
