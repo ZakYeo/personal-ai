@@ -1,7 +1,5 @@
-import {
-  deterministicScenarios,
-  disabledCalendarConfig,
-} from "../test-support/deterministic-scenarios.js";
+import { deterministicScenarios } from "../test-support/deterministic-scenarios.js";
+import { disabledCalendarConfig } from "../test-support/deterministic-runtime-fixtures.js";
 import {
   createDeterministicRuntimeHarness,
   createRuntimeConfigWithMissingFeatureAdapter,

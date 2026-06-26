@@ -5,12 +5,12 @@ import {
   createRuntimeConfigWithUnknownIntentProvider,
   writeRuntimeHarnessConfig,
 } from "./runtime-composition.js";
+import { deterministicScenarios } from "./deterministic-scenarios.js";
 import {
   deterministicNow,
-  deterministicScenarios,
   disabledCalendarConfig,
   enabledDeterministicConfig,
-} from "./deterministic-scenarios.js";
+} from "./deterministic-runtime-fixtures.js";
 
 describe("runtime composition test support", () => {
   it("creates deterministic runtimes with a fixed clock by default", async () => {

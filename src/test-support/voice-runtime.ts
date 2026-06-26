@@ -1,9 +1,7 @@
 import type { Assistant } from "../core/assistant/index.js";
 import type { VoiceRuntimeDependencies } from "../runtimes/voice/mock-voice-runtime.js";
-import {
-  deterministicScenarios,
-  voiceEnabledDeterministicConfig,
-} from "./deterministic-scenarios.js";
+import { deterministicScenarios } from "./deterministic-scenarios.js";
+import { voiceEnabledDeterministicConfig } from "./deterministic-runtime-fixtures.js";
 
 export const deterministicVoiceUtterance =
   deterministicScenarios.alarmListEmpty.text;

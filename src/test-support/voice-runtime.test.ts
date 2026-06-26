@@ -4,10 +4,8 @@ import {
   createVoiceRuntimeDependencies,
   deterministicVoiceUtterance,
 } from "./voice-runtime.js";
-import {
-  deterministicScenarios,
-  voiceEnabledDeterministicConfig,
-} from "./deterministic-scenarios.js";
+import { deterministicScenarios } from "./deterministic-scenarios.js";
+import { voiceEnabledDeterministicConfig } from "./deterministic-runtime-fixtures.js";
 
 describe("voice runtime test support", () => {
   it("creates deterministic voice dependencies at the runtime boundary", async () => {

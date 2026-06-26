@@ -1,11 +1,11 @@
 import { createMockVoiceRuntime, runVoiceTurn } from "./mock-voice-runtime.js";
+import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import {
-  deterministicScenarios,
   enabledDeterministicConfig,
   mockVoiceConfig,
   runtimeFailureResponse,
   voiceEnabledDeterministicConfig,
-} from "../../test-support/deterministic-scenarios.js";
+} from "../../test-support/deterministic-runtime-fixtures.js";
 import {
   createCapturedWriter,
   createThrowingAssistant,

@@ -6,7 +6,7 @@ import type { AssistantConfig } from "../ports/assistant.js";
 import {
   deterministicNow,
   enabledDeterministicConfig,
-} from "./deterministic-scenarios.js";
+} from "./deterministic-runtime-fixtures.js";
 
 type DeterministicRuntimeHarnessOptions = Partial<{
   config: AssistantConfig;

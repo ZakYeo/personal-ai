@@ -5,9 +5,9 @@ import {
   runCli,
   writeTempConfig,
 } from "../../test-support/cli.js";
+import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import {
   deterministicNowIso,
-  deterministicScenarios,
   disabledCalendarConfig,
   enabledDeterministicConfig,
   mockVoiceConfig,
@@ -15,7 +15,7 @@ import {
   runtimeFailureDiagnostic,
   runtimeFailureResponse,
   voiceEnabledDeterministicConfig,
-} from "../../test-support/deterministic-scenarios.js";
+} from "../../test-support/deterministic-runtime-fixtures.js";
 
 describe("personal-ai ask CLI", () => {
   it("prints the calendar response", async () => {

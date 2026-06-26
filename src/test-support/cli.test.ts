@@ -1,9 +1,9 @@
 import { createCliIo, runAsk, runCli, writeTempConfig } from "./cli.js";
+import { deterministicScenarios } from "./deterministic-scenarios.js";
 import {
   deterministicNowIso,
-  deterministicScenarios,
   enabledDeterministicConfig,
-} from "./deterministic-scenarios.js";
+} from "./deterministic-runtime-fixtures.js";
 
 describe("CLI integration test support", () => {
   it("captures stdout and stderr writes", () => {
