@@ -25,9 +25,37 @@ module.exports = {
     {
       name: "features-not-to-adapters",
       severity: "error",
-      comment: "Features must not import concrete provider adapters.",
+      comment: "Features must not import concrete adapters.",
       from: { path: "^src/features" },
       to: { path: "^src/adapters" },
+    },
+    {
+      name: "features-not-to-core",
+      severity: "error",
+      comment: "Features must not import assistant core implementation.",
+      from: { path: "^src/features" },
+      to: { path: "^src/core" },
+    },
+    {
+      name: "features-not-to-runtimes",
+      severity: "error",
+      comment: "Features must not import runtime composition code.",
+      from: { path: "^src/features" },
+      to: { path: "^src/runtimes" },
+    },
+    {
+      name: "adapters-not-to-core",
+      severity: "error",
+      comment: "Adapters must not import assistant core implementation.",
+      from: { path: "^src/adapters" },
+      to: { path: "^src/core" },
+    },
+    {
+      name: "adapters-not-to-features",
+      severity: "error",
+      comment: "Adapters must not import feature implementations.",
+      from: { path: "^src/adapters" },
+      to: { path: "^src/features" },
     },
     {
       name: "adapters-not-to-runtimes",
@@ -35,6 +63,13 @@ module.exports = {
       comment: "Adapters must not import runtime composition code.",
       from: { path: "^src/adapters" },
       to: { path: "^src/runtimes" },
+    },
+    {
+      name: "ports-not-to-implementation",
+      severity: "error",
+      comment: "Ports must not import implementation modules.",
+      from: { path: "^src/ports" },
+      to: { path: "^src/(core|features|adapters|runtimes)" },
     },
   ],
   options: {

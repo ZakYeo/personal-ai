@@ -112,13 +112,13 @@ Expected scripts:
 
 The exact scripts can change during implementation, but there must be an automated architecture check before real provider adapters are introduced.
 
-## Initial Dependency-Cruiser Rules
+## Dependency-Cruiser Rules
 
-The first dependency rules should enforce:
+The dependency rules enforce:
 
-- No imports from `src/adapters/**` into `src/core/**`.
-- No imports from `src/runtimes/**` into `src/core/**`.
-- No imports from `src/runtimes/**` into `src/adapters/**`.
+- No `src/core/**` imports from `src/adapters/**`.
+- No `src/core/**` imports from `src/runtimes/**`.
+- No `src/features/**` imports from `src/core/**`, `src/adapters/**`, or `src/runtimes/**`.
+- No `src/adapters/**` imports from `src/core/**`, `src/features/**`, or `src/runtimes/**`.
+- No `src/ports/**` imports from implementation modules.
 - No circular dependencies.
-
-Additional rules can be added once the codebase structure exists.
