@@ -68,6 +68,37 @@ Acceptance criteria:
 - Unexpected errors are still logged or preserved for diagnostics at runtime boundaries.
 - Adding a new feature requires feature-local code plus registration, without core changes.
 
+## Milestone 1.6: Test Harness and Authoring Ergonomics
+
+Goal: make future core, feature, runtime, and CLI work easy to test with small, localized diffs before adding more milestones.
+
+Included:
+
+- Core assistant test harness for arranging interpreted commands, feature plugins, fixed clocks, and config overrides.
+- Test config builders for common enabled-feature and confirmation-policy shapes.
+- CLI integration test helpers for captured IO, temporary config files, and deterministic `ask` invocations.
+- Feature contract test helpers for capability metadata, validation expectations, and execution behavior.
+- Shared deterministic scenario fixtures for existing calendar, messaging, alarm, unsupported, unknown, and runtime-failure flows.
+- Refactor existing tests enough to prove the harness reduces repetition without hiding important behavior.
+
+Excluded:
+
+- New product capabilities.
+- New runtime types.
+- Real provider integrations.
+- Large test rewrites that do not improve locality or readability.
+- A single global harness that couples unrelated test layers together.
+
+Acceptance criteria:
+
+- New assistant pipeline tests can be written without manually rebuilding full config, clock, interpreter, and feature fixtures.
+- New CLI integration tests can be written without repeating temp config and IO capture boilerplate.
+- Existing deterministic scenarios are named once and reused where appropriate.
+- Feature metadata conventions are testable through shared helpers.
+- Harnesses stay layered by responsibility: core assistant, feature contract, runtime/CLI boundary.
+- Future feature changes should normally touch feature-local code/tests plus registration, not broad test setup files.
+- `npm run check` passes after the harness refactor.
+
 ## Milestone 2: Mock Voice Loop
 
 Goal: introduce the voice pipeline shape while keeping behavior deterministic.
