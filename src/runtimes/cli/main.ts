@@ -128,6 +128,12 @@ function logDiagnostics(diagnostics: AppError[], io: CliIo): void {
         : "";
 
       io.stderr.write(`Feature failure${capability}: ${diagnostic.message}\n`);
+
+      if (diagnostic.cause !== undefined) {
+        io.stderr.write(
+          `Feature failure cause${capability}: ${formatDiagnosticCause(diagnostic.cause)}\n`,
+        );
+      }
     }
   }
 }
@@ -136,6 +142,14 @@ function logRuntimeFailure(error: unknown, io: CliIo): void {
   const message = error instanceof Error ? error.message : String(error);
 
   io.stderr.write(`Runtime failure: ${message}\n`);
+}
+
+function formatDiagnosticCause(cause: unknown): string {
+  if (cause instanceof Error) {
+    return cause.stack ?? cause.message;
+  }
+
+  return String(cause);
 }
 
 function parseAskCommand(args: string[]): ParsedAskCommand | undefined {

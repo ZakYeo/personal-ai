@@ -163,9 +163,14 @@ describe("personal-ai ask CLI", () => {
       }),
     ).resolves.toBe(1);
     expect(stdout).toEqual(["I could not complete that command.\n"]);
-    expect(stderr).toEqual([
+    expect(stdout.join("")).not.toContain("provider token secret");
+    expect(stderr).toHaveLength(2);
+    expect(stderr[0]).toBe(
       "Feature failure in test.echo: provider token secret fixture failure\n",
-    ]);
+    );
+    expect(stderr[1]).toContain(
+      "Feature failure cause in test.echo: Error: provider token secret fixture failure",
+    );
   });
 
   it("prints a graceful response when the executable entrypoint rejects", async () => {
