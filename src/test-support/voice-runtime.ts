@@ -1,5 +1,5 @@
 import type { Assistant } from "../core/assistant/index.js";
-import type { VoiceRuntimeDependencies } from "../runtimes/voice/mock-voice-runtime.js";
+import type { VoiceRuntimeDependencies } from "../runtimes/voice/voice-turn.js";
 import { deterministicScenarios } from "./deterministic-scenarios.js";
 import { voiceEnabledDeterministicConfig } from "./deterministic-runtime-fixtures.js";
 

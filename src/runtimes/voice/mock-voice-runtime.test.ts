@@ -1,4 +1,5 @@
-import { createMockVoiceRuntime, runVoiceTurn } from "./mock-voice-runtime.js";
+import { createMockVoiceRuntime } from "./mock-voice-runtime.js";
+import { runVoiceTurn } from "./voice-turn.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import {
   enabledDeterministicConfig,

@@ -6,7 +6,7 @@ import {
   type VoiceRuntimeDependencies,
   type VoiceRuntimeIo,
   type VoiceTurnResult,
-} from "./mock-voice-runtime.js";
+} from "./voice-turn.js";
 import { createDesktopVoiceAdapters } from "./desktop-voice-adapter-registry.js";
 
 interface DesktopVoiceRuntimeOptions {
