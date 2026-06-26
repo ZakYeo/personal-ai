@@ -7,6 +7,7 @@ import {
   createFeatureContext,
   expectCapabilityMetadata,
   expectFeatureExecution,
+  expectFeatureHandles,
   expectFeatureRejects,
 } from "../../test-support/feature-contract.js";
 
@@ -35,18 +36,18 @@ describe("createAlarmFeature", () => {
   it("handles alarm create and list commands", () => {
     const feature = createAlarmFeature(createInMemoryAlarmStore());
 
-    expect(
-      feature.canHandle(createFeatureCommand("alarm.create"), context),
-    ).toBe(true);
-    expect(feature.canHandle(createFeatureCommand("alarm.list"), context)).toBe(
-      true,
+    expectFeatureHandles(
+      feature,
+      "alarm.create",
+      "calendar.search_events",
+      context,
     );
-    expect(
-      feature.canHandle(
-        createFeatureCommand("calendar.search_events"),
-        context,
-      ),
-    ).toBe(false);
+    expectFeatureHandles(
+      feature,
+      "alarm.list",
+      "calendar.search_events",
+      context,
+    );
   });
 
   it("creates deterministic alarms using the injected clock", async () => {

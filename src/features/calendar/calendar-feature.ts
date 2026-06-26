@@ -28,8 +28,6 @@ export function createCalendarFeature(): FeaturePlugin {
         },
       },
     ],
-    canHandle: (command: AssistantCommand) =>
-      command.capability === "calendar.search_events",
     execute: (command: AssistantCommand) =>
       Promise.resolve(searchEvents(command)),
   };

@@ -99,7 +99,7 @@ export function createFeature(
     capabilities: overrides.capabilities ?? [
       { name: "test.echo", risk: "low" },
     ],
-    canHandle: overrides.canHandle ?? (() => true),
+    ...(overrides.canHandle ? { canHandle: overrides.canHandle } : {}),
     execute:
       overrides.execute ??
       (() =>

@@ -27,7 +27,7 @@ export interface FeaturePlugin {
   id: string;
   displayName: string;
   capabilities: FeatureCapability[];
-  canHandle(command: AssistantCommand, context: AssistantContext): boolean;
+  canHandle?(command: AssistantCommand, context: AssistantContext): boolean;
   execute(
     command: AssistantCommand,
     context: AssistantContext,

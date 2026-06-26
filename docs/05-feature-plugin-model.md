@@ -13,7 +13,7 @@ interface FeaturePlugin {
   id: string;
   displayName: string;
   capabilities: Capability[];
-  canHandle(command: AssistantCommand, context: AssistantContext): boolean;
+  canHandle?(command: AssistantCommand, context: AssistantContext): boolean;
   execute(
     command: AssistantCommand,
     context: AssistantContext,
@@ -21,7 +21,7 @@ interface FeaturePlugin {
 }
 ```
 
-The exact TypeScript shape can change, but each feature should declare what it can do and expose execution through a consistent interface.
+The exact TypeScript shape can change, but each feature should declare what it can do and expose execution through a consistent interface. Declared capabilities are the canonical routing table. `canHandle` is optional and should only be used for contextual checks that cannot be expressed in static capability metadata.
 
 ## Capabilities
 

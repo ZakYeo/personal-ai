@@ -14,8 +14,6 @@ export function createMessagingFeature(): FeaturePlugin {
         },
       },
     ],
-    canHandle: (command: AssistantCommand) =>
-      command.capability === "messaging.draft_reply",
     execute: (command: AssistantCommand) =>
       Promise.resolve(draftReply(command)),
   };

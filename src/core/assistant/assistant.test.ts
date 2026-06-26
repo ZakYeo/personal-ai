@@ -19,7 +19,6 @@ describe("createAssistant", () => {
   it("routes interpreted commands to an enabled feature", async () => {
     const command = createCommand("test.echo");
     const feature = createFeature({
-      canHandle: (candidate) => candidate.capability === "test.echo",
       execute: () => Promise.resolve({ text: "Handled deterministically." }),
     });
     const assistant = createAssistant({
@@ -60,13 +59,30 @@ describe("createAssistant", () => {
   it("returns unsupported when no enabled feature can handle the command", async () => {
     const disabledFeature = createFeature({
       id: "disabled",
-      canHandle: () => true,
       execute: () => Promise.resolve({ text: "Should not execute." }),
     });
     const assistant = createAssistant({
       clock,
       config,
       features: [disabledFeature],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+    });
+
+    await expect(assistant.handleText("hello")).resolves.toEqual({
+      status: "unsupported",
+      text: "I do not have an enabled feature for test.echo.",
+    });
+  });
+
+  it("lets contextual feature predicates decline a declared capability", async () => {
+    const feature = createFeature({
+      canHandle: () => false,
+      execute: () => Promise.resolve({ text: "Should not execute." }),
+    });
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [feature],
       intentInterpreter: createInterpreter(createCommand("test.echo")),
     });
 

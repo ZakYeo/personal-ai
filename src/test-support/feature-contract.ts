@@ -60,13 +60,16 @@ export function expectFeatureHandles(
   feature: FeaturePlugin,
   supportedCapability: string,
   unsupportedCapability: string,
-  context: AssistantContext = createFeatureContext(),
 ): void {
   expect(
-    feature.canHandle(createFeatureCommand(supportedCapability), context),
+    feature.capabilities.some(
+      (capability) => capability.name === supportedCapability,
+    ),
   ).toBe(true);
   expect(
-    feature.canHandle(createFeatureCommand(unsupportedCapability), context),
+    feature.capabilities.some(
+      (capability) => capability.name === unsupportedCapability,
+    ),
   ).toBe(false);
 }
 

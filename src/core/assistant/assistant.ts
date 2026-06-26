@@ -59,7 +59,8 @@ export function createAssistant(
       const feature = dependencies.features.find(
         (candidate) =>
           isFeatureEnabled(candidate, dependencies.config) &&
-          candidate.canHandle(command, context),
+          declaresCapability(candidate, command.capability) &&
+          candidate.canHandle?.(command, context) !== false,
       );
 
       if (!feature) {
@@ -134,4 +135,13 @@ function isFeatureEnabled(
   config: AssistantConfig,
 ): boolean {
   return config.features[feature.id]?.enabled === true;
+}
+
+function declaresCapability(
+  feature: FeaturePlugin,
+  capabilityName: string,
+): boolean {
+  return feature.capabilities.some(
+    (capability) => capability.name === capabilityName,
+  );
 }

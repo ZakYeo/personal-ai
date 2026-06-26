@@ -59,7 +59,6 @@ function createFeature(id: string): FeaturePlugin {
     id,
     displayName: id,
     capabilities: [],
-    canHandle: () => false,
     execute: () => Promise.resolve({ text: "unused" }),
   });
 }

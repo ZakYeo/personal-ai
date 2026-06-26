@@ -34,7 +34,6 @@ describe("feature contract test support", () => {
           parameters: { message: { type: "string", required: true } },
         },
       ],
-      canHandle: (command) => command.capability === "test.echo",
       execute: (command) => {
         if (command.parameters.message === "fail") {
           return Promise.reject(new Error("fixture failure"));
@@ -64,7 +63,8 @@ describe("feature contract test support", () => {
 });
 
 function createFeature(
-  overrides: Pick<FeaturePlugin, "capabilities" | "canHandle" | "execute">,
+  overrides: Pick<FeaturePlugin, "capabilities" | "execute"> &
+    Pick<Partial<FeaturePlugin>, "canHandle">,
 ): FeaturePlugin {
   return {
     id: "test",

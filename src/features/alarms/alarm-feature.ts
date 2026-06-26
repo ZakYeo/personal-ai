@@ -42,9 +42,6 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
       },
       { name: "alarm.list", risk: "low", parameters: {} },
     ],
-    canHandle: (command: AssistantCommand) =>
-      command.capability === "alarm.create" ||
-      command.capability === "alarm.list",
     execute: (command: AssistantCommand, context: AssistantContext) => {
       if (command.capability === "alarm.create") {
         return Promise.resolve().then(() =>
