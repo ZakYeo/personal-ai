@@ -11,17 +11,19 @@
   - `docs/05-feature-plugin-model.md`
   - `docs/06-implementation-roadmap.md`
 - Keep implementation changes aligned with the ports-and-adapters architecture and dependency boundaries documented there.
+- Break work into thin, committable slices using TDD: write or update the failing test first, implement the smallest change that passes it, then make that slice a singular commit before starting the next slice.
 - Follow the failure-handling rule documented in `docs/03-boundaries-and-rules.md` and `docs/04-runtime-plan.md`: low-level code may throw, but human-facing runtime boundaries must catch final failures, log useful diagnostics, and produce a graceful CLI/voice/service response whenever possible. Feature failure responses must preserve diagnostics internally without echoing raw provider, adapter, credential, or stack details to the user.
 - Runtime boundaries should use the assistant diagnostic-aware outcome path when they need internal diagnostics; keep `AssistantResponse` safe for humans.
 - Keep shared human-boundary fallback and diagnostic policy in the runtimes-owned helper instead of duplicating it across CLI, voice, or service loops.
 - Voice runtimes must compose voice input, wake word, speech-to-text, text-to-speech, and audio output through configured adapter IDs; do not construct voice adapters as implicit defaults.
 - Keep simulated spoken output separate from fallback text output; CLI boundaries should use explicit voice result metadata rather than inferring stdout writes from voice status.
 - Author feature capabilities with `defineCapability`/`defineFeature` so decoded handler arguments stay structurally tied to declared parameter metadata.
-- Keep tooling and hook changes documented in `README.md`, `AGENTS.md`, and the relevant files in `docs/`.
+- Keep `README.md`, `AGENTS.md`, and every file in `docs/` updated and consistent with the codebase whenever behavior, architecture, tooling, or workflow changes.
 - The repository is local-only right now, so the pre-commit hook intentionally runs more than a staged-file check. Keep it passing after implementation changes. Once there is a remote, pre-push is the full repository confidence gate through `npm run check`.
 
 ## Testing Expectations
 
+- Development should follow TDD in thin slices: each slice starts with a focused failing test or test update, ends with passing validation for that slice, and is committed as one singular commit.
 - Always add or update tests for implementation changes.
 - Add integration tests when a change spans multiple parts of the system, such as multiple adapters, ports, application services, runtime boundaries, feature plugins, or CLI/service flows.
 - Use the layered helpers in `src/test-support/` when they fit:

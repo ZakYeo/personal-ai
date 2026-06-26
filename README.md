@@ -19,6 +19,8 @@ The docs in `docs/` are the source of truth for implementation decisions:
 - [Feature Plugin Model](docs/05-feature-plugin-model.md)
 - [Implementation Roadmap](docs/06-implementation-roadmap.md)
 
+Keep `README.md`, `AGENTS.md`, and every document in `docs/` updated with the codebase. Any change to behavior, architecture, tooling, or workflow should include the matching documentation change in the same thin slice.
+
 ## Current Status
 
 This repository has the deterministic assistant foundation and mock voice loop:
@@ -38,6 +40,11 @@ side effects.
 Feature plugins are authored with `defineFeature` and `defineCapability` so handler `request.args` types are derived from declared capability parameter metadata.
 
 ## Development
+
+Work should be broken into thin, committable slices using TDD. For each slice,
+write or update the focused failing test first, implement the smallest code and
+documentation change that makes it pass, then commit that singular slice before
+starting the next one.
 
 Install dependencies:
 

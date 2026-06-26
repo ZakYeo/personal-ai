@@ -162,3 +162,7 @@ TypeScript is preferred for:
 - Possible future web/admin tooling.
 
 Python can be used later for specialized adapters if it earns its place, especially for local speech or ML tooling. In that case, Python should run behind a TypeScript port as a child process, local service, or isolated adapter boundary.
+
+## Documentation Maintenance
+
+Keep this architecture document aligned with the implemented module layout, ports, adapters, runtimes, and dependency direction. Any architecture-affecting code change should update `README.md`, `AGENTS.md`, and the relevant `docs/` files in the same thin TDD slice.

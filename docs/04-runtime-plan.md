@@ -146,3 +146,7 @@ The first Raspberry Pi deployment should be intentionally simple:
 - Later wrap it in `systemd`.
 
 Containerization can be considered later, but it is not required for the first Pi deployment.
+
+## Documentation Maintenance
+
+Keep this runtime plan aligned with the implemented CLI, voice, service, configuration, and fallback behavior. Runtime changes should update `README.md`, `AGENTS.md`, and the relevant `docs/` files in the same thin TDD slice.

@@ -166,3 +166,7 @@ Create a deterministic alarm record only after confirmation policy allows execut
 Features should be registered through runtime composition or a feature registry. The core should not import individual concrete feature implementations unless those implementations are part of the core feature layer.
 
 Configuration should determine which features are enabled.
+
+## Documentation Maintenance
+
+Keep this feature plugin model aligned with implemented feature contracts, capability metadata, registration, typed argument decoding, and test helper expectations. Feature model changes should update `README.md`, `AGENTS.md`, and the relevant `docs/` files in the same thin TDD slice.

@@ -38,3 +38,7 @@ The assistant should support natural voice commands such as:
 - The first version should be boring, deterministic, and heavily testable.
 - Voice is an input/output adapter around the assistant, not the center of the architecture.
 - The LLM should assist with interpretation and response generation, but the core should validate structured commands before side effects occur.
+
+## Documentation Maintenance
+
+Keep this vision document aligned with the implemented product direction. Any codebase change that alters goals, non-goals, user-facing behavior, or product principles should update `README.md`, `AGENTS.md`, and the relevant `docs/` files in the same thin TDD slice.

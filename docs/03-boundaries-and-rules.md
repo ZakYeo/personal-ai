@@ -4,6 +4,10 @@
 
 This document defines the modularity rules for the repository. These rules should eventually be enforced with dependency graph tooling, not just code review.
 
+## Development Process
+
+Implementation work should be broken into thin, committable TDD slices. Each slice starts with a focused failing test or test update, implements the smallest change that passes, updates matching documentation, and lands as one singular commit.
+
 ## Dependency Direction
 
 The intended dependency direction is:
@@ -146,3 +150,7 @@ The dependency rules enforce:
 - No `src/adapters/**` imports from `src/core/**`, `src/features/**`, or `src/runtimes/**`.
 - No `src/ports/**` imports from implementation modules.
 - No circular dependencies.
+
+## Documentation Maintenance
+
+Keep `README.md`, `AGENTS.md`, and every file in `docs/` consistent with the codebase. Changes to boundaries, failure handling, tooling, hooks, or workflow should update these documents in the same thin TDD slice as the implementation.

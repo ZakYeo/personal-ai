@@ -1,5 +1,9 @@
 # Implementation Roadmap
 
+## Delivery Process
+
+Work should be delivered in thin, committable TDD slices. Each slice starts with a focused failing test or test update, implements the smallest code and documentation change needed to pass, and is committed as one singular commit before the next slice begins.
+
 ## Milestone 1: Deterministic Text Assistant
 
 Goal: prove the assistant core, ports, feature plugin model, and dependency boundaries without voice or external APIs.
@@ -217,3 +221,5 @@ Acceptance criteria:
 ## Roadmap Rule
 
 Do not introduce external API dependencies before the deterministic core, mock adapters, feature model, and dependency boundary checks exist.
+
+Keep this roadmap aligned with the codebase as milestones are completed, split, deferred, or changed. Updates to implementation status, tooling, workflow, or milestone scope should be reflected in `README.md`, `AGENTS.md`, and the relevant `docs/` files in the same thin TDD slice.
