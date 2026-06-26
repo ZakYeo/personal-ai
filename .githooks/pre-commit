@@ -2,6 +2,4 @@
 set -eu
 
 npm exec lint-staged
-npm test -- --run
-npm run knip
-npm run architecture:check
+node scripts/run-checks.mjs pre-commit
