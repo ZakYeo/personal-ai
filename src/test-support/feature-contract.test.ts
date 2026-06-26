@@ -1,6 +1,8 @@
 import {
   createFeatureCommand,
   createFeatureContext,
+  executeFeature,
+  expectDecodedFeatureExecution,
   expectCapabilityMetadata,
   expectFeatureExecution,
   expectFeatureHandles,
@@ -59,6 +61,27 @@ describe("feature contract test support", () => {
       { message: "fail" },
       "fixture failure",
     );
+  });
+
+  it("executes features from capability names and decoded args", async () => {
+    const feature = createFeature({
+      execute: (request) =>
+        Promise.resolve({
+          text: request.args.message,
+        }),
+    });
+
+    await expectDecodedFeatureExecution(
+      feature,
+      "test.echo",
+      { message: "hello" },
+      { text: "hello" },
+    );
+    await expect(
+      executeFeature(feature, "test.echo", { message: "hi" }),
+    ).resolves.toEqual({
+      text: "hi",
+    });
   });
 });
 

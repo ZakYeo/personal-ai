@@ -123,6 +123,7 @@ export default tseslint.config(
           assertFunctionNames: [
             "expect",
             "expectCapabilityMetadata",
+            "expectDecodedFeatureExecution",
             "expectFeatureExecution",
             "expectFeatureHandles",
             "expectFeatureRejects",

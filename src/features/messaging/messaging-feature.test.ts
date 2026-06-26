@@ -1,9 +1,8 @@
 import { createMessagingFeature } from "./messaging-feature.js";
 import {
-  createFeatureCommand,
   createFeatureContext,
+  expectDecodedFeatureExecution,
   expectCapabilityMetadata,
-  expectFeatureExecution,
   expectFeatureHandles,
 } from "../../test-support/feature-contract.js";
 
@@ -29,9 +28,9 @@ describe("createMessagingFeature", () => {
   });
 
   it("creates a deterministic draft without sending", async () => {
-    await expectFeatureExecution(
+    await expectDecodedFeatureExecution(
       createMessagingFeature(),
-      createFeatureCommand("messaging.draft_reply", { channel: "whatsapp" }),
+      "messaging.draft_reply",
       { channel: "whatsapp" },
       {
         text: 'Drafted a whatsapp reply: "Thanks for the message. I will take a look and get back to you shortly."',

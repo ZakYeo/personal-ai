@@ -54,7 +54,7 @@ export function createFeatureCommand(
   };
 }
 
-export function createTypedFeatureCommand<TCapability extends string>(
+function createTypedFeatureCommand<TCapability extends string>(
   capability: TCapability,
   parameters: AssistantCommandParameters = {},
   rawText = "feature command",
@@ -114,17 +114,52 @@ export async function expectFeatureRejects(
   ).rejects.toThrow(expectedMessage);
 }
 
-export function createFeatureExecutionRequest<TCapability extends string>(
+export async function executeFeature<
+  TCapability extends string,
+  TArgs extends FeatureArguments,
+>(
+  feature: FeaturePlugin,
+  capability: TCapability,
+  args: TArgs,
+  context: AssistantContext = createFeatureContext(),
+  rawText = "feature command",
+): Promise<FeatureResult> {
+  return feature.execute(
+    createFeatureExecutionRequest(
+      createTypedFeatureCommand(capability, args, rawText),
+      args,
+    ),
+    context,
+  );
+}
+
+export async function expectDecodedFeatureExecution<
+  TCapability extends string,
+  TArgs extends FeatureArguments,
+>(
+  feature: FeaturePlugin,
+  capability: TCapability,
+  args: TArgs,
+  expected: FeatureResult,
+  context: AssistantContext = createFeatureContext(),
+  rawText = "feature command",
+): Promise<void> {
+  await expect(
+    executeFeature(feature, capability, args, context, rawText),
+  ).resolves.toEqual(expected);
+}
+
+function createFeatureExecutionRequest<TCapability extends string>(
   command: AssistantCommand & { capability: TCapability },
 ): FeatureExecutionRequest<TCapability, Record<string, never>>;
-export function createFeatureExecutionRequest<
+function createFeatureExecutionRequest<
   TCapability extends string,
   TArgs extends object,
 >(
   command: AssistantCommand & { capability: TCapability },
   args: TArgs,
 ): FeatureExecutionRequest<TCapability, TArgs>;
-export function createFeatureExecutionRequest<
+function createFeatureExecutionRequest<
   TCapability extends string,
   TArgs extends object,
 >(

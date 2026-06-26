@@ -1,12 +1,10 @@
 import { createAlarmFeature } from "./alarm-feature.js";
 import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
 import {
-  createFeatureCommand,
-  createFeatureExecutionRequest,
   createFeatureContext,
-  createTypedFeatureCommand,
+  executeFeature,
   expectCapabilityMetadata,
-  expectFeatureExecution,
+  expectDecodedFeatureExecution,
   expectFeatureHandles,
 } from "../../test-support/feature-contract.js";
 
@@ -40,12 +38,9 @@ describe("createAlarmFeature", () => {
   });
 
   it("creates deterministic alarms using the injected clock", async () => {
-    await expectFeatureExecution(
+    await expectDecodedFeatureExecution(
       createAlarmFeature(createTestAlarmStore()),
-      createFeatureCommand("alarm.create", {
-        label: "ping me",
-        minutesFromNow: 10,
-      }),
+      "alarm.create",
       {
         label: "ping me",
         minutesFromNow: 10,
@@ -65,34 +60,27 @@ describe("createAlarmFeature", () => {
   it("lists alarms from the in-memory store", async () => {
     const feature = createAlarmFeature(createTestAlarmStore());
 
-    await feature.execute(
-      createFeatureExecutionRequest(
-        createTypedFeatureCommand("alarm.create", {
-          label: "ping me",
-          minutesFromNow: 10,
-        }),
-        {
-          label: "ping me",
-          minutesFromNow: 10,
-        },
-      ),
+    await executeFeature(
+      feature,
+      "alarm.create",
+      {
+        label: "ping me",
+        minutesFromNow: 10,
+      },
       context,
     );
 
     await expect(
-      feature.execute(
-        createFeatureExecutionRequest(createTypedFeatureCommand("alarm.list")),
-        context,
-      ),
+      executeFeature(feature, "alarm.list", {}, context),
     ).resolves.toEqual({
       text: "Alarms: alarm-1 at 2026-06-26T09:10:00.000Z (ping me).",
     });
   });
 
   it("returns a deterministic empty-list response", async () => {
-    await expectFeatureExecution(
+    await expectDecodedFeatureExecution(
       createAlarmFeature(createTestAlarmStore()),
-      createFeatureCommand("alarm.list"),
+      "alarm.list",
       {},
       {
         text: "There are no alarms set.",

@@ -1,9 +1,8 @@
 import { createCalendarFeature } from "./calendar-feature.js";
 import {
-  createFeatureCommand,
   createFeatureContext,
+  expectDecodedFeatureExecution,
   expectCapabilityMetadata,
-  expectFeatureExecution,
   expectFeatureHandles,
 } from "../../test-support/feature-contract.js";
 
@@ -29,11 +28,9 @@ describe("createCalendarFeature", () => {
   });
 
   it("returns the fixture wedding date", async () => {
-    await expectFeatureExecution(
+    await expectDecodedFeatureExecution(
       createCalendarFeature(),
-      createFeatureCommand("calendar.search_events", {
-        query: "upcoming wedding",
-      }),
+      "calendar.search_events",
       { query: "upcoming wedding" },
       {
         text: "The upcoming wedding is on 2026-09-12.",
@@ -48,9 +45,9 @@ describe("createCalendarFeature", () => {
   });
 
   it("returns a deterministic no-match response", async () => {
-    await expectFeatureExecution(
+    await expectDecodedFeatureExecution(
       createCalendarFeature(),
-      createFeatureCommand("calendar.search_events", { query: "dentist" }),
+      "calendar.search_events",
       { query: "dentist" },
       {
         text: 'I could not find a calendar event matching "dentist".',
