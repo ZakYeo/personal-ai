@@ -18,6 +18,7 @@ It should:
 - Load deterministic mock configuration.
 - Invoke the assistant core.
 - Print the assistant response.
+- Print a graceful failure response instead of exposing raw exceptions to the user.
 - Support repeatable tests.
 
 Example:
@@ -37,6 +38,8 @@ It should:
 - Convert speech to text.
 - Send normalized text to the assistant core.
 - Speak or print the response.
+- Speak a graceful fallback response when command handling fails.
+- Fall back to text/log output if text-to-speech or audio output fails.
 - Use mock adapters until the core flow is stable.
 
 ### Raspberry Pi Runtime
@@ -49,6 +52,7 @@ It should:
 - Use Pi-compatible audio input and output adapters.
 - Load device-specific configuration.
 - Log in a way that is suitable for a service.
+- Keep the service loop alive for recoverable command failures.
 - Eventually run under `systemd`.
 
 The Raspberry Pi runtime should not fork the assistant behavior. It should compose the same assistant core with Pi-specific adapters.
@@ -99,8 +103,16 @@ Runtimes should own:
 - Signal handling.
 - Shutdown.
 - Logging setup.
+- Final catch-all error handling at the human interaction boundary.
+- Graceful response fallback for CLI, voice, and service loops.
 
 The assistant core should expose application behavior, not process lifecycle behavior.
+
+## Failure Handling
+
+Runtimes are the last line of defense before a failure reaches a human. Lower-level code may throw, but runtime control loops should catch unhandled errors, preserve diagnostic detail in logs, and return a safe response such as "I hit a problem and could not complete that."
+
+For voice runtimes, producing some response is more important than preserving the exact internal error message. If command handling fails, the runtime should attempt a spoken fallback. If speech output fails, it should fall back to text or logs rather than silently ending the interaction.
 
 ## Deployment Notes
 

@@ -35,6 +35,14 @@ adapters -> adapter-local code
 - Ports should be defined by the application, not by external provider SDKs.
 - No circular dependencies.
 
+## Failure Handling Rule
+
+Low-level modules may raise or throw errors when they cannot complete their responsibility. Features, adapters, config loaders, provider clients, and other implementation details should not hide failures by pretending work succeeded.
+
+Human-facing boundaries must normalize failures into graceful outcomes. CLI, voice, desktop, and Raspberry Pi runtimes should catch unhandled errors at the control-loop boundary, log the real error details, and return or speak a safe assistant response whenever possible.
+
+Voice response is a best-effort invariant: an exception in command handling should not leave the human with silence if the runtime can still produce a fallback response. If text-to-speech or audio output also fails, the runtime should fall back to text/log output and keep enough diagnostics for debugging.
+
 ## Allowed Responsibilities
 
 ### Core
@@ -45,6 +53,7 @@ adapters -> adapter-local code
 - Command validation.
 - Confirmation policy.
 - Response shaping.
+- Normalizing expected feature failures into assistant responses where practical.
 
 ### Ports
 
@@ -73,6 +82,7 @@ adapters -> adapter-local code
 - Wiring dependencies.
 - Starting and stopping processes.
 - Handling environment-specific logging.
+- Catching final unhandled errors before they cross the human interaction boundary.
 - Running CLI, desktop voice, or Raspberry Pi service loops.
 
 ## Tooling

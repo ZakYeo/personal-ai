@@ -11,10 +11,13 @@
   - `docs/05-feature-plugin-model.md`
   - `docs/06-implementation-roadmap.md`
 - Keep implementation changes aligned with the ports-and-adapters architecture and dependency boundaries documented there.
+- Follow the failure-handling rule documented in `docs/03-boundaries-and-rules.md` and `docs/04-runtime-plan.md`: low-level code may throw, but human-facing runtime boundaries must catch final failures, log useful diagnostics, and produce a graceful CLI/voice/service response whenever possible.
 
 ## Development Scripts
 
 - `npm test` - run Vitest.
+- `npm run build` - compile the production JavaScript output.
+- `npm run cli -- ask "..."` - run the deterministic text CLI in development.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.
 - `npm run knip` - check for unused files, exports, and dependencies.

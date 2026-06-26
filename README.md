@@ -4,6 +4,8 @@ Personal AI is planned as a voice-activated assistant that runs on a desktop fir
 
 The first implementation should be deterministic: mock AI, mock voice, and mock feature adapters before any external API integrations are introduced.
 
+Failure handling follows a human-facing boundary rule: low-level modules may throw, but runtimes should catch final unhandled errors, log diagnostic detail, and return or speak a graceful response whenever possible. Voice interactions should prefer a safe fallback response over silence.
+
 ## Documentation
 
 The docs in `docs/` are the source of truth for implementation decisions:
@@ -17,8 +19,7 @@ The docs in `docs/` are the source of truth for implementation decisions:
 
 ## Current Status
 
-This repository has TypeScript project boilerplate and architecture/tooling checks.
-No assistant product behavior has been implemented yet.
+This repository has the deterministic Milestone 1 assistant foundation: TypeScript tooling, architecture checks, a text CLI runtime, deterministic intent interpretation, mock calendar and messaging features, and local in-memory alarms.
 
 ## Development
 
@@ -37,6 +38,8 @@ git config core.hooksPath .githooks
 Useful scripts:
 
 - `npm test` - run Vitest.
+- `npm run build` - compile the production JavaScript output.
+- `npm run cli -- ask "..."` - run the deterministic text CLI in development.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.
 - `npm run knip` - check for unused files, exports, and dependencies.
