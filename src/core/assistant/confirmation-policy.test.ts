@@ -1,20 +1,17 @@
 import { evaluateConfirmationPolicy } from "./confirmation-policy.js";
-import type { AssistantConfig } from "../../ports/assistant.js";
 import type { FeatureCapability, FeaturePlugin } from "../../ports/feature.js";
+import {
+  createFeature as createTestFeature,
+  createAssistantConfig,
+} from "../../test-support/core-assistant.js";
 
-const config: AssistantConfig = {
-  assistant: {
-    name: "Jarvis",
-    wakePhrases: ["hey jarvis"],
+const config = createAssistantConfig({
+  alarms: {
+    enabled: true,
+    confirmationRequiredCapabilities: ["alarm.create"],
   },
-  features: {
-    alarms: {
-      enabled: true,
-      confirmationRequiredCapabilities: ["alarm.create"],
-    },
-    messaging: { enabled: true },
-  },
-};
+  messaging: { enabled: true },
+});
 
 describe("evaluateConfirmationPolicy", () => {
   it("requires confirmation for capabilities listed in config", () => {
@@ -58,13 +55,13 @@ describe("evaluateConfirmationPolicy", () => {
 });
 
 function createFeature(id: string): FeaturePlugin {
-  return {
+  return createTestFeature({
     id,
     displayName: id,
     capabilities: [],
     canHandle: () => false,
     execute: () => Promise.resolve({ text: "unused" }),
-  };
+  });
 }
 
 function createCapability(name: string): FeatureCapability {

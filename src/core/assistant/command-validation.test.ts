@@ -1,6 +1,7 @@
 import { validateCommandForCapability } from "./command-validation.js";
 import type { AssistantCommand } from "../../ports/assistant.js";
 import type { FeatureCapability } from "../../ports/feature.js";
+import { createCommand as createAssistantCommand } from "../../test-support/core-assistant.js";
 
 const capability: FeatureCapability = {
   name: "alarm.create",
@@ -88,9 +89,5 @@ describe("validateCommandForCapability", () => {
 function createCommand(
   parameters: AssistantCommand["parameters"],
 ): AssistantCommand {
-  return {
-    capability: "alarm.create",
-    parameters,
-    rawText: "set an alarm",
-  };
+  return createAssistantCommand("alarm.create", parameters, "set an alarm");
 }

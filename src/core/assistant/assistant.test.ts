@@ -1,27 +1,19 @@
 import { createAssistant } from "./assistant.js";
-import type {
-  AssistantCommand,
-  AssistantConfig,
-  AssistantContext,
-  ClockPort,
-} from "../../ports/assistant.js";
-import type { FeaturePlugin, FeatureResult } from "../../ports/feature.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
+import {
+  createAssistantConfig,
+  createCommand,
+  createFeature,
+  createFixedClock,
+  createInterpreter,
+  requireConfirmationFor,
+} from "../../test-support/core-assistant.js";
 
-const config: AssistantConfig = {
-  assistant: {
-    name: "Jarvis",
-    wakePhrases: ["hey jarvis"],
-  },
-  features: {
-    test: { enabled: true },
-    disabled: { enabled: false },
-  },
-};
-
-const clock: ClockPort = {
-  now: () => new Date("2026-06-26T09:00:00.000Z"),
-};
+const config = createAssistantConfig({
+  test: { enabled: true },
+  disabled: { enabled: false },
+});
+const clock = createFixedClock();
 
 describe("createAssistant", () => {
   it("routes interpreted commands to an enabled feature", async () => {
@@ -167,13 +159,7 @@ describe("createAssistant", () => {
     const assistant = createAssistant({
       clock,
       config: {
-        ...config,
-        features: {
-          test: {
-            enabled: true,
-            confirmationRequiredCapabilities: ["test.echo"],
-          },
-        },
+        ...requireConfirmationFor("test", ["test.echo"]),
       },
       features: [
         createFeature({
@@ -209,47 +195,3 @@ describe("createAssistant", () => {
     expect(interpret).not.toHaveBeenCalled();
   });
 });
-
-function createCommand(capability: string): AssistantCommand {
-  return {
-    capability,
-    parameters: {},
-    rawText: "hello",
-  };
-}
-
-function createInterpreter(command: AssistantCommand): IntentInterpreterPort {
-  return {
-    interpret: () => Promise.resolve({ command }),
-  };
-}
-
-function createFeature(
-  overrides: Partial<{
-    id: string;
-    canHandle: (
-      command: AssistantCommand,
-      context: AssistantContext,
-    ) => boolean;
-    execute: (
-      command: AssistantCommand,
-      context: AssistantContext,
-    ) => Promise<FeatureResult>;
-    capabilities: FeaturePlugin["capabilities"];
-  }>,
-): FeaturePlugin {
-  return {
-    id: overrides.id ?? "test",
-    displayName: "Test",
-    capabilities: overrides.capabilities ?? [
-      { name: "test.echo", risk: "low" },
-    ],
-    canHandle: overrides.canHandle ?? (() => true),
-    execute:
-      overrides.execute ??
-      (() =>
-        Promise.resolve({
-          text: "Handled.",
-        })),
-  };
-}
