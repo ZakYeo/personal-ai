@@ -113,7 +113,7 @@ async function handleRuntimeCommand(
   }
 }
 
-async function handleRuntimeText(
+function handleRuntimeText(
   runtime: Assistant,
   commandText: string,
 ): ReturnType<Assistant["handleTextWithDiagnostics"]> {

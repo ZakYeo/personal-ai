@@ -1,0 +1,15 @@
+{
+  "gitignore": true,
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/coverage/**",
+    "**/.vitest-attachments/**",
+    "**/package-lock.json"
+  ],
+  "minLines": 8,
+  "minTokens": 80,
+  "mode": "strict",
+  "reporters": ["console"],
+  "threshold": 5
+}

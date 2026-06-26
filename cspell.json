@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "ignorePaths": [
+    "node_modules/**",
+    "dist/**",
+    "coverage/**",
+    ".git/**",
+    ".vitest-attachments/**",
+    "package-lock.json"
+  ],
+  "language": "en",
+  "version": "0.2",
+  "words": [
+    "Anthropic",
+    "AppError",
+    "Alexa",
+    "Commitlint",
+    "Knip",
+    "LLM",
+    "OpenAI",
+    "Piper",
+    "Raspberry",
+    "Secretlint",
+    "STT",
+    "TTS",
+    "Vitest",
+    "Vosk",
+    "depcruise",
+    "githooks",
+    "jscpd",
+    "markdownlint",
+    "personal-ai",
+    "reparsing",
+    "systemd",
+    "test-support",
+    "tsx",
+    "wakePhrases"
+  ]
+}

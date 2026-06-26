@@ -1,5 +1,7 @@
-import type { AssistantCommand } from "../../ports/assistant.js";
-import type { AssistantContext } from "../../ports/assistant.js";
+import type {
+  AssistantCommand,
+  AssistantContext,
+} from "../../ports/assistant.js";
 import type {
   IntentInterpretation,
   IntentInterpreterPort,
