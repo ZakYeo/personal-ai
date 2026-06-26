@@ -155,6 +155,16 @@ and `{text}` placeholders in argument values.
     "audioOutput": "sox-play"
   },
   "desktopVoice": {
+    "audioInput": {
+      "command": "rec",
+      "args": ["{output}"],
+      "timeoutMs": 30000
+    },
+    "audioOutput": {
+      "command": "play",
+      "args": ["{input}"],
+      "timeoutMs": 30000
+    },
     "speechToText": {
       "command": "your-stt-command",
       "args": ["--input", "{input}"],

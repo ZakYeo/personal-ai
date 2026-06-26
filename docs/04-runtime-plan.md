@@ -111,6 +111,16 @@ voice:
   audioOutput: mock
 
 desktopVoice:
+  audioInput:
+    command: rec
+    args:
+      - "{output}"
+    timeoutMs: 30000
+  audioOutput:
+    command: play
+    args:
+      - "{input}"
+    timeoutMs: 30000
   speechToText:
     command: your-stt-command
     args:
@@ -141,7 +151,7 @@ features:
     adapter: local
 ```
 
-The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in deterministic runtime currently uses JSON with `intent.provider`, `voice` adapter IDs, optional `desktopVoice` command settings, and per-feature `adapter` IDs. The important rule is that provider, voice, and feature selection must be configuration-driven. Text-only runtimes may ignore the `voice` and `desktopVoice` sections, but voice runtimes must reject missing or unregistered voice adapter IDs during composition. Desktop voice command adapters replace `{input}`, `{output}`, and `{text}` placeholders in configured argument values.
+The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in deterministic runtime currently uses JSON with `intent.provider`, `voice` adapter IDs, optional `desktopVoice` command settings, and per-feature `adapter` IDs. The important rule is that provider, voice, and feature selection must be configuration-driven. Text-only runtimes may ignore the `voice` and `desktopVoice` sections, but voice runtimes must reject missing or unregistered voice adapter IDs during composition. Desktop voice runtimes must also reject missing desktop command settings for selected command-based adapters. Desktop voice command adapters replace `{input}`, `{output}`, and `{text}` placeholders in configured argument values.
 
 ## Process Lifecycle
 

@@ -38,12 +38,12 @@ export function createDesktopVoiceAdapters(
       config,
       "input",
       desktopVoiceAdapterRegistry.input,
-    )(getDesktopVoiceCommand(config, "audioInput", defaultSoxInputCommand)),
+    )(getDesktopVoiceCommand(config, "audioInput")),
     audioOutput: createVoiceAdapter(
       config,
       "audioOutput",
       desktopVoiceAdapterRegistry.audioOutput,
-    )(getDesktopVoiceCommand(config, "audioOutput", defaultSoxOutputCommand)),
+    )(getDesktopVoiceCommand(config, "audioOutput")),
     speechToText: createVoiceAdapter(
       config,
       "speechToText",
@@ -85,9 +85,8 @@ function createVoiceAdapter<TAdapter, TOptions extends unknown[]>(
 function getDesktopVoiceCommand(
   config: AssistantConfig,
   key: DesktopVoiceCommandKey,
-  fallback?: VoiceCommandConfig,
 ): VoiceCommandConfig {
-  const command = config.desktopVoice?.[key] ?? fallback;
+  const command = config.desktopVoice?.[key];
 
   if (!command) {
     throw new Error(`Config desktopVoice.${key} must be configured.`);
@@ -95,16 +94,6 @@ function getDesktopVoiceCommand(
 
   return command;
 }
-
-const defaultSoxInputCommand: VoiceCommandConfig = {
-  args: ["{output}"],
-  command: "rec",
-};
-
-const defaultSoxOutputCommand: VoiceCommandConfig = {
-  args: ["{input}"],
-  command: "play",
-};
 
 const desktopVoiceAdapterRegistry = {
   input: {

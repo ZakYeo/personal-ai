@@ -35,6 +35,10 @@ export function logRuntimeFailure(error: unknown, io: HumanBoundaryIo): void {
   const message = error instanceof Error ? error.message : String(error);
 
   io.stderr?.write(`Runtime failure: ${message}\n`);
+
+  for (const diagnostic of formatRuntimeDiagnosticFields(error)) {
+    io.stderr?.write(diagnostic);
+  }
 }
 
 function formatDiagnosticCause(cause: unknown): string {
@@ -43,4 +47,40 @@ function formatDiagnosticCause(cause: unknown): string {
   }
 
   return String(cause);
+}
+
+function formatRuntimeDiagnosticFields(error: unknown): string[] {
+  if (!isRecord(error)) {
+    return [];
+  }
+
+  return [
+    ...formatRuntimeDiagnosticField("stderr", error.stderr),
+    ...formatRuntimeDiagnosticField("stdout", error.stdout),
+  ];
+}
+
+function formatRuntimeDiagnosticField(
+  label: "stderr" | "stdout",
+  value: unknown,
+): string[] {
+  if (typeof value !== "string" || value.length === 0) {
+    return [];
+  }
+
+  return [`Runtime failure ${label}: ${truncateDiagnostic(value.trim())}\n`];
+}
+
+function truncateDiagnostic(value: string): string {
+  const maxDiagnosticLength = 2000;
+
+  if (value.length <= maxDiagnosticLength) {
+    return value;
+  }
+
+  return `${value.slice(0, maxDiagnosticLength)}...`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

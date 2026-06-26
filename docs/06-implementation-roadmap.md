@@ -252,8 +252,8 @@ Implemented structure:
 - `desktop-voice-once` runs one configured desktop voice turn from the CLI.
 - Desktop voice composition selects `sox-rec`, `text-prefix`, command STT,
   command TTS, and `sox-play` through configured adapter IDs.
-- `desktopVoice` config owns machine-specific command, argument, and timeout
-  settings for desktop voice commands.
+- `desktopVoice` config owns all machine-specific command, argument, and timeout
+  settings for desktop voice commands, including SoX input and output commands.
 - Command adapters preserve subprocess diagnostics internally while runtime
   boundaries return or speak safe fallback responses.
 - The checked-in default config remains mock and deterministic; desktop voice

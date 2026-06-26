@@ -109,10 +109,14 @@ describe("personal-ai ask CLI", () => {
   });
 
   it("prints a graceful response and diagnostics when desktop voice setup fails", async () => {
+    const config = createDesktopVoiceConfig(
+      deterministicScenarios.alarmListEmpty.text,
+    );
     const configPath = await writeTempConfig({
-      ...createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+      ...config,
       desktopVoice: {
-        audioInput: createNodeCommand('printf audio > "$1"', "{output}"),
+        ...config.desktopVoice,
+        speechToText: undefined,
       },
     });
 
@@ -122,6 +126,53 @@ describe("personal-ai ask CLI", () => {
       exitCode: 1,
       stderr: [
         "Runtime failure: Config desktopVoice.speechToText must be configured.\n",
+      ],
+      stdout: ["I hit a problem and could not complete that.\n"],
+    });
+  });
+
+  it("prints a graceful response and diagnostics when desktop audio command config is missing", async () => {
+    const config = createDesktopVoiceConfig(
+      deterministicScenarios.alarmListEmpty.text,
+    );
+    const configPath = await writeTempConfig({
+      ...config,
+      desktopVoice: {
+        ...config.desktopVoice,
+        audioInput: undefined,
+      },
+    });
+
+    await expect(
+      runCli(["desktop-voice-once", "--config", configPath]),
+    ).resolves.toEqual({
+      exitCode: 1,
+      stderr: [
+        "Runtime failure: Config desktopVoice.audioInput must be configured.\n",
+      ],
+      stdout: ["I hit a problem and could not complete that.\n"],
+    });
+  });
+
+  it("logs desktop voice command stderr without exposing it in stdout", async () => {
+    const configPath = await writeTempConfig({
+      ...createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+      desktopVoice: {
+        ...createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text)
+          .desktopVoice,
+        speechToText: createNodeCommand(
+          "printf 'stt provider token failure' >&2; exit 12",
+        ),
+      },
+    });
+
+    await expect(
+      runCli(["desktop-voice-once", "--config", configPath]),
+    ).resolves.toEqual({
+      exitCode: 1,
+      stderr: [
+        'Runtime failure: Command "/bin/sh" exited with code 12.\n',
+        "Runtime failure stderr: stt provider token failure\n",
       ],
       stdout: ["I hit a problem and could not complete that.\n"],
     });
