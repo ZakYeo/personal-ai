@@ -1,4 +1,4 @@
-import { main } from "./main.js";
+import { main, runCliEntryPoint } from "./main.js";
 import { createCliIo, runAsk, runCli } from "../../test-support/cli.js";
 import {
   deterministicNowIso,
@@ -130,6 +130,57 @@ describe("personal-ai ask CLI", () => {
       stdout: [`${runtimeFailureResponse.text}\n`],
       stderr: [`${runtimeFailureDiagnostic}\n`],
     });
+  });
+
+  it("logs assistant diagnostics without exposing them in the response", async () => {
+    const { io, stdout, stderr } = createCliIo();
+
+    await expect(
+      main(["ask", "fail safely"], io, {
+        createRuntime: () =>
+          Promise.resolve({
+            handleText: () =>
+              Promise.resolve({
+                status: "error",
+                text: "legacy path should not be used",
+              }),
+            handleTextWithDiagnostics: () =>
+              Promise.resolve({
+                response: {
+                  status: "error",
+                  text: "I could not complete that command.",
+                },
+                diagnostics: [
+                  {
+                    category: "feature_failure",
+                    capability: "test.echo",
+                    cause: new Error("provider token secret fixture failure"),
+                    message: "provider token secret fixture failure",
+                  },
+                ],
+              }),
+          }),
+      }),
+    ).resolves.toBe(1);
+    expect(stdout).toEqual(["I could not complete that command.\n"]);
+    expect(stderr).toEqual([
+      "Feature failure in test.echo: provider token secret fixture failure\n",
+    ]);
+  });
+
+  it("prints a graceful response when the executable entrypoint rejects", async () => {
+    const { io, stdout, stderr } = createCliIo();
+    const processState = { exitCode: 0 };
+
+    await runCliEntryPoint(
+      () => Promise.reject(new Error("raw setup secret")),
+      io,
+      processState,
+    );
+
+    expect(processState.exitCode).toBe(1);
+    expect(stdout).toEqual(["I hit a problem and could not complete that.\n"]);
+    expect(stderr).toEqual(["Runtime failure: raw setup secret\n"]);
   });
 
   it("still supports direct injected IO for low-level CLI boundary coverage", async () => {

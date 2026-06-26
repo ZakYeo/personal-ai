@@ -133,6 +133,36 @@ describe("createAssistant", () => {
     });
   });
 
+  it("preserves feature failure diagnostics for runtime boundaries", async () => {
+    const cause = new Error("provider token secret fixture failure");
+    const failingFeature = createFeature({
+      execute: () => Promise.reject(cause),
+    });
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [failingFeature],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+    });
+
+    await expect(assistant.handleTextWithDiagnostics("hello")).resolves.toEqual(
+      {
+        response: {
+          status: "error",
+          text: "I could not complete that command.",
+        },
+        diagnostics: [
+          {
+            category: "feature_failure",
+            capability: "test.echo",
+            cause,
+            message: "provider token secret fixture failure",
+          },
+        ],
+      },
+    );
+  });
+
   it("returns an invalid response without executing a malformed command", async () => {
     const execute = vi.fn(() => Promise.resolve({ text: "Should not run." }));
     const feature = createFeature({

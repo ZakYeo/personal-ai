@@ -4,6 +4,8 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createDeterministicRuntime } from "../deterministic-runtime.js";
 import type { AssistantResponse } from "../../ports/assistant.js";
+import type { Assistant } from "../../core/assistant/index.js";
+import type { AppError } from "../../core/assistant/app-error.js";
 
 interface CliIo {
   env: NodeJS.ProcessEnv;
@@ -16,6 +18,14 @@ interface ParsedAskCommand {
   configPath?: string;
 }
 
+interface CliDependencies {
+  createRuntime?: typeof createDeterministicRuntime;
+}
+
+interface ProcessState {
+  exitCode?: number;
+}
+
 export async function main(
   args: string[] = process.argv.slice(2),
   io: CliIo = {
@@ -23,6 +33,7 @@ export async function main(
     stderr: process.stderr,
     stdout: process.stdout,
   },
+  dependencies: CliDependencies = {},
 ): Promise<number> {
   const parsed = parseAskCommand(args);
 
@@ -31,7 +42,7 @@ export async function main(
     return 1;
   }
 
-  const response = await handleRuntimeCommand(parsed, io);
+  const response = await handleRuntimeCommand(parsed, io, dependencies);
 
   io.stdout.write(`${response.text}\n`);
   return response.status === "error" ? 1 : 0;
@@ -41,16 +52,29 @@ if (
   process.argv[1] &&
   fileURLToPath(import.meta.url) === resolve(process.argv[1])
 ) {
-  void main().then(
-    (exitCode) => {
-      process.exitCode = exitCode;
+  void runCliEntryPoint(
+    () => main(),
+    {
+      env: process.env,
+      stderr: process.stderr,
+      stdout: process.stdout,
     },
-    (error: unknown) => {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`${message}\n`);
-      process.exitCode = 1;
-    },
+    process,
   );
+}
+
+export async function runCliEntryPoint(
+  run: () => Promise<number>,
+  io: CliIo,
+  processState: ProcessState,
+): Promise<void> {
+  try {
+    processState.exitCode = await run();
+  } catch (error) {
+    logRuntimeFailure(error, io);
+    io.stdout.write("I hit a problem and could not complete that.\n");
+    processState.exitCode = 1;
+  }
 }
 
 function buildRuntimeOptions(
@@ -68,23 +92,50 @@ function buildRuntimeOptions(
 async function handleRuntimeCommand(
   parsed: ParsedAskCommand,
   io: CliIo,
+  dependencies: CliDependencies,
 ): Promise<AssistantResponse> {
   try {
-    const runtime = await createDeterministicRuntime(
-      buildRuntimeOptions(parsed, io.env),
-    );
+    const createRuntime =
+      dependencies.createRuntime ?? createDeterministicRuntime;
+    const runtime = await createRuntime(buildRuntimeOptions(parsed, io.env));
+    const outcome = await handleRuntimeText(runtime, parsed.commandText);
 
-    return await runtime.handleText(parsed.commandText);
+    logDiagnostics(outcome.diagnostics ?? [], io);
+
+    return outcome.response;
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-
-    io.stderr.write(`Runtime failure: ${message}\n`);
+    logRuntimeFailure(error, io);
 
     return {
       status: "error",
       text: "I hit a problem and could not complete that.",
     };
   }
+}
+
+async function handleRuntimeText(
+  runtime: Assistant,
+  commandText: string,
+): ReturnType<Assistant["handleTextWithDiagnostics"]> {
+  return runtime.handleTextWithDiagnostics(commandText);
+}
+
+function logDiagnostics(diagnostics: AppError[], io: CliIo): void {
+  for (const diagnostic of diagnostics) {
+    if (diagnostic.category === "feature_failure") {
+      const capability = diagnostic.capability
+        ? ` in ${diagnostic.capability}`
+        : "";
+
+      io.stderr.write(`Feature failure${capability}: ${diagnostic.message}\n`);
+    }
+  }
+}
+
+function logRuntimeFailure(error: unknown, io: CliIo): void {
+  const message = error instanceof Error ? error.message : String(error);
+
+  io.stderr.write(`Runtime failure: ${message}\n`);
 }
 
 function parseAskCommand(args: string[]): ParsedAskCommand | undefined {
