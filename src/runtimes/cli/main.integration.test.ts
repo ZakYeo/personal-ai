@@ -53,6 +53,26 @@ describe("personal-ai ask CLI", () => {
     expect(stdout).toEqual(["There are no alarms set.\n"]);
   });
 
+  it("does not persist in-memory alarms between separate CLI invocations", async () => {
+    const first = createIo({
+      PERSONAL_AI_FIXED_NOW: "2026-06-26T09:00:00.000Z",
+    });
+    const second = createIo({
+      PERSONAL_AI_FIXED_NOW: "2026-06-26T09:00:00.000Z",
+    });
+
+    await expect(
+      main(
+        ["ask", "Hey Jarvis, set an alarm to ping me in 10 minutes."],
+        first.io,
+      ),
+    ).resolves.toBe(0);
+    await expect(
+      main(["ask", "Hey Jarvis, list my alarms"], second.io),
+    ).resolves.toBe(0);
+    expect(second.stdout).toEqual(["There are no alarms set.\n"]);
+  });
+
   it("returns usage for invalid input", async () => {
     const { io, stdout, stderr } = createIo();
 

@@ -1,5 +1,7 @@
-#!/usr/bin/env -S tsx
+#!/usr/bin/env node
 
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createDeterministicRuntime } from "../deterministic-runtime.js";
 
 interface CliIo {
@@ -37,7 +39,10 @@ export async function main(
   return 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (
+  process.argv[1] &&
+  fileURLToPath(import.meta.url) === resolve(process.argv[1])
+) {
   void main().then(
     (exitCode) => {
       process.exitCode = exitCode;

@@ -81,6 +81,20 @@ describe("createAlarmFeature", () => {
       text: "There are no alarms set.",
     });
   });
+
+  it.each([
+    ["missing", {}],
+    ["non-finite", { minutesFromNow: Number.NaN }],
+    ["zero", { minutesFromNow: 0 }],
+    ["negative", { minutesFromNow: -5 }],
+    ["string", { minutesFromNow: "10" }],
+  ])("rejects %s alarm timing", async (_caseName, parameters) => {
+    const feature = createAlarmFeature(createInMemoryAlarmStore());
+
+    await expect(
+      feature.execute(createCommand("alarm.create", parameters), context),
+    ).rejects.toThrow("Alarm minutesFromNow must be a positive finite number.");
+  });
 });
 
 function createCommand(

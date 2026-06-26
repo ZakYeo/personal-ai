@@ -39,7 +39,9 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
       command.capability === "alarm.list",
     execute: (command: AssistantCommand, context: AssistantContext) => {
       if (command.capability === "alarm.create") {
-        return Promise.resolve(createAlarm(command, context, store));
+        return Promise.resolve().then(() =>
+          createAlarm(command, context, store),
+        );
       }
 
       return Promise.resolve(listAlarms(store));
@@ -52,7 +54,7 @@ function createAlarm(
   context: AssistantContext,
   store: AlarmStore,
 ): FeatureResult {
-  const minutesFromNow = Number(command.parameters.minutesFromNow ?? 0);
+  const minutesFromNow = parseMinutesFromNow(command.parameters.minutesFromNow);
   const label = String(command.parameters.label ?? "alarm");
   const scheduledFor = new Date(
     context.clock.now().getTime() + minutesFromNow * 60_000,
@@ -73,6 +75,14 @@ function createAlarm(
       scheduledFor: alarm.scheduledFor,
     },
   };
+}
+
+function parseMinutesFromNow(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    throw new Error("Alarm minutesFromNow must be a positive finite number.");
+  }
+
+  return value;
 }
 
 function listAlarms(store: AlarmStore): FeatureResult {
