@@ -41,7 +41,7 @@ describe("CLI integration test support", () => {
       exitCode: 1,
       stdout: [],
       stderr: [
-        'Usage: personal-ai ask [--config path/to/config.json] "command text"\n',
+        'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n',
       ],
     });
   });

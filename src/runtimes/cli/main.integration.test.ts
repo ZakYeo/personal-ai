@@ -1,5 +1,10 @@
 import { main, runCliEntryPoint } from "./main.js";
-import { createCliIo, runAsk, runCli } from "../../test-support/cli.js";
+import {
+  createCliIo,
+  runAsk,
+  runCli,
+  writeTempConfig,
+} from "../../test-support/cli.js";
 import {
   deterministicNowIso,
   deterministicScenarios,
@@ -43,6 +48,47 @@ describe("personal-ai ask CLI", () => {
       stdout: [
         `${deterministicScenarios.alarmCreateNeedsConfirmation.response.text}\n`,
       ],
+    });
+  });
+
+  it("runs one simulated voice turn with the default utterance", async () => {
+    await expect(runCli(["voice-once"])).resolves.toEqual({
+      exitCode: 0,
+      stdout: [`${deterministicScenarios.calendarWedding.response.text}\n`],
+      stderr: [],
+    });
+  });
+
+  it("runs one simulated voice turn with an explicit utterance and config", async () => {
+    const configPath = await writeTempConfig(enabledDeterministicConfig);
+
+    await expect(
+      runCli(
+        [
+          "voice-once",
+          "--config",
+          configPath,
+          "--utterance",
+          deterministicScenarios.alarmCreateWithoutConfirmation.text,
+        ],
+        { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
+      ),
+    ).resolves.toMatchObject({
+      exitCode: 0,
+      stdout: [
+        `${deterministicScenarios.alarmCreateWithoutConfirmation.response.text}\n`,
+      ],
+      stderr: [],
+    });
+  });
+
+  it("prints a deterministic ignored voice response without a wake phrase", async () => {
+    await expect(
+      runCli(["voice-once", "--utterance", "list my alarms"]),
+    ).resolves.toEqual({
+      exitCode: 0,
+      stdout: ["Wake phrase not detected.\n"],
+      stderr: [],
     });
   });
 
@@ -114,7 +160,7 @@ describe("personal-ai ask CLI", () => {
       exitCode: 1,
       stdout: [],
       stderr: [
-        'Usage: personal-ai ask [--config path/to/config.json] "command text"\n',
+        'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n',
       ],
     });
   });
@@ -198,7 +244,7 @@ describe("personal-ai ask CLI", () => {
     await expect(main(["ask"], io)).resolves.toBe(1);
     expect(stdout).toEqual([]);
     expect(stderr).toEqual([
-      'Usage: personal-ai ask [--config path/to/config.json] "command text"\n',
+      'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n',
     ]);
   });
 });
