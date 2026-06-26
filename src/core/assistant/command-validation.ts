@@ -44,6 +44,7 @@ export function validateCommandForCapability(
 
     if (
       definition.type === "number" &&
+      typeof value === "number" &&
       definition.positive === true &&
       value <= 0
     ) {
@@ -56,6 +57,7 @@ export function validateCommandForCapability(
 
     if (
       definition.type === "number" &&
+      typeof value === "number" &&
       definition.minimum !== undefined &&
       value < definition.minimum
     ) {
