@@ -160,6 +160,8 @@ Acceptance criteria:
 
 ## Milestone 2.1: Harness Hardening
 
+Status: implemented.
+
 Goal: harden the test-support layers before adding more product, provider, or
 runtime milestones so future work stays obvious, modular, and localized.
 
@@ -207,6 +209,18 @@ Acceptance criteria:
   production module, one matching test file, one focused harness file if needed,
   and relevant docs.
 - `npm run check` passes after the harness hardening refactor.
+
+Implemented structure:
+
+- `src/test-support/voice-runtime.ts` owns voice runtime dependency builders,
+  fallback writers, throwing assistants, and deterministic utterances.
+- `src/test-support/runtime-composition.ts` owns deterministic runtime
+  composition helpers and focused invalid config overrides.
+- `src/test-support/deterministic-scenarios.ts` owns named command/response
+  scenarios; `src/test-support/deterministic-runtime-fixtures.ts` owns clocks,
+  deterministic configs, voice config, and runtime-failure fixtures.
+- `src/test-support/feature-contract.ts` includes decoded-args execution helpers
+  so feature tests can stay mechanical without hiding feature-specific behavior.
 
 ## Milestone 3: Desktop Voice Runtime
 

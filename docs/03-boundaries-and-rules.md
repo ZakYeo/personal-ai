@@ -18,6 +18,8 @@ Each architectural layer should have a matching test-support layer, and tests sh
 - CLI tests should assert captured stdout, stderr, exit codes, and graceful fallback text.
 - Voice tests should assert voice-turn results, spoken output metadata, fallback output, and diagnostics.
 - Scenario fixtures should stay separate from runtime composition helpers.
+- Deterministic runtime fixtures should own reusable clocks, config shapes, voice config, and runtime-failure fixtures.
+- Runtime composition helpers should compose deterministic runtimes and focused config overrides without duplicating production wiring in each test.
 - Shared setup that crosses ports, adapters, runtimes, or features should move into a focused `src/test-support/` helper before it spreads across multiple tests.
 - Test-support helpers should compose dependencies and remove setup noise without hiding the behavior under test.
 - Do not collapse test support into one global harness; keep helpers layered by core, feature contract, deterministic scenario, CLI, voice runtime, adapter contract, service runtime, and similar responsibilities.

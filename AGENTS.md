@@ -29,9 +29,12 @@
 - Each production layer should have a matching test-support layer, and tests should exercise the narrowest public boundary that proves the behavior.
 - Use the layered helpers in `src/test-support/` when they fit:
   - `core-assistant.ts` for core assistant config, clocks, commands, interpreters, and decoded-args feature fixtures.
-  - `feature-contract.ts` for feature command/context builders, metadata, handling, execution, and rejection expectations.
-  - `deterministic-scenarios.ts` for named deterministic command/config/response fixtures.
+  - `feature-contract.ts` for feature command/context builders, metadata, handling, decoded-args execution, and rejection expectations.
+  - `deterministic-scenarios.ts` for named deterministic command/response fixtures.
+  - `deterministic-runtime-fixtures.ts` for deterministic clocks, config shapes, voice config, and runtime-failure fixtures.
+  - `runtime-composition.ts` for deterministic runtime composition, temporary config files, and focused invalid config overrides.
   - `cli.ts` for CLI runtime-boundary tests with captured IO, temporary config files, and deterministic `ask` invocations.
+  - `voice-runtime.ts` for voice runtime dependency builders, captured fallback writers, throwing assistants, and deterministic utterances.
 - Add focused harness helpers before repeated setup spreads across tests, especially for cross-layer runtime, voice, service, adapter, or feature composition.
 - Keep scenario data separate from runtime composition helpers whenever possible.
 - Harness helpers should compose dependencies and remove setup noise without hiding the behavior under test.

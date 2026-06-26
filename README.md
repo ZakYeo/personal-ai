@@ -37,12 +37,14 @@ Simulated speech is kept separate from CLI fallback text output; the CLI prints
 text from explicit voice runtime result metadata instead of audio adapter write
 side effects.
 
-Feature plugins are authored with `defineFeature` and `defineCapability` so handler `request.args` types are derived from declared capability parameter metadata.
+Feature plugins are authored with `defineFeature` and `defineCapability` so
+handler `request.args` types are derived from declared capability parameter
+metadata.
 
-The next documented cleanup gate is the Harness Hardening milestone in the
-implementation roadmap. It references the Harness Design Rules in
-`docs/03-boundaries-and-rules.md` and is intended to tighten test-support layers
-before more product, provider, or runtime milestones are added.
+The Harness Hardening milestone is implemented. Test support is now split across
+focused core, feature contract, deterministic scenario, deterministic runtime
+fixture, runtime composition, CLI, and voice runtime helpers before more
+product, provider, or runtime milestones are added.
 
 ## Development
 
@@ -99,9 +101,12 @@ settle.
 Shared test utilities live in `src/test-support/` and are layered by responsibility:
 
 - `core-assistant.ts` - assistant config, clock, command, interpreter, and decoded-args feature builders for core pipeline tests.
-- `feature-contract.ts` - feature command/context builders plus helpers for capability metadata, handling, execution, and rejection expectations.
-- `deterministic-scenarios.ts` - named deterministic command, config, response, and runtime-failure fixtures.
+- `feature-contract.ts` - feature command/context builders plus helpers for capability metadata, handling, decoded-args execution, and rejection expectations.
+- `deterministic-scenarios.ts` - named deterministic command and expected response fixtures.
+- `deterministic-runtime-fixtures.ts` - reusable deterministic clocks, configs, voice config, and runtime-failure fixtures.
+- `runtime-composition.ts` - deterministic runtime composition helpers for fixed clocks, temporary config files, and focused invalid config overrides.
 - `cli.ts` - runtime-boundary helpers for captured stdout/stderr, temporary config files, and deterministic `ask` invocations.
+- `voice-runtime.ts` - voice runtime dependency builders, captured fallback writers, throwing assistants, and deterministic utterances.
 
 Each production layer should have a matching test-support layer, and tests
 should exercise the narrowest public boundary that proves the behavior. Prefer
