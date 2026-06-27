@@ -14,3 +14,11 @@ export interface CalendarSearchPort {
 export interface CalendarSearchOptions {
   now: Date;
 }
+
+export interface GoogleCalendarConfig {
+  accessTokenEnv: string;
+  baseUrl: string;
+  calendarId: string;
+  maxResults: number;
+  timeoutMs: number;
+}
