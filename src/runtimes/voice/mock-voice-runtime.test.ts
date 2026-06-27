@@ -48,6 +48,19 @@ describe("mock voice runtime", () => {
     });
   });
 
+  it("uses narrow voice turn wake phrase config", async () => {
+    const dependencies = createVoiceRuntimeDependencies({
+      utterance: "Computer, list my alarms",
+      wakePhrases: ["computer"],
+    });
+
+    await expect(runVoiceTurn(dependencies)).resolves.toMatchObject({
+      response: deterministicScenarios.alarmListEmpty.response,
+      transcript: "Computer, list my alarms",
+      wakePhrase: "computer",
+    });
+  });
+
   it("speaks a graceful fallback if assistant handling rejects", async () => {
     const spoken = createCapturedWriter();
     const stderr = createCapturedWriter();

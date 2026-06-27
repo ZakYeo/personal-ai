@@ -23,6 +23,7 @@ export function createVoiceRuntimeDependencies(
     audioOutputError: Error;
     output: string[];
     utterance: string;
+    wakePhrases: string[];
   }> = {},
 ): VoiceRuntimeDependencies {
   return {
@@ -52,9 +53,13 @@ export function createVoiceRuntimeDependencies(
         return Promise.resolve();
       },
     },
-    config: voiceEnabledDeterministicConfig,
     speechToText: {
       transcribe: (audio) => Promise.resolve({ text: audio.text }),
+    },
+    turnConfig: {
+      wakePhrases:
+        options.wakePhrases ??
+        voiceEnabledDeterministicConfig.assistant.wakePhrases,
     },
     textToSpeech: {
       synthesize: (text) => Promise.resolve({ text }),

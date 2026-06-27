@@ -10,5 +10,8 @@ export function detectTextWakePhrase(
     return { detected: false };
   }
 
-  return { detected: true, phrase: detection.phrase };
+  return {
+    detected: true,
+    ...(detection.phrase ? { phrase: detection.phrase } : {}),
+  };
 }

@@ -12,20 +12,23 @@ import {
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
-import type { LoadedRuntimeConfig } from "../config/config.js";
 
 export interface VoiceRuntimeIo {
   fallbackOutput?: { write(chunk: string): boolean | void };
   stderr?: { write(chunk: string): boolean | void };
 }
 
+export interface VoiceTurnConfig {
+  wakePhrases: string[];
+}
+
 export interface VoiceRuntimeDependencies {
   assistant: Assistant;
   audioInput: AudioInputPort;
   audioOutput: AudioOutputPort;
-  config: LoadedRuntimeConfig;
   speechToText: SpeechToTextPort;
   textToSpeech: TextToSpeechPort;
+  turnConfig: VoiceTurnConfig;
   wakeWord: WakeWordPort;
 }
 
@@ -55,7 +58,7 @@ export async function runVoiceTurn(
         ...audio,
         text: transcript.text,
       },
-      wakePhrases: dependencies.config.assistant.wakePhrases,
+      wakePhrases: dependencies.turnConfig.wakePhrases,
     });
 
     if (!detection.detected) {

@@ -14,9 +14,8 @@ import type {
   WakeWordPort,
 } from "../../ports/voice.js";
 import {
-  requireDesktopVoiceConfig,
-  requireVoiceConfig,
-  type LoadedRuntimeConfig,
+  type ResolvedDesktopVoiceConfig,
+  type ResolvedVoiceConfig,
 } from "../config/config.js";
 import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
 
@@ -29,11 +28,9 @@ interface DesktopVoiceAdapters {
 }
 
 export function createDesktopVoiceAdapters(
-  config: LoadedRuntimeConfig,
+  voice: ResolvedVoiceConfig,
+  desktopVoice: ResolvedDesktopVoiceConfig,
 ): DesktopVoiceAdapters {
-  const voice = requireVoiceConfig(config);
-  const desktopVoice = requireDesktopVoiceConfig(config);
-
   return {
     audioInput: selectConfiguredVoiceAdapter(
       voice,

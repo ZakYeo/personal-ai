@@ -48,7 +48,7 @@ export interface ResolvedVoiceConfig {
   wakeWord: string;
 }
 
-interface ResolvedDesktopVoiceConfig {
+export interface ResolvedDesktopVoiceConfig {
   audioInput: VoiceCommandConfig;
   audioOutput: VoiceCommandConfig;
   speechToText: VoiceCommandConfig;
