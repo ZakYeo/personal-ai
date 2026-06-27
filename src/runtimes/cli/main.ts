@@ -130,6 +130,7 @@ function buildVoiceRuntimeOptions(
   const fixedNow = env.PERSONAL_AI_FIXED_NOW;
 
   return {
+    env,
     io: {
       fallbackOutput: io.stdout,
       stderr: io.stderr,

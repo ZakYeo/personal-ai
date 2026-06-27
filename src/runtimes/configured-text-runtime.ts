@@ -6,7 +6,7 @@ import { toAssistantPolicyConfig } from "./config/assistant-policy-config.js";
 import { createConfiguredFeatures } from "./feature-adapter-selection.js";
 import { createConfiguredIntentInterpreter } from "./intent-provider-selection.js";
 
-interface ConfiguredTextRuntimeOptions {
+export interface ConfiguredTextRuntimeOptions {
   config?: LoadedRuntimeConfig;
   configPath?: string;
   env?: Record<string, string | undefined>;

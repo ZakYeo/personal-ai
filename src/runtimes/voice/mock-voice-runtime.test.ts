@@ -1,5 +1,6 @@
 import { createMockVoiceRuntime } from "./mock-voice-runtime.js";
 import { runVoiceTurn } from "./voice-turn.js";
+import { jsonResponse } from "../../test-support/adapter-contract.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import {
   enabledDeterministicConfig,
@@ -12,7 +13,10 @@ import {
   createThrowingAssistant,
   createVoiceRuntimeDependencies,
 } from "../../test-support/voice-runtime.js";
-import { withVoiceAdapterId } from "../../test-support/runtime-composition.js";
+import {
+  createRuntimeConfigWithOpenAIIntentProvider,
+  withVoiceAdapterId,
+} from "../../test-support/runtime-composition.js";
 
 describe("mock voice runtime", () => {
   it("runs a simulated voice command through the assistant core", async () => {
@@ -29,6 +33,40 @@ describe("mock voice runtime", () => {
       transcript: deterministicScenarios.calendarWedding.text,
       wakePhrase: "hey jarvis",
     });
+  });
+
+  it("passes provider dependencies into composed text assistant", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      jsonResponse({
+        output_text: JSON.stringify({
+          kind: "command",
+          command: {
+            capability: "alarm.list",
+            parameters: [],
+            rawText: deterministicScenarios.alarmListEmpty.text,
+          },
+          response: null,
+        }),
+      }),
+    );
+    const runtime = await createMockVoiceRuntime({
+      config: {
+        ...createRuntimeConfigWithOpenAIIntentProvider(),
+        voice: mockVoiceConfig,
+      },
+      env: { OPENAI_API_KEY: "test-api-key" },
+      fetch,
+      utterance: deterministicScenarios.alarmListEmpty.text,
+    });
+
+    await expect(runtime.runOnce()).resolves.toMatchObject({
+      response: deterministicScenarios.alarmListEmpty.response,
+      status: "spoken",
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      "https://api.openai.test/v1/responses",
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 
   it("ignores utterances without the wake phrase", async () => {

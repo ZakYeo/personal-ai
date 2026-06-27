@@ -1,4 +1,7 @@
-import { createConfiguredTextRuntime } from "../configured-text-runtime.js";
+import {
+  createConfiguredTextRuntime,
+  type ConfiguredTextRuntimeOptions,
+} from "../configured-text-runtime.js";
 import { loadConfig, type LoadedRuntimeConfig } from "../config/config.js";
 import {
   requireVoiceConfig,
@@ -32,7 +35,10 @@ interface VoiceAdapters {
   wakeWord: WakeWordPort;
 }
 
-interface VoiceRuntimeFactoryOptions<TAdapterOptions> {
+interface VoiceRuntimeFactoryOptions<TAdapterOptions> extends Pick<
+  ConfiguredTextRuntimeOptions,
+  "env" | "fetch" | "now"
+> {
   adapterOptions?: TAdapterOptions;
   config?: LoadedRuntimeConfig;
   configPath?: string;
@@ -41,7 +47,6 @@ interface VoiceRuntimeFactoryOptions<TAdapterOptions> {
     options: TAdapterOptions,
   ): VoiceAdapters;
   io?: VoiceRuntimeIo;
-  now?: Date;
   resolveAdapterOptions?(config: LoadedRuntimeConfig): TAdapterOptions;
 }
 
@@ -62,6 +67,8 @@ export async function createVoiceRuntime<TAdapterOptions>(
   const dependencies: VoiceRuntimeDependencies = {
     assistant: await createConfiguredTextRuntime({
       config,
+      ...(options.env ? { env: options.env } : {}),
+      ...(options.fetch ? { fetch: options.fetch } : {}),
       ...(options.now ? { now: options.now } : {}),
     }),
     audioInput: voiceAdapters.audioInput,
