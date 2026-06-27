@@ -77,6 +77,12 @@ describe("createConfiguredFeatures", () => {
       'Config feature "calendar".adapter must be set for enabled features.',
     );
   });
+
+  it("rejects Google calendar adapters without provider config", () => {
+    expect(() =>
+      createConfiguredFeatures(withFeatureAdapterId("calendar", "google")),
+    ).toThrow('Config feature "calendar".google must be configured.');
+  });
 });
 
 function createTestFeature(id: string): FeaturePlugin {
