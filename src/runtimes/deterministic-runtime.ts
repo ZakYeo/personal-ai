@@ -6,13 +6,17 @@ import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
 import { createCalendarFeature } from "../features/calendar/calendar-feature.js";
 import { createMessagingFeature } from "../features/messaging/messaging-feature.js";
 import type { Assistant } from "../core/assistant/index.js";
-import type { AssistantConfig, ClockPort } from "../ports/assistant.js";
+import type { ClockPort } from "../ports/assistant.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { IntentInterpreterPort } from "../ports/intent.js";
-import { loadConfig } from "./config/config.js";
+import {
+  loadConfig,
+  toAssistantPolicyConfig,
+  type LoadedRuntimeConfig,
+} from "./config/config.js";
 
 interface DeterministicRuntimeOptions {
-  config?: AssistantConfig;
+  config?: LoadedRuntimeConfig;
   configPath?: string;
   env?: Record<string, string | undefined>;
   fetch?: typeof fetch;
@@ -32,7 +36,7 @@ export async function createDeterministicRuntime(
 
   return createAssistant({
     clock,
-    config,
+    config: toAssistantPolicyConfig(config),
     features,
     intentInterpreter: createIntentInterpreter(config, features, {
       env: options.env ?? process.env,
@@ -47,7 +51,7 @@ interface IntentInterpreterDependencies {
 }
 
 function createIntentInterpreter(
-  config: AssistantConfig,
+  config: LoadedRuntimeConfig,
   features: FeaturePlugin[],
   dependencies: IntentInterpreterDependencies,
 ): IntentInterpreterPort {
@@ -79,7 +83,9 @@ function createIntentInterpreter(
   );
 }
 
-function createConfiguredFeatures(config: AssistantConfig): FeaturePlugin[] {
+function createConfiguredFeatures(
+  config: LoadedRuntimeConfig,
+): FeaturePlugin[] {
   const alarmStore = createInMemoryAlarmStore();
   const featureFactories: Record<string, () => FeaturePlugin> = {
     "alarms:local": () => createAlarmFeature(alarmStore),

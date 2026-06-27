@@ -1,7 +1,5 @@
-import type {
-  AssistantConfig,
-  VoiceCommandConfig,
-} from "../ports/assistant.js";
+import type { VoiceCommandConfig } from "../ports/assistant.js";
+import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import { enabledDeterministicConfig } from "./deterministic-runtime-fixtures.js";
 
 export function createDesktopVoiceCommand(
@@ -16,9 +14,9 @@ export function createDesktopVoiceCommand(
 
 export function createDesktopVoiceConfig(
   transcript: string,
-  overrides: Partial<AssistantConfig> = {},
-): AssistantConfig {
-  const baseConfig: AssistantConfig = {
+  overrides: Partial<LoadedRuntimeConfig> = {},
+): LoadedRuntimeConfig {
+  const baseConfig: LoadedRuntimeConfig = {
     ...enabledDeterministicConfig,
     desktopVoice: {
       audioInput: createDesktopVoiceCommand('printf audio > "$1"', "{output}"),
@@ -59,8 +57,8 @@ export function createDesktopVoiceConfig(
 }
 
 export function withoutDesktopSpeechToText(
-  config: AssistantConfig,
-): AssistantConfig {
+  config: LoadedRuntimeConfig,
+): LoadedRuntimeConfig {
   const desktopVoice = { ...config.desktopVoice };
   delete desktopVoice.speechToText;
 
@@ -71,8 +69,8 @@ export function withoutDesktopSpeechToText(
 }
 
 export function withoutDesktopAudioInput(
-  config: AssistantConfig,
-): AssistantConfig {
+  config: LoadedRuntimeConfig,
+): LoadedRuntimeConfig {
   const desktopVoice = { ...config.desktopVoice };
   delete desktopVoice.audioInput;
 
@@ -83,10 +81,10 @@ export function withoutDesktopAudioInput(
 }
 
 export function withDesktopSpeechToTextFailure(
-  config: AssistantConfig,
+  config: LoadedRuntimeConfig,
   stderrText: string,
   exitCode: number,
-): AssistantConfig {
+): LoadedRuntimeConfig {
   return {
     ...config,
     desktopVoice: {

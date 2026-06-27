@@ -13,9 +13,6 @@ const context: AssistantContext = {
       name: "Jarvis",
       wakePhrases: ["hey jarvis"],
     },
-    intent: {
-      provider: "deterministic",
-    },
     features: {},
   },
 };

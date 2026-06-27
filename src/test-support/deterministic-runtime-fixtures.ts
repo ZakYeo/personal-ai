@@ -1,5 +1,6 @@
-import type { AssistantConfig, AssistantResponse } from "../ports/assistant.js";
-import { createAssistantConfig } from "./core-assistant.js";
+import type { AssistantResponse } from "../ports/assistant.js";
+import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
+import { createLoadedRuntimeConfig } from "./core-assistant.js";
 
 export const mockVoiceConfig = {
   input: "mock",
@@ -7,23 +8,23 @@ export const mockVoiceConfig = {
   speechToText: "mock",
   textToSpeech: "mock",
   audioOutput: "mock",
-} satisfies NonNullable<AssistantConfig["voice"]>;
+} satisfies NonNullable<LoadedRuntimeConfig["voice"]>;
 
 export const deterministicNow = new Date("2026-06-26T09:00:00.000Z");
 export const deterministicNowIso = deterministicNow.toISOString();
 
-export const enabledDeterministicConfig = createAssistantConfig({
+export const enabledDeterministicConfig = createLoadedRuntimeConfig({
   calendar: { enabled: true, adapter: "mock" },
   messaging: { enabled: true, adapter: "mock" },
   alarms: { enabled: true, adapter: "local" },
 });
 
-export const voiceEnabledDeterministicConfig: AssistantConfig = {
+export const voiceEnabledDeterministicConfig: LoadedRuntimeConfig = {
   ...enabledDeterministicConfig,
   voice: mockVoiceConfig,
 };
 
-export const defaultDeterministicConfig = createAssistantConfig({
+export const defaultDeterministicConfig = createLoadedRuntimeConfig({
   calendar: { enabled: true, adapter: "mock" },
   messaging: { enabled: true, adapter: "mock" },
   alarms: {
@@ -33,13 +34,14 @@ export const defaultDeterministicConfig = createAssistantConfig({
   },
 });
 
-export const disabledCalendarConfig: AssistantConfig = createAssistantConfig({
-  calendar: { enabled: false },
-  messaging: { enabled: true, adapter: "mock" },
-  alarms: { enabled: true, adapter: "local" },
-});
+export const disabledCalendarConfig: LoadedRuntimeConfig =
+  createLoadedRuntimeConfig({
+    calendar: { enabled: false },
+    messaging: { enabled: true, adapter: "mock" },
+    alarms: { enabled: true, adapter: "local" },
+  });
 
-export const runtimeFailureConfig: AssistantConfig = {
+export const runtimeFailureConfig: LoadedRuntimeConfig = {
   assistant: {
     name: "",
     wakePhrases: ["hey jarvis"],

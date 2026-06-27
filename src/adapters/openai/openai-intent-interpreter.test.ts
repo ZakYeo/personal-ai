@@ -14,17 +14,8 @@ const context = {
       name: "Jarvis",
       wakePhrases: ["hey jarvis"],
     },
-    intent: {
-      provider: "openai",
-      openai: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.test/v1",
-        model: "gpt-5.5",
-        timeoutMs: 30_000,
-      },
-    },
     features: {
-      calendar: { enabled: true, adapter: "mock" },
+      calendar: { enabled: true },
     },
   },
 } satisfies AssistantContext;

@@ -1,7 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import type {
-  AssistantConfig,
+  AssistantPolicyConfig,
+  OpenAIIntentConfig,
   VoiceCommandConfig,
 } from "../../ports/assistant.js";
 
@@ -11,6 +12,32 @@ const defaultConfigPath = fileURLToPath(
 
 interface LoadConfigOptions {
   configPath?: string;
+}
+
+export interface LoadedRuntimeConfig extends AssistantPolicyConfig {
+  desktopVoice?: {
+    audioInput?: VoiceCommandConfig;
+    audioOutput?: VoiceCommandConfig;
+    speechToText?: VoiceCommandConfig;
+    textToSpeech?: VoiceCommandConfig;
+  };
+  voice?: {
+    input?: string;
+    wakeWord?: string;
+    speechToText?: string;
+    textToSpeech?: string;
+    audioOutput?: string;
+  };
+  intent: {
+    openai?: OpenAIIntentConfig;
+    provider: string;
+  };
+  features: Record<
+    string,
+    AssistantPolicyConfig["features"][string] & {
+      adapter?: string;
+    }
+  >;
 }
 
 export interface ResolvedVoiceConfig {
@@ -30,14 +57,14 @@ interface ResolvedDesktopVoiceConfig {
 
 export async function loadConfig(
   options: LoadConfigOptions = {},
-): Promise<AssistantConfig> {
+): Promise<LoadedRuntimeConfig> {
   const configPath = options.configPath ?? defaultConfigPath;
   const rawConfig = await readFile(configPath, "utf8");
 
   return parseAssistantConfig(JSON.parse(rawConfig));
 }
 
-export function parseAssistantConfig(value: unknown): AssistantConfig {
+export function parseAssistantConfig(value: unknown): LoadedRuntimeConfig {
   if (!isRecord(value)) {
     throw new Error("Config must be a JSON object.");
   }
@@ -85,8 +112,30 @@ export function parseAssistantConfig(value: unknown): AssistantConfig {
   };
 }
 
+export function toAssistantPolicyConfig(
+  config: LoadedRuntimeConfig,
+): AssistantPolicyConfig {
+  return {
+    assistant: config.assistant,
+    features: Object.fromEntries(
+      Object.entries(config.features).map(([featureId, featureConfig]) => [
+        featureId,
+        {
+          enabled: featureConfig.enabled,
+          ...(featureConfig.confirmationRequiredCapabilities
+            ? {
+                confirmationRequiredCapabilities:
+                  featureConfig.confirmationRequiredCapabilities,
+              }
+            : {}),
+        },
+      ]),
+    ),
+  };
+}
+
 export function requireVoiceConfig(
-  config: AssistantConfig,
+  config: LoadedRuntimeConfig,
 ): ResolvedVoiceConfig {
   return {
     input: requireVoiceAdapterConfig(config, "input"),
@@ -98,7 +147,7 @@ export function requireVoiceConfig(
 }
 
 export function requireDesktopVoiceConfig(
-  config: AssistantConfig,
+  config: LoadedRuntimeConfig,
 ): ResolvedDesktopVoiceConfig {
   return {
     audioInput: requireDesktopVoiceCommand(config, "audioInput"),
@@ -110,7 +159,7 @@ export function requireDesktopVoiceConfig(
 
 function parseDesktopVoice(
   value: unknown,
-): Pick<AssistantConfig, "desktopVoice"> {
+): Pick<LoadedRuntimeConfig, "desktopVoice"> {
   if (value === undefined) {
     return {};
   }
@@ -130,11 +179,11 @@ function parseDesktopVoice(
 }
 
 function parseVoiceCommand<
-  TKey extends keyof NonNullable<AssistantConfig["desktopVoice"]>,
+  TKey extends keyof NonNullable<LoadedRuntimeConfig["desktopVoice"]>,
 >(
   key: TKey,
   value: unknown,
-): Partial<Pick<NonNullable<AssistantConfig["desktopVoice"]>, TKey>> {
+): Partial<Pick<NonNullable<LoadedRuntimeConfig["desktopVoice"]>, TKey>> {
   if (value === undefined) {
     return {};
   }
@@ -176,10 +225,10 @@ function parseVoiceCommand<
       ...(value.args ? { args: value.args } : {}),
       ...(timeoutMs ? { timeoutMs } : {}),
     },
-  } as Pick<NonNullable<AssistantConfig["desktopVoice"]>, TKey>;
+  } as Pick<NonNullable<LoadedRuntimeConfig["desktopVoice"]>, TKey>;
 }
 
-function parseVoice(value: unknown): Pick<AssistantConfig, "voice"> {
+function parseVoice(value: unknown): Pick<LoadedRuntimeConfig, "voice"> {
   if (value === undefined) {
     return {};
   }
@@ -201,7 +250,7 @@ function parseVoice(value: unknown): Pick<AssistantConfig, "voice"> {
 
 function parseIntent(
   intent: Record<string, unknown>,
-): AssistantConfig["intent"] {
+): LoadedRuntimeConfig["intent"] {
   return {
     provider: intent.provider as string,
     ...parseOpenAIIntentConfig(intent.provider as string, intent.openai),
@@ -211,7 +260,7 @@ function parseIntent(
 function parseOpenAIIntentConfig(
   provider: string,
   value: unknown,
-): Pick<AssistantConfig["intent"], "openai"> {
+): Pick<LoadedRuntimeConfig["intent"], "openai"> {
   if (value === undefined) {
     if (provider === "openai") {
       throw new Error("Config intent.openai must be configured.");
@@ -265,7 +314,7 @@ function parseOpenAIIntentConfig(
 }
 
 function requireVoiceAdapterConfig(
-  config: AssistantConfig,
+  config: LoadedRuntimeConfig,
   key: keyof ResolvedVoiceConfig,
 ): string {
   const adapterId = config.voice?.[key];
@@ -278,11 +327,11 @@ function requireVoiceAdapterConfig(
 }
 
 function parseVoiceAdapter<
-  TKey extends keyof NonNullable<AssistantConfig["voice"]>,
+  TKey extends keyof NonNullable<LoadedRuntimeConfig["voice"]>,
 >(
   key: TKey,
   value: unknown,
-): Partial<Pick<NonNullable<AssistantConfig["voice"]>, TKey>> {
+): Partial<Pick<NonNullable<LoadedRuntimeConfig["voice"]>, TKey>> {
   if (value === undefined) {
     return {};
   }
@@ -293,13 +342,13 @@ function parseVoiceAdapter<
 
   return {
     [key]: value,
-  } as Pick<NonNullable<AssistantConfig["voice"]>, TKey>;
+  } as Pick<NonNullable<LoadedRuntimeConfig["voice"]>, TKey>;
 }
 
 function parseFeatures(
   value: Record<string, unknown>,
-): AssistantConfig["features"] {
-  const features: AssistantConfig["features"] = {};
+): LoadedRuntimeConfig["features"] {
+  const features: LoadedRuntimeConfig["features"] = {};
 
   for (const [featureId, featureConfig] of Object.entries(value)) {
     if (!isRecord(featureConfig)) {
@@ -323,7 +372,7 @@ function parseFeatures(
 }
 
 function requireDesktopVoiceCommand(
-  config: AssistantConfig,
+  config: LoadedRuntimeConfig,
   key: keyof ResolvedDesktopVoiceConfig,
 ): VoiceCommandConfig {
   const command = config.desktopVoice?.[key];
@@ -338,7 +387,7 @@ function requireDesktopVoiceCommand(
 function parseFeatureAdapter(
   featureId: string,
   featureConfig: Record<string, unknown>,
-): Pick<AssistantConfig["features"][string], "adapter"> {
+): Pick<LoadedRuntimeConfig["features"][string], "adapter"> {
   const value = featureConfig.adapter;
 
   if (value === undefined) {
@@ -360,7 +409,7 @@ function parseConfirmationRequiredCapabilities(
   featureId: string,
   featureConfig: Record<string, unknown>,
 ): Pick<
-  AssistantConfig["features"][string],
+  LoadedRuntimeConfig["features"][string],
   "confirmationRequiredCapabilities"
 > {
   const value = featureConfig.confirmationRequiredCapabilities;

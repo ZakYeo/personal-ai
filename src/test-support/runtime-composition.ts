@@ -2,14 +2,14 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDeterministicRuntime } from "../runtimes/deterministic-runtime.js";
-import type { AssistantConfig } from "../ports/assistant.js";
+import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import {
   deterministicNow,
   enabledDeterministicConfig,
 } from "./deterministic-runtime-fixtures.js";
 
 type DeterministicRuntimeHarnessOptions = Partial<{
-  config: AssistantConfig;
+  config: LoadedRuntimeConfig;
   configPath: string;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
@@ -36,7 +36,7 @@ export async function createDeterministicRuntimeHarness(
 }
 
 export async function writeRuntimeHarnessConfig(
-  config: AssistantConfig,
+  config: LoadedRuntimeConfig,
 ): Promise<string> {
   const directory = await mkdtemp(join(tmpdir(), "personal-ai-runtime-"));
   const configPath = join(directory, "config.json");
@@ -46,14 +46,14 @@ export async function writeRuntimeHarnessConfig(
   return configPath;
 }
 
-export function createRuntimeConfigWithUnknownIntentProvider(): AssistantConfig {
+export function createRuntimeConfigWithUnknownIntentProvider(): LoadedRuntimeConfig {
   return {
     ...enabledDeterministicConfig,
     intent: { provider: "unknown" },
   };
 }
 
-export function createRuntimeConfigWithOpenAIIntentProvider(): AssistantConfig {
+export function createRuntimeConfigWithOpenAIIntentProvider(): LoadedRuntimeConfig {
   return {
     ...enabledDeterministicConfig,
     intent: {
@@ -68,7 +68,7 @@ export function createRuntimeConfigWithOpenAIIntentProvider(): AssistantConfig {
   };
 }
 
-export function createRuntimeConfigWithUnknownFeatureAdapter(): AssistantConfig {
+export function createRuntimeConfigWithUnknownFeatureAdapter(): LoadedRuntimeConfig {
   return {
     ...enabledDeterministicConfig,
     features: {
@@ -78,7 +78,7 @@ export function createRuntimeConfigWithUnknownFeatureAdapter(): AssistantConfig 
   };
 }
 
-export function createRuntimeConfigWithMissingFeatureAdapter(): AssistantConfig {
+export function createRuntimeConfigWithMissingFeatureAdapter(): LoadedRuntimeConfig {
   return {
     ...enabledDeterministicConfig,
     features: {

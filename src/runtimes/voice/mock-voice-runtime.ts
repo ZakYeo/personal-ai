@@ -1,5 +1,5 @@
 import { createDeterministicRuntime } from "../deterministic-runtime.js";
-import type { AssistantConfig } from "../../ports/assistant.js";
+import type { LoadedRuntimeConfig } from "../config/config.js";
 import { loadConfig } from "../config/config.js";
 import {
   runVoiceTurn,
@@ -10,7 +10,7 @@ import {
 import { createMockVoiceAdapters } from "./mock-voice-adapter-registry.js";
 
 interface MockVoiceRuntimeOptions {
-  config?: AssistantConfig;
+  config?: LoadedRuntimeConfig;
   configPath?: string;
   io?: VoiceRuntimeIo;
   now?: Date;

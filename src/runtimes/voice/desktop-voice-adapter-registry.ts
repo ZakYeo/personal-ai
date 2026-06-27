@@ -5,10 +5,7 @@ import {
   SoxAudioOutput,
   TextPrefixWakeWordDetector,
 } from "../../adapters/desktop/desktop-voice-adapters.js";
-import type {
-  AssistantConfig,
-  VoiceCommandConfig,
-} from "../../ports/assistant.js";
+import type { VoiceCommandConfig } from "../../ports/assistant.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -19,6 +16,7 @@ import type {
 import {
   requireDesktopVoiceConfig,
   requireVoiceConfig,
+  type LoadedRuntimeConfig,
 } from "../config/config.js";
 import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
 
@@ -31,7 +29,7 @@ interface DesktopVoiceAdapters {
 }
 
 export function createDesktopVoiceAdapters(
-  config: AssistantConfig,
+  config: LoadedRuntimeConfig,
 ): DesktopVoiceAdapters {
   const voice = requireVoiceConfig(config);
   const desktopVoice = requireDesktopVoiceConfig(config);

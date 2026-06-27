@@ -178,6 +178,12 @@ settings needed by selected command-based adapters. This keeps optional config
 handling at the boundary instead of spreading `undefined` checks through the
 runtime loop or adapter registry.
 
+The loaded runtime config may include provider selection, adapter IDs, voice
+settings, desktop command settings, and provider-specific options. Before the
+assistant core is constructed, runtime composition maps that broad shape to the
+narrow assistant policy config containing only assistant identity, wake phrases,
+feature enablement, and confirmation policy.
+
 ## Process Lifecycle
 
 Runtimes should own:

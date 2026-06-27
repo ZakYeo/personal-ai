@@ -1,6 +1,6 @@
 import type {
   AssistantCommand,
-  AssistantConfig,
+  AssistantPolicyConfig,
   AssistantContext,
   AssistantCommandParameters,
 } from "../ports/assistant.js";
@@ -15,7 +15,7 @@ import type {
 export const featureContractNow = new Date("2026-06-26T09:00:00.000Z");
 
 export function createFeatureContext(
-  config: AssistantConfig = createFeatureConfig(),
+  config: AssistantPolicyConfig = createFeatureConfig(),
 ): AssistantContext {
   return {
     clock: {
@@ -26,17 +26,14 @@ export function createFeatureContext(
 }
 
 function createFeatureConfig(
-  features: AssistantConfig["features"] = {
+  features: AssistantPolicyConfig["features"] = {
     test: { enabled: true },
   },
-): AssistantConfig {
+): AssistantPolicyConfig {
   return {
     assistant: {
       name: "Jarvis",
       wakePhrases: ["hey jarvis"],
-    },
-    intent: {
-      provider: "deterministic",
     },
     features,
   };

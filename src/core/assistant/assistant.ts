@@ -1,5 +1,5 @@
 import type {
-  AssistantConfig,
+  AssistantPolicyConfig,
   AssistantContext,
   AssistantResponse,
   ClockPort,
@@ -16,7 +16,7 @@ import { evaluateConfirmationPolicy } from "./confirmation-policy.js";
 
 export interface AssistantDependencies {
   clock: ClockPort;
-  config: AssistantConfig;
+  config: AssistantPolicyConfig;
   features: FeaturePlugin[];
   intentInterpreter: IntentInterpreterPort;
 }
@@ -182,7 +182,7 @@ function outcomeFromError(error: AppError): AssistantOutcome {
 
 function isFeatureEnabled(
   feature: FeaturePlugin,
-  config: AssistantConfig,
+  config: AssistantPolicyConfig,
 ): boolean {
   return config.features[feature.id]?.enabled === true;
 }

@@ -1,8 +1,5 @@
 import type { Assistant } from "../../core/assistant/index.js";
-import type {
-  AssistantConfig,
-  AssistantResponse,
-} from "../../ports/assistant.js";
+import type { AssistantResponse } from "../../ports/assistant.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -15,6 +12,7 @@ import {
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
+import type { LoadedRuntimeConfig } from "../config/config.js";
 
 export interface VoiceRuntimeIo {
   fallbackOutput?: { write(chunk: string): boolean | void };
@@ -25,7 +23,7 @@ export interface VoiceRuntimeDependencies {
   assistant: Assistant;
   audioInput: AudioInputPort;
   audioOutput: AudioOutputPort;
-  config: AssistantConfig;
+  config: LoadedRuntimeConfig;
   speechToText: SpeechToTextPort;
   textToSpeech: TextToSpeechPort;
   wakeWord: WakeWordPort;

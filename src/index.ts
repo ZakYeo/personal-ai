@@ -7,7 +7,7 @@ export type {
 export type {
   AssistantCommand,
   AssistantCommandParameters,
-  AssistantConfig,
+  AssistantPolicyConfig,
   AssistantContext,
   AssistantResponse,
   AssistantResponseStatus,

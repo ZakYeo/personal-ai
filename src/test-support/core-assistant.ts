@@ -1,10 +1,11 @@
 import { createAssistant } from "../core/assistant/assistant.js";
 import type {
   AssistantCommand,
-  AssistantConfig,
+  AssistantPolicyConfig,
   AssistantContext,
   ClockPort,
 } from "../ports/assistant.js";
+import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import type {
   FeatureArguments,
   FeatureArgsFromParameters,
@@ -28,16 +29,29 @@ export function createFixedClock(now: Date = fixedNow): ClockPort {
   };
 }
 
-export function createAssistantConfig(
-  features: AssistantConfig["features"] = {
+export function createAssistantPolicyConfig(
+  features: AssistantPolicyConfig["features"] = {
     test: { enabled: true },
   },
-): AssistantConfig {
+): AssistantPolicyConfig {
   return {
     assistant: {
       name: "Jarvis",
       wakePhrases: ["hey jarvis"],
     },
+    features,
+  };
+}
+
+export const createAssistantConfig = createAssistantPolicyConfig;
+
+export function createLoadedRuntimeConfig(
+  features: LoadedRuntimeConfig["features"] = {
+    test: { enabled: true, adapter: "mock" },
+  },
+): LoadedRuntimeConfig {
+  return {
+    ...createAssistantPolicyConfig(features),
     intent: {
       provider: "deterministic",
     },
@@ -45,8 +59,8 @@ export function createAssistantConfig(
   };
 }
 
-export function enableFeatures(...featureIds: string[]): AssistantConfig {
-  return createAssistantConfig(
+export function enableFeatures(...featureIds: string[]): AssistantPolicyConfig {
+  return createAssistantPolicyConfig(
     Object.fromEntries(
       featureIds.map((featureId) => [featureId, { enabled: true }]),
     ),
@@ -56,8 +70,8 @@ export function enableFeatures(...featureIds: string[]): AssistantConfig {
 export function requireConfirmationFor(
   featureId: string,
   capabilities: string[],
-): AssistantConfig {
-  return createAssistantConfig({
+): AssistantPolicyConfig {
+  return createAssistantPolicyConfig({
     [featureId]: {
       enabled: true,
       confirmationRequiredCapabilities: capabilities,
@@ -175,7 +189,7 @@ export function createRawFeature(
 export function createAssistantHarness(
   overrides: Partial<{
     clock: ClockPort;
-    config: AssistantConfig;
+    config: AssistantPolicyConfig;
     features: FeaturePlugin[];
     interpretation: AssistantCommand | IntentInterpretation;
     intentInterpreter: IntentInterpreterPort;
@@ -183,7 +197,7 @@ export function createAssistantHarness(
 ): ReturnType<typeof createAssistant> {
   return createAssistant({
     clock: overrides.clock ?? createFixedClock(),
-    config: overrides.config ?? createAssistantConfig(),
+    config: overrides.config ?? createAssistantPolicyConfig(),
     features: overrides.features ?? [createFeature()],
     intentInterpreter:
       overrides.intentInterpreter ??

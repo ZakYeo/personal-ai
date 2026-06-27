@@ -22,33 +22,15 @@ export interface AssistantCommand {
   rawText: string;
 }
 
-export interface AssistantConfig {
+export interface AssistantPolicyConfig {
   assistant: {
     name: string;
     wakePhrases: string[];
-  };
-  desktopVoice?: {
-    audioInput?: VoiceCommandConfig;
-    audioOutput?: VoiceCommandConfig;
-    speechToText?: VoiceCommandConfig;
-    textToSpeech?: VoiceCommandConfig;
-  };
-  voice?: {
-    input?: string;
-    wakeWord?: string;
-    speechToText?: string;
-    textToSpeech?: string;
-    audioOutput?: string;
-  };
-  intent: {
-    openai?: OpenAIIntentConfig;
-    provider: string;
   };
   features: Record<
     string,
     {
       enabled: boolean;
-      adapter?: string;
       confirmationRequiredCapabilities?: string[];
     }
   >;
@@ -68,7 +50,7 @@ export interface VoiceCommandConfig {
 }
 
 export interface AssistantContext {
-  config: AssistantConfig;
+  config: AssistantPolicyConfig;
   clock: ClockPort;
 }
 

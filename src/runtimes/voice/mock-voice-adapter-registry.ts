@@ -5,7 +5,7 @@ import {
   MockTextToSpeech,
   MockWakeWordDetector,
 } from "../../adapters/mock/mock-voice-adapters.js";
-import type { AssistantConfig } from "../../ports/assistant.js";
+import type { LoadedRuntimeConfig } from "../config/config.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -29,7 +29,7 @@ interface MockVoiceAdapters {
 }
 
 export function createMockVoiceAdapters(
-  config: AssistantConfig,
+  config: LoadedRuntimeConfig,
   options: MockVoiceAdapterRegistryOptions,
 ): MockVoiceAdapters {
   const voice = requireVoiceConfig(config);

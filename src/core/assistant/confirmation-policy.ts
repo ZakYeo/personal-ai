@@ -1,11 +1,11 @@
-import type { AssistantConfig } from "../../ports/assistant.js";
+import type { AssistantPolicyConfig } from "../../ports/assistant.js";
 import type { FeatureCapability, FeaturePlugin } from "../../ports/feature.js";
 import { createAppError, type AppError } from "./app-error.js";
 
 export function evaluateConfirmationPolicy(
   feature: FeaturePlugin,
   capability: FeatureCapability,
-  config: AssistantConfig,
+  config: AssistantPolicyConfig,
 ): AppError | undefined {
   const featureConfig = config.features[feature.id];
   const configRequiresConfirmation =

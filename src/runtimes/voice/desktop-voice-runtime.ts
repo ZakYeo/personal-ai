@@ -1,6 +1,6 @@
 import { createDeterministicRuntime } from "../deterministic-runtime.js";
 import { loadConfig } from "../config/config.js";
-import type { AssistantConfig } from "../../ports/assistant.js";
+import type { LoadedRuntimeConfig } from "../config/config.js";
 import {
   runVoiceTurn,
   type VoiceRuntimeDependencies,
@@ -10,7 +10,7 @@ import {
 import { createDesktopVoiceAdapters } from "./desktop-voice-adapter-registry.js";
 
 interface DesktopVoiceRuntimeOptions {
-  config?: AssistantConfig;
+  config?: LoadedRuntimeConfig;
   configPath?: string;
   io?: VoiceRuntimeIo;
   now?: Date;
