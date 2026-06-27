@@ -49,7 +49,7 @@ export interface ResolvedVoiceConfig {
   wakeWord: string;
 }
 
-export type ResolvedIntentConfig =
+type ResolvedIntentConfig =
   | { provider: "deterministic" }
   | { openai: OpenAIIntentConfig; provider: "openai" };
 

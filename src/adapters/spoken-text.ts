@@ -1,4 +1,4 @@
-export interface WakePhraseTextDetection {
+interface WakePhraseTextDetection {
   detected: boolean;
   phrase?: string;
   strippedText: string;
