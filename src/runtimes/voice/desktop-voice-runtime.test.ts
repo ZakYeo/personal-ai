@@ -4,6 +4,7 @@ import {
   withoutDesktopSpeechToText,
 } from "../../test-support/desktop-voice-runtime.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
+import { withVoiceAdapterId } from "../../test-support/runtime-composition.js";
 
 describe("desktop voice runtime", () => {
   it("runs one configured desktop voice turn through the assistant core", async () => {
@@ -36,18 +37,11 @@ describe("desktop voice runtime", () => {
   it("rejects unregistered desktop voice adapter IDs during composition", async () => {
     await expect(
       createDesktopVoiceRuntime({
-        config: {
-          ...createDesktopVoiceConfig(
-            deterministicScenarios.alarmListEmpty.text,
-          ),
-          voice: {
-            input: "sox-rec",
-            wakeWord: "text-prefix",
-            speechToText: "unknown",
-            textToSpeech: "command",
-            audioOutput: "sox-play",
-          },
-        },
+        config: withVoiceAdapterId(
+          "speechToText",
+          "unknown",
+          createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+        ),
       }),
     ).rejects.toThrow('Config voice.speechToText "unknown" is not registered.');
   });

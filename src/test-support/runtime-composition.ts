@@ -1,12 +1,10 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { createDeterministicRuntime } from "../runtimes/deterministic-runtime.js";
 import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import {
   deterministicNow,
   enabledDeterministicConfig,
 } from "./deterministic-runtime-fixtures.js";
+import { writeTempJsonFile } from "./primitives.js";
 
 type DeterministicRuntimeHarnessOptions = Partial<{
   config: LoadedRuntimeConfig;
@@ -38,52 +36,103 @@ export async function createDeterministicRuntimeHarness(
 export async function writeRuntimeHarnessConfig(
   config: LoadedRuntimeConfig,
 ): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), "personal-ai-runtime-"));
-  const configPath = join(directory, "config.json");
-
-  await writeFile(configPath, JSON.stringify(config));
-
-  return configPath;
+  return writeTempJsonFile(config, "personal-ai-runtime-");
 }
 
 export function createRuntimeConfigWithUnknownIntentProvider(): LoadedRuntimeConfig {
-  return {
-    ...enabledDeterministicConfig,
-    intent: { provider: "unknown" },
-  };
+  return withIntentProvider("unknown");
 }
 
 export function createRuntimeConfigWithOpenAIIntentProvider(): LoadedRuntimeConfig {
+  return withIntentProvider("openai", {
+    apiKeyEnv: "OPENAI_API_KEY",
+    baseUrl: "https://api.openai.test/v1",
+    model: "gpt-5.5",
+    timeoutMs: 30_000,
+  });
+}
+
+export function createRuntimeConfigWithUnknownFeatureAdapter(): LoadedRuntimeConfig {
+  return withFeatureAdapterId("calendar", "unknown");
+}
+
+export function createRuntimeConfigWithMissingFeatureAdapter(): LoadedRuntimeConfig {
+  return withoutFeatureAdapterId("calendar");
+}
+
+export function withIntentProvider(
+  provider: string,
+  openai?: LoadedRuntimeConfig["intent"]["openai"],
+  config: LoadedRuntimeConfig = enabledDeterministicConfig,
+): LoadedRuntimeConfig {
   return {
-    ...enabledDeterministicConfig,
+    ...config,
     intent: {
-      provider: "openai",
-      openai: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.test/v1",
-        model: "gpt-5.5",
-        timeoutMs: 30_000,
+      provider,
+      ...(openai ? { openai } : {}),
+    },
+  };
+}
+
+export function withFeatureAdapterId(
+  featureId: string,
+  adapter: string,
+  config: LoadedRuntimeConfig = enabledDeterministicConfig,
+): LoadedRuntimeConfig {
+  return {
+    ...config,
+    features: {
+      ...config.features,
+      [featureId]: {
+        ...config.features[featureId],
+        adapter,
+        enabled: config.features[featureId]?.enabled ?? true,
       },
     },
   };
 }
 
-export function createRuntimeConfigWithUnknownFeatureAdapter(): LoadedRuntimeConfig {
+export function withoutFeatureAdapterId(
+  featureId: string,
+  config: LoadedRuntimeConfig = enabledDeterministicConfig,
+): LoadedRuntimeConfig {
+  const featureWithoutAdapter = {
+    ...(config.features[featureId] ?? { enabled: true }),
+  };
+  delete featureWithoutAdapter.adapter;
+
   return {
-    ...enabledDeterministicConfig,
+    ...config,
     features: {
-      ...enabledDeterministicConfig.features,
-      calendar: { enabled: true, adapter: "unknown" },
+      ...config.features,
+      [featureId]: featureWithoutAdapter,
     },
   };
 }
 
-export function createRuntimeConfigWithMissingFeatureAdapter(): LoadedRuntimeConfig {
+export function withVoiceAdapterId(
+  key: keyof NonNullable<LoadedRuntimeConfig["voice"]>,
+  adapter: string,
+  config: LoadedRuntimeConfig,
+): LoadedRuntimeConfig {
   return {
-    ...enabledDeterministicConfig,
-    features: {
-      ...enabledDeterministicConfig.features,
-      calendar: { enabled: true },
+    ...config,
+    voice: {
+      ...config.voice,
+      [key]: adapter,
     },
+  };
+}
+
+export function withoutVoiceConfigKey(
+  key: keyof NonNullable<LoadedRuntimeConfig["voice"]>,
+  config: LoadedRuntimeConfig,
+): LoadedRuntimeConfig {
+  const voice = { ...config.voice };
+  delete voice[key];
+
+  return {
+    ...config,
+    voice,
   };
 }

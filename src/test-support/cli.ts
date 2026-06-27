@@ -1,7 +1,10 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import type { Assistant } from "../core/assistant/index.js";
+import type {
+  AssistantDiagnostic,
+  AssistantResponse,
+} from "../ports/assistant.js";
 import { main } from "../runtimes/cli/main.js";
+import { line, writeTempJsonFile } from "./primitives.js";
 
 type CliIo = NonNullable<Parameters<typeof main>[1]>;
 
@@ -15,6 +18,12 @@ interface CliRunResult {
   exitCode: number;
   stderr: string[];
   stdout: string[];
+}
+
+interface InjectedRuntimeRunOptions {
+  args: string[];
+  env?: NodeJS.ProcessEnv;
+  runtime: Assistant;
 }
 
 export function createCliIo(env: NodeJS.ProcessEnv = {}): CapturedCliIo {
@@ -61,12 +70,63 @@ export async function runAsk(options: {
 }
 
 export async function writeTempConfig(config: unknown): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), "personal-ai-cli-"));
-  const configPath = join(directory, "config.json");
+  return writeTempJsonFile(config, "personal-ai-cli-");
+}
 
-  await writeFile(configPath, JSON.stringify(config));
+export async function runCliWithInjectedRuntime(
+  options: InjectedRuntimeRunOptions,
+): Promise<CliRunResult> {
+  const { io, stdout, stderr } = createCliIo(options.env);
+  const exitCode = await main(options.args, io, {
+    createRuntime: () => Promise.resolve(options.runtime),
+  });
 
-  return configPath;
+  return {
+    exitCode,
+    stderr,
+    stdout,
+  };
+}
+
+export function createRuntimeStub(options: {
+  diagnostics?: AssistantDiagnostic[];
+  legacyResponse?: AssistantResponse;
+  response: AssistantResponse;
+}): Assistant {
+  return {
+    handleText: () =>
+      Promise.resolve(
+        options.legacyResponse ?? {
+          status: "error",
+          text: "legacy path should not be used",
+        },
+      ),
+    handleTextWithDiagnostics: () =>
+      Promise.resolve({
+        response: options.response,
+        ...(options.diagnostics ? { diagnostics: options.diagnostics } : {}),
+      }),
+  };
+}
+
+export function cliResult(
+  exitCode: number,
+  stdout: string[] = [],
+  stderr: string[] = [],
+): CliRunResult {
+  return {
+    exitCode,
+    stderr,
+    stdout,
+  };
+}
+
+export function stdoutLine(text: string): string[] {
+  return [line(text)];
+}
+
+export function stderrLine(text: string): string[] {
+  return [line(text)];
 }
 
 function createWriter(writes: string[]): Pick<NodeJS.WriteStream, "write"> {

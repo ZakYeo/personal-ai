@@ -12,6 +12,7 @@ import {
   createThrowingAssistant,
   createVoiceRuntimeDependencies,
 } from "../../test-support/voice-runtime.js";
+import { withVoiceAdapterId } from "../../test-support/runtime-composition.js";
 
 describe("mock voice runtime", () => {
   it("runs a simulated voice command through the assistant core", async () => {
@@ -98,13 +99,10 @@ describe("mock voice runtime", () => {
   it("rejects unregistered voice adapters during composition", async () => {
     await expect(
       createMockVoiceRuntime({
-        config: {
+        config: withVoiceAdapterId("speechToText", "unknown", {
           ...enabledDeterministicConfig,
-          voice: {
-            ...mockVoiceConfig,
-            speechToText: "unknown",
-          },
-        },
+          voice: mockVoiceConfig,
+        }),
       }),
     ).rejects.toThrow('Config voice.speechToText "unknown" is not registered.');
   });

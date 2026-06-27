@@ -1,4 +1,14 @@
-import { createCliIo, runAsk, runCli, writeTempConfig } from "./cli.js";
+import {
+  cliResult,
+  createCliIo,
+  createRuntimeStub,
+  runAsk,
+  runCli,
+  runCliWithInjectedRuntime,
+  stderrLine,
+  stdoutLine,
+  writeTempConfig,
+} from "./cli.js";
 import { deterministicScenarios } from "./deterministic-scenarios.js";
 import {
   deterministicNowIso,
@@ -37,12 +47,40 @@ describe("CLI integration test support", () => {
   });
 
   it("runs arbitrary CLI args through captured IO", async () => {
-    await expect(runCli(["ask"])).resolves.toEqual({
-      exitCode: 1,
-      stdout: [],
-      stderr: [
-        'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n       personal-ai desktop-voice-once [--config path/to/config.json]\n',
-      ],
-    });
+    await expect(runCli(["ask"])).resolves.toEqual(
+      cliResult(
+        1,
+        [],
+        [
+          'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n       personal-ai desktop-voice-once [--config path/to/config.json]\n',
+        ],
+      ),
+    );
+  });
+
+  it("runs CLI boundaries with injected runtime stubs", async () => {
+    await expect(
+      runCliWithInjectedRuntime({
+        args: ["ask", "hello"],
+        runtime: createRuntimeStub({
+          diagnostics: [
+            {
+              category: "feature_failure",
+              message: "fixture diagnostic",
+            },
+          ],
+          response: {
+            status: "error",
+            text: "safe response",
+          },
+        }),
+      }),
+    ).resolves.toEqual(
+      cliResult(
+        1,
+        stdoutLine("safe response"),
+        stderrLine("Feature failure: fixture diagnostic"),
+      ),
+    );
   });
 });

@@ -12,14 +12,26 @@ Implementation work should be broken into thin, committable TDD slices. Each sli
 
 Each architectural layer should have a matching test-support layer, and tests should exercise the narrowest public boundary that proves the behavior.
 
+- Neutral test primitives should live in `src/test-support/primitives.ts`.
+  Shared fixed dates, captured writers, temporary JSON config files, and simple
+  output-line formatting belong there instead of in runtime-specific helpers.
 - Core tests should use core assistant harness helpers.
 - Feature tests should use feature contract helpers and decoded `request.args` by default.
 - Runtime tests should use runtime harness helpers and assert runtime-level outcomes.
-- CLI tests should assert captured stdout, stderr, exit codes, and graceful fallback text.
+- CLI tests should assert captured stdout, stderr, exit codes, graceful fallback
+  text, and diagnostic logging through CLI boundary helpers.
 - Voice tests should assert voice-turn results, spoken output metadata, fallback output, and diagnostics.
+- Adapter tests should use adapter contract helpers for provider `fetch`
+  responses, command-process scripts, voice adapter fixtures, and other
+  repeated adapter-boundary setup before real provider or device adapters add
+  broad local fixtures.
 - Scenario fixtures should stay separate from runtime composition helpers.
 - Deterministic runtime fixtures should own reusable clocks, config shapes, voice config, and runtime-failure fixtures.
-- Runtime composition helpers should compose deterministic runtimes and focused config overrides without duplicating production wiring in each test.
+- Runtime composition helpers should compose deterministic runtimes and focused
+  config overrides without duplicating production wiring in each test.
+- Tests should prefer one-change config variant helpers, such as overriding one
+  adapter ID or omitting one required config key, over inline broad object
+  spreads when the behavior under test is a single config change.
 - Shared setup that crosses ports, adapters, runtimes, or features should move into a focused `src/test-support/` helper before it spreads across multiple tests.
 - When a runtime introduces config shape or adapter composition fixtures, create a matching focused `src/test-support/<runtime>.ts` helper before broad CLI or service tests accumulate reusable builders.
 - Test-support helpers should compose dependencies and remove setup noise without hiding the behavior under test.

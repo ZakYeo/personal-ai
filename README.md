@@ -106,7 +106,7 @@ The files in `docs/` are the source of truth for implementation decisions:
 - [Architecture](docs/02-architecture.md) - ports-and-adapters structure,
   modules, ports, adapters, and runtime responsibilities.
 - [Boundaries and Rules](docs/03-boundaries-and-rules.md) - dependency rules,
-  failure handling, safety defaults, test-support rules, and tooling policy.
+  failure handling, safety defaults, harness standards, and tooling policy.
 - [Runtime Plan](docs/04-runtime-plan.md) - CLI, voice, desktop voice,
   configuration, lifecycle, and fallback behavior.
 - [Feature Plugin Model](docs/05-feature-plugin-model.md) - feature and

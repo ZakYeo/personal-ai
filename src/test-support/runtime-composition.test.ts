@@ -3,13 +3,19 @@ import {
   createRuntimeConfigWithMissingFeatureAdapter,
   createRuntimeConfigWithUnknownFeatureAdapter,
   createRuntimeConfigWithUnknownIntentProvider,
+  withFeatureAdapterId,
+  withIntentProvider,
+  withoutFeatureAdapterId,
+  withoutVoiceConfigKey,
   writeRuntimeHarnessConfig,
+  withVoiceAdapterId,
 } from "./runtime-composition.js";
 import { deterministicScenarios } from "./deterministic-scenarios.js";
 import {
   deterministicNow,
   disabledCalendarConfig,
   enabledDeterministicConfig,
+  mockVoiceConfig,
 } from "./deterministic-runtime-fixtures.js";
 
 describe("runtime composition test support", () => {
@@ -52,6 +58,30 @@ describe("runtime composition test support", () => {
     expect(createRuntimeConfigWithMissingFeatureAdapter()).toMatchObject({
       features: { calendar: { enabled: true } },
     });
+  });
+
+  it("creates one-change runtime config variants", () => {
+    expect(withIntentProvider("unknown")).toMatchObject({
+      intent: { provider: "unknown" },
+    });
+    expect(withFeatureAdapterId("calendar", "unknown")).toMatchObject({
+      features: { calendar: { enabled: true, adapter: "unknown" } },
+    });
+    expect(withoutFeatureAdapterId("calendar")).toMatchObject({
+      features: { calendar: { enabled: true } },
+    });
+    expect(
+      withVoiceAdapterId("speechToText", "unknown", {
+        ...enabledDeterministicConfig,
+        voice: mockVoiceConfig,
+      }),
+    ).toMatchObject({ voice: { speechToText: "unknown" } });
+    expect(
+      withoutVoiceConfigKey("speechToText", {
+        ...enabledDeterministicConfig,
+        voice: mockVoiceConfig,
+      }),
+    ).toMatchObject({ voice: { input: "mock", wakeWord: "mock" } });
   });
 
   it("allows explicit clock overrides", async () => {

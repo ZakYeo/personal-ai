@@ -1,8 +1,13 @@
 import { main, runCliEntryPoint } from "./main.js";
 import {
+  cliResult,
   createCliIo,
+  createRuntimeStub,
   runAsk,
   runCli,
+  runCliWithInjectedRuntime,
+  stderrLine,
+  stdoutLine,
   writeTempConfig,
 } from "../../test-support/cli.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
@@ -22,16 +27,18 @@ import {
   withoutDesktopAudioInput,
   withoutDesktopSpeechToText,
 } from "../../test-support/desktop-voice-runtime.js";
+import { withVoiceAdapterId } from "../../test-support/runtime-composition.js";
 
 describe("personal-ai ask CLI", () => {
   it("prints the calendar response", async () => {
     await expect(
       runAsk({ text: deterministicScenarios.calendarWedding.text }),
-    ).resolves.toEqual({
-      exitCode: 0,
-      stdout: [`${deterministicScenarios.calendarWedding.response.text}\n`],
-      stderr: [],
-    });
+    ).resolves.toEqual(
+      cliResult(
+        0,
+        stdoutLine(deterministicScenarios.calendarWedding.response.text),
+      ),
+    );
   });
 
   it("prints the messaging draft response", async () => {
@@ -172,13 +179,12 @@ describe("personal-ai ask CLI", () => {
   });
 
   it("prints a graceful response and diagnostics when voice setup fails", async () => {
-    const configPath = await writeTempConfig({
-      ...enabledDeterministicConfig,
-      voice: {
-        ...mockVoiceConfig,
-        speechToText: "unknown",
-      },
-    });
+    const configPath = await writeTempConfig(
+      withVoiceAdapterId("speechToText", "unknown", {
+        ...enabledDeterministicConfig,
+        voice: mockVoiceConfig,
+      }),
+    );
 
     await expect(
       runCli(["voice-once", "--config", configPath]),
@@ -290,48 +296,40 @@ describe("personal-ai ask CLI", () => {
   });
 
   it("logs assistant diagnostics without exposing them in the response", async () => {
-    const { io, stdout, stderr } = createCliIo();
     const cause = new Error("provider token secret fixture failure");
     cause.stack =
       "Error: provider token secret fixture failure\n    at feature fixture";
-
-    await expect(
-      main(["ask", "fail safely"], io, {
-        createRuntime: () =>
-          Promise.resolve({
-            handleText: () =>
-              Promise.resolve({
-                status: "error",
-                text: "legacy path should not be used",
-              }),
-            handleTextWithDiagnostics: () =>
-              Promise.resolve({
-                response: {
-                  status: "error",
-                  text: "I could not complete that command.",
-                },
-                diagnostics: [
-                  {
-                    category: "feature_failure",
-                    capability: "test.echo",
-                    cause,
-                    message: "provider token secret fixture failure",
-                  },
-                ],
-              }),
-          }),
+    const result = await runCliWithInjectedRuntime({
+      args: ["ask", "fail safely"],
+      runtime: createRuntimeStub({
+        response: {
+          status: "error",
+          text: "I could not complete that command.",
+        },
+        diagnostics: [
+          {
+            category: "feature_failure",
+            capability: "test.echo",
+            cause,
+            message: "provider token secret fixture failure",
+          },
+        ],
       }),
-    ).resolves.toBe(1);
-    expect(stdout).toEqual(["I could not complete that command.\n"]);
-    expect(stdout.join("")).not.toContain("provider token secret");
-    expect(stderr).toHaveLength(2);
-    expect(stderr[0]).toBe(
+    });
+
+    expect(result).toMatchObject({
+      exitCode: 1,
+      stdout: stdoutLine("I could not complete that command."),
+    });
+    expect(result.stdout.join("")).not.toContain("provider token secret");
+    expect(result.stderr).toHaveLength(2);
+    expect(result.stderr[0]).toBe(
       "Feature failure in test.echo: provider token secret fixture failure\n",
     );
-    expect(stderr[1]).toContain(
+    expect(result.stderr[1]).toContain(
       "Feature failure cause in test.echo: Error: provider token secret fixture failure",
     );
-    expect(stderr[1]).toContain("at feature fixture");
+    expect(result.stderr[1]).toContain("at feature fixture");
   });
 
   it("passes CLI environment into runtime composition", async () => {
@@ -375,8 +373,10 @@ describe("personal-ai ask CLI", () => {
     );
 
     expect(processState.exitCode).toBe(1);
-    expect(stdout).toEqual(["I hit a problem and could not complete that.\n"]);
-    expect(stderr).toEqual(["Runtime failure: raw setup secret\n"]);
+    expect(stdout).toEqual(
+      stdoutLine("I hit a problem and could not complete that."),
+    );
+    expect(stderr).toEqual(stderrLine("Runtime failure: raw setup secret"));
   });
 
   it("still supports direct injected IO for low-level CLI boundary coverage", async () => {

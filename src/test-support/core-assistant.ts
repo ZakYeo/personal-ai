@@ -20,8 +20,9 @@ import type {
   IntentInterpretation,
   IntentInterpreterPort,
 } from "../ports/intent.js";
+import { deterministicTestNow } from "./primitives.js";
 
-export const fixedNow = new Date("2026-06-26T09:00:00.000Z");
+export const fixedNow = deterministicTestNow;
 
 export function createFixedClock(now: Date = fixedNow): ClockPort {
   return {

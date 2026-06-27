@@ -1,6 +1,7 @@
 import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createShellCommand } from "../../test-support/adapter-contract.js";
 import {
   CommandSpeechToText,
   CommandTextToSpeech,
@@ -12,8 +13,7 @@ import {
 describe("desktop voice adapters", () => {
   it("captures audio to a file with a configured command", async () => {
     const adapter = new SoxAudioInput({
-      args: ["-c", 'printf audio > "$1"', "sh", "{output}"],
-      command: "/bin/sh",
+      ...createShellCommand('printf audio > "$1"', "{output}"),
     });
 
     const audio = await adapter.capture();
@@ -25,8 +25,7 @@ describe("desktop voice adapters", () => {
 
   it("transcribes captured audio with a configured command", async () => {
     const adapter = new CommandSpeechToText({
-      args: ["-c", "printf 'Hey Jarvis from %s' \"$1\"", "sh", "{input}"],
-      command: "/bin/sh",
+      ...createShellCommand("printf 'Hey Jarvis from %s' \"$1\"", "{input}"),
     });
 
     await expect(
@@ -55,8 +54,7 @@ describe("desktop voice adapters", () => {
 
   it("synthesizes speech to a file with a configured command", async () => {
     const adapter = new CommandTextToSpeech({
-      args: ["-c", 'printf \'%s\' "$1" > "$2"', "sh", "{text}", "{output}"],
-      command: "/bin/sh",
+      ...createShellCommand('printf \'%s\' "$1" > "$2"', "{text}", "{output}"),
     });
 
     const speech = await adapter.synthesize("Alarm set.");
@@ -72,8 +70,7 @@ describe("desktop voice adapters", () => {
     const directory = await mkdtemp(join(tmpdir(), "personal-ai-play-"));
     const markerPath = join(directory, "played.txt");
     const adapter = new SoxAudioOutput({
-      args: ["-c", 'printf \'%s\' "$1" > "$2"', "sh", "{input}", markerPath],
-      command: "/bin/sh",
+      ...createShellCommand('printf \'%s\' "$1" > "$2"', "{input}", markerPath),
     });
 
     await adapter.play({

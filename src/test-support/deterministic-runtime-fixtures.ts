@@ -1,6 +1,7 @@
 import type { AssistantResponse } from "../ports/assistant.js";
 import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import { createLoadedRuntimeConfig } from "./core-assistant.js";
+import { deterministicTestNow, deterministicTestNowIso } from "./primitives.js";
 
 export const mockVoiceConfig = {
   input: "mock",
@@ -10,8 +11,8 @@ export const mockVoiceConfig = {
   audioOutput: "mock",
 } satisfies NonNullable<LoadedRuntimeConfig["voice"]>;
 
-export const deterministicNow = new Date("2026-06-26T09:00:00.000Z");
-export const deterministicNowIso = deterministicNow.toISOString();
+export const deterministicNow = deterministicTestNow;
+export const deterministicNowIso = deterministicTestNowIso;
 
 export const enabledDeterministicConfig = createLoadedRuntimeConfig({
   calendar: { enabled: true, adapter: "mock" },

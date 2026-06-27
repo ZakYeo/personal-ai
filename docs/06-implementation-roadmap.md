@@ -215,15 +215,34 @@ Acceptance criteria:
 
 Implemented structure:
 
+- `src/test-support/primitives.ts` owns neutral testing primitives: the
+  canonical deterministic date, captured writers, temporary JSON config files,
+  and simple output-line helpers.
 - `src/test-support/voice-runtime.ts` owns voice runtime dependency builders,
   fallback writers, throwing assistants, and deterministic utterances.
 - `src/test-support/runtime-composition.ts` owns deterministic runtime
-  composition helpers and focused invalid config overrides.
+  composition helpers, one-change config variants, and focused invalid config
+  overrides.
 - `src/test-support/deterministic-scenarios.ts` owns named command/response
   scenarios; `src/test-support/deterministic-runtime-fixtures.ts` owns clocks,
   deterministic configs, voice config, and runtime-failure fixtures.
 - `src/test-support/feature-contract.ts` includes decoded-args execution helpers
   so feature tests can stay mechanical without hiding feature-specific behavior.
+- `src/test-support/adapter-contract.ts` owns repeated adapter-boundary
+  fixtures for provider fetch responses, command scripts, and voice adapter
+  contract examples.
+
+Harness standards going forward:
+
+- Add or extend a focused test-support layer before repeated setup appears in a
+  second production test file.
+- Keep config changes in tests as one-change helper calls when the behavior is
+  adapter selection, missing config, unknown IDs, or provider selection.
+- Add adapter-contract helpers before adding real provider, process, voice, or
+  service adapters whose tests would otherwise repeat transport or command
+  fixtures.
+- CLI and runtime-boundary tests should prefer boundary helpers for stdout,
+  stderr, exit codes, safe user responses, and internal diagnostics.
 
 ## Milestone 3: Desktop Voice Runtime
 

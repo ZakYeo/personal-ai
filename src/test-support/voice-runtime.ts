@@ -3,24 +3,10 @@ import type { VoiceRuntimeDependencies } from "../runtimes/voice/voice-turn.js";
 import { deterministicScenarios } from "./deterministic-scenarios.js";
 import { voiceEnabledDeterministicConfig } from "./deterministic-runtime-fixtures.js";
 
+export { createCapturedWriter } from "./primitives.js";
+
 export const deterministicVoiceUtterance =
   deterministicScenarios.alarmListEmpty.text;
-
-interface CapturedWriter {
-  write(chunk: string): void;
-  writes: string[];
-}
-
-export function createCapturedWriter(
-  initialWrites: string[] = [],
-): CapturedWriter {
-  return {
-    write: (chunk) => {
-      initialWrites.push(chunk);
-    },
-    writes: initialWrites,
-  };
-}
 
 export function createThrowingAssistant(
   message = "raw assistant failure",

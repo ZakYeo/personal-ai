@@ -11,8 +11,9 @@ import type {
   FeaturePlugin,
   FeatureResult,
 } from "../ports/feature.js";
+import { deterministicTestNow } from "./primitives.js";
 
-export const featureContractNow = new Date("2026-06-26T09:00:00.000Z");
+export const featureContractNow = deterministicTestNow;
 
 export function createFeatureContext(
   config: AssistantPolicyConfig = createFeatureConfig(),

@@ -1,15 +1,16 @@
 import type { VoiceCommandConfig } from "../ports/assistant.js";
 import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import { enabledDeterministicConfig } from "./deterministic-runtime-fixtures.js";
+import {
+  createFailingCommandScript,
+  createShellCommand,
+} from "./adapter-contract.js";
 
 export function createDesktopVoiceCommand(
   script: string,
   ...args: string[]
 ): VoiceCommandConfig {
-  return {
-    args: ["-c", script, "sh", ...args],
-    command: "/bin/sh",
-  };
+  return createShellCommand(script, ...args);
 }
 
 export function createDesktopVoiceConfig(
@@ -90,7 +91,7 @@ export function withDesktopSpeechToTextFailure(
     desktopVoice: {
       ...config.desktopVoice,
       speechToText: createDesktopVoiceCommand(
-        `printf '%s' ${JSON.stringify(stderrText)} >&2; exit ${exitCode}`,
+        createFailingCommandScript(stderrText, exitCode),
       ),
     },
   };

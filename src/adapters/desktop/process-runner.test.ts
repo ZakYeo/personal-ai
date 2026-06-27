@@ -1,13 +1,19 @@
+import {
+  createFailingCommandScript,
+  createShellCommand,
+  createSuccessfulCommandScript,
+} from "../../test-support/adapter-contract.js";
 import type { CommandExecutionError } from "./process-runner.js";
 import { CommandTimeoutError, runCommand } from "./process-runner.js";
 
 describe("runCommand", () => {
   it("captures stdout and stderr from a successful command", async () => {
     await expect(
-      runCommand({
-        args: ["-c", "printf transcript; printf diagnostic >&2"],
-        command: "/bin/sh",
-      }),
+      runCommand(
+        createShellCommand(
+          createSuccessfulCommandScript("transcript", "diagnostic"),
+        ),
+      ),
     ).resolves.toEqual({
       stderr: "diagnostic",
       stdout: "transcript",
@@ -16,10 +22,9 @@ describe("runCommand", () => {
 
   it("rejects non-zero exits with preserved diagnostics", async () => {
     await expect(
-      runCommand({
-        args: ["-c", "printf 'provider failed' >&2; exit 7"],
-        command: "/bin/sh",
-      }),
+      runCommand(
+        createShellCommand(createFailingCommandScript("provider failed", 7)),
+      ),
     ).rejects.toMatchObject({
       code: 7,
       stderr: "provider failed",

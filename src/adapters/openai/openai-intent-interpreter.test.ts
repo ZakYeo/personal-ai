@@ -1,4 +1,11 @@
 import type { AssistantContext } from "../../ports/assistant.js";
+import {
+  createAbortingFetchStub,
+  createFetchStub,
+  jsonResponse,
+  providerErrorResponse,
+} from "../../test-support/adapter-contract.js";
+import { deterministicTestNow } from "../../test-support/primitives.js";
 import { OpenAIIntentInterpreter } from "./openai-intent-interpreter.js";
 import type {
   OpenAIIntentCapability,
@@ -7,7 +14,7 @@ import type {
 
 const context = {
   clock: {
-    now: () => new Date("2026-06-26T09:00:00.000Z"),
+    now: () => deterministicTestNow,
   },
   config: {
     assistant: {
@@ -22,7 +29,7 @@ const context = {
 
 describe("OpenAIIntentInterpreter", () => {
   it("returns a command from structured provider output", async () => {
-    const fetch = vi.fn().mockResolvedValue(
+    const fetch = createFetchStub(
       jsonResponse({
         output_text: JSON.stringify({
           kind: "command",
@@ -112,7 +119,7 @@ describe("OpenAIIntentInterpreter", () => {
   });
 
   it("returns a response from structured provider output", async () => {
-    const fetch = vi.fn().mockResolvedValue(
+    const fetch = createFetchStub(
       jsonResponse({
         output_text: JSON.stringify({
           kind: "response",
@@ -137,7 +144,7 @@ describe("OpenAIIntentInterpreter", () => {
   });
 
   it("extracts text from Responses API output content", async () => {
-    const fetch = vi.fn().mockResolvedValue(
+    const fetch = createFetchStub(
       jsonResponse({
         output: [
           {
@@ -185,11 +192,12 @@ describe("OpenAIIntentInterpreter", () => {
 
   it("rejects non-2xx provider responses with status diagnostics", async () => {
     const interpreter = createInterpreter({
-      fetch: vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ error: { message: "quota exceeded" } }), {
-          status: 429,
-          statusText: "Too Many Requests",
-        }),
+      fetch: createFetchStub(
+        providerErrorResponse(
+          429,
+          { error: { message: "quota exceeded" } },
+          "Too Many Requests",
+        ),
       ),
     });
 
@@ -204,7 +212,7 @@ describe("OpenAIIntentInterpreter", () => {
 
   it("rejects malformed provider JSON output", async () => {
     const interpreter = createInterpreter({
-      fetch: vi.fn().mockResolvedValue(
+      fetch: createFetchStub(
         jsonResponse({
           output_text: "{not-json",
         }),
@@ -218,7 +226,7 @@ describe("OpenAIIntentInterpreter", () => {
 
   it("rejects provider output that does not match intent shape", async () => {
     const interpreter = createInterpreter({
-      fetch: vi.fn().mockResolvedValue(
+      fetch: createFetchStub(
         jsonResponse({
           output_text: JSON.stringify({
             kind: "command",
@@ -241,14 +249,7 @@ describe("OpenAIIntentInterpreter", () => {
   });
 
   it("aborts requests that exceed the configured timeout", async () => {
-    const fetch = vi.fn(
-      (_url: string | URL | Request, init?: RequestInit) =>
-        new Promise<Response>((_resolve, reject) => {
-          init?.signal?.addEventListener("abort", () => {
-            reject(new DOMException("aborted", "AbortError"));
-          });
-        }),
-    );
+    const fetch = createAbortingFetchStub();
     const interpreter = createInterpreter({
       fetch,
       timeoutMs: 1,
@@ -292,8 +293,10 @@ interface RequestBody {
   };
 }
 
-function readRequestBody(fetch: ReturnType<typeof vi.fn>): RequestBody {
-  const init = fetch.mock.calls[0]?.[1] as RequestInit | undefined;
+function readRequestBody(fetch: typeof globalThis.fetch): RequestBody {
+  const init = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as
+    | RequestInit
+    | undefined;
   const body = init?.body;
 
   if (typeof body !== "string") {
@@ -301,13 +304,4 @@ function readRequestBody(fetch: ReturnType<typeof vi.fn>): RequestBody {
   }
 
   return JSON.parse(body) as RequestBody;
-}
-
-function jsonResponse(body: unknown): Response {
-  return new Response(JSON.stringify(body), {
-    headers: {
-      "content-type": "application/json",
-    },
-    status: 200,
-  });
 }
