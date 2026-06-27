@@ -3,8 +3,11 @@ import {
   createShellCommand,
   createSuccessfulCommandScript,
 } from "../../test-support/adapter-contract.js";
-import type { CommandExecutionError } from "./process-runner.js";
-import { CommandTimeoutError, runCommand } from "./process-runner.js";
+import type {
+  CommandExecutionError,
+  CommandTimeoutError,
+} from "./process-runner.js";
+import { runCommand } from "./process-runner.js";
 
 describe("runCommand", () => {
   it("captures stdout and stderr from a successful command", async () => {
@@ -34,10 +37,17 @@ describe("runCommand", () => {
   it("rejects commands that exceed their timeout", async () => {
     await expect(
       runCommand({
-        args: ["-c", "sleep 1"],
+        args: [
+          "-c",
+          "printf 'partial transcript'; printf 'partial diagnostic' >&2; sleep 1",
+        ],
         command: "/bin/sh",
         timeoutMs: 10,
       }),
-    ).rejects.toBeInstanceOf(CommandTimeoutError);
+    ).rejects.toMatchObject({
+      stderr: "partial diagnostic",
+      stdout: "partial transcript",
+      timeoutMs: 10,
+    } satisfies Partial<CommandTimeoutError>);
   });
 });

@@ -27,6 +27,8 @@ export class CommandTimeoutError extends Error {
   constructor(
     message: string,
     readonly timeoutMs: number,
+    readonly stderr: string,
+    readonly stdout: string,
   ) {
     super(message);
     this.name = "CommandTimeoutError";
@@ -54,10 +56,14 @@ export function runCommand(
 
       settled = true;
       child.kill("SIGTERM");
+      const stdout = Buffer.concat(stdoutChunks).toString("utf8");
+      const stderr = Buffer.concat(stderrChunks).toString("utf8");
       reject(
         new CommandTimeoutError(
           `Command "${request.command}" timed out after ${timeoutMs}ms.`,
           timeoutMs,
+          stderr,
+          stdout,
         ),
       );
     }, timeoutMs);
