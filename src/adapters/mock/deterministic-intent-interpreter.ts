@@ -6,6 +6,7 @@ import type {
   IntentInterpretation,
   IntentInterpreterPort,
 } from "../../ports/intent.js";
+import { stripWakePhrase } from "../spoken-text.js";
 
 export class DeterministicIntentInterpreter implements IntentInterpreterPort {
   interpret(
@@ -78,25 +79,7 @@ export function normalizeCommandText(
   text: string,
   wakePhrases: string[] = ["hey jarvis"],
 ): string {
-  const normalized = text
-    .trim()
-    .toLowerCase()
-    .replace(/^[,.\s!?]+|[,.\s!?]+$/gu, "")
-    .replace(/\s+/gu, " ")
-    .trim();
-
-  const matchingWakePhrase = wakePhrases.find((wakePhrase) =>
-    normalized.startsWith(wakePhrase.toLowerCase()),
-  );
-
-  if (!matchingWakePhrase) {
-    return normalized;
-  }
-
-  return normalized
-    .slice(matchingWakePhrase.length)
-    .replace(/^[,.\s!?]+/u, "")
-    .trim();
+  return stripWakePhrase(text, wakePhrases);
 }
 
 function createCommand(
