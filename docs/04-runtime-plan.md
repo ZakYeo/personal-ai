@@ -162,6 +162,12 @@ features:
   calendar:
     enabled: true
     adapter: mock
+    google:
+      accessTokenEnv: GOOGLE_CALENDAR_ACCESS_TOKEN
+      calendarId: primary
+      baseUrl: https://www.googleapis.com/calendar/v3
+      timeoutMs: 30000
+      maxResults: 10
   messaging:
     enabled: true
     adapter: mock
@@ -192,6 +198,14 @@ The OpenAI adapter keeps request construction, Responses API transport,
 provider-output text extraction, and assistant intent-output parsing in separate
 adapter-local modules, with the interpreter class only orchestrating those
 pieces.
+The `google` calendar adapter is opt-in and selected with
+`features.calendar.adapter: google`. It requires an OAuth access token from the
+configured environment variable, defaulting to
+`GOOGLE_CALENDAR_ACCESS_TOKEN`; `calendarId`, `baseUrl`, `timeoutMs`, and
+`maxResults` default to `primary`, `https://www.googleapis.com/calendar/v3`,
+`30000`, and `10`. Google credentials must stay out of repository config files,
+and the checked-in default config continues to use the deterministic mock
+calendar adapter.
 Intent provider selection and feature adapter selection are runtime composition
 policy, owned by shared runtime selector helpers so missing IDs, unknown IDs,
 and provider-specific construction rules do not drift between runtimes. Runtime

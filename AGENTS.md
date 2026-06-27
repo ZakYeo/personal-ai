@@ -28,6 +28,7 @@
 - Prefer a neutral runtime factory when two runtimes differ mostly by adapter construction.
 - Keep shared user-facing matching semantics, such as wake phrase normalization, in one helper so mock and real runtimes do not drift.
 - Real provider adapters must remain opt-in through config, keep credentials in environment variables instead of repository config files, and test provider calls with deterministic `adapter-contract` helpers rather than live network access.
+- The Google Calendar adapter is read-only, selected with `features.calendar.adapter: "google"`, and must keep OAuth access tokens in environment variables such as `GOOGLE_CALENDAR_ACCESS_TOKEN`.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Keep adapter/config selection policy canonical; do not add new missing-config, adapter-ID lookup, or unregistered-adapter branches without checking for an existing selector or extracting a shared one.
 - Prefer explicit nested registries over encoded string keys for adapter selection; do not parse registry keys when the feature/provider/adapter relationship can be represented directly in data.

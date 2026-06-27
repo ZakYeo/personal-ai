@@ -21,6 +21,7 @@ Implemented today:
 - Focused runtime config resolvers for assistant policy, intent providers,
   voice adapter IDs, and desktop voice command settings.
 - Opt-in OpenAI intent provider adapter behind the existing intent port.
+- Opt-in Google Calendar adapter behind the calendar search port.
 - Provider adapter contract helpers for deterministic credentials, transport,
   provider response, timeout, and diagnostic tests.
 - Mock calendar and messaging features.
@@ -46,6 +47,11 @@ desktop voice config shape.
 OpenAI intent experiments need a local config file that selects
 `intent.provider: "openai"` and an API key in the configured environment
 variable. Do not store API keys in repository config files.
+
+Google Calendar experiments need a local config file that selects
+`features.calendar.adapter: "google"` and an OAuth access token in the
+configured environment variable. Do not store Google tokens in repository
+config files.
 
 ## Quick Start
 
@@ -83,6 +89,12 @@ Run the CLI with a local OpenAI intent config:
 
 ```bash
 OPENAI_API_KEY=... npm run cli -- ask --config path/to/openai-config.json "Hey Jarvis, list my alarms"
+```
+
+Run the CLI with a local Google Calendar feature config:
+
+```bash
+GOOGLE_CALENDAR_ACCESS_TOKEN=... npm run cli -- ask --config path/to/google-calendar-config.json "Hey Jarvis, check my calendar for the upcoming wedding"
 ```
 
 ## Scripts

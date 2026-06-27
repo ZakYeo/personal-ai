@@ -434,6 +434,8 @@ Implemented structure:
 
 ### Milestone 4.4: Next Real Provider Adapter
 
+Status: implemented.
+
 Goal: add one additional real adapter behind an existing port after the
 composition and contract refinements are in place.
 
@@ -451,6 +453,17 @@ Acceptance criteria:
 - Mock adapters remain available and the checked-in default config stays
   deterministic.
 - Tests use deterministic mocks rather than live provider calls.
+
+Implemented structure:
+
+- `calendar.search_events` now runs through an application-owned calendar search
+  port; the deterministic fixture data lives behind a mock calendar adapter.
+- `google` can be selected as the calendar feature adapter through local runtime
+  config while the checked-in default config remains mock and deterministic.
+- The Google Calendar adapter calls the read-only events list API through
+  injected `fetch`, reads its OAuth access token from a configured environment
+  variable, validates provider output from `unknown`, and preserves provider
+  failures as diagnostics.
 
 Deferred hardening themes to keep checking during Milestone 4:
 
