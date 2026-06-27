@@ -362,6 +362,8 @@ Implemented structure:
 
 ### Milestone 4.2: Provider Adapter Contract Hardening
 
+Status: implemented.
+
 Goal: make the next real provider adapter mechanical and deterministic to test.
 
 Included:
@@ -383,6 +385,16 @@ Acceptance criteria:
   provider, credential, adapter, or stack details to the user.
 - Real providers remain opt-in through local config and credentials stay in
   environment variables.
+
+Implemented structure:
+
+- `src/test-support/adapter-contract.ts` owns shared provider helpers for
+  credential environments, deterministic JSON responses, non-OK response bodies,
+  malformed JSON, transport failures, and abort-driven timeout tests.
+- OpenAI intent adapter tests use the shared provider contract helpers for
+  credential, provider response, malformed body, transport failure, and timeout
+  paths while keeping OpenAI-specific request and output assertions local.
+- The provider adapter checklist lives in `docs/03-boundaries-and-rules.md`.
 
 ### Milestone 4.3: Feature Adapter Registration Refinement
 

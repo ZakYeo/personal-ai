@@ -2,7 +2,11 @@ import type { AssistantContext } from "../../ports/assistant.js";
 import {
   createAbortingFetchStub,
   createFetchStub,
+  createMissingProviderCredentialEnv,
+  createProviderCredentialEnv,
+  createProviderTransportFailureFetchStub,
   jsonResponse,
+  malformedJsonResponse,
   providerErrorResponse,
 } from "../../test-support/adapter-contract.js";
 import { deterministicTestNow } from "../../test-support/primitives.js";
@@ -180,7 +184,10 @@ describe("OpenAIIntentInterpreter", () => {
 
   it("rejects missing API keys before calling the provider", async () => {
     const fetch = vi.fn();
-    const interpreter = createInterpreter({ env: {}, fetch });
+    const interpreter = createInterpreter({
+      env: createMissingProviderCredentialEnv(),
+      fetch,
+    });
 
     await expect(
       interpreter.interpret("Hey Jarvis, list my alarms", context),
@@ -207,6 +214,20 @@ describe("OpenAIIntentInterpreter", () => {
       message: "OpenAI intent request failed with status 429.",
       responseBody: '{"error":{"message":"quota exceeded"}}',
       status: 429,
+    } satisfies Partial<OpenAIIntentError>);
+  });
+
+  it("rejects provider response bodies that are not JSON with diagnostics", async () => {
+    const interpreter = createInterpreter({
+      fetch: createFetchStub(malformedJsonResponse("{not-json")),
+    });
+
+    await expect(
+      interpreter.interpret("Hey Jarvis, list my alarms", context),
+    ).rejects.toMatchObject({
+      message: "OpenAI intent response body was not valid JSON.",
+      responseBody: "{not-json",
+      status: 200,
     } satisfies Partial<OpenAIIntentError>);
   });
 
@@ -248,6 +269,17 @@ describe("OpenAIIntentInterpreter", () => {
     );
   });
 
+  it("rejects transport failures without replacing the provider diagnostic", async () => {
+    const error = new TypeError("network unavailable");
+    const interpreter = createInterpreter({
+      fetch: createProviderTransportFailureFetchStub(error),
+    });
+
+    await expect(
+      interpreter.interpret("Hey Jarvis, list my alarms", context),
+    ).rejects.toBe(error);
+  });
+
   it("aborts requests that exceed the configured timeout", async () => {
     const fetch = createAbortingFetchStub();
     const interpreter = createInterpreter({
@@ -279,7 +311,9 @@ function createInterpreter(options: CreateInterpreterOptions = {}) {
       model: "gpt-5.5",
       timeoutMs: options.timeoutMs ?? 30_000,
     },
-    env: options.env ?? { OPENAI_API_KEY: "test-api-key" },
+    env:
+      options.env ??
+      createProviderCredentialEnv("OPENAI_API_KEY", "test-api-key"),
     fetch: options.fetch ?? vi.fn(),
   });
 }

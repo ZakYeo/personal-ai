@@ -20,6 +20,8 @@ Implemented today:
 - Focused runtime config resolvers for assistant policy, intent providers,
   voice adapter IDs, and desktop voice command settings.
 - Opt-in OpenAI intent provider adapter behind the existing intent port.
+- Provider adapter contract helpers for deterministic credentials, transport,
+  provider response, timeout, and diagnostic tests.
 - Mock calendar and messaging features.
 - Local alarm feature backed by an adapter-owned store.
 - Runtime fallback handling that keeps human-facing responses safe while logging

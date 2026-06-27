@@ -27,7 +27,7 @@
 - Split real provider adapters when transport, request construction, response extraction, provider-output parsing, and application validation start accumulating in one module.
 - Prefer a neutral runtime factory when two runtimes differ mostly by adapter construction.
 - Keep shared user-facing matching semantics, such as wake phrase normalization, in one helper so mock and real runtimes do not drift.
-- Real provider adapters must remain opt-in through config, keep credentials in environment variables instead of repository config files, and test provider calls with deterministic mocks rather than live network access.
+- Real provider adapters must remain opt-in through config, keep credentials in environment variables instead of repository config files, and test provider calls with deterministic `adapter-contract` helpers rather than live network access.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Keep adapter/config selection policy canonical; do not add new missing-config, adapter-ID lookup, or unregistered-adapter branches without checking for an existing selector or extracting a shared one.
 - Prefer explicit nested registries over encoded string keys for adapter selection; do not parse registry keys when the feature/provider/adapter relationship can be represented directly in data.
@@ -52,7 +52,7 @@
   - `primitives.ts` for neutral fixed dates, captured writers, temporary JSON config files, and simple output-line helpers.
   - `core-assistant.ts` for core assistant config, clocks, commands, interpreters, and decoded-args feature fixtures.
   - `feature-contract.ts` for feature command/context builders, metadata, handling, decoded-args execution, and rejection expectations.
-  - `adapter-contract.ts` for provider fetch responses, command-process scripts, and voice adapter contract fixtures.
+  - `adapter-contract.ts` for provider credential environments, provider fetch responses, malformed provider payloads, transport failures, command-process scripts, and voice adapter contract fixtures.
   - `deterministic-scenarios.ts` for named deterministic command/response fixtures.
   - `deterministic-runtime-fixtures.ts` for deterministic clocks, config shapes, voice config, and runtime-failure fixtures.
   - `runtime-composition.ts` for configured text runtime composition, one-change config variants, and focused invalid config overrides.

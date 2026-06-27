@@ -2,9 +2,13 @@ import {
   createAbortingFetchStub,
   createFailingCommandScript,
   createFetchStub,
+  createMissingProviderCredentialEnv,
+  createProviderCredentialEnv,
+  createProviderTransportFailureFetchStub,
   createShellCommand,
   createSuccessfulCommandScript,
   jsonResponse,
+  malformedJsonResponse,
   providerErrorResponse,
   voiceAdapterContractFixtures,
 } from "./adapter-contract.js";
@@ -24,6 +28,27 @@ describe("adapter contract test support", () => {
     expect(response.ok).toBe(false);
     expect(response.status).toBe(429);
     await expect(response.text()).resolves.toBe('{"error":"quota"}');
+  });
+
+  it("creates provider credential environments", () => {
+    expect(createProviderCredentialEnv("PROVIDER_API_KEY", "secret")).toEqual({
+      PROVIDER_API_KEY: "secret",
+    });
+    expect(createMissingProviderCredentialEnv()).toEqual({});
+  });
+
+  it("creates malformed provider JSON responses", async () => {
+    const response = malformedJsonResponse("{not-json");
+
+    expect(response.ok).toBe(true);
+    await expect(response.text()).resolves.toBe("{not-json");
+  });
+
+  it("creates provider transport failure fetch stubs", async () => {
+    const error = new TypeError("network unavailable");
+    const fetch = createProviderTransportFailureFetchStub(error);
+
+    await expect(fetch("https://provider.test")).rejects.toBe(error);
   });
 
   it("creates aborting fetch stubs", async () => {

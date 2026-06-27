@@ -27,8 +27,45 @@ export function providerErrorResponse(
   return jsonResponse(body, { status, statusText });
 }
 
+export function malformedJsonResponse(
+  body = "{not-json",
+  init: ResponseInit = {},
+): Response {
+  const headers = new Headers(init.headers);
+  headers.set(
+    "content-type",
+    headers.get("content-type") ?? "application/json",
+  );
+
+  return new Response(body, {
+    headers,
+    status: init.status ?? 200,
+    ...(init.statusText ? { statusText: init.statusText } : {}),
+  });
+}
+
 export function createFetchStub(response: Response): typeof fetch {
   return vi.fn().mockResolvedValue(response);
+}
+
+export function createProviderCredentialEnv(
+  apiKeyEnv: string,
+  apiKey = "test-provider-api-key",
+): Record<string, string | undefined> {
+  return { [apiKeyEnv]: apiKey };
+}
+
+export function createMissingProviderCredentialEnv(): Record<
+  string,
+  string | undefined
+> {
+  return {};
+}
+
+export function createProviderTransportFailureFetchStub(
+  error: Error = new TypeError("provider transport failed"),
+): typeof fetch {
+  return vi.fn().mockRejectedValue(error);
 }
 
 export function createAbortingFetchStub(): typeof fetch {

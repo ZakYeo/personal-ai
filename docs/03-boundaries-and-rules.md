@@ -190,6 +190,16 @@ mode. Non-zero exits, spawn failures where available, and timeouts should keep
 captured stdout/stderr internally so human-facing boundaries can log useful
 operator diagnostics while returning safe fallback text.
 
+Provider adapters should follow the same boundary discipline. Every real
+provider adapter must be opt-in through runtime configuration, receive network
+clients and environment credentials through injection, read credentials from
+environment variables instead of repository config files, validate provider
+responses from `unknown`, and preserve useful status, body, transport, timeout,
+and parsing diagnostics internally. Tests for provider adapters should use the
+shared `src/test-support/adapter-contract.ts` helpers for credential
+environments, non-OK responses, malformed JSON, transport failures, and timeout
+behavior instead of live network calls.
+
 Tests should prefer focused harness and one-change fixture helpers over broad
 inline object spreads. When a test changes one adapter ID, provider ID, missing
 config key, clock, or IO behavior, use or add a helper that makes that single
