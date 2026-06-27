@@ -1,4 +1,5 @@
 import type { ResolvedVoiceConfig } from "../config/config.js";
+import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
 
 type VoiceAdapterKey = keyof ResolvedVoiceConfig;
 
@@ -12,11 +13,11 @@ export function selectConfiguredVoiceAdapter<
 ): (...options: TOptions) => TAdapter {
   const adapterId = config[key];
 
-  const createAdapter = registry[adapterId];
-
-  if (!createAdapter) {
-    throw new Error(`Config voice.${key} "${adapterId}" is not registered.`);
-  }
-
-  return createAdapter;
+  return selectConfiguredRuntimeEntry({
+    configuredId: adapterId,
+    missingMessage: `Config voice.${key} must be configured.`,
+    registry,
+    unknownMessage: (configuredId) =>
+      `Config voice.${key} "${configuredId}" is not registered.`,
+  });
 }

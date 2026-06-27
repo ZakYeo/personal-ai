@@ -5,6 +5,7 @@ import {
   loadConfig,
   parseAssistantConfig,
   requireDesktopVoiceConfig,
+  requireIntentConfig,
   requireVoiceConfig,
 } from "./config.js";
 
@@ -197,6 +198,51 @@ describe("parseAssistantConfig", () => {
       baseUrl: "https://example.test/v1",
       model: "gpt-5.5",
       timeoutMs: 1000,
+    });
+  });
+
+  it("resolves deterministic intent config", () => {
+    expect(
+      requireIntentConfig(
+        parseAssistantConfig({
+          assistant: {
+            name: "Jarvis",
+            wakePhrases: ["hey jarvis"],
+          },
+          intent: {
+            provider: "deterministic",
+          },
+          features: {},
+        }),
+      ),
+    ).toEqual({ provider: "deterministic" });
+  });
+
+  it("resolves OpenAI intent config with provider settings", () => {
+    expect(
+      requireIntentConfig(
+        parseAssistantConfig({
+          assistant: {
+            name: "Jarvis",
+            wakePhrases: ["hey jarvis"],
+          },
+          intent: {
+            provider: "openai",
+            openai: {
+              model: "gpt-5.5",
+            },
+          },
+          features: {},
+        }),
+      ),
+    ).toEqual({
+      provider: "openai",
+      openai: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "https://api.openai.com/v1",
+        model: "gpt-5.5",
+        timeoutMs: 30_000,
+      },
     });
   });
 

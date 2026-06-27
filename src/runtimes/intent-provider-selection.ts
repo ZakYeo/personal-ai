@@ -2,7 +2,10 @@ import { DeterministicIntentInterpreter } from "../adapters/mock/deterministic-i
 import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { IntentInterpreterPort } from "../ports/intent.js";
-import type { LoadedRuntimeConfig } from "./config/config.js";
+import {
+  requireIntentConfig,
+  type LoadedRuntimeConfig,
+} from "./config/config.js";
 
 interface IntentInterpreterDependencies {
   env: Record<string, string | undefined>;
@@ -14,15 +17,13 @@ export function createConfiguredIntentInterpreter(
   features: FeaturePlugin[],
   dependencies: IntentInterpreterDependencies,
 ): IntentInterpreterPort {
-  if (config.intent.provider === "deterministic") {
+  const intent = requireIntentConfig(config);
+
+  if (intent.provider === "deterministic") {
     return new DeterministicIntentInterpreter();
   }
 
-  if (config.intent.provider === "openai") {
-    if (!config.intent.openai) {
-      throw new Error("Config intent.openai must be configured.");
-    }
-
+  if (intent.provider === "openai") {
     return new OpenAIIntentInterpreter({
       capabilityCatalog: features.flatMap((feature) =>
         feature.capabilities.map((capability) => ({
@@ -31,13 +32,12 @@ export function createConfiguredIntentInterpreter(
           featureName: feature.displayName,
         })),
       ),
-      config: config.intent.openai,
+      config: intent.openai,
       env: dependencies.env,
       fetch: dependencies.fetch,
     });
   }
 
-  throw new Error(
-    `Config intent.provider "${config.intent.provider}" is not registered.`,
-  );
+  const exhaustive: never = intent;
+  return exhaustive;
 }

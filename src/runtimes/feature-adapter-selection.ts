@@ -4,6 +4,7 @@ import { createCalendarFeature } from "../features/calendar/calendar-feature.js"
 import { createMessagingFeature } from "../features/messaging/messaging-feature.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
+import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
 
 export function createConfiguredFeatures(
   config: LoadedRuntimeConfig,
@@ -31,19 +32,21 @@ function selectConfiguredFeatureAdapter(
   featureConfig: LoadedRuntimeConfig["features"][string],
   registry: Record<string, () => FeaturePlugin>,
 ): FeaturePlugin {
-  if (!featureConfig.adapter) {
-    throw new Error(
-      `Config feature "${featureId}".adapter must be set for enabled features.`,
-    );
-  }
-
-  const factory = registry[`${featureId}:${featureConfig.adapter}`];
-
-  if (!factory) {
-    throw new Error(
-      `Config feature "${featureId}" adapter "${featureConfig.adapter}" is not registered.`,
-    );
-  }
+  const adapterRegistry = Object.fromEntries(
+    Object.entries(registry)
+      .filter(([registryKey]) => registryKey.startsWith(`${featureId}:`))
+      .map(([registryKey, factory]) => [
+        registryKey.slice(featureId.length + 1),
+        factory,
+      ]),
+  );
+  const factory = selectConfiguredRuntimeEntry({
+    configuredId: featureConfig.adapter,
+    missingMessage: `Config feature "${featureId}".adapter must be set for enabled features.`,
+    registry: adapterRegistry,
+    unknownMessage: (adapterId) =>
+      `Config feature "${featureId}" adapter "${adapterId}" is not registered.`,
+  });
 
   return factory();
 }

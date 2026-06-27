@@ -5,6 +5,7 @@ import type {
   OpenAIIntentConfig,
   VoiceCommandConfig,
 } from "../../ports/assistant.js";
+import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
 
 const defaultConfigPath = fileURLToPath(
   new URL("../../../config/default.json", import.meta.url),
@@ -47,6 +48,10 @@ export interface ResolvedVoiceConfig {
   textToSpeech: string;
   wakeWord: string;
 }
+
+export type ResolvedIntentConfig =
+  | { provider: "deterministic" }
+  | { openai: OpenAIIntentConfig; provider: "openai" };
 
 export interface ResolvedDesktopVoiceConfig {
   audioInput: VoiceCommandConfig;
@@ -155,6 +160,32 @@ export function requireDesktopVoiceConfig(
     speechToText: requireDesktopVoiceCommand(config, "speechToText"),
     textToSpeech: requireDesktopVoiceCommand(config, "textToSpeech"),
   };
+}
+
+export function requireIntentConfig(
+  config: LoadedRuntimeConfig,
+): ResolvedIntentConfig {
+  const resolveIntent = selectConfiguredRuntimeEntry({
+    configuredId: config.intent.provider,
+    missingMessage: "Config intent.provider must be configured.",
+    registry: {
+      deterministic: () => ({ provider: "deterministic" }) as const,
+      openai: () => {
+        if (!config.intent.openai) {
+          throw new Error("Config intent.openai must be configured.");
+        }
+
+        return {
+          openai: config.intent.openai,
+          provider: "openai",
+        } as const;
+      },
+    },
+    unknownMessage: (provider) =>
+      `Config intent.provider "${provider}" is not registered.`,
+  });
+
+  return resolveIntent();
 }
 
 function parseDesktopVoice(
