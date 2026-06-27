@@ -1,4 +1,5 @@
 import { createInMemoryAlarmStore } from "../adapters/local/in-memory-alarm-store.js";
+import { createMockCalendar } from "../adapters/mock/mock-calendar.js";
 import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
 import { createCalendarFeature } from "../features/calendar/calendar-feature.js";
 import { createMessagingFeature } from "../features/messaging/messaging-feature.js";
@@ -60,7 +61,7 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
       local: (context) => createAlarmFeature(context.dependencies.alarmStore),
     },
     calendar: {
-      mock: () => createCalendarFeature(),
+      mock: () => createCalendarFeature(createMockCalendar()),
     },
     messaging: {
       mock: () => createMessagingFeature(),

@@ -1,4 +1,5 @@
 import { createCalendarFeature } from "./calendar-feature.js";
+import type { CalendarSearchPort } from "../../ports/calendar.js";
 import {
   createFeatureContext,
   expectDecodedFeatureExecution,
@@ -9,8 +10,10 @@ import {
 const context = createFeatureContext();
 
 describe("createCalendarFeature", () => {
+  const createFeature = () => createCalendarFeature(createFakeCalendar());
+
   it("declares searchable calendar event metadata", () => {
-    expectCapabilityMetadata(createCalendarFeature(), {
+    expectCapabilityMetadata(createFeature(), {
       name: "calendar.search_events",
       risk: "low",
       parameters: {
@@ -21,7 +24,7 @@ describe("createCalendarFeature", () => {
 
   it("handles calendar search commands", () => {
     expectFeatureHandles(
-      createCalendarFeature(),
+      createFeature(),
       "calendar.search_events",
       "alarm.create",
     );
@@ -29,7 +32,7 @@ describe("createCalendarFeature", () => {
 
   it("returns the fixture wedding date", async () => {
     await expectDecodedFeatureExecution(
-      createCalendarFeature(),
+      createFeature(),
       "calendar.search_events",
       { query: "upcoming wedding" },
       {
@@ -46,7 +49,7 @@ describe("createCalendarFeature", () => {
 
   it("returns a deterministic no-match response", async () => {
     await expectDecodedFeatureExecution(
-      createCalendarFeature(),
+      createFeature(),
       "calendar.search_events",
       { query: "dentist" },
       {
@@ -56,3 +59,20 @@ describe("createCalendarFeature", () => {
     );
   });
 });
+
+function createFakeCalendar(): CalendarSearchPort {
+  return {
+    searchEvents: (query) =>
+      Promise.resolve(
+        query === "upcoming wedding"
+          ? [
+              {
+                id: "wedding-2026",
+                startDate: "2026-09-12",
+                title: "Upcoming wedding",
+              },
+            ]
+          : [],
+      ),
+  };
+}

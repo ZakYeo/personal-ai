@@ -2,23 +2,9 @@ import type {
   FeatureArgsFromParameters,
   FeatureCapabilityParameters,
   FeaturePlugin,
-  FeatureResult,
 } from "../../ports/feature.js";
+import type { CalendarSearchPort } from "../../ports/calendar.js";
 import { defineCapability, defineFeature } from "../../ports/feature.js";
-
-interface CalendarEventFixture {
-  id: string;
-  title: string;
-  date: string;
-}
-
-const calendarEvents: CalendarEventFixture[] = [
-  {
-    id: "wedding-2026",
-    title: "Upcoming wedding",
-    date: "2026-09-12",
-  },
-];
 
 const calendarSearchEventsParameters = {
   query: { type: "string", required: true },
@@ -28,25 +14,31 @@ type CalendarSearchEventsArgs = FeatureArgsFromParameters<
   typeof calendarSearchEventsParameters
 >;
 
-export function createCalendarFeature(): FeaturePlugin {
+export function createCalendarFeature(
+  calendar: CalendarSearchPort,
+): FeaturePlugin {
   return defineFeature({
     id: "calendar",
-    displayName: "Mock Calendar",
+    displayName: "Calendar",
     capabilities: {
       "calendar.search_events": defineCapability({
         risk: "low",
         parameters: calendarSearchEventsParameters,
-        execute: (request) => searchEvents(request.args),
+        execute: async (request, context) =>
+          searchEvents(calendar, request.args, context.clock.now()),
       }),
     },
   });
 }
 
-function searchEvents(args: CalendarSearchEventsArgs): FeatureResult {
+async function searchEvents(
+  calendar: CalendarSearchPort,
+  args: CalendarSearchEventsArgs,
+  now: Date,
+) {
   const query = args.query.toLowerCase();
-  const event = calendarEvents.find((candidate) =>
-    candidate.title.toLowerCase().includes(query),
-  );
+  const events = await calendar.searchEvents(query, { now });
+  const event = events[0];
 
   if (!event) {
     return {
@@ -55,10 +47,10 @@ function searchEvents(args: CalendarSearchEventsArgs): FeatureResult {
   }
 
   return {
-    text: `The upcoming wedding is on ${event.date}.`,
+    text: `The ${event.title.toLowerCase()} is on ${event.startDate}.`,
     data: {
       eventId: event.id,
-      date: event.date,
+      date: event.startDate,
       title: event.title,
     },
   };
