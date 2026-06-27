@@ -4,6 +4,7 @@ import {
   createRuntimeConfigWithUnknownFeatureAdapter,
   createRuntimeConfigWithUnknownIntentProvider,
   withFeatureAdapterId,
+  withFeatureEnabled,
   withIntentProvider,
   withoutFeatureAdapterId,
   withoutVoiceConfigKey,
@@ -69,6 +70,9 @@ describe("runtime composition test support", () => {
     });
     expect(withoutFeatureAdapterId("calendar")).toMatchObject({
       features: { calendar: { enabled: true } },
+    });
+    expect(withFeatureEnabled("calendar", false)).toMatchObject({
+      features: { calendar: { enabled: false, adapter: "mock" } },
     });
     expect(
       withVoiceAdapterId("speechToText", "unknown", {

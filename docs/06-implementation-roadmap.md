@@ -398,6 +398,8 @@ Implemented structure:
 
 ### Milestone 4.3: Feature Adapter Registration Refinement
 
+Status: implemented.
+
 Goal: prepare feature adapter selection for real feature integrations such as
 calendar or messaging providers.
 
@@ -416,6 +418,19 @@ Acceptance criteria:
   outside the canonical feature adapter registry.
 - Tests can swap one feature adapter ID or missing config field without broad
   inline config object spreads.
+
+Implemented structure:
+
+- Feature adapter registration uses an explicit nested feature-to-adapter
+  registry, currently covering `calendar.mock`, `messaging.mock`, and
+  `alarms.local`.
+- Feature adapter factories receive a narrow runtime-owned context containing
+  adapter dependencies and the selected feature config instead of broad loaded
+  runtime config.
+- Feature selection keeps canonical errors for missing adapter IDs, unknown
+  feature IDs, and unregistered adapter IDs.
+- Runtime composition test support includes one-change helpers for adapter IDs,
+  missing adapter IDs, and enabled/disabled feature variants.
 
 ### Milestone 4.4: Next Real Provider Adapter
 

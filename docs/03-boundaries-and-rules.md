@@ -131,6 +131,10 @@ explicit nested registries, such as provider-to-adapter or feature-to-adapter
 maps, over encoded string keys that must be filtered, sliced, or parsed before
 selection. If the selection relationship is data, model it as data instead of
 recovering it from naming conventions.
+Feature adapter registries should be explicit per-feature maps. Runtime
+composition should pass adapter factories narrow dependency/context objects
+instead of broad loaded runtime config so real feature integrations can add
+credentials or adapter-specific settings without spreading selection policy.
 
 The same rule applies to safety policy, fallback policy, and config resolution:
 centralize the policy where drift would create inconsistent user-facing or

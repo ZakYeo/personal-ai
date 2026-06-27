@@ -31,6 +31,7 @@
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Keep adapter/config selection policy canonical; do not add new missing-config, adapter-ID lookup, or unregistered-adapter branches without checking for an existing selector or extracting a shared one.
 - Prefer explicit nested registries over encoded string keys for adapter selection; do not parse registry keys when the feature/provider/adapter relationship can be represented directly in data.
+- Feature adapters should register through the explicit per-feature adapter registry shape and receive narrow adapter dependencies/config from runtime composition rather than broad loaded config.
 - Voice runtimes must compose voice input, wake word, speech-to-text, text-to-speech, and audio output through configured adapter IDs; do not construct voice adapters as implicit defaults.
 - Desktop voice runtimes should use explicit local config for command-based STT/TTS and SoX input/output; keep machine-specific commands out of `config/default.json`.
 - Desktop voice temp capture/speech files are owned by runtime composition; adapters should receive an injectable temp-file owner and runtimes should clean up after each turn.

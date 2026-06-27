@@ -92,6 +92,23 @@ export function withFeatureAdapterId(
   };
 }
 
+export function withFeatureEnabled(
+  featureId: string,
+  enabled: boolean,
+  config: LoadedRuntimeConfig = enabledDeterministicConfig,
+): LoadedRuntimeConfig {
+  return {
+    ...config,
+    features: {
+      ...config.features,
+      [featureId]: {
+        ...(config.features[featureId] ?? {}),
+        enabled,
+      },
+    },
+  };
+}
+
 export function withoutFeatureAdapterId(
   featureId: string,
   config: LoadedRuntimeConfig = enabledDeterministicConfig,

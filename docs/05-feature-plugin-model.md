@@ -120,6 +120,13 @@ Avoid hand-written `execute` switches or capability-name branches in feature
 implementations unless a test is intentionally exercising a lower-level or
 malformed feature contract.
 
+Runtime composition registers feature adapters through an explicit nested
+feature-to-adapter registry. Existing deterministic adapters are selected as
+`calendar.mock`, `messaging.mock`, and `alarms.local`; future real integrations
+should add entries to the same registry shape and receive narrow adapter
+dependencies/config from runtime composition rather than importing provider
+selection policy into feature modules.
+
 Deterministic intent matching should follow the same capability-driven shape as
 real provider routing. A small deterministic adapter may use simple rules for
 early fixtures, but it should not become a central feature-specific branch list.

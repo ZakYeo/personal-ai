@@ -17,6 +17,7 @@ Implemented today:
 - Mock voice loop for one simulated voice turn.
 - Desktop voice runtime for one configured local voice turn.
 - Config-driven adapter selection for intent, features, and voice components.
+- Explicit nested feature adapter registration for mock/local feature adapters.
 - Focused runtime config resolvers for assistant policy, intent providers,
   voice adapter IDs, and desktop voice command settings.
 - Opt-in OpenAI intent provider adapter behind the existing intent port.
