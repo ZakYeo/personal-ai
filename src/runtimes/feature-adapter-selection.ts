@@ -10,10 +10,19 @@ export function createConfiguredFeatures(
   config: LoadedRuntimeConfig,
 ): FeaturePlugin[] {
   const alarmStore = createInMemoryAlarmStore();
-  const featureFactories: Record<string, () => FeaturePlugin> = {
-    "alarms:local": () => createAlarmFeature(alarmStore),
-    "calendar:mock": createCalendarFeature,
-    "messaging:mock": createMessagingFeature,
+  const featureFactories: Record<
+    string,
+    Record<string, () => FeaturePlugin>
+  > = {
+    alarms: {
+      local: () => createAlarmFeature(alarmStore),
+    },
+    calendar: {
+      mock: createCalendarFeature,
+    },
+    messaging: {
+      mock: createMessagingFeature,
+    },
   };
 
   return Object.entries(config.features)
@@ -30,16 +39,14 @@ export function createConfiguredFeatures(
 function selectConfiguredFeatureAdapter(
   featureId: string,
   featureConfig: LoadedRuntimeConfig["features"][string],
-  registry: Record<string, () => FeaturePlugin>,
+  registry: Record<string, Record<string, () => FeaturePlugin>>,
 ): FeaturePlugin {
-  const adapterRegistry = Object.fromEntries(
-    Object.entries(registry)
-      .filter(([registryKey]) => registryKey.startsWith(`${featureId}:`))
-      .map(([registryKey, factory]) => [
-        registryKey.slice(featureId.length + 1),
-        factory,
-      ]),
-  );
+  const adapterRegistry = registry[featureId];
+
+  if (!adapterRegistry) {
+    throw new Error(`Config feature "${featureId}" is not registered.`);
+  }
+
   const factory = selectConfiguredRuntimeEntry({
     configuredId: featureConfig.adapter,
     missingMessage: `Config feature "${featureId}".adapter must be set for enabled features.`,

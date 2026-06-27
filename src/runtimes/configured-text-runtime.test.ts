@@ -6,6 +6,7 @@ import {
   createRuntimeConfigWithMissingFeatureAdapter,
   createRuntimeConfigWithUnknownFeatureAdapter,
   createRuntimeConfigWithUnknownIntentProvider,
+  withFeatureAdapterId,
 } from "../test-support/runtime-composition.js";
 
 describe("createConfiguredTextRuntime", () => {
@@ -112,6 +113,14 @@ describe("createConfiguredTextRuntime", () => {
     ).rejects.toThrow(
       'Config feature "calendar" adapter "unknown" is not registered.',
     );
+  });
+
+  it("rejects enabled features without registered feature adapters", async () => {
+    await expect(
+      createConfiguredTextRuntimeHarness({
+        config: withFeatureAdapterId("notes", "mock"),
+      }),
+    ).rejects.toThrow('Config feature "notes" is not registered.');
   });
 
   it("rejects enabled features without adapter IDs", async () => {
