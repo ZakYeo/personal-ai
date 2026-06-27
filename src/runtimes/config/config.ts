@@ -193,19 +193,14 @@ function parseIntent(
 ): LoadedRuntimeConfig["intent"] {
   return {
     provider: intent.provider as string,
-    ...parseOpenAIIntentConfig(intent.provider as string, intent.openai),
+    ...parseOpenAIIntentConfig(intent.openai),
   };
 }
 
 function parseOpenAIIntentConfig(
-  provider: string,
   value: unknown,
 ): Pick<LoadedRuntimeConfig["intent"], "openai"> {
   if (value === undefined) {
-    if (provider === "openai") {
-      throw new Error("Config intent.openai must be configured.");
-    }
-
     return {};
   }
 

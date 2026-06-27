@@ -370,8 +370,8 @@ describe("parseAssistantConfig", () => {
     ).toThrow("Config intent section must be a JSON object.");
   });
 
-  it("rejects OpenAI intent provider without OpenAI config", () => {
-    expect(() =>
+  it("parses OpenAI intent provider without provider settings", () => {
+    expect(
       parseAssistantConfig({
         assistant: {
           name: "Jarvis",
@@ -382,6 +382,27 @@ describe("parseAssistantConfig", () => {
         },
         features: {},
       }),
+    ).toMatchObject({
+      intent: {
+        provider: "openai",
+      },
+    });
+  });
+
+  it("rejects OpenAI intent provider without provider settings during resolution", () => {
+    expect(() =>
+      requireIntentConfig(
+        parseAssistantConfig({
+          assistant: {
+            name: "Jarvis",
+            wakePhrases: ["hey jarvis"],
+          },
+          intent: {
+            provider: "openai",
+          },
+          features: {},
+        }),
+      ),
     ).toThrow("Config intent.openai must be configured.");
   });
 
