@@ -23,15 +23,22 @@ export async function createConfiguredTextRuntime(
       options.configPath ? { configPath: options.configPath } : undefined,
     ));
   const clock = createClock(options.now);
-  const features = createConfiguredFeatures(config);
+  const env = options.env ?? process.env;
+  const fetch = options.fetch ?? globalThis.fetch;
+  const features = createConfiguredFeatures(config, {
+    dependencies: {
+      env,
+      fetch,
+    },
+  });
 
   return createAssistant({
     clock,
     config: toAssistantPolicyConfig(config),
     features,
     intentInterpreter: createConfiguredIntentInterpreter(config, features, {
-      env: options.env ?? process.env,
-      fetch: options.fetch ?? globalThis.fetch,
+      env,
+      fetch,
     }),
   });
 }

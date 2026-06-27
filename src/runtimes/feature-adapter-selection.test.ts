@@ -38,7 +38,11 @@ describe("createConfiguredFeatures", () => {
 
     expect(features.map((feature) => feature.id)).toEqual(["calendar"]);
     expect(observedContext).toMatchObject({
-      dependencies: { alarmStore },
+      dependencies: {
+        alarmStore,
+        env: expect.any(Object) as Record<string, string | undefined>,
+        fetch: expect.any(Function) as typeof fetch,
+      },
       featureConfig: { enabled: true, adapter: "mock" },
     });
   });

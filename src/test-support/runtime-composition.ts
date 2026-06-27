@@ -52,6 +52,26 @@ export function createRuntimeConfigWithOpenAIIntentProvider(): LoadedRuntimeConf
   });
 }
 
+export function createRuntimeConfigWithGoogleCalendarAdapter(): LoadedRuntimeConfig {
+  return {
+    ...enabledDeterministicConfig,
+    features: {
+      ...enabledDeterministicConfig.features,
+      calendar: {
+        enabled: true,
+        adapter: "google",
+        google: {
+          accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
+          baseUrl: "https://calendar.example.test/v3",
+          calendarId: "primary",
+          maxResults: 10,
+          timeoutMs: 30_000,
+        },
+      },
+    },
+  };
+}
+
 export function createRuntimeConfigWithUnknownFeatureAdapter(): LoadedRuntimeConfig {
   return withFeatureAdapterId("calendar", "unknown");
 }

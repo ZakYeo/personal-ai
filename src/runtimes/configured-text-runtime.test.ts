@@ -2,6 +2,7 @@ import { deterministicScenarios } from "../test-support/deterministic-scenarios.
 import { disabledCalendarConfig } from "../test-support/deterministic-runtime-fixtures.js";
 import {
   createConfiguredTextRuntimeHarness,
+  createRuntimeConfigWithGoogleCalendarAdapter,
   createRuntimeConfigWithOpenAIIntentProvider,
   createRuntimeConfigWithMissingFeatureAdapter,
   createRuntimeConfigWithUnknownFeatureAdapter,
@@ -101,6 +102,39 @@ describe("createConfiguredTextRuntime", () => {
       "https://api.openai.test/v1/responses",
       expect.objectContaining({
         method: "POST",
+      }),
+    );
+  });
+
+  it("wires Google Calendar adapters into the assistant", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "wedding-2026",
+              summary: "Upcoming wedding",
+              start: { date: "2026-09-12" },
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+    const assistant = await createConfiguredTextRuntimeHarness({
+      config: createRuntimeConfigWithGoogleCalendarAdapter(),
+      env: { GOOGLE_CALENDAR_ACCESS_TOKEN: "test-google-token" },
+      fetch,
+    });
+
+    await expect(
+      assistant.handleText(deterministicScenarios.calendarWedding.text),
+    ).resolves.toEqual(deterministicScenarios.calendarWedding.response);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://calendar.example.test/v3/calendars/primary/events?q=upcoming+wedding&singleEvents=true&orderBy=startTime&timeMin=2026-06-26T09%3A00%3A00.000Z&maxResults=10",
+      expect.objectContaining({
+        method: "GET",
       }),
     );
   });
