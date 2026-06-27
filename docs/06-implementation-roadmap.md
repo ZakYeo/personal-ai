@@ -318,7 +318,101 @@ Implemented structure:
 - Tests mock HTTP and environment dependencies; the checked-in default config
   remains deterministic.
 
-Hardening themes before adding more real providers:
+Next implementation slices:
+
+### Milestone 4.1: Runtime Composition Refinement
+
+Goal: make runtime composition naming and configuration boundaries clear before
+adding more providers or service runtimes.
+
+Included:
+
+- Rename the current deterministic runtime factory to describe its real
+  responsibility as the configured text assistant runtime.
+- Keep deterministic behavior as one selected intent provider, not as the
+  runtime identity.
+- Split broad runtime config parsing and resolution into focused modules for
+  parsing, assistant policy projection, intent provider resolution, voice
+  runtime resolution, and desktop voice command resolution.
+- Extract provider-facing capability catalog construction from intent provider
+  selection so future LLM providers share one mapping from feature metadata.
+
+Acceptance criteria:
+
+- Runtime factory names match their configuration-driven behavior.
+- Broad loaded config remains at runtime composition boundaries.
+- Core, provider, feature, and voice construction receive the narrowest resolved
+  config shape they need.
+- Capability catalog mapping is tested once and reused by provider selection.
+- Existing CLI, mock voice, desktop voice, and OpenAI intent behavior remains
+  unchanged.
+
+### Milestone 4.2: Provider Adapter Contract Hardening
+
+Goal: make the next real provider adapter mechanical and deterministic to test.
+
+Included:
+
+- Shared adapter-contract helpers for provider credentials, transport failures,
+  non-OK responses, malformed provider output, timeout behavior, and diagnostic
+  preservation.
+- OpenAI adapter tests updated where useful to prove the shared provider
+  contract helpers.
+- A provider adapter checklist covering injected network clients, environment
+  credentials, config validation, safe user-facing failures, and internal
+  diagnostics.
+
+Acceptance criteria:
+
+- New provider adapters can cover common failure cases without live network
+  calls or repeated fetch/env setup.
+- Provider failures preserve useful diagnostics internally without exposing raw
+  provider, credential, adapter, or stack details to the user.
+- Real providers remain opt-in through local config and credentials stay in
+  environment variables.
+
+### Milestone 4.3: Feature Adapter Registration Refinement
+
+Goal: prepare feature adapter selection for real feature integrations such as
+calendar or messaging providers.
+
+Included:
+
+- An explicit per-feature adapter registry shape that can receive narrow adapter
+  dependencies, credentials, and resolved config.
+- Canonical feature adapter selection errors for missing adapter IDs, unknown
+  adapter IDs, and unregistered adapters.
+- Test-support helpers for one-change feature adapter config variants.
+
+Acceptance criteria:
+
+- Mock/local feature adapters still compose through config.
+- Adding a real feature adapter does not require new selection-policy branches
+  outside the canonical feature adapter registry.
+- Tests can swap one feature adapter ID or missing config field without broad
+  inline config object spreads.
+
+### Milestone 4.4: Next Real Provider Adapter
+
+Goal: add one additional real adapter behind an existing port after the
+composition and contract refinements are in place.
+
+Candidate adapters:
+
+- Anthropic or local-model intent adapter.
+- Local or cloud speech-to-text adapter.
+- Local or cloud text-to-speech adapter.
+- Google Calendar adapter.
+
+Acceptance criteria:
+
+- The adapter is introduced behind an existing application-owned port.
+- Provider selection remains configuration-driven.
+- Mock adapters remain available and the checked-in default config stays
+  deterministic.
+- Tests use deterministic mocks rather than live provider calls.
+
+Deferred hardening themes to keep checking during Milestone 4:
 
 - Split broad runtime config into narrower core, provider, feature, and runtime
   composition shapes where that removes optionality or prevents provider/runtime
@@ -336,7 +430,34 @@ Hardening themes before adding more real providers:
 
 ## Milestone 5: Raspberry Pi Deployment
 
-Goal: deploy the assistant to a Raspberry Pi as a long-running personal assistant process.
+### Milestone 5.1: Service Runtime Boundary
+
+Goal: define the long-running service runtime boundary before adding
+Raspberry Pi-specific device behavior.
+
+Included:
+
+- A small service runtime contract with injectable logger, clock, config path,
+  IO/process state, signal handling, and shutdown hooks.
+- Tests for startup failure, one recoverable loop failure, graceful shutdown,
+  and safe human/operator-facing diagnostics.
+- Shared service runtime test-support helpers before broad service tests
+  accumulate reusable setup.
+
+Acceptance criteria:
+
+- The service runtime composes the same assistant core and adapters as existing
+  runtimes.
+- Recoverable turn failures do not terminate the long-running loop.
+- Startup and unrecoverable failures log diagnostics and fail gracefully without
+  leaking raw provider, credential, adapter, or stack details to users.
+- Process state, clocks, IO streams, and shutdown hooks remain injectable at the
+  runtime boundary.
+
+### Milestone 5.2: Raspberry Pi Deployment
+
+Goal: deploy the assistant to a Raspberry Pi as a long-running personal
+assistant process.
 
 Included:
 
