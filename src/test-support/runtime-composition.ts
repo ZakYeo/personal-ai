@@ -11,6 +11,8 @@ import {
 type DeterministicRuntimeHarnessOptions = Partial<{
   config: AssistantConfig;
   configPath: string;
+  env: Record<string, string | undefined>;
+  fetch: typeof fetch;
   now: Date;
   useRuntimeDefaultConfig: boolean;
 }>;
@@ -27,6 +29,8 @@ export async function createDeterministicRuntimeHarness(
   return createDeterministicRuntime({
     ...(config ? { config } : {}),
     ...(options.configPath ? { configPath: options.configPath } : {}),
+    ...(options.env ? { env: options.env } : {}),
+    ...(options.fetch ? { fetch: options.fetch } : {}),
     now: options.now ?? deterministicNow,
   });
 }
@@ -46,6 +50,21 @@ export function createRuntimeConfigWithUnknownIntentProvider(): AssistantConfig 
   return {
     ...enabledDeterministicConfig,
     intent: { provider: "unknown" },
+  };
+}
+
+export function createRuntimeConfigWithOpenAIIntentProvider(): AssistantConfig {
+  return {
+    ...enabledDeterministicConfig,
+    intent: {
+      provider: "openai",
+      openai: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "https://api.openai.test/v1",
+        model: "gpt-5.5",
+        timeoutMs: 30_000,
+      },
+    },
   };
 }
 

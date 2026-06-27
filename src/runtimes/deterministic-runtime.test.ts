@@ -2,6 +2,7 @@ import { deterministicScenarios } from "../test-support/deterministic-scenarios.
 import { disabledCalendarConfig } from "../test-support/deterministic-runtime-fixtures.js";
 import {
   createDeterministicRuntimeHarness,
+  createRuntimeConfigWithOpenAIIntentProvider,
   createRuntimeConfigWithMissingFeatureAdapter,
   createRuntimeConfigWithUnknownFeatureAdapter,
   createRuntimeConfigWithUnknownIntentProvider,
@@ -66,6 +67,39 @@ describe("createDeterministicRuntime", () => {
         config: createRuntimeConfigWithUnknownIntentProvider(),
       }),
     ).rejects.toThrow('Config intent.provider "unknown" is not registered.');
+  });
+
+  it("wires OpenAI intent providers into the assistant", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          output_text: JSON.stringify({
+            command: {
+              capability: "alarm.list",
+              parameters: {},
+              rawText: deterministicScenarios.alarmListEmpty.text,
+            },
+          }),
+        }),
+        { status: 200 },
+      ),
+    );
+    const assistant = await createDeterministicRuntimeHarness({
+      config: createRuntimeConfigWithOpenAIIntentProvider(),
+      env: { OPENAI_API_KEY: "test-api-key" },
+      fetch,
+    });
+
+    await expect(
+      assistant.handleText(deterministicScenarios.alarmListEmpty.text),
+    ).resolves.toEqual(deterministicScenarios.alarmListEmpty.response);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://api.openai.test/v1/responses",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
   });
 
   it("rejects enabled features without registered adapters", async () => {

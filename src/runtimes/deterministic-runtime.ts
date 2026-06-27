@@ -1,5 +1,6 @@
 import { createAssistant } from "../core/assistant/index.js";
 import { DeterministicIntentInterpreter } from "../adapters/mock/deterministic-intent-interpreter.js";
+import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
 import { createInMemoryAlarmStore } from "../adapters/local/in-memory-alarm-store.js";
 import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
 import { createCalendarFeature } from "../features/calendar/calendar-feature.js";
@@ -13,6 +14,8 @@ import { loadConfig } from "./config/config.js";
 interface DeterministicRuntimeOptions {
   config?: AssistantConfig;
   configPath?: string;
+  env?: Record<string, string | undefined>;
+  fetch?: typeof fetch;
   now?: Date;
 }
 
@@ -30,15 +33,36 @@ export async function createDeterministicRuntime(
     clock,
     config,
     features: createConfiguredFeatures(config),
-    intentInterpreter: createIntentInterpreter(config),
+    intentInterpreter: createIntentInterpreter(config, {
+      env: options.env ?? process.env,
+      fetch: options.fetch ?? globalThis.fetch,
+    }),
   });
+}
+
+interface IntentInterpreterDependencies {
+  env: Record<string, string | undefined>;
+  fetch: typeof fetch;
 }
 
 function createIntentInterpreter(
   config: AssistantConfig,
+  dependencies: IntentInterpreterDependencies,
 ): IntentInterpreterPort {
   if (config.intent.provider === "deterministic") {
     return new DeterministicIntentInterpreter();
+  }
+
+  if (config.intent.provider === "openai") {
+    if (!config.intent.openai) {
+      throw new Error("Config intent.openai must be configured.");
+    }
+
+    return new OpenAIIntentInterpreter({
+      config: config.intent.openai,
+      env: dependencies.env,
+      fetch: dependencies.fetch,
+    });
   }
 
   throw new Error(
