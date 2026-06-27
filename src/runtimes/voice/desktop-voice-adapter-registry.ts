@@ -11,6 +11,7 @@ import type {
   AudioOutputPort,
   SpeechToTextPort,
   TextToSpeechPort,
+  VoiceTempFilePort,
   WakeWordPort,
 } from "../../ports/voice.js";
 import {
@@ -18,6 +19,7 @@ import {
   type ResolvedVoiceConfig,
 } from "../config/config.js";
 import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
+import { createNodeVoiceTempFiles } from "./voice-temp-files.js";
 
 interface DesktopVoiceAdapters {
   audioInput: AudioInputPort;
@@ -25,18 +27,21 @@ interface DesktopVoiceAdapters {
   speechToText: SpeechToTextPort;
   textToSpeech: TextToSpeechPort;
   wakeWord: WakeWordPort;
+  cleanup?(): Promise<void>;
 }
 
 export function createDesktopVoiceAdapters(
   voice: ResolvedVoiceConfig,
   desktopVoice: ResolvedDesktopVoiceConfig,
 ): DesktopVoiceAdapters {
+  const tempFiles = createNodeVoiceTempFiles();
+
   return {
     audioInput: selectConfiguredVoiceAdapter(
       voice,
       "input",
       desktopVoiceAdapterRegistry.input,
-    )(desktopVoice.audioInput),
+    )(desktopVoice.audioInput, tempFiles),
     audioOutput: selectConfiguredVoiceAdapter(
       voice,
       "audioOutput",
@@ -51,18 +56,20 @@ export function createDesktopVoiceAdapters(
       voice,
       "textToSpeech",
       desktopVoiceAdapterRegistry.textToSpeech,
-    )(desktopVoice.textToSpeech),
+    )(desktopVoice.textToSpeech, tempFiles),
     wakeWord: selectConfiguredVoiceAdapter(
       voice,
       "wakeWord",
       desktopVoiceAdapterRegistry.wakeWord,
     )(),
+    cleanup: () => tempFiles.cleanup(),
   };
 }
 
 const desktopVoiceAdapterRegistry = {
   input: {
-    "sox-rec": (command: VoiceCommandConfig) => new SoxAudioInput(command),
+    "sox-rec": (command: VoiceCommandConfig, tempFiles: VoiceTempFilePort) =>
+      new SoxAudioInput(command, tempFiles),
   },
   wakeWord: {
     "text-prefix": () => new TextPrefixWakeWordDetector(),
@@ -71,13 +78,20 @@ const desktopVoiceAdapterRegistry = {
     command: (command: VoiceCommandConfig) => new CommandSpeechToText(command),
   },
   textToSpeech: {
-    command: (command: VoiceCommandConfig) => new CommandTextToSpeech(command),
+    command: (command: VoiceCommandConfig, tempFiles: VoiceTempFilePort) =>
+      new CommandTextToSpeech(command, tempFiles),
   },
   audioOutput: {
     "sox-play": (command: VoiceCommandConfig) => new SoxAudioOutput(command),
   },
 } satisfies {
-  input: Record<string, (command: VoiceCommandConfig) => AudioInputPort>;
+  input: Record<
+    string,
+    (
+      command: VoiceCommandConfig,
+      tempFiles: VoiceTempFilePort,
+    ) => AudioInputPort
+  >;
   wakeWord: Record<string, () => WakeWordPort>;
   speechToText: Record<
     string,
@@ -85,7 +99,10 @@ const desktopVoiceAdapterRegistry = {
   >;
   textToSpeech: Record<
     string,
-    (command: VoiceCommandConfig) => TextToSpeechPort
+    (
+      command: VoiceCommandConfig,
+      tempFiles: VoiceTempFilePort,
+    ) => TextToSpeechPort
   >;
   audioOutput: Record<string, (command: VoiceCommandConfig) => AudioOutputPort>;
 };

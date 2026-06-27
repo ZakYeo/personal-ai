@@ -22,6 +22,7 @@ Implemented today:
 - Local alarm feature backed by an adapter-owned store.
 - Runtime fallback handling that keeps human-facing responses safe while logging
   diagnostics internally.
+- Runtime-owned cleanup for desktop voice capture and speech temp files.
 - Architecture, linting, formatting, spellcheck, secret scanning, duplication,
   unused-code, typecheck, test, and binary validation scripts.
 

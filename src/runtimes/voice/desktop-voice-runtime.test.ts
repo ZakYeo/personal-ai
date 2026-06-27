@@ -1,5 +1,9 @@
+import { access, mkdtemp, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createDesktopVoiceRuntime } from "./desktop-voice-runtime.js";
 import {
+  createDesktopVoiceCommand,
   createDesktopVoiceConfig,
   withoutDesktopSpeechToText,
 } from "../../test-support/desktop-voice-runtime.js";
@@ -22,6 +26,32 @@ describe("desktop voice runtime", () => {
       transcript: deterministicScenarios.alarmListEmpty.text,
       wakePhrase: "hey jarvis",
     });
+  });
+
+  it("cleans up desktop voice temp files after a turn", async () => {
+    const markerDirectory = await mkdtemp(
+      join(tmpdir(), "personal-ai-speech-marker-"),
+    );
+    const markerPath = join(markerDirectory, "speech-path.txt");
+    const runtime = await createDesktopVoiceRuntime({
+      config: createDesktopVoiceConfig(
+        deterministicScenarios.alarmListEmpty.text,
+        {
+          desktopVoice: {
+            audioOutput: createDesktopVoiceCommand(
+              'printf \'%s\' "$1" > "$2"',
+              "{input}",
+              markerPath,
+            ),
+          },
+        },
+      ),
+    });
+
+    await runtime.runOnce();
+
+    const speechPath = await readFile(markerPath, "utf8");
+    await expect(access(speechPath)).rejects.toThrow();
   });
 
   it("rejects missing desktop voice command settings during composition", async () => {

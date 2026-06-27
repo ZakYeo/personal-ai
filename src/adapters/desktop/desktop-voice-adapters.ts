@@ -1,6 +1,3 @@
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import type { VoiceCommandConfig } from "../../ports/assistant.js";
 import type {
   AudioInputPort,
@@ -9,6 +6,7 @@ import type {
   SpeechToTextPort,
   SynthesizedSpeech,
   TextToSpeechPort,
+  VoiceTempFilePort,
   WakeWordDetection,
   WakeWordPort,
   WakeWordRequest,
@@ -17,10 +15,13 @@ import { detectTextWakePhrase } from "../text-wake-phrase.js";
 import { runCommand } from "./process-runner.js";
 
 export class SoxAudioInput implements AudioInputPort {
-  constructor(private readonly commandConfig: VoiceCommandConfig) {}
+  constructor(
+    private readonly commandConfig: VoiceCommandConfig,
+    private readonly tempFiles: VoiceTempFilePort,
+  ) {}
 
   async capture(): Promise<CapturedAudio> {
-    const filePath = await createTempVoiceFile("capture.wav");
+    const filePath = await this.tempFiles.createFile("capture.wav");
 
     await runConfiguredCommand(this.commandConfig, {
       output: filePath,
@@ -55,10 +56,13 @@ export class TextPrefixWakeWordDetector implements WakeWordPort {
 }
 
 export class CommandTextToSpeech implements TextToSpeechPort {
-  constructor(private readonly commandConfig: VoiceCommandConfig) {}
+  constructor(
+    private readonly commandConfig: VoiceCommandConfig,
+    private readonly tempFiles: VoiceTempFilePort,
+  ) {}
 
   async synthesize(text: string): Promise<SynthesizedSpeech> {
-    const filePath = await createTempVoiceFile("speech.wav");
+    const filePath = await this.tempFiles.createFile("speech.wav");
 
     await runConfiguredCommand(this.commandConfig, {
       output: filePath,
@@ -104,10 +108,4 @@ function replaceCommandPlaceholders(
     /\{(input|output|text)\}/gu,
     (_match, key: string) => replacements[key] ?? "",
   );
-}
-
-async function createTempVoiceFile(filename: string): Promise<string> {
-  const directory = await mkdtemp(join(tmpdir(), "personal-ai-voice-"));
-
-  return join(directory, filename);
 }

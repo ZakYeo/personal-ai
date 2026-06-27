@@ -75,6 +75,9 @@ writes synthesized audio through a configured command, and `sox-play` plays the
 synthesized file through a configured command. Runtime failures preserve
 diagnostics internally and produce the same safe CLI/voice fallback behavior as
 the mock voice loop.
+Temporary capture and speech files are owned by runtime composition, not by the
+desktop command adapters. The runtime provides a temp-file owner to adapters and
+cleans up files after each turn while logging cleanup failures internally.
 
 Shared voice-turn orchestration, voice result metadata, and fallback semantics
 belong in neutral voice runtime modules. Mock voice and desktop voice runtimes

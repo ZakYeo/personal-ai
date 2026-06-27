@@ -30,6 +30,11 @@ export interface WakeWordPort {
   detect(request: WakeWordRequest): Promise<WakeWordDetection>;
 }
 
+export interface VoiceTempFilePort {
+  createFile(filename: string): Promise<string>;
+  cleanup(): Promise<void>;
+}
+
 export interface SpeechToTextPort {
   transcribe(audio: CapturedAudio): Promise<SpeechTranscript>;
 }

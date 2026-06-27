@@ -1,6 +1,7 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { VoiceTempFilePort } from "../../ports/voice.js";
 import { createShellCommand } from "../../test-support/adapter-contract.js";
 import {
   CommandSpeechToText,
@@ -12,9 +13,12 @@ import {
 
 describe("desktop voice adapters", () => {
   it("captures audio to a file with a configured command", async () => {
-    const adapter = new SoxAudioInput({
-      ...createShellCommand('printf audio > "$1"', "{output}"),
-    });
+    const adapter = new SoxAudioInput(
+      {
+        ...createShellCommand('printf audio > "$1"', "{output}"),
+      },
+      createTestTempFiles(),
+    );
 
     const audio = await adapter.capture();
 
@@ -53,9 +57,16 @@ describe("desktop voice adapters", () => {
   });
 
   it("synthesizes speech to a file with a configured command", async () => {
-    const adapter = new CommandTextToSpeech({
-      ...createShellCommand('printf \'%s\' "$1" > "$2"', "{text}", "{output}"),
-    });
+    const adapter = new CommandTextToSpeech(
+      {
+        ...createShellCommand(
+          'printf \'%s\' "$1" > "$2"',
+          "{text}",
+          "{output}",
+        ),
+      },
+      createTestTempFiles(),
+    );
 
     const speech = await adapter.synthesize("Alarm set.");
 
@@ -81,3 +92,25 @@ describe("desktop voice adapters", () => {
     await expect(readFile(markerPath, "utf8")).resolves.toBe("/tmp/speech.wav");
   });
 });
+
+function createTestTempFiles(): VoiceTempFilePort {
+  const directories: string[] = [];
+
+  return {
+    async cleanup() {
+      await Promise.all(
+        directories.map((directory) =>
+          rm(directory, { force: true, recursive: true }),
+        ),
+      );
+    },
+    async createFile(filename) {
+      const directory = await mkdtemp(
+        join(tmpdir(), "personal-ai-test-voice-"),
+      );
+      directories.push(directory);
+
+      return join(directory, filename);
+    },
+  };
+}

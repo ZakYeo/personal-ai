@@ -18,6 +18,7 @@ import {
   type VoiceRuntimeIo,
   type VoiceTurnResult,
 } from "./voice-turn.js";
+import { logRuntimeFailure } from "../human-boundary.js";
 
 export interface VoiceRuntime {
   runOnce(): Promise<VoiceTurnResult>;
@@ -26,6 +27,7 @@ export interface VoiceRuntime {
 interface VoiceAdapters {
   audioInput: AudioInputPort;
   audioOutput: AudioOutputPort;
+  cleanup?(): Promise<void>;
   speechToText: SpeechToTextPort;
   textToSpeech: TextToSpeechPort;
   wakeWord: WakeWordPort;
@@ -74,6 +76,16 @@ export async function createVoiceRuntime<TAdapterOptions>(
   };
 
   return {
-    runOnce: () => runVoiceTurn(dependencies, options.io),
+    async runOnce() {
+      try {
+        return await runVoiceTurn(dependencies, options.io);
+      } finally {
+        try {
+          await voiceAdapters.cleanup?.();
+        } catch (error) {
+          logRuntimeFailure(error, options.io ?? {});
+        }
+      }
+    },
   };
 }

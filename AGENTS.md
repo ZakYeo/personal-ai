@@ -30,6 +30,7 @@
 - Keep adapter/config selection policy canonical; do not add new missing-config, adapter-ID lookup, or unregistered-adapter branches without checking for an existing selector or extracting a shared one.
 - Voice runtimes must compose voice input, wake word, speech-to-text, text-to-speech, and audio output through configured adapter IDs; do not construct voice adapters as implicit defaults.
 - Desktop voice runtimes should use explicit local config for command-based STT/TTS and SoX input/output; keep machine-specific commands out of `config/default.json`.
+- Desktop voice temp capture/speech files are owned by runtime composition; adapters should receive an injectable temp-file owner and runtimes should clean up after each turn.
 - Command-based adapters should execute `command` plus `args[]`, not shell-concatenated command strings, and should enforce timeouts while preserving stdout/stderr diagnostics internally.
 - Keep simulated spoken output separate from fallback text output; CLI boundaries should use explicit voice result metadata rather than inferring stdout writes from voice status.
 - Author feature capabilities with `defineCapability`/`defineFeature` so decoded handler arguments stay structurally tied to declared parameter metadata.
