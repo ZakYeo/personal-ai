@@ -18,6 +18,11 @@
 - High-risk capabilities should fail closed: mark them as requiring confirmation by default unless a documented, tested exception justifies otherwise.
 - Shared runtime control-loop behavior, result metadata, and fallback semantics should live in neutral runtime-owned modules, not in one runtime-specific module imported by another.
 - Keep adapter/config selection policy canonical. Do not duplicate missing-config, adapter-ID lookup, or unregistered-adapter handling across registries when one shared runtime helper can own it.
+- Keep broad loaded config at runtime composition boundaries; pass core, features, and adapters the narrowest validated shape they need.
+- Treat diagnostic-aware assistant outcomes as a stable runtime boundary contract rather than making runtime helpers depend on private core error implementation details.
+- Split real provider adapters when transport, request construction, response extraction, provider-output parsing, and application validation start accumulating in one module.
+- Prefer a neutral runtime factory when two runtimes differ mostly by adapter construction.
+- Keep shared user-facing matching semantics, such as wake phrase normalization, in one helper so mock and real runtimes do not drift.
 - Real provider adapters must remain opt-in through config, keep credentials in environment variables instead of repository config files, and test provider calls with deterministic mocks rather than live network access.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Voice runtimes must compose voice input, wake word, speech-to-text, text-to-speech, and audio output through configured adapter IDs; do not construct voice adapters as implicit defaults.

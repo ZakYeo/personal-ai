@@ -299,6 +299,22 @@ Implemented structure:
 - Tests mock HTTP and environment dependencies; the checked-in default config
   remains deterministic.
 
+Hardening themes before adding more real providers:
+
+- Split broad runtime config into narrower core, provider, feature, and runtime
+  composition shapes where that removes optionality or prevents provider/runtime
+  settings from leaking through core contracts.
+- Promote diagnostic-aware assistant outcomes to a stable public contract for
+  runtime boundaries before more runtime helpers depend on preserved diagnostic
+  data.
+- Extract canonical provider and feature adapter selection helpers before adding
+  another intent provider or concrete feature adapter.
+- Decompose real provider adapters when they begin combining transport,
+  request-body construction, provider response extraction, provider-output
+  parsing, and application validation in one module.
+- Factor repeated voice runtime composition and shared wake phrase matching
+  before adding another voice runtime or wake word adapter.
+
 ## Milestone 5: Raspberry Pi Deployment
 
 Goal: deploy the assistant to a Raspberry Pi as a long-running personal assistant process.

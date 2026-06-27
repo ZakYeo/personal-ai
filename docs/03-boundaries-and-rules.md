@@ -132,6 +132,36 @@ desktop voice runtime should similarly resolve command settings for the selected
 command-based adapters. Avoid carrying deeply optional config through code that
 requires those values; make the runtime boundary prove the invariant once.
 
+## Maintainability Review Themes
+
+The architecture checks catch dependency direction, but future code reviews
+should also guard against subtler boundary and abstraction drift.
+
+- Keep broad loaded configuration at runtime composition boundaries. Core,
+  features, and adapters should receive the narrowest validated shape they need,
+  not the full application config object when only a small policy subset is
+  relevant.
+- Treat assistant diagnostics as a public boundary contract when runtimes need
+  to log them. Runtime-owned human-boundary helpers should not depend on private
+  core implementation details when a stable diagnostic outcome type would
+  preserve the same behavior.
+- Extract canonical selection helpers before adding another copy of provider,
+  feature, or adapter lookup logic. Missing config, unknown IDs, and
+  unregistered adapter errors should be owned once per policy family.
+- Keep provider adapters from becoming catch-all modules. HTTP transport,
+  request construction, provider response extraction, provider-output parsing,
+  and application type validation should split once a real adapter starts to
+  mix those responsibilities.
+- When two runtimes differ only by adapter construction, prefer a neutral
+  runtime factory over copy-pasted runtime shells. Runtime-specific files should
+  stay mostly declarative composition.
+- Shared user-facing matching semantics, such as wake phrase normalization,
+  should live in one helper per adapter family so mock and real runtimes do not
+  drift.
+- Treat duplication reports as design prompts. A small clone may be acceptable,
+  but repeated control-flow or policy duplication should trigger a search for
+  the canonical owner before more branches are added.
+
 ## Allowed Responsibilities
 
 ### Core
