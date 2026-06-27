@@ -270,6 +270,8 @@ Harness follow-up:
 
 ## Milestone 4: Real Provider Experiments
 
+Status: started.
+
 Goal: add real adapters one at a time without changing core behavior.
 
 Candidate adapters:
@@ -285,6 +287,17 @@ Acceptance criteria:
 - Mock adapters remain available.
 - Provider selection is configuration-driven.
 - Tests still run deterministically without external API calls.
+
+Implemented structure:
+
+- `openai` can be selected as an intent provider through local runtime config.
+- OpenAI intent config requires an explicit model and reads credentials from a
+  configured environment variable, defaulting to `OPENAI_API_KEY`.
+- The OpenAI adapter calls the Responses API through injected `fetch`, requests
+  structured JSON intent output, validates the returned command or response
+  shape, and preserves provider failures as diagnostics.
+- Tests mock HTTP and environment dependencies; the checked-in default config
+  remains deterministic.
 
 ## Milestone 5: Raspberry Pi Deployment
 

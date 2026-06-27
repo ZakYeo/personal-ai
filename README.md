@@ -17,6 +17,7 @@ Implemented today:
 - Mock voice loop for one simulated voice turn.
 - Desktop voice runtime for one configured local voice turn.
 - Config-driven adapter selection for intent, features, and voice components.
+- Opt-in OpenAI intent provider adapter behind the existing intent port.
 - Mock calendar and messaging features.
 - Local alarm feature backed by an adapter-owned store.
 - Runtime fallback handling that keeps human-facing responses safe while logging
@@ -35,6 +36,10 @@ milestones, completed work, and planned provider or Raspberry Pi work.
 Desktop voice experiments also need local audio/STT/TTS commands configured in a
 local config file. See the [runtime plan](docs/04-runtime-plan.md) for the
 desktop voice config shape.
+
+OpenAI intent experiments need a local config file that selects
+`intent.provider: "openai"` and an API key in the configured environment
+variable. Do not store API keys in repository config files.
 
 ## Quick Start
 
@@ -66,6 +71,12 @@ Run one configured desktop voice turn:
 
 ```bash
 npm run cli -- desktop-voice-once --config path/to/desktop-config.json
+```
+
+Run the CLI with a local OpenAI intent config:
+
+```bash
+OPENAI_API_KEY=... npm run cli -- ask --config path/to/openai-config.json "Hey Jarvis, list my alarms"
 ```
 
 ## Scripts

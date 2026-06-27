@@ -119,9 +119,10 @@ Initial adapters should be deterministic and local:
 - Mock messaging adapter.
 - Local/in-memory alarm storage adapter implementing the alarm store port.
 
-Later adapters can integrate with real providers:
+Real-provider experiments can integrate behind the same ports:
 
-- OpenAI, Anthropic, or local model LLM adapters.
+- OpenAI intent interpreter adapter using the Responses API.
+- Anthropic or local model LLM adapters.
 - Whisper, Vosk, cloud STT, or Python sidecar STT adapters.
 - Piper, system TTS, or cloud TTS adapters.
 - Google Calendar or other calendar adapters.

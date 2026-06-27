@@ -18,6 +18,7 @@
 - High-risk capabilities should fail closed: mark them as requiring confirmation by default unless a documented, tested exception justifies otherwise.
 - Shared runtime control-loop behavior, result metadata, and fallback semantics should live in neutral runtime-owned modules, not in one runtime-specific module imported by another.
 - Keep adapter/config selection policy canonical. Do not duplicate missing-config, adapter-ID lookup, or unregistered-adapter handling across registries when one shared runtime helper can own it.
+- Real provider adapters must remain opt-in through config, keep credentials in environment variables instead of repository config files, and test provider calls with deterministic mocks rather than live network access.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Voice runtimes must compose voice input, wake word, speech-to-text, text-to-speech, and audio output through configured adapter IDs; do not construct voice adapters as implicit defaults.
 - Desktop voice runtimes should use explicit local config for command-based STT/TTS and SoX input/output; keep machine-specific commands out of `config/default.json`.
