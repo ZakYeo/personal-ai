@@ -169,6 +169,10 @@ The `openai` intent provider is opt-in and selected with
 `https://api.openai.com/v1`, and `30000`. API keys must stay in environment
 variables and out of repository config files. The checked-in default config
 remains deterministic and uses mock/local adapters.
+The OpenAI adapter keeps request construction, Responses API transport,
+provider-output text extraction, and assistant intent-output parsing in separate
+adapter-local modules, with the interpreter class only orchestrating those
+pieces.
 Intent provider selection and feature adapter selection are runtime composition
 policy, owned by shared runtime selector helpers so missing IDs, unknown IDs,
 and provider-specific construction rules do not drift between runtimes.
