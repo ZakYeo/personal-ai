@@ -167,7 +167,16 @@ features:
     adapter: local
 ```
 
-The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in deterministic runtime currently uses JSON with `intent.provider`, optional `intent.openai` settings, `voice` adapter IDs, optional `desktopVoice` command settings, and per-feature `adapter` IDs. The important rule is that provider, voice, and feature selection must be configuration-driven. Text-only runtimes may ignore the `voice` and `desktopVoice` sections, but voice runtimes must reject missing or unregistered voice adapter IDs during composition. Desktop voice runtimes must also reject missing desktop command settings for selected command-based adapters. Desktop voice command adapters replace `{input}`, `{output}`, and `{text}` placeholders in configured argument values.
+The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in
+deterministic runtime currently uses JSON with `intent.provider`, optional
+`intent.openai` settings, `voice` adapter IDs, optional `desktopVoice` command
+settings, and per-feature `adapter` IDs. The important rule is that provider,
+voice, and feature selection must be configuration-driven. Text-only runtimes
+may ignore the `voice` and `desktopVoice` sections, but voice runtimes must
+reject missing or unregistered voice adapter IDs during composition. Desktop
+voice runtimes must also reject missing desktop command settings for selected
+command-based adapters. Desktop voice command adapters replace `{input}`,
+`{output}`, and `{text}` placeholders in configured argument values.
 
 The `openai` intent provider is opt-in and selected with
 `intent.provider: openai`. It requires `intent.openai.model`; `apiKeyEnv`,
@@ -196,6 +205,11 @@ settings, desktop command settings, and provider-specific options. Before the
 assistant core is constructed, runtime composition maps that broad shape to the
 narrow assistant policy config containing only assistant identity, wake phrases,
 feature enablement, and confirmation policy.
+
+Command-based adapters should execute configured programs as `command` plus an
+argument array, not as shell-concatenated command strings. They should enforce a
+timeout, capture stdout and stderr for diagnostics, and let the runtime boundary
+decide what safe response or fallback output reaches the human.
 
 ## Process Lifecycle
 

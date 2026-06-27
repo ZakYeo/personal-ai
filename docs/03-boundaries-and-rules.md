@@ -144,6 +144,36 @@ desktop voice runtime should similarly resolve command settings for the selected
 command-based adapters. Avoid carrying deeply optional config through code that
 requires those values; make the runtime boundary prove the invariant once.
 
+## Implementation Conventions
+
+Code that touches the outside world should keep that outside world at the
+boundary. Runtime composition may read process state, clocks, IO streams, and
+network clients, but core, feature, and adapter logic should usually receive
+those dependencies through ports, options, or narrow request objects. Avoid
+direct `process.env`, `globalThis.fetch`, `new Date()`, stdout, or stderr access
+outside approved runtime or composition seams.
+
+External data should be parsed from `unknown` and validated before it becomes an
+application type. Config files, provider responses, command output, and other
+untrusted shapes should use field-by-field checks instead of broad type
+assertions such as casting parsed JSON directly to a runtime config or assistant
+command.
+
+Runtime-specific invariants should be resolved once through named helpers before
+construction proceeds. When a runtime requires a complete voice config,
+provider config, command config, or adapter ID set, expose a focused resolver
+that proves the shape instead of spreading optional checks through loops,
+registries, or adapters.
+
+Tests should prefer focused harness and one-change fixture helpers over broad
+inline object spreads. When a test changes one adapter ID, provider ID, missing
+config key, clock, or IO behavior, use or add a helper that makes that single
+change obvious.
+
+Selection policy should stay canonical. Before adding another branch or registry
+for provider, feature, adapter, missing-config, or unknown-ID handling, search
+for the existing selector or extract one shared helper that owns the policy.
+
 ## Maintainability Review Themes
 
 The architecture checks catch dependency direction, but future code reviews

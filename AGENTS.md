@@ -19,16 +19,21 @@
 - Shared runtime control-loop behavior, result metadata, and fallback semantics should live in neutral runtime-owned modules, not in one runtime-specific module imported by another.
 - Keep adapter/config selection policy canonical. Do not duplicate missing-config, adapter-ID lookup, or unregistered-adapter handling across registries when one shared runtime helper can own it.
 - Keep broad loaded config at runtime composition boundaries; pass core, features, and adapters the narrowest validated shape they need.
+- Keep process state, clocks, IO streams, and network clients injectable at runtime/composition boundaries; avoid direct `process.env`, `globalThis.fetch`, `new Date()`, stdout, or stderr access in core, feature, or adapter internals.
+- Parse config, provider responses, command output, and other external data from `unknown` with field-by-field validation before casting to application types.
 - Treat diagnostic-aware assistant outcomes as a stable runtime boundary contract rather than making runtime helpers depend on private core error implementation details.
 - Split real provider adapters when transport, request construction, response extraction, provider-output parsing, and application validation start accumulating in one module.
 - Prefer a neutral runtime factory when two runtimes differ mostly by adapter construction.
 - Keep shared user-facing matching semantics, such as wake phrase normalization, in one helper so mock and real runtimes do not drift.
 - Real provider adapters must remain opt-in through config, keep credentials in environment variables instead of repository config files, and test provider calls with deterministic mocks rather than live network access.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
+- Keep adapter/config selection policy canonical; do not add new missing-config, adapter-ID lookup, or unregistered-adapter branches without checking for an existing selector or extracting a shared one.
 - Voice runtimes must compose voice input, wake word, speech-to-text, text-to-speech, and audio output through configured adapter IDs; do not construct voice adapters as implicit defaults.
 - Desktop voice runtimes should use explicit local config for command-based STT/TTS and SoX input/output; keep machine-specific commands out of `config/default.json`.
+- Command-based adapters should execute `command` plus `args[]`, not shell-concatenated command strings, and should enforce timeouts while preserving stdout/stderr diagnostics internally.
 - Keep simulated spoken output separate from fallback text output; CLI boundaries should use explicit voice result metadata rather than inferring stdout writes from voice status.
 - Author feature capabilities with `defineCapability`/`defineFeature` so decoded handler arguments stay structurally tied to declared parameter metadata.
+- Avoid hand-written feature `execute` switches in normal features; use dispatch maps and decoded `request.args` unless a test intentionally covers a lower-level malformed contract.
 - Keep `README.md`, `AGENTS.md`, and every file in `docs/` updated and consistent with the codebase whenever behavior, architecture, tooling, or workflow changes.
 - The pre-commit hook runs staged formatting/lint fixes plus lightweight repository checks. Keep it passing after implementation changes. The pre-push hook is the full repository confidence gate through `npm run check`.
 
