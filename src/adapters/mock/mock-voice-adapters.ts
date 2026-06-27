@@ -9,6 +9,7 @@ import type {
   WakeWordPort,
   WakeWordRequest,
 } from "../../ports/voice.js";
+import { detectTextWakePhrase } from "../text-wake-phrase.js";
 
 export class MockAudioInput implements AudioInputPort {
   constructor(private readonly utterance: string) {}
@@ -20,16 +21,7 @@ export class MockAudioInput implements AudioInputPort {
 
 export class MockWakeWordDetector implements WakeWordPort {
   detect(request: WakeWordRequest): Promise<WakeWordDetection> {
-    const normalizedAudio = normalizeVoiceText(request.audio.text);
-    const phrase = request.wakePhrases.find((candidate) =>
-      normalizedAudio.startsWith(normalizeVoiceText(candidate)),
-    );
-
-    if (!phrase) {
-      return Promise.resolve({ detected: false });
-    }
-
-    return Promise.resolve({ detected: true, phrase });
+    return Promise.resolve(detectTextWakePhrase(request));
   }
 }
 
@@ -53,8 +45,4 @@ export class MockAudioOutput implements AudioOutputPort {
 
     return Promise.resolve();
   }
-}
-
-function normalizeVoiceText(text: string): string {
-  return text.trim().toLowerCase().replace(/\s+/gu, " ");
 }

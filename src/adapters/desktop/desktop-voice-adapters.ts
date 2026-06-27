@@ -13,6 +13,7 @@ import type {
   WakeWordPort,
   WakeWordRequest,
 } from "../../ports/voice.js";
+import { detectTextWakePhrase } from "../text-wake-phrase.js";
 import { runCommand } from "./process-runner.js";
 
 export class SoxAudioInput implements AudioInputPort {
@@ -49,16 +50,7 @@ export class CommandSpeechToText implements SpeechToTextPort {
 
 export class TextPrefixWakeWordDetector implements WakeWordPort {
   detect(request: WakeWordRequest): Promise<WakeWordDetection> {
-    const normalizedAudio = normalizeVoiceText(request.audio.text);
-    const phrase = request.wakePhrases.find((candidate) =>
-      normalizedAudio.startsWith(normalizeVoiceText(candidate)),
-    );
-
-    if (!phrase) {
-      return Promise.resolve({ detected: false });
-    }
-
-    return Promise.resolve({ detected: true, phrase });
+    return Promise.resolve(detectTextWakePhrase(request));
   }
 }
 
@@ -118,8 +110,4 @@ async function createTempVoiceFile(filename: string): Promise<string> {
   const directory = await mkdtemp(join(tmpdir(), "personal-ai-voice-"));
 
   return join(directory, filename);
-}
-
-function normalizeVoiceText(text: string): string {
-  return text.trim().toLowerCase().replace(/\s+/gu, " ");
 }

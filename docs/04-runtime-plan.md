@@ -84,6 +84,8 @@ Shared voice runtime composition also belongs in a neutral voice runtime factory
 runtime-specific entry points supply adapter construction, while the factory
 loads config, creates the assistant, assembles the voice-turn dependencies, and
 returns the `runOnce` entry point.
+Text wake phrase normalization and prefix matching are shared by the mock and
+desktop voice adapters so user-facing wake behavior stays consistent.
 
 ### Raspberry Pi Runtime
 
