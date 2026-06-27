@@ -5,7 +5,6 @@ import type {
   OpenAIIntentConfig,
   VoiceCommandConfig,
 } from "../../ports/assistant.js";
-import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
 
 const defaultConfigPath = fileURLToPath(
   new URL("../../../config/default.json", import.meta.url),
@@ -39,25 +38,6 @@ export interface LoadedRuntimeConfig extends AssistantPolicyConfig {
       adapter?: string;
     }
   >;
-}
-
-export interface ResolvedVoiceConfig {
-  audioOutput: string;
-  input: string;
-  speechToText: string;
-  textToSpeech: string;
-  wakeWord: string;
-}
-
-type ResolvedIntentConfig =
-  | { provider: "deterministic" }
-  | { openai: OpenAIIntentConfig; provider: "openai" };
-
-export interface ResolvedDesktopVoiceConfig {
-  audioInput: VoiceCommandConfig;
-  audioOutput: VoiceCommandConfig;
-  speechToText: VoiceCommandConfig;
-  textToSpeech: VoiceCommandConfig;
 }
 
 export async function loadConfig(
@@ -115,77 +95,6 @@ export function parseAssistantConfig(value: unknown): LoadedRuntimeConfig {
     intent: parseIntent(intent),
     features: parseFeatures(features),
   };
-}
-
-export function toAssistantPolicyConfig(
-  config: LoadedRuntimeConfig,
-): AssistantPolicyConfig {
-  return {
-    assistant: config.assistant,
-    features: Object.fromEntries(
-      Object.entries(config.features).map(([featureId, featureConfig]) => [
-        featureId,
-        {
-          enabled: featureConfig.enabled,
-          ...(featureConfig.confirmationRequiredCapabilities
-            ? {
-                confirmationRequiredCapabilities:
-                  featureConfig.confirmationRequiredCapabilities,
-              }
-            : {}),
-        },
-      ]),
-    ),
-  };
-}
-
-export function requireVoiceConfig(
-  config: LoadedRuntimeConfig,
-): ResolvedVoiceConfig {
-  return {
-    input: requireVoiceAdapterConfig(config, "input"),
-    wakeWord: requireVoiceAdapterConfig(config, "wakeWord"),
-    speechToText: requireVoiceAdapterConfig(config, "speechToText"),
-    textToSpeech: requireVoiceAdapterConfig(config, "textToSpeech"),
-    audioOutput: requireVoiceAdapterConfig(config, "audioOutput"),
-  };
-}
-
-export function requireDesktopVoiceConfig(
-  config: LoadedRuntimeConfig,
-): ResolvedDesktopVoiceConfig {
-  return {
-    audioInput: requireDesktopVoiceCommand(config, "audioInput"),
-    audioOutput: requireDesktopVoiceCommand(config, "audioOutput"),
-    speechToText: requireDesktopVoiceCommand(config, "speechToText"),
-    textToSpeech: requireDesktopVoiceCommand(config, "textToSpeech"),
-  };
-}
-
-export function requireIntentConfig(
-  config: LoadedRuntimeConfig,
-): ResolvedIntentConfig {
-  const resolveIntent = selectConfiguredRuntimeEntry({
-    configuredId: config.intent.provider,
-    missingMessage: "Config intent.provider must be configured.",
-    registry: {
-      deterministic: () => ({ provider: "deterministic" }) as const,
-      openai: () => {
-        if (!config.intent.openai) {
-          throw new Error("Config intent.openai must be configured.");
-        }
-
-        return {
-          openai: config.intent.openai,
-          provider: "openai",
-        } as const;
-      },
-    },
-    unknownMessage: (provider) =>
-      `Config intent.provider "${provider}" is not registered.`,
-  });
-
-  return resolveIntent();
 }
 
 function parseDesktopVoice(
@@ -344,19 +253,6 @@ function parseOpenAIIntentConfig(
   };
 }
 
-function requireVoiceAdapterConfig(
-  config: LoadedRuntimeConfig,
-  key: keyof ResolvedVoiceConfig,
-): string {
-  const adapterId = config.voice?.[key];
-
-  if (adapterId === undefined) {
-    throw new Error(`Config voice.${key} must be configured.`);
-  }
-
-  return adapterId;
-}
-
 function parseVoiceAdapter<
   TKey extends keyof NonNullable<LoadedRuntimeConfig["voice"]>,
 >(
@@ -400,19 +296,6 @@ function parseFeatures(
   }
 
   return features;
-}
-
-function requireDesktopVoiceCommand(
-  config: LoadedRuntimeConfig,
-  key: keyof ResolvedDesktopVoiceConfig,
-): VoiceCommandConfig {
-  const command = config.desktopVoice?.[key];
-
-  if (!command) {
-    throw new Error(`Config desktopVoice.${key} must be configured.`);
-  }
-
-  return command;
 }
 
 function parseFeatureAdapter(

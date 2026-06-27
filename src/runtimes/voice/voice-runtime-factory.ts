@@ -1,10 +1,9 @@
-import { createDeterministicRuntime } from "../deterministic-runtime.js";
+import { createConfiguredTextRuntime } from "../configured-text-runtime.js";
+import { loadConfig, type LoadedRuntimeConfig } from "../config/config.js";
 import {
-  loadConfig,
   requireVoiceConfig,
-  type LoadedRuntimeConfig,
   type ResolvedVoiceConfig,
-} from "../config/config.js";
+} from "../config/voice-config.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -61,7 +60,7 @@ export async function createVoiceRuntime<TAdapterOptions>(
   const voiceAdapters = options.createAdapters(voiceConfig, adapterOptions);
 
   const dependencies: VoiceRuntimeDependencies = {
-    assistant: await createDeterministicRuntime({
+    assistant: await createConfiguredTextRuntime({
       config,
       ...(options.now ? { now: options.now } : {}),
     }),

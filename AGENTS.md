@@ -51,7 +51,7 @@
   - `adapter-contract.ts` for provider fetch responses, command-process scripts, and voice adapter contract fixtures.
   - `deterministic-scenarios.ts` for named deterministic command/response fixtures.
   - `deterministic-runtime-fixtures.ts` for deterministic clocks, config shapes, voice config, and runtime-failure fixtures.
-  - `runtime-composition.ts` for deterministic runtime composition, one-change config variants, and focused invalid config overrides.
+  - `runtime-composition.ts` for configured text runtime composition, one-change config variants, and focused invalid config overrides.
   - `cli.ts` for CLI runtime-boundary tests with captured IO, injected runtime stubs, temporary config files, and deterministic `ask` invocations.
   - `voice-runtime.ts` for voice runtime dependency builders, captured fallback writers, throwing assistants, and deterministic utterances.
   - `desktop-voice-runtime.ts` for desktop voice command config builders and focused desktop runtime config variants.

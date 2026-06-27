@@ -13,10 +13,12 @@ without external services.
 
 Implemented today:
 
-- Deterministic text CLI runtime.
+- Configured text CLI runtime with deterministic behavior by default.
 - Mock voice loop for one simulated voice turn.
 - Desktop voice runtime for one configured local voice turn.
 - Config-driven adapter selection for intent, features, and voice components.
+- Focused runtime config resolvers for assistant policy, intent providers,
+  voice adapter IDs, and desktop voice command settings.
 - Opt-in OpenAI intent provider adapter behind the existing intent port.
 - Mock calendar and messaging features.
 - Local alarm feature backed by an adapter-owned store.
@@ -56,7 +58,7 @@ Configure the repository Git hooks:
 git config core.hooksPath .githooks
 ```
 
-Run the deterministic CLI:
+Run the default deterministic CLI:
 
 ```bash
 npm run cli -- ask "Hey Jarvis, list my alarms"

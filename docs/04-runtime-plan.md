@@ -170,16 +170,17 @@ features:
     adapter: local
 ```
 
-The final format can be JSON, YAML, TOML, or TypeScript config. The checked-in
-deterministic runtime currently uses JSON with `intent.provider`, optional
+The final format can be JSON, YAML, TOML, or TypeScript config. The configured
+text runtime currently uses JSON with `intent.provider`, optional
 `intent.openai` settings, `voice` adapter IDs, optional `desktopVoice` command
-settings, and per-feature `adapter` IDs. The important rule is that provider,
-voice, and feature selection must be configuration-driven. Text-only runtimes
-may ignore the `voice` and `desktopVoice` sections, but voice runtimes must
-reject missing or unregistered voice adapter IDs during composition. Desktop
-voice runtimes must also reject missing desktop command settings for selected
-command-based adapters. Desktop voice command adapters replace `{input}`,
-`{output}`, and `{text}` placeholders in configured argument values.
+settings, and per-feature `adapter` IDs. Deterministic behavior is one selected
+intent provider, not a separate runtime identity. The important rule is that
+provider, voice, and feature selection must be configuration-driven. Text-only
+runtimes may ignore the `voice` and `desktopVoice` sections, but voice runtimes
+must reject missing or unregistered voice adapter IDs during composition.
+Desktop voice runtimes must also reject missing desktop command settings for
+selected command-based adapters. Desktop voice command adapters replace
+`{input}`, `{output}`, and `{text}` placeholders in configured argument values.
 
 The `openai` intent provider is opt-in and selected with
 `intent.provider: openai`. It requires `intent.openai.model`; `apiKeyEnv`,
@@ -193,7 +194,11 @@ adapter-local modules, with the interpreter class only orchestrating those
 pieces.
 Intent provider selection and feature adapter selection are runtime composition
 policy, owned by shared runtime selector helpers so missing IDs, unknown IDs,
-and provider-specific construction rules do not drift between runtimes.
+and provider-specific construction rules do not drift between runtimes. Runtime
+config parsing stays separate from assistant policy projection, intent provider
+resolution, voice adapter ID resolution, and desktop voice command resolution.
+Provider-facing capability catalog construction is shared by runtime composition
+so future intent providers can reuse the same feature metadata projection.
 
 Runtime composition should resolve broad optional configuration into
 runtime-specific validated shapes before adapter construction. For a voice

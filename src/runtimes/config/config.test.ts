@@ -1,13 +1,10 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import {
-  loadConfig,
-  parseAssistantConfig,
-  requireDesktopVoiceConfig,
-  requireIntentConfig,
-  requireVoiceConfig,
-} from "./config.js";
+import { loadConfig, parseAssistantConfig } from "./config.js";
+import { requireDesktopVoiceConfig } from "./desktop-voice-config.js";
+import { requireIntentConfig } from "./intent-config.js";
+import { requireVoiceConfig } from "./voice-config.js";
 
 describe("loadConfig", () => {
   it("loads the default checked-in config", async () => {

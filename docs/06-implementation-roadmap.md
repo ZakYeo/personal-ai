@@ -220,7 +220,7 @@ Implemented structure:
   and simple output-line helpers.
 - `src/test-support/voice-runtime.ts` owns voice runtime dependency builders,
   fallback writers, throwing assistants, and deterministic utterances.
-- `src/test-support/runtime-composition.ts` owns deterministic runtime
+- `src/test-support/runtime-composition.ts` owns configured text runtime
   composition helpers, one-change config variants, and focused invalid config
   overrides.
 - `src/test-support/deterministic-scenarios.ts` owns named command/response
@@ -322,6 +322,8 @@ Next implementation slices:
 
 ### Milestone 4.1: Runtime Composition Refinement
 
+Status: implemented.
+
 Goal: make runtime composition naming and configuration boundaries clear before
 adding more providers or service runtimes.
 
@@ -346,6 +348,17 @@ Acceptance criteria:
 - Capability catalog mapping is tested once and reused by provider selection.
 - Existing CLI, mock voice, desktop voice, and OpenAI intent behavior remains
   unchanged.
+
+Implemented structure:
+
+- The text assistant runtime is named `createConfiguredTextRuntime`; deterministic
+  behavior is selected through `intent.provider: "deterministic"`.
+- Broad config parsing remains in `src/runtimes/config/config.ts`, while
+  assistant policy projection, intent provider resolution, voice adapter ID
+  resolution, and desktop voice command resolution live in focused config
+  modules.
+- Provider-facing capability catalog construction lives in shared runtime
+  composition and is reused by OpenAI intent provider selection.
 
 ### Milestone 4.2: Provider Adapter Contract Hardening
 

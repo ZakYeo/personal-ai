@@ -2,10 +2,9 @@ import { DeterministicIntentInterpreter } from "../adapters/mock/deterministic-i
 import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { IntentInterpreterPort } from "../ports/intent.js";
-import {
-  requireIntentConfig,
-  type LoadedRuntimeConfig,
-} from "./config/config.js";
+import type { LoadedRuntimeConfig } from "./config/config.js";
+import { requireIntentConfig } from "./config/intent-config.js";
+import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
 
 interface IntentInterpreterDependencies {
   env: Record<string, string | undefined>;
@@ -25,13 +24,7 @@ export function createConfiguredIntentInterpreter(
 
   if (intent.provider === "openai") {
     return new OpenAIIntentInterpreter({
-      capabilityCatalog: features.flatMap((feature) =>
-        feature.capabilities.map((capability) => ({
-          capability,
-          featureId: feature.id,
-          featureName: feature.displayName,
-        })),
-      ),
+      capabilityCatalog: createProviderCapabilityCatalog(features),
       config: intent.openai,
       env: dependencies.env,
       fetch: dependencies.fetch,

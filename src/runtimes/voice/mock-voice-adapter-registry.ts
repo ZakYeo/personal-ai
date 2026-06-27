@@ -5,7 +5,7 @@ import {
   MockTextToSpeech,
   MockWakeWordDetector,
 } from "../../adapters/mock/mock-voice-adapters.js";
-import type { ResolvedVoiceConfig } from "../config/config.js";
+import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import type {
   AudioInputPort,
   AudioOutputPort,

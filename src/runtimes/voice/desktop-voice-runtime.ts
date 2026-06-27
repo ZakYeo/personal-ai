@@ -1,5 +1,5 @@
 import type { LoadedRuntimeConfig } from "../config/config.js";
-import { requireDesktopVoiceConfig } from "../config/config.js";
+import { requireDesktopVoiceConfig } from "../config/desktop-voice-config.js";
 import type { VoiceRuntimeIo } from "./voice-turn.js";
 import { createDesktopVoiceAdapters } from "./desktop-voice-adapter-registry.js";
 import {

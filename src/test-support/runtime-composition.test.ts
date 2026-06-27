@@ -1,5 +1,5 @@
 import {
-  createDeterministicRuntimeHarness,
+  createConfiguredTextRuntimeHarness,
   createRuntimeConfigWithMissingFeatureAdapter,
   createRuntimeConfigWithUnknownFeatureAdapter,
   createRuntimeConfigWithUnknownIntentProvider,
@@ -19,8 +19,8 @@ import {
 } from "./deterministic-runtime-fixtures.js";
 
 describe("runtime composition test support", () => {
-  it("creates deterministic runtimes with a fixed clock by default", async () => {
-    const assistant = await createDeterministicRuntimeHarness();
+  it("creates configured text runtimes with a fixed clock by default", async () => {
+    const assistant = await createConfiguredTextRuntimeHarness();
 
     await expect(
       assistant.handleText(deterministicScenarios.calendarWedding.text),
@@ -28,13 +28,13 @@ describe("runtime composition test support", () => {
   });
 
   it("overrides config and config path one input at a time", async () => {
-    const disabledFeatureRuntime = await createDeterministicRuntimeHarness({
+    const disabledFeatureRuntime = await createConfiguredTextRuntimeHarness({
       config: disabledCalendarConfig,
     });
     const configPath = await writeRuntimeHarnessConfig(
       enabledDeterministicConfig,
     );
-    const configPathRuntime = await createDeterministicRuntimeHarness({
+    const configPathRuntime = await createConfiguredTextRuntimeHarness({
       configPath,
     });
 
@@ -86,7 +86,7 @@ describe("runtime composition test support", () => {
 
   it("allows explicit clock overrides", async () => {
     const now = new Date(deterministicNow.getTime() + 60_000);
-    const assistant = await createDeterministicRuntimeHarness({ now });
+    const assistant = await createConfiguredTextRuntimeHarness({ now });
 
     await expect(
       assistant.handleText(

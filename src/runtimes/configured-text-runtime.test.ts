@@ -1,16 +1,16 @@
 import { deterministicScenarios } from "../test-support/deterministic-scenarios.js";
 import { disabledCalendarConfig } from "../test-support/deterministic-runtime-fixtures.js";
 import {
-  createDeterministicRuntimeHarness,
+  createConfiguredTextRuntimeHarness,
   createRuntimeConfigWithOpenAIIntentProvider,
   createRuntimeConfigWithMissingFeatureAdapter,
   createRuntimeConfigWithUnknownFeatureAdapter,
   createRuntimeConfigWithUnknownIntentProvider,
 } from "../test-support/runtime-composition.js";
 
-describe("createDeterministicRuntime", () => {
+describe("createConfiguredTextRuntime", () => {
   it("wires enabled features into the assistant", async () => {
-    const assistant = await createDeterministicRuntimeHarness();
+    const assistant = await createConfiguredTextRuntimeHarness();
 
     await expect(
       assistant.handleText(deterministicScenarios.calendarWedding.text),
@@ -18,7 +18,7 @@ describe("createDeterministicRuntime", () => {
   });
 
   it("respects disabled features from config", async () => {
-    const assistant = await createDeterministicRuntimeHarness({
+    const assistant = await createConfiguredTextRuntimeHarness({
       config: disabledCalendarConfig,
     });
 
@@ -28,7 +28,7 @@ describe("createDeterministicRuntime", () => {
   });
 
   it("requires confirmation for high-risk alarm creation", async () => {
-    const assistant = await createDeterministicRuntimeHarness();
+    const assistant = await createConfiguredTextRuntimeHarness();
 
     await expect(
       assistant.handleText(
@@ -44,7 +44,7 @@ describe("createDeterministicRuntime", () => {
   });
 
   it("requires confirmation for alarm creation in the default config", async () => {
-    const assistant = await createDeterministicRuntimeHarness({
+    const assistant = await createConfiguredTextRuntimeHarness({
       useRuntimeDefaultConfig: true,
     });
 
@@ -63,7 +63,7 @@ describe("createDeterministicRuntime", () => {
 
   it("rejects unknown intent providers during composition", async () => {
     await expect(
-      createDeterministicRuntimeHarness({
+      createConfiguredTextRuntimeHarness({
         config: createRuntimeConfigWithUnknownIntentProvider(),
       }),
     ).rejects.toThrow('Config intent.provider "unknown" is not registered.');
@@ -86,7 +86,7 @@ describe("createDeterministicRuntime", () => {
         { status: 200 },
       ),
     );
-    const assistant = await createDeterministicRuntimeHarness({
+    const assistant = await createConfiguredTextRuntimeHarness({
       config: createRuntimeConfigWithOpenAIIntentProvider(),
       env: { OPENAI_API_KEY: "test-api-key" },
       fetch,
@@ -106,7 +106,7 @@ describe("createDeterministicRuntime", () => {
 
   it("rejects enabled features without registered adapters", async () => {
     await expect(
-      createDeterministicRuntimeHarness({
+      createConfiguredTextRuntimeHarness({
         config: createRuntimeConfigWithUnknownFeatureAdapter(),
       }),
     ).rejects.toThrow(
@@ -116,7 +116,7 @@ describe("createDeterministicRuntime", () => {
 
   it("rejects enabled features without adapter IDs", async () => {
     await expect(
-      createDeterministicRuntimeHarness({
+      createConfiguredTextRuntimeHarness({
         config: createRuntimeConfigWithMissingFeatureAdapter(),
       }),
     ).rejects.toThrow(

@@ -2,7 +2,7 @@
 
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createDeterministicRuntime } from "../deterministic-runtime.js";
+import { createConfiguredTextRuntime } from "../configured-text-runtime.js";
 import {
   logFeatureDiagnostics,
   logRuntimeFailure,
@@ -35,7 +35,7 @@ type ParsedCliCommand = ParsedAskCommand | ParsedVoiceCommand;
 
 interface CliDependencies {
   createDesktopVoiceRuntime?: typeof createDesktopVoiceRuntime;
-  createRuntime?: typeof createDeterministicRuntime;
+  createRuntime?: typeof createConfiguredTextRuntime;
   createVoiceRuntime?: typeof createMockVoiceRuntime;
 }
 
@@ -112,7 +112,7 @@ export async function runCliEntryPoint(
 function buildRuntimeOptions(
   parsed: ParsedAskCommand | ParsedVoiceCommand,
   env: NodeJS.ProcessEnv,
-): Parameters<typeof createDeterministicRuntime>[0] {
+): Parameters<typeof createConfiguredTextRuntime>[0] {
   const fixedNow = env.PERSONAL_AI_FIXED_NOW;
 
   return {
@@ -147,7 +147,7 @@ async function handleRuntimeCommand(
 ): Promise<AssistantResponse> {
   try {
     const createRuntime =
-      dependencies.createRuntime ?? createDeterministicRuntime;
+      dependencies.createRuntime ?? createConfiguredTextRuntime;
     const runtime = await createRuntime(buildRuntimeOptions(parsed, io.env));
     const outcome = await handleRuntimeText(runtime, parsed.commandText);
 

@@ -14,10 +14,8 @@ import type {
   VoiceTempFilePort,
   WakeWordPort,
 } from "../../ports/voice.js";
-import {
-  type ResolvedDesktopVoiceConfig,
-  type ResolvedVoiceConfig,
-} from "../config/config.js";
+import type { ResolvedDesktopVoiceConfig } from "../config/desktop-voice-config.js";
+import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
 import { createNodeVoiceTempFiles } from "./voice-temp-files.js";
 

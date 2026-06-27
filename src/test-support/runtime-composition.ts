@@ -1,4 +1,4 @@
-import { createDeterministicRuntime } from "../runtimes/deterministic-runtime.js";
+import { createConfiguredTextRuntime } from "../runtimes/configured-text-runtime.js";
 import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import {
   deterministicNow,
@@ -6,7 +6,7 @@ import {
 } from "./deterministic-runtime-fixtures.js";
 import { writeTempJsonFile } from "./primitives.js";
 
-type DeterministicRuntimeHarnessOptions = Partial<{
+type ConfiguredTextRuntimeHarnessOptions = Partial<{
   config: LoadedRuntimeConfig;
   configPath: string;
   env: Record<string, string | undefined>;
@@ -15,8 +15,8 @@ type DeterministicRuntimeHarnessOptions = Partial<{
   useRuntimeDefaultConfig: boolean;
 }>;
 
-export async function createDeterministicRuntimeHarness(
-  options: DeterministicRuntimeHarnessOptions = {},
+export async function createConfiguredTextRuntimeHarness(
+  options: ConfiguredTextRuntimeHarnessOptions = {},
 ) {
   const config =
     options.config ??
@@ -24,7 +24,7 @@ export async function createDeterministicRuntimeHarness(
       ? undefined
       : enabledDeterministicConfig);
 
-  return createDeterministicRuntime({
+  return createConfiguredTextRuntime({
     ...(config ? { config } : {}),
     ...(options.configPath ? { configPath: options.configPath } : {}),
     ...(options.env ? { env: options.env } : {}),

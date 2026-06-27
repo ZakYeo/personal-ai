@@ -1,15 +1,12 @@
 import { createAssistant } from "../core/assistant/index.js";
 import type { Assistant } from "../core/assistant/index.js";
 import type { ClockPort } from "../ports/assistant.js";
-import {
-  loadConfig,
-  toAssistantPolicyConfig,
-  type LoadedRuntimeConfig,
-} from "./config/config.js";
+import { loadConfig, type LoadedRuntimeConfig } from "./config/config.js";
+import { toAssistantPolicyConfig } from "./config/assistant-policy-config.js";
 import { createConfiguredFeatures } from "./feature-adapter-selection.js";
 import { createConfiguredIntentInterpreter } from "./intent-provider-selection.js";
 
-interface DeterministicRuntimeOptions {
+interface ConfiguredTextRuntimeOptions {
   config?: LoadedRuntimeConfig;
   configPath?: string;
   env?: Record<string, string | undefined>;
@@ -17,8 +14,8 @@ interface DeterministicRuntimeOptions {
   now?: Date;
 }
 
-export async function createDeterministicRuntime(
-  options: DeterministicRuntimeOptions = {},
+export async function createConfiguredTextRuntime(
+  options: ConfiguredTextRuntimeOptions = {},
 ): Promise<Assistant> {
   const config =
     options.config ??

@@ -27,7 +27,7 @@ Each architectural layer should have a matching test-support layer, and tests sh
   broad local fixtures.
 - Scenario fixtures should stay separate from runtime composition helpers.
 - Deterministic runtime fixtures should own reusable clocks, config shapes, voice config, and runtime-failure fixtures.
-- Runtime composition helpers should compose deterministic runtimes and focused
+- Runtime composition helpers should compose configured text runtimes and focused
   config overrides without duplicating production wiring in each test.
 - Tests should prefer one-change config variant helpers, such as overriding one
   adapter ID or omitting one required config key, over inline broad object
