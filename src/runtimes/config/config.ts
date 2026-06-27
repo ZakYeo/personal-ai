@@ -80,9 +80,7 @@ export function parseAssistantConfig(value: unknown): AssistantConfig {
     },
     ...parseDesktopVoice(value.desktopVoice),
     ...parseVoice(value.voice),
-    intent: {
-      provider: intent.provider,
-    },
+    intent: parseIntent(intent),
     features: parseFeatures(features),
   };
 }
@@ -197,6 +195,71 @@ function parseVoice(value: unknown): Pick<AssistantConfig, "voice"> {
       ...parseVoiceAdapter("speechToText", value.speechToText),
       ...parseVoiceAdapter("textToSpeech", value.textToSpeech),
       ...parseVoiceAdapter("audioOutput", value.audioOutput),
+    },
+  };
+}
+
+function parseIntent(
+  intent: Record<string, unknown>,
+): AssistantConfig["intent"] {
+  return {
+    provider: intent.provider as string,
+    ...parseOpenAIIntentConfig(intent.provider as string, intent.openai),
+  };
+}
+
+function parseOpenAIIntentConfig(
+  provider: string,
+  value: unknown,
+): Pick<AssistantConfig["intent"], "openai"> {
+  if (value === undefined) {
+    if (provider === "openai") {
+      throw new Error("Config intent.openai must be configured.");
+    }
+
+    return {};
+  }
+
+  if (!isRecord(value)) {
+    throw new Error("Config intent.openai must be a JSON object.");
+  }
+
+  if (typeof value.model !== "string" || value.model.length === 0) {
+    throw new Error("Config intent.openai.model must be a non-empty string.");
+  }
+
+  const apiKeyEnv = value.apiKeyEnv ?? "OPENAI_API_KEY";
+
+  if (typeof apiKeyEnv !== "string" || apiKeyEnv.length === 0) {
+    throw new Error(
+      "Config intent.openai.apiKeyEnv must be a non-empty string.",
+    );
+  }
+
+  const baseUrl = value.baseUrl ?? "https://api.openai.com/v1";
+
+  if (typeof baseUrl !== "string" || baseUrl.length === 0) {
+    throw new Error("Config intent.openai.baseUrl must be a non-empty string.");
+  }
+
+  const timeoutMs = value.timeoutMs ?? 30_000;
+
+  if (
+    typeof timeoutMs !== "number" ||
+    !Number.isInteger(timeoutMs) ||
+    timeoutMs <= 0
+  ) {
+    throw new Error(
+      "Config intent.openai.timeoutMs must be a positive integer.",
+    );
+  }
+
+  return {
+    openai: {
+      apiKeyEnv,
+      baseUrl,
+      model: value.model,
+      timeoutMs,
     },
   };
 }

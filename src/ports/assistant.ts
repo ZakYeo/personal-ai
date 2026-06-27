@@ -41,6 +41,7 @@ export interface AssistantConfig {
     audioOutput?: string;
   };
   intent: {
+    openai?: OpenAIIntentConfig;
     provider: string;
   };
   features: Record<
@@ -51,6 +52,13 @@ export interface AssistantConfig {
       confirmationRequiredCapabilities?: string[];
     }
   >;
+}
+
+export interface OpenAIIntentConfig {
+  apiKeyEnv: string;
+  baseUrl: string;
+  model: string;
+  timeoutMs: number;
 }
 
 export interface VoiceCommandConfig {
