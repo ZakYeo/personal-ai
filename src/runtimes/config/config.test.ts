@@ -201,87 +201,35 @@ describe("parseAssistantConfig", () => {
   });
 
   it("parses voice adapter IDs", () => {
-    expect(
-      parseAssistantConfig({
-        assistant: {
-          name: "Jarvis",
-          wakePhrases: ["hey jarvis"],
-        },
-        intent: {
-          provider: "deterministic",
-        },
-        voice: {
-          input: "mock",
-          wakeWord: "mock",
-          speechToText: "mock",
-          textToSpeech: "mock",
-          audioOutput: "mock",
-        },
-        features: {},
-      }),
-    ).toEqual({
-      assistant: {
-        name: "Jarvis",
-        wakePhrases: ["hey jarvis"],
-      },
-      intent: {
-        provider: "deterministic",
-      },
-      voice: {
-        input: "mock",
-        wakeWord: "mock",
-        speechToText: "mock",
-        textToSpeech: "mock",
-        audioOutput: "mock",
-      },
-      features: {},
-    });
+    const voice = {
+      input: "mock",
+      wakeWord: "mock",
+      speechToText: "mock",
+      textToSpeech: "mock",
+      audioOutput: "mock",
+    };
+
+    expect(parseAssistantConfig(createMinimalConfig({ voice }))).toEqual(
+      createMinimalConfig({ voice }),
+    );
   });
 
   it("parses desktop voice command config", () => {
-    expect(
-      parseAssistantConfig({
-        assistant: {
-          name: "Jarvis",
-          wakePhrases: ["hey jarvis"],
-        },
-        desktopVoice: {
-          speechToText: {
-            command: "fake-stt",
-            args: ["--input", "{input}"],
-            timeoutMs: 2000,
-          },
-          textToSpeech: {
-            command: "fake-tts",
-            args: ["--text", "{text}", "--output", "{output}"],
-          },
-        },
-        intent: {
-          provider: "deterministic",
-        },
-        features: {},
-      }),
-    ).toEqual({
-      assistant: {
-        name: "Jarvis",
-        wakePhrases: ["hey jarvis"],
+    const desktopVoice = {
+      speechToText: {
+        command: "fake-stt",
+        args: ["--input", "{input}"],
+        timeoutMs: 2000,
       },
-      desktopVoice: {
-        speechToText: {
-          command: "fake-stt",
-          args: ["--input", "{input}"],
-          timeoutMs: 2000,
-        },
-        textToSpeech: {
-          command: "fake-tts",
-          args: ["--text", "{text}", "--output", "{output}"],
-        },
+      textToSpeech: {
+        command: "fake-tts",
+        args: ["--text", "{text}", "--output", "{output}"],
       },
-      intent: {
-        provider: "deterministic",
-      },
-      features: {},
-    });
+    };
+
+    expect(parseAssistantConfig(createMinimalConfig({ desktopVoice }))).toEqual(
+      createMinimalConfig({ desktopVoice }),
+    );
   });
 
   it("rejects invalid desktop voice command config", () => {
@@ -467,6 +415,22 @@ describe("parseAssistantConfig", () => {
     ).toThrow('Config feature "calendar".adapter must be a non-empty string.');
   });
 });
+
+function createMinimalConfig(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    assistant: {
+      name: "Jarvis",
+      wakePhrases: ["hey jarvis"],
+    },
+    intent: {
+      provider: "deterministic",
+    },
+    features: {},
+    ...overrides,
+  };
+}
 
 describe("runtime config resolvers", () => {
   it("resolves required voice adapter IDs for voice runtimes", () => {
