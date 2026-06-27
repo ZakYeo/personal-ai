@@ -29,7 +29,7 @@ export function createFixedClock(now: Date = fixedNow): ClockPort {
   };
 }
 
-export function createAssistantPolicyConfig(
+export function createAssistantConfig(
   features: AssistantPolicyConfig["features"] = {
     test: { enabled: true },
   },
@@ -43,15 +43,13 @@ export function createAssistantPolicyConfig(
   };
 }
 
-export const createAssistantConfig = createAssistantPolicyConfig;
-
 export function createLoadedRuntimeConfig(
   features: LoadedRuntimeConfig["features"] = {
     test: { enabled: true, adapter: "mock" },
   },
 ): LoadedRuntimeConfig {
   return {
-    ...createAssistantPolicyConfig(features),
+    ...createAssistantConfig(features),
     intent: {
       provider: "deterministic",
     },
@@ -60,7 +58,7 @@ export function createLoadedRuntimeConfig(
 }
 
 export function enableFeatures(...featureIds: string[]): AssistantPolicyConfig {
-  return createAssistantPolicyConfig(
+  return createAssistantConfig(
     Object.fromEntries(
       featureIds.map((featureId) => [featureId, { enabled: true }]),
     ),
@@ -71,7 +69,7 @@ export function requireConfirmationFor(
   featureId: string,
   capabilities: string[],
 ): AssistantPolicyConfig {
-  return createAssistantPolicyConfig({
+  return createAssistantConfig({
     [featureId]: {
       enabled: true,
       confirmationRequiredCapabilities: capabilities,
@@ -197,7 +195,7 @@ export function createAssistantHarness(
 ): ReturnType<typeof createAssistant> {
   return createAssistant({
     clock: overrides.clock ?? createFixedClock(),
-    config: overrides.config ?? createAssistantPolicyConfig(),
+    config: overrides.config ?? createAssistantConfig(),
     features: overrides.features ?? [createFeature()],
     intentInterpreter:
       overrides.intentInterpreter ??

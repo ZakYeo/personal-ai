@@ -4,7 +4,7 @@ import type { FeaturePlugin } from "../ports/feature.js";
 import type { IntentInterpreterPort } from "../ports/intent.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 
-export interface IntentInterpreterDependencies {
+interface IntentInterpreterDependencies {
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
 }

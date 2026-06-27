@@ -18,7 +18,7 @@ export interface VoiceRuntime {
   runOnce(): Promise<VoiceTurnResult>;
 }
 
-export interface VoiceAdapters {
+interface VoiceAdapters {
   audioInput: AudioInputPort;
   audioOutput: AudioOutputPort;
   speechToText: SpeechToTextPort;
@@ -26,7 +26,7 @@ export interface VoiceAdapters {
   wakeWord: WakeWordPort;
 }
 
-export interface VoiceRuntimeFactoryOptions<TAdapterOptions> {
+interface VoiceRuntimeFactoryOptions<TAdapterOptions> {
   adapterOptions: TAdapterOptions;
   config?: LoadedRuntimeConfig;
   configPath?: string;
