@@ -80,6 +80,10 @@ Shared voice-turn orchestration, voice result metadata, and fallback semantics
 belong in neutral voice runtime modules. Mock voice and desktop voice runtimes
 should compose different adapters into the same shared loop rather than importing
 generic control-flow behavior from one runtime-specific module into another.
+Shared voice runtime composition also belongs in a neutral voice runtime factory:
+runtime-specific entry points supply adapter construction, while the factory
+loads config, creates the assistant, assembles the voice-turn dependencies, and
+returns the `runOnce` entry point.
 
 ### Raspberry Pi Runtime
 
