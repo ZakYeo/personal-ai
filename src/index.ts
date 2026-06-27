@@ -2,11 +2,13 @@ export { createAssistant } from "./core/assistant/index.js";
 export type {
   Assistant,
   AssistantDependencies,
-  AssistantOutcome,
 } from "./core/assistant/index.js";
 export type {
   AssistantCommand,
   AssistantCommandParameters,
+  AssistantDiagnostic,
+  AssistantDiagnosticCategory,
+  AssistantOutcome,
   AssistantPolicyConfig,
   AssistantContext,
   AssistantResponse,

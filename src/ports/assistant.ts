@@ -11,6 +11,25 @@ export interface AssistantResponse {
   text: string;
 }
 
+export type AssistantDiagnosticCategory =
+  | "validation"
+  | "confirmation_required"
+  | "unsupported"
+  | "feature_failure"
+  | "unexpected";
+
+export interface AssistantDiagnostic {
+  category: AssistantDiagnosticCategory;
+  message: string;
+  capability?: string;
+  cause?: unknown;
+}
+
+export interface AssistantOutcome {
+  response: AssistantResponse;
+  diagnostics?: AssistantDiagnostic[];
+}
+
 export type AssistantCommandParameters = Record<
   string,
   string | number | boolean | null | undefined

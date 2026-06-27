@@ -1,5 +1,7 @@
-import type { AppError } from "../core/assistant/app-error.js";
-import type { AssistantResponse } from "../ports/assistant.js";
+import type {
+  AssistantDiagnostic,
+  AssistantResponse,
+} from "../ports/assistant.js";
 
 interface HumanBoundaryIo {
   stderr?: { write(chunk: string): boolean | void };
@@ -11,7 +13,7 @@ export const safeRuntimeFallbackResponse: AssistantResponse = {
 };
 
 export function logFeatureDiagnostics(
-  diagnostics: AppError[],
+  diagnostics: AssistantDiagnostic[],
   io: HumanBoundaryIo,
 ): void {
   for (const diagnostic of diagnostics) {

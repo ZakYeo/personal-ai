@@ -66,7 +66,7 @@ Human-facing boundaries must normalize failures into graceful outcomes. CLI, voi
 
 The safe fallback response and diagnostic logging policy should live in a shared runtimes-owned helper so CLI, voice, desktop, and service boundaries do not drift.
 
-The assistant core exposes a public response-only path for simple callers and a diagnostic-aware outcome path for runtimes. Runtimes should use the diagnostic-aware path when available, log preserved application diagnostics internally, including available causes or stacks, and print or speak only the safe assistant response.
+The assistant core exposes a public response-only path for simple callers and a diagnostic-aware outcome path for runtimes. Runtimes should use the diagnostic-aware path when available, log preserved application diagnostics internally, including available causes or stacks, and print or speak only the safe assistant response. The diagnostic-aware outcome uses the public assistant diagnostic contract from the ports layer; runtime-owned human-boundary helpers must not import private core error implementation types.
 
 Voice response is a best-effort invariant: an exception in command handling should not leave the human with silence if the runtime can still produce a fallback response. If text-to-speech or audio output also fails, the runtime should fall back to text/log output and keep enough diagnostics for debugging.
 

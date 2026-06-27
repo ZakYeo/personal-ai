@@ -1,6 +1,8 @@
 import type {
   AssistantPolicyConfig,
   AssistantContext,
+  AssistantDiagnostic,
+  AssistantOutcome,
   AssistantResponse,
   ClockPort,
 } from "../../ports/assistant.js";
@@ -19,11 +21,6 @@ export interface AssistantDependencies {
   config: AssistantPolicyConfig;
   features: FeaturePlugin[];
   intentInterpreter: IntentInterpreterPort;
-}
-
-export interface AssistantOutcome {
-  response: AssistantResponse;
-  diagnostics?: AppError[];
 }
 
 export interface Assistant {
@@ -174,10 +171,19 @@ function outcomeFromError(error: AppError): AssistantOutcome {
   };
 
   if (error.cause !== undefined || error.category === "feature_failure") {
-    outcome.diagnostics = [error];
+    outcome.diagnostics = [toAssistantDiagnostic(error)];
   }
 
   return outcome;
+}
+
+function toAssistantDiagnostic(error: AppError): AssistantDiagnostic {
+  return {
+    category: error.category,
+    message: error.message,
+    ...(error.capability ? { capability: error.capability } : {}),
+    ...(error.cause === undefined ? {} : { cause: error.cause }),
+  };
 }
 
 function isFeatureEnabled(
