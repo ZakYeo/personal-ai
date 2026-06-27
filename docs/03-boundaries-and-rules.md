@@ -215,7 +215,12 @@ Expected scripts:
 
 The exact scripts can change during implementation, but there must be an automated architecture check before real provider adapters are introduced. Dependency-cruiser remains the authority for architecture graph rules; ESLint restricted imports are a faster feedback layer for common mistakes while editing.
 
-Because the repository is currently local-only, the pre-commit hook intentionally runs staged formatting/lint fixes followed by parallel package sorting, secret scanning, Knip, architecture, tests, typecheck, and binary checks. Once a remote exists, pre-push should be treated as the full repository confidence gate through `npm run check`.
+The pre-commit hook runs staged formatting/lint fixes followed by lightweight
+repository checks: package sorting, Markdown linting, and secret scanning. The
+pre-push hook is the full repository confidence gate through `npm run check`,
+including linting, formatting, package sorting, Markdown linting, spellcheck,
+secret scanning, Knip, duplication checks, architecture checks, binary checks,
+tests, and typecheck.
 
 ## Dependency-Cruiser Rules
 

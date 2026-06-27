@@ -117,8 +117,10 @@ Included:
 - Package sorting, Markdown linting, spellcheck, secret scanning, duplication checks, and improved Knip configuration.
 - V8 coverage reporting with modest thresholds.
 - Commit message validation with conventional commits.
-- A temporarily stronger pre-commit hook while the repository is local-only.
-- A pre-push hook that runs the full validation suite once there is a remote to push to.
+- A lightweight pre-commit hook for staged formatting/lint fixes plus fast
+  repository checks.
+- A pre-push hook that runs the full validation suite before pushing to the
+  configured remote.
 
 Excluded:
 
@@ -131,6 +133,7 @@ Acceptance criteria:
 - `npm run check` passes.
 - `npm run test:coverage` passes.
 - `.githooks/pre-commit` passes.
+- `.githooks/pre-push` passes.
 - Commit messages are validated by `.githooks/commit-msg`.
 - Tooling and hook behavior are documented in `README.md`, `AGENTS.md`, and `docs/`.
 

@@ -6,12 +6,8 @@ import { EOL } from "node:os";
 const checkGroups = {
   "pre-commit": [
     ["package sort", "npm", ["run", "package:sort:check"]],
+    ["docs", "npm", ["run", "docs:lint"]],
     ["secrets", "npm", ["run", "secrets:check"]],
-    ["knip", "npm", ["run", "knip"]],
-    ["architecture", "npm", ["run", "architecture:check"]],
-    ["tests", "npm", ["run", "test:run"]],
-    ["typecheck", "npm", ["run", "typecheck"]],
-    ["bin", "npm", ["run", "bin:check"]],
   ],
 };
 

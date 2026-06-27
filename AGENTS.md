@@ -1,6 +1,6 @@
 # Repository Notes
 
-- This repository is currently local-only. There is no remote configured and nothing should be pushed anywhere yet.
+- This repository has a GitHub remote configured. Push completed slices after local validation passes.
 - Commit using the personal Git identity from `/home/zak/personal/.gitconfig-personal`.
 - Do not use work Git credentials for commits in this repository.
 - Treat the files in `docs/` as the implementation source of truth:
@@ -24,7 +24,7 @@
 - Keep simulated spoken output separate from fallback text output; CLI boundaries should use explicit voice result metadata rather than inferring stdout writes from voice status.
 - Author feature capabilities with `defineCapability`/`defineFeature` so decoded handler arguments stay structurally tied to declared parameter metadata.
 - Keep `README.md`, `AGENTS.md`, and every file in `docs/` updated and consistent with the codebase whenever behavior, architecture, tooling, or workflow changes.
-- The repository is local-only right now, so the pre-commit hook intentionally runs more than a staged-file check. Keep it passing after implementation changes. Once there is a remote, pre-push is the full repository confidence gate through `npm run check`.
+- The pre-commit hook runs staged formatting/lint fixes plus lightweight repository checks. Keep it passing after implementation changes. The pre-push hook is the full repository confidence gate through `npm run check`.
 
 ## Testing Expectations
 

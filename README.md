@@ -105,8 +105,8 @@ The files in `docs/` are the source of truth for implementation decisions:
 
 ## Development Workflow
 
-This repository is currently local-only. There is no remote configured and
-nothing should be pushed yet.
+This repository has a GitHub remote configured. Push normal completed slices
+after the local hooks pass.
 
 Work is delivered in thin, committable TDD slices:
 
@@ -118,9 +118,9 @@ Work is delivered in thin, committable TDD slices:
 Use the personal Git identity from `/home/zak/personal/.gitconfig-personal` for
 commits in this repository.
 
-The pre-commit hook intentionally runs more than a staged-file check while the
-repository is local-only. Once a remote exists, pre-push is the full confidence
-gate through `npm run check`.
+The pre-commit hook runs staged formatting/lint fixes plus lightweight
+repository checks. The pre-push hook is the full confidence gate through
+`npm run check`.
 
 Keep `README.md`, `AGENTS.md`, and the relevant `docs/` files aligned whenever
 behavior, architecture, tooling, or workflow changes.
