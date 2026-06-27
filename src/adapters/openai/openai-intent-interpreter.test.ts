@@ -1,6 +1,9 @@
 import type { AssistantContext } from "../../ports/assistant.js";
 import { OpenAIIntentInterpreter } from "./openai-intent-interpreter.js";
-import type { OpenAIIntentError } from "./openai-intent-interpreter.js";
+import type {
+  OpenAIIntentCapability,
+  OpenAIIntentError,
+} from "./openai-intent-interpreter.js";
 
 const context = {
   clock: {
@@ -31,17 +34,32 @@ describe("OpenAIIntentInterpreter", () => {
     const fetch = vi.fn().mockResolvedValue(
       jsonResponse({
         output_text: JSON.stringify({
+          kind: "command",
           command: {
             capability: "calendar.search_events",
-            parameters: {
-              query: "upcoming wedding",
-            },
+            parameters: [{ name: "query", value: "upcoming wedding" }],
             rawText: "Hey Jarvis, check my calendar for the upcoming wedding",
           },
+          response: null,
         }),
       }),
     );
-    const interpreter = createInterpreter({ fetch });
+    const interpreter = createInterpreter({
+      capabilityCatalog: [
+        {
+          capability: {
+            name: "calendar.search_events",
+            parameters: {
+              query: { type: "string", required: true },
+            },
+            risk: "low",
+          },
+          featureId: "calendar",
+          featureName: "Mock Calendar",
+        },
+      ],
+      fetch,
+    });
 
     await expect(
       interpreter.interpret(
@@ -68,12 +86,46 @@ describe("OpenAIIntentInterpreter", () => {
         method: "POST",
       }),
     );
+
+    const body = readRequestBody(fetch);
+
+    expect(body.text.format.schema).toMatchObject({
+      additionalProperties: false,
+      properties: {
+        command: {
+          type: ["object", "null"],
+          properties: {
+            parameters: {
+              type: "array",
+              items: {
+                additionalProperties: false,
+                required: ["name", "value"],
+              },
+            },
+          },
+          required: ["capability", "parameters", "rawText"],
+        },
+        kind: {
+          enum: ["command", "response"],
+        },
+        response: {
+          type: ["object", "null"],
+          required: ["status", "text"],
+        },
+      },
+      required: ["kind", "command", "response"],
+    });
+    expect(body.text.format.schema).not.toHaveProperty("anyOf");
+    expect(JSON.stringify(body.input)).toContain("calendar.search_events");
+    expect(JSON.stringify(body.input)).toContain("query: string (required)");
   });
 
   it("returns a response from structured provider output", async () => {
     const fetch = vi.fn().mockResolvedValue(
       jsonResponse({
         output_text: JSON.stringify({
+          kind: "response",
+          command: null,
           response: {
             status: "unknown",
             text: "I could not map that to a command.",
@@ -101,11 +153,13 @@ describe("OpenAIIntentInterpreter", () => {
             content: [
               {
                 text: JSON.stringify({
+                  kind: "command",
                   command: {
                     capability: "alarm.list",
-                    parameters: {},
+                    parameters: [],
                     rawText: "Hey Jarvis, list my alarms",
                   },
+                  response: null,
                 }),
               },
             ],
@@ -176,13 +230,13 @@ describe("OpenAIIntentInterpreter", () => {
       fetch: vi.fn().mockResolvedValue(
         jsonResponse({
           output_text: JSON.stringify({
+            kind: "command",
             command: {
               capability: "alarm.create",
-              parameters: {
-                nested: { unsafe: true },
-              },
+              parameters: [{ name: "nested", value: { unsafe: true } }],
               rawText: "Hey Jarvis, set an alarm",
             },
+            response: null,
           }),
         }),
       ),
@@ -216,6 +270,7 @@ describe("OpenAIIntentInterpreter", () => {
 });
 
 interface CreateInterpreterOptions {
+  capabilityCatalog?: OpenAIIntentCapability[];
   env?: Record<string, string | undefined>;
   fetch?: typeof fetch;
   timeoutMs?: number;
@@ -223,6 +278,9 @@ interface CreateInterpreterOptions {
 
 function createInterpreter(options: CreateInterpreterOptions = {}) {
   return new OpenAIIntentInterpreter({
+    ...(options.capabilityCatalog
+      ? { capabilityCatalog: options.capabilityCatalog }
+      : {}),
     config: {
       apiKeyEnv: "OPENAI_API_KEY",
       baseUrl: "https://api.openai.test/v1",
@@ -232,6 +290,26 @@ function createInterpreter(options: CreateInterpreterOptions = {}) {
     env: options.env ?? { OPENAI_API_KEY: "test-api-key" },
     fetch: options.fetch ?? vi.fn(),
   });
+}
+
+interface RequestBody {
+  input: unknown;
+  text: {
+    format: {
+      schema: unknown;
+    };
+  };
+}
+
+function readRequestBody(fetch: ReturnType<typeof vi.fn>): RequestBody {
+  const init = fetch.mock.calls[0]?.[1] as RequestInit | undefined;
+  const body = init?.body;
+
+  if (typeof body !== "string") {
+    throw new TypeError("Expected JSON request body.");
+  }
+
+  return JSON.parse(body) as RequestBody;
 }
 
 function jsonResponse(body: unknown): Response {

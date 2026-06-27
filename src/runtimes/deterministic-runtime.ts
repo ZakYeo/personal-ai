@@ -28,12 +28,13 @@ export async function createDeterministicRuntime(
       options.configPath ? { configPath: options.configPath } : undefined,
     ));
   const clock = createClock(options.now);
+  const features = createConfiguredFeatures(config);
 
   return createAssistant({
     clock,
     config,
-    features: createConfiguredFeatures(config),
-    intentInterpreter: createIntentInterpreter(config, {
+    features,
+    intentInterpreter: createIntentInterpreter(config, features, {
       env: options.env ?? process.env,
       fetch: options.fetch ?? globalThis.fetch,
     }),
@@ -47,6 +48,7 @@ interface IntentInterpreterDependencies {
 
 function createIntentInterpreter(
   config: AssistantConfig,
+  features: FeaturePlugin[],
   dependencies: IntentInterpreterDependencies,
 ): IntentInterpreterPort {
   if (config.intent.provider === "deterministic") {
@@ -59,6 +61,13 @@ function createIntentInterpreter(
     }
 
     return new OpenAIIntentInterpreter({
+      capabilityCatalog: features.flatMap((feature) =>
+        feature.capabilities.map((capability) => ({
+          capability,
+          featureId: feature.id,
+          featureName: feature.displayName,
+        })),
+      ),
       config: config.intent.openai,
       env: dependencies.env,
       fetch: dependencies.fetch,

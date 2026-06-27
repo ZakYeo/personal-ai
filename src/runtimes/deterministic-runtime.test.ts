@@ -74,11 +74,13 @@ describe("createDeterministicRuntime", () => {
       new Response(
         JSON.stringify({
           output_text: JSON.stringify({
+            kind: "command",
             command: {
               capability: "alarm.list",
-              parameters: {},
+              parameters: [],
               rawText: deterministicScenarios.alarmListEmpty.text,
             },
+            response: null,
           }),
         }),
         { status: 200 },

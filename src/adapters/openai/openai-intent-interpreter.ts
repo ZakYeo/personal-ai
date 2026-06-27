@@ -6,12 +6,20 @@ import type {
   AssistantResponseStatus,
   OpenAIIntentConfig,
 } from "../../ports/assistant.js";
+import type { FeatureCapability } from "../../ports/feature.js";
 import type {
   IntentInterpretation,
   IntentInterpreterPort,
 } from "../../ports/intent.js";
 
+export interface OpenAIIntentCapability {
+  featureId: string;
+  featureName: string;
+  capability: FeatureCapability;
+}
+
 interface OpenAIIntentInterpreterOptions {
+  capabilityCatalog?: OpenAIIntentCapability[];
   config: OpenAIIntentConfig;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
@@ -67,7 +75,12 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
         `${trimTrailingSlash(this.options.config.baseUrl)}/responses`,
         {
           body: JSON.stringify(
-            createRequestBody(text, context, this.options.config),
+            createRequestBody(
+              text,
+              context,
+              this.options.config,
+              this.options.capabilityCatalog ?? [],
+            ),
           ),
           headers: {
             authorization: `Bearer ${apiKey}`,
@@ -119,6 +132,7 @@ function createRequestBody(
   text: string,
   context: AssistantContext,
   config: OpenAIIntentConfig,
+  capabilityCatalog: OpenAIIntentCapability[],
 ) {
   return {
     input: [
@@ -129,7 +143,9 @@ function createRequestBody(
               `You are the intent interpreter for ${context.config.assistant.name}.`,
               "Return only JSON matching the supplied schema.",
               "Map requests to enabled assistant capabilities when possible.",
-              `Enabled features: ${Object.keys(context.config.features).join(", ")}`,
+              "Use kind command with command populated and response null when a capability matches.",
+              "Use kind response with command null and response populated when no capability matches.",
+              `Enabled capabilities:\n${formatCapabilities(capabilityCatalog)}`,
             ].join(" "),
             type: "input_text",
           },
@@ -160,22 +176,31 @@ function createRequestBody(
 
 const intentInterpretationSchema = {
   additionalProperties: false,
-  anyOf: [{ required: ["command"] }, { required: ["response"] }],
   properties: {
     command: {
       additionalProperties: false,
       properties: {
         capability: { type: "string" },
         parameters: {
-          additionalProperties: {
-            type: ["string", "number", "boolean", "null"],
+          items: {
+            additionalProperties: false,
+            properties: {
+              name: { type: "string" },
+              value: { type: ["string", "number", "boolean", "null"] },
+            },
+            required: ["name", "value"],
+            type: "object",
           },
-          type: "object",
+          type: "array",
         },
         rawText: { type: "string" },
       },
       required: ["capability", "parameters", "rawText"],
-      type: "object",
+      type: ["object", "null"],
+    },
+    kind: {
+      enum: ["command", "response"],
+      type: "string",
     },
     response: {
       additionalProperties: false,
@@ -194,9 +219,10 @@ const intentInterpretationSchema = {
         text: { type: "string" },
       },
       required: ["status", "text"],
-      type: "object",
+      type: ["object", "null"],
     },
   },
+  required: ["kind", "command", "response"],
   type: "object",
 };
 
@@ -218,24 +244,80 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
     throw new OpenAIIntentError("OpenAI intent response must be an object.");
   }
 
-  const hasCommand = value.command !== undefined;
-  const hasResponse = value.response !== undefined;
+  if (value.kind === "command") {
+    if (value.response !== null) {
+      throw new OpenAIIntentError(
+        "OpenAI intent command response must set response to null.",
+      );
+    }
 
-  if (hasCommand === hasResponse) {
-    throw new OpenAIIntentError(
-      "OpenAI intent response must include exactly one command or response.",
-    );
-  }
-
-  if (hasCommand) {
     return {
       command: parseCommand(value.command),
     };
   }
 
-  return {
-    response: parseAssistantResponse(value.response),
-  };
+  if (value.kind === "response") {
+    if (value.command !== null) {
+      throw new OpenAIIntentError(
+        "OpenAI intent fallback response must set command to null.",
+      );
+    }
+
+    return {
+      response: parseAssistantResponse(value.response),
+    };
+  }
+
+  throw new OpenAIIntentError(
+    "OpenAI intent response kind must be command or response.",
+  );
+}
+
+function formatCapabilities(catalog: OpenAIIntentCapability[]): string {
+  if (catalog.length === 0) {
+    return "No capabilities are enabled.";
+  }
+
+  return catalog
+    .map(({ capability, featureId, featureName }) => {
+      const parameters = capability.parameters ?? {};
+      const parameterText = Object.entries(parameters)
+        .map(([name, parameter]) => {
+          const constraints = [
+            parameter.required ? "required" : "optional",
+            parameter.minimum === undefined
+              ? undefined
+              : `minimum ${parameter.minimum}`,
+            parameter.positive ? "positive" : undefined,
+          ].filter(
+            (constraint): constraint is string => constraint !== undefined,
+          );
+
+          return `${name}: ${parameter.type}${constraints.length > 0 ? ` (${constraints.join(", ")})` : ""}`;
+        })
+        .join("; ");
+
+      return `${capability.name} from ${featureId} (${featureName}); risk ${capability.risk}; parameters ${parameterText || "none"}`;
+    })
+    .join("\n");
+}
+
+function parseCommandParameters(value: unknown): AssistantCommandParameters {
+  if (!Array.isArray(value)) {
+    throw new OpenAIIntentError(
+      "OpenAI intent response command.parameters must be an array.",
+    );
+  }
+
+  const parameters: AssistantCommandParameters = {};
+
+  for (const parameter of value) {
+    const parsedParameter = parseCommandParameter(parameter);
+
+    parameters[parsedParameter.name] = parsedParameter.value;
+  }
+
+  return parameters;
 }
 
 function parseCommand(value: unknown): AssistantCommand {
@@ -264,26 +346,32 @@ function parseCommand(value: unknown): AssistantCommand {
   };
 }
 
-function parseCommandParameters(value: unknown): AssistantCommandParameters {
+function parseCommandParameter(value: unknown): {
+  name: string;
+  value: AssistantCommandParameters[string];
+} {
   if (!isRecord(value)) {
     throw new OpenAIIntentError(
-      "OpenAI intent response command.parameters must be an object.",
+      "OpenAI intent response command parameter must be an object.",
     );
   }
 
-  const parameters: AssistantCommandParameters = {};
-
-  for (const [key, parameterValue] of Object.entries(value)) {
-    if (!isScalarCommandParameter(parameterValue)) {
-      throw new OpenAIIntentError(
-        "OpenAI intent response parameters must be scalar values.",
-      );
-    }
-
-    parameters[key] = parameterValue;
+  if (typeof value.name !== "string" || value.name.length === 0) {
+    throw new OpenAIIntentError(
+      "OpenAI intent response command parameter name must be a non-empty string.",
+    );
   }
 
-  return parameters;
+  if (!isScalarCommandParameter(value.value)) {
+    throw new OpenAIIntentError(
+      "OpenAI intent response parameters must be scalar values.",
+    );
+  }
+
+  return {
+    name: value.name,
+    value: value.value,
+  };
 }
 
 function parseAssistantResponse(value: unknown): AssistantResponse {

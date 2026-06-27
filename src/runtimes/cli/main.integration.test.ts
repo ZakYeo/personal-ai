@@ -334,6 +334,36 @@ describe("personal-ai ask CLI", () => {
     expect(stderr[1]).toContain("at feature fixture");
   });
 
+  it("passes CLI environment into runtime composition", async () => {
+    const { io, stdout, stderr } = createCliIo({
+      OPENAI_API_KEY: "test-api-key",
+    });
+
+    await expect(
+      main(["ask", "Hey Jarvis, list my alarms"], io, {
+        createRuntime: (options) => {
+          expect(options?.env?.OPENAI_API_KEY).toBe("test-api-key");
+
+          return Promise.resolve({
+            handleText: () =>
+              Promise.resolve({
+                status: "ok",
+                text: "legacy path should not be used",
+              }),
+            handleTextWithDiagnostics: () =>
+              Promise.resolve({
+                response: deterministicScenarios.alarmListEmpty.response,
+              }),
+          });
+        },
+      }),
+    ).resolves.toBe(0);
+    expect(stdout).toEqual([
+      `${deterministicScenarios.alarmListEmpty.response.text}\n`,
+    ]);
+    expect(stderr).toEqual([]);
+  });
+
   it("prints a graceful response when the executable entrypoint rejects", async () => {
     const { io, stdout, stderr } = createCliIo();
     const processState = { exitCode: 0 };

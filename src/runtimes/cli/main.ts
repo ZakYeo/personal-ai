@@ -116,6 +116,7 @@ function buildRuntimeOptions(
   const fixedNow = env.PERSONAL_AI_FIXED_NOW;
 
   return {
+    env,
     ...(parsed.configPath ? { configPath: parsed.configPath } : {}),
     ...(fixedNow ? { now: new Date(fixedNow) } : {}),
   };
