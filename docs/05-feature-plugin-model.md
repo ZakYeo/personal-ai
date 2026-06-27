@@ -120,6 +120,14 @@ Avoid hand-written `execute` switches or capability-name branches in feature
 implementations unless a test is intentionally exercising a lower-level or
 malformed feature contract.
 
+Deterministic intent matching should follow the same capability-driven shape as
+real provider routing. A small deterministic adapter may use simple rules for
+early fixtures, but it should not become a central feature-specific branch list.
+When deterministic matching grows, express rules as data tied to declared
+capability names, or keep feature-specific deterministic fixtures near the
+feature contract tests, so adding a feature does not require editing unrelated
+shared interpreter control flow.
+
 Feature authors should keep the declared parameter object literal stable with `as const satisfies FeatureCapabilityParameters` when it is shared outside the builder. This preserves literal metadata such as `required: true`, allowing `defineCapability` to make required arguments non-optional and optional arguments optional in the handler.
 
 The central `defineFeature` dispatcher should route execution by the selected capability name only. Requests for undeclared capability names must fail before any declared handler runs, preserving the structural tie between capability metadata and handler arguments.

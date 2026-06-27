@@ -430,16 +430,26 @@ Deferred hardening themes to keep checking during Milestone 4:
 - Split broad runtime config into narrower core, provider, feature, and runtime
   composition shapes where that removes optionality or prevents provider/runtime
   settings from leaking through core contracts.
+- Keep raw config parsing separate from runtime-specific resolution so selected
+  provider, adapter, and command invariants are proved by one canonical owner.
 - Promote diagnostic-aware assistant outcomes to a stable public contract for
   runtime boundaries before more runtime helpers depend on preserved diagnostic
   data.
 - Extract canonical provider and feature adapter selection helpers before adding
   another intent provider or concrete feature adapter.
+- Prefer explicit nested adapter registries over encoded registry keys that
+  require string parsing to recover feature or provider ownership.
 - Decompose real provider adapters when they begin combining transport,
   request-body construction, provider response extraction, provider-output
   parsing, and application validation in one module.
 - Factor repeated voice runtime composition and shared wake phrase matching
   before adding another voice runtime or wake word adapter.
+- Ensure nested runtime factories forward injected environment, network, clock,
+  IO, and process dependencies rather than falling back to globals.
+- Preserve captured command stdout/stderr for timeout diagnostics as well as
+  non-zero exits.
+- Keep deterministic intent matching data-backed or feature-local once it grows
+  beyond the initial fixture set.
 
 ## Milestone 5: Raspberry Pi Deployment
 

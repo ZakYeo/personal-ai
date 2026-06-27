@@ -126,6 +126,12 @@ errors are runtime composition policy, not incidental helper code to duplicate
 inside every registry. When a new adapter family repeats the same selection
 shape, extract the selector before adding more branches.
 
+Selection registries should represent their domain shape directly. Prefer
+explicit nested registries, such as provider-to-adapter or feature-to-adapter
+maps, over encoded string keys that must be filtered, sliced, or parsed before
+selection. If the selection relationship is data, model it as data instead of
+recovering it from naming conventions.
+
 The same rule applies to safety policy, fallback policy, and config resolution:
 centralize the policy where drift would create inconsistent user-facing or
 operator-facing behavior.
@@ -143,6 +149,13 @@ speech-to-text, text-to-speech, and audio output adapter IDs are present. A
 desktop voice runtime should similarly resolve command settings for the selected
 command-based adapters. Avoid carrying deeply optional config through code that
 requires those values; make the runtime boundary prove the invariant once.
+
+Raw config parsing and runtime-specific config resolution should have separate
+ownership. Parsing should validate external JSON shape and primitive field
+types from `unknown`. Resolvers should own runtime-required invariants such as
+selected provider options, required adapter IDs, command settings, and missing
+or unknown selection errors. Avoid proving the same invariant in both the parser
+and a resolver unless the duplicate check is deliberately tested and documented.
 
 ## Implementation Conventions
 
@@ -164,6 +177,18 @@ construction proceeds. When a runtime requires a complete voice config,
 provider config, command config, or adapter ID set, expose a focused resolver
 that proves the shape instead of spreading optional checks through loops,
 registries, or adapters.
+
+Runtime factories that compose other runtimes or assistant factories must carry
+injected dependencies through the whole composition chain. If a top-level
+boundary accepts an environment map, clock, IO streams, process state, network
+client, or shutdown hook, nested runtime creation should receive those same
+dependencies instead of falling back to `process.env`, `globalThis.fetch`,
+`new Date()`, or process streams.
+
+Command-based adapters should preserve diagnostics for every final failure
+mode. Non-zero exits, spawn failures where available, and timeouts should keep
+captured stdout/stderr internally so human-facing boundaries can log useful
+operator diagnostics while returning safe fallback text.
 
 Tests should prefer focused harness and one-change fixture helpers over broad
 inline object spreads. When a test changes one adapter ID, provider ID, missing
@@ -190,6 +215,8 @@ should also guard against subtler boundary and abstraction drift.
 - Extract canonical selection helpers before adding another copy of provider,
   feature, or adapter lookup logic. Missing config, unknown IDs, and
   unregistered adapter errors should be owned once per policy family.
+- Model adapter registries directly instead of encoding feature, provider, or
+  adapter identity into strings that later need parsing.
 - Keep provider adapters from becoming catch-all modules. HTTP transport,
   request construction, provider response extraction, provider-output parsing,
   and application type validation should split once a real adapter starts to
@@ -197,9 +224,16 @@ should also guard against subtler boundary and abstraction drift.
 - When two runtimes differ only by adapter construction, prefer a neutral
   runtime factory over copy-pasted runtime shells. Runtime-specific files should
   stay mostly declarative composition.
+- Nested runtime factories should preserve dependency injection all the way down
+  the composition stack, especially for provider environment and network
+  dependencies.
 - Shared user-facing matching semantics, such as wake phrase normalization,
   should live in one helper per adapter family so mock and real runtimes do not
   drift.
+- Deterministic interpreters and fixtures should not grow into a central list of
+  feature-specific branches. When matching rules grow, prefer data-backed
+  deterministic rules or feature-local fixtures that keep routing tied to
+  declared capability metadata.
 - Treat duplication reports as design prompts. A small clone may be acceptable,
   but repeated control-flow or policy duplication should trigger a search for
   the canonical owner before more branches are added.

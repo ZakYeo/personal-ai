@@ -208,16 +208,29 @@ settings needed by selected command-based adapters. This keeps optional config
 handling at the boundary instead of spreading `undefined` checks through the
 runtime loop or adapter registry.
 
+Config parsing and config resolution are separate runtime responsibilities.
+Parsing validates the external config shape from `unknown`; focused resolvers
+prove the invariants required by one runtime or provider. Do not duplicate
+missing-provider, missing-adapter, or missing-command checks in both places when
+one canonical resolver can own the policy.
+
 The loaded runtime config may include provider selection, adapter IDs, voice
 settings, desktop command settings, and provider-specific options. Before the
 assistant core is constructed, runtime composition maps that broad shape to the
 narrow assistant policy config containing only assistant identity, wake phrases,
 feature enablement, and confirmation policy.
 
+Runtime factories may compose other runtime factories, but dependency injection
+must remain transitive. A voice or service runtime that builds the text
+assistant should forward injected environment maps, network clients, clocks, IO
+streams, and process state instead of allowing nested composition to read
+globals implicitly.
+
 Command-based adapters should execute configured programs as `command` plus an
 argument array, not as shell-concatenated command strings. They should enforce a
-timeout, capture stdout and stderr for diagnostics, and let the runtime boundary
-decide what safe response or fallback output reaches the human.
+timeout, capture stdout and stderr for diagnostics, preserve captured output on
+both non-zero exits and timeout failures, and let the runtime boundary decide
+what safe response or fallback output reaches the human.
 
 ## Process Lifecycle
 
