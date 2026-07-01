@@ -16,6 +16,8 @@ Implemented today:
 - Configured text CLI runtime with deterministic behavior by default.
 - Mock voice loop for one simulated voice turn.
 - Desktop voice runtime for one configured local voice turn.
+- Neutral service runtime boundary baseline implemented in preparation for
+  Milestone 5.1.
 - Config-driven adapter selection for intent, features, and voice components.
 - Explicit nested feature adapter registration for mock/local feature adapters.
 - Focused runtime config resolvers for assistant policy, intent providers,

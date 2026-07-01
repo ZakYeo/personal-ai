@@ -268,6 +268,13 @@ Runtimes should own:
 
 The assistant core should expose application behavior, not process lifecycle behavior.
 
+The neutral service runtime boundary baseline has been implemented in
+preparation for Milestone 5.1. It accepts injectable assistant composition, turn
+execution, clock access, signal registration, stderr diagnostics, and shutdown
+hooks. Startup failures return a safe fallback outcome, recoverable turn
+failures are logged without ending the loop, and injected `SIGINT`/`SIGTERM`
+handlers request graceful shutdown before unregistering.
+
 ## Failure Handling
 
 Runtimes are the last line of defense before a failure reaches a human. Lower-level code may throw, but runtime control loops should catch unhandled errors, preserve diagnostic detail in logs, and return a safe response such as "I hit a problem and could not complete that." Core-level feature failures should also preserve diagnostic causes while returning safe public text rather than raw exception messages.

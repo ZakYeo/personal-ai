@@ -136,6 +136,8 @@ Expected runtimes:
 
 - CLI runtime for deterministic text commands.
 - Desktop voice runtime for local microphone and speaker development.
+- Neutral service runtime boundary for long-running startup, loop failure,
+  signal, and shutdown behavior.
 - Raspberry Pi service runtime for deployment as a long-running device process.
 
 The assistant core should not contain desktop-specific or Raspberry Pi-specific imports.

@@ -498,6 +498,8 @@ Deferred hardening themes to keep checking during Milestone 4:
 
 ### Milestone 5.1: Service Runtime Boundary
 
+Status: baseline implemented in preparation for this milestone.
+
 Goal: define the long-running service runtime boundary before adding
 Raspberry Pi-specific device behavior.
 
@@ -519,6 +521,17 @@ Acceptance criteria:
   leaking raw provider, credential, adapter, or stack details to users.
 - Process state, clocks, IO streams, and shutdown hooks remain injectable at the
   runtime boundary.
+
+Preparatory baseline:
+
+- `src/runtimes/service/service-runtime.ts` owns a neutral service loop with
+  injectable assistant composition, turn execution, clock access, signal
+  registration, stderr diagnostics, and shutdown hooks.
+- `src/test-support/service-runtime.ts` provides service runtime dependency
+  builders and injected signal controllers before broader service tests
+  accumulate setup.
+- Tests cover startup failure, one recoverable loop failure, graceful signal
+  shutdown, safe fallback outcomes, diagnostic logging, and signal cleanup.
 
 ### Milestone 5.2: Raspberry Pi Deployment
 
