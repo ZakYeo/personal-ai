@@ -1,4 +1,5 @@
 import type {
+  DeterministicFeatureRule,
   FeatureArgsFromParameters,
   FeatureCapabilityParameters,
   FeaturePlugin,
@@ -14,6 +15,19 @@ type MessagingDraftReplyArgs = FeatureArgsFromParameters<
   typeof messagingDraftReplyParameters
 >;
 
+export const messagingDeterministicIntentRules: DeterministicFeatureRule[] = [
+  {
+    capability: "messaging.draft_reply",
+    match: (text) =>
+      text.includes("whatsapp") &&
+      (text.includes("respond") ||
+        text.includes("reply") ||
+        text.includes("draft"))
+        ? { channel: "whatsapp" }
+        : undefined,
+  },
+];
+
 export function createMessagingFeature(): FeaturePlugin {
   return defineFeature({
     id: "messaging",
@@ -22,10 +36,17 @@ export function createMessagingFeature(): FeaturePlugin {
       "messaging.draft_reply": defineCapability({
         risk: "low",
         parameters: messagingDraftReplyParameters,
+        deterministicRules: deterministicRulesFor("messaging.draft_reply"),
         execute: (request) => draftReply(request.args),
       }),
     },
   });
+}
+
+function deterministicRulesFor(capability: string) {
+  return messagingDeterministicIntentRules
+    .filter((rule) => rule.capability === capability)
+    .map((rule) => rule.match);
 }
 
 function draftReply(args: MessagingDraftReplyArgs): FeatureResult {

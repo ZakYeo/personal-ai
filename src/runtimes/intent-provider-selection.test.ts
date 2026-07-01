@@ -26,6 +26,7 @@ describe("createConfiguredIntentInterpreter", () => {
     ).toBe(interpreter);
 
     expect(createDeterministic).toHaveBeenCalledWith({
+      config: enabledDeterministicConfig,
       dependencies: {
         env: {},
         fetch: expect.any(Function) as typeof fetch,

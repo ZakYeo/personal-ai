@@ -4,11 +4,21 @@ import type {
   AssistantCommandParameters,
 } from "./assistant.js";
 
+export type DeterministicCapabilityRule = (
+  normalizedText: string,
+) => AssistantCommandParameters | undefined;
+
+export interface DeterministicFeatureRule {
+  capability: string;
+  match: DeterministicCapabilityRule;
+}
+
 export interface FeatureCapability {
   name: string;
   risk: "low" | "high";
   requiresConfirmation?: boolean;
   parameters?: Record<string, FeatureCapabilityParameter>;
+  deterministicRules?: DeterministicCapabilityRule[];
 }
 
 export interface FeatureCapabilityParameter {
@@ -168,6 +178,9 @@ export function defineFeature<
       ...(handler.requiresConfirmation === undefined
         ? {}
         : { requiresConfirmation: handler.requiresConfirmation }),
+      ...(handler.deterministicRules === undefined
+        ? {}
+        : { deterministicRules: handler.deterministicRules }),
       parameters: handler.parameters,
     })),
     ...(definition.canHandle

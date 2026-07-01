@@ -1,5 +1,6 @@
 import type { AssistantContext } from "../../ports/assistant.js";
 import type {
+  DeterministicFeatureRule,
   FeatureArgsFromParameters,
   FeatureCapabilityParameters,
   FeaturePlugin,
@@ -17,6 +18,36 @@ const alarmListParameters = {} as const satisfies FeatureCapabilityParameters;
 
 type AlarmCreateArgs = FeatureArgsFromParameters<typeof alarmCreateParameters>;
 
+export const alarmDeterministicIntentRules: DeterministicFeatureRule[] = [
+  {
+    capability: "alarm.create",
+    match: (text) => {
+      const alarmCreateMatch = text.match(
+        /\bset (?:an? )?alarm(?: to (?<label>.+?))? in (?<minutes>\d+) minutes?\b/u,
+      );
+
+      if (!alarmCreateMatch?.groups?.minutes) {
+        return;
+      }
+
+      return {
+        label: alarmCreateMatch.groups.label ?? "alarm",
+        minutesFromNow: Number(alarmCreateMatch.groups.minutes),
+      };
+    },
+  },
+  {
+    capability: "alarm.list",
+    match: (text) =>
+      text.includes("alarm") &&
+      (text.includes("list") ||
+        text.includes("show") ||
+        text.includes("what alarms"))
+        ? {}
+        : undefined,
+  },
+];
+
 export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
   return defineFeature({
     id: "alarms",
@@ -26,16 +57,24 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
         risk: "high",
         requiresConfirmation: true,
         parameters: alarmCreateParameters,
+        deterministicRules: deterministicRulesFor("alarm.create"),
         execute: (request, context: AssistantContext) =>
           createAlarm(request.args, context, store),
       }),
       "alarm.list": defineCapability({
         risk: "low",
         parameters: alarmListParameters,
+        deterministicRules: deterministicRulesFor("alarm.list"),
         execute: () => listAlarms(store),
       }),
     },
   });
+}
+
+function deterministicRulesFor(capability: string) {
+  return alarmDeterministicIntentRules
+    .filter((rule) => rule.capability === capability)
+    .map((rule) => rule.match);
 }
 
 function createAlarm(

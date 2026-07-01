@@ -1,4 +1,5 @@
 import type {
+  DeterministicFeatureRule,
   FeatureArgsFromParameters,
   FeatureCapabilityParameters,
   FeaturePlugin,
@@ -14,6 +15,16 @@ type CalendarSearchEventsArgs = FeatureArgsFromParameters<
   typeof calendarSearchEventsParameters
 >;
 
+export const calendarDeterministicIntentRules: DeterministicFeatureRule[] = [
+  {
+    capability: "calendar.search_events",
+    match: (text) =>
+      text.includes("calendar") && text.includes("upcoming wedding")
+        ? { query: "upcoming wedding" }
+        : undefined,
+  },
+];
+
 export function createCalendarFeature(
   calendar: CalendarSearchPort,
 ): FeaturePlugin {
@@ -24,11 +35,18 @@ export function createCalendarFeature(
       "calendar.search_events": defineCapability({
         risk: "low",
         parameters: calendarSearchEventsParameters,
+        deterministicRules: deterministicRulesFor("calendar.search_events"),
         execute: async (request, context) =>
           searchEvents(calendar, request.args, context.clock.now()),
       }),
     },
   });
+}
+
+function deterministicRulesFor(capability: string) {
+  return calendarDeterministicIntentRules
+    .filter((rule) => rule.capability === capability)
+    .map((rule) => rule.match);
 }
 
 async function searchEvents(

@@ -6,17 +6,16 @@ import type {
   IntentInterpretation,
   IntentInterpreterPort,
 } from "../../ports/intent.js";
+import type { DeterministicCapabilityRule } from "../../ports/feature.js";
 import { stripWakePhrase } from "../spoken-text.js";
 
-interface DeterministicIntentRule {
+export interface DeterministicIntentRule {
   capability: string;
-  match(normalizedText: string): AssistantCommand["parameters"] | undefined;
+  match: DeterministicCapabilityRule;
 }
 
 export class DeterministicIntentInterpreter implements IntentInterpreterPort {
-  constructor(
-    private readonly rules: DeterministicIntentRule[] = defaultDeterministicIntentRules,
-  ) {}
+  constructor(private readonly rules: DeterministicIntentRule[] = []) {}
 
   interpret(
     text: string,
@@ -64,50 +63,3 @@ function createCommand(
     rawText,
   };
 }
-
-const defaultDeterministicIntentRules: DeterministicIntentRule[] = [
-  {
-    capability: "calendar.search_events",
-    match: (text) =>
-      text.includes("calendar") && text.includes("upcoming wedding")
-        ? { query: "upcoming wedding" }
-        : undefined,
-  },
-  {
-    capability: "messaging.draft_reply",
-    match: (text) =>
-      text.includes("whatsapp") &&
-      (text.includes("respond") ||
-        text.includes("reply") ||
-        text.includes("draft"))
-        ? { channel: "whatsapp" }
-        : undefined,
-  },
-  {
-    capability: "alarm.create",
-    match: (text) => {
-      const alarmCreateMatch = text.match(
-        /\bset (?:an? )?alarm(?: to (?<label>.+?))? in (?<minutes>\d+) minutes?\b/u,
-      );
-
-      if (!alarmCreateMatch?.groups?.minutes) {
-        return;
-      }
-
-      return {
-        label: alarmCreateMatch.groups.label ?? "alarm",
-        minutesFromNow: Number(alarmCreateMatch.groups.minutes),
-      };
-    },
-  },
-  {
-    capability: "alarm.list",
-    match: (text) =>
-      text.includes("alarm") &&
-      (text.includes("list") ||
-        text.includes("show") ||
-        text.includes("what alarms"))
-        ? {}
-        : undefined,
-  },
-];

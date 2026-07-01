@@ -1,6 +1,12 @@
-import { DeterministicIntentInterpreter } from "../adapters/mock/deterministic-intent-interpreter.js";
+import {
+  DeterministicIntentInterpreter,
+  type DeterministicIntentRule,
+} from "../adapters/mock/deterministic-intent-interpreter.js";
+import { alarmDeterministicIntentRules } from "../features/alarms/alarm-feature.js";
+import { calendarDeterministicIntentRules } from "../features/calendar/calendar-feature.js";
+import { messagingDeterministicIntentRules } from "../features/messaging/messaging-feature.js";
+import type { DeterministicFeatureRule, FeaturePlugin  } from "../ports/feature.js";
 import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
-import type { FeaturePlugin } from "../ports/feature.js";
 import type { IntentInterpreterPort } from "../ports/intent.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import {
@@ -15,6 +21,7 @@ interface IntentInterpreterDependencies {
 }
 
 type IntentProviderFactory<TIntent extends ResolvedIntentConfig> = (context: {
+  config: LoadedRuntimeConfig;
   dependencies: IntentInterpreterDependencies;
   features: FeaturePlugin[];
   intent: TIntent;
@@ -46,12 +53,15 @@ export function createConfiguredIntentInterpreter(
     );
   }
 
-  return factory({ dependencies, features, intent });
+  return factory({ config, dependencies, features, intent });
 }
 
 function createDefaultIntentProviderRegistry(): Required<IntentProviderRegistry> {
   return {
-    deterministic: () => new DeterministicIntentInterpreter(),
+    deterministic: ({ config, features }) =>
+      new DeterministicIntentInterpreter(
+        createDeterministicIntentRules(config, features),
+      ),
     openai: ({ dependencies, features, intent }) =>
       new OpenAIIntentInterpreter({
         capabilityCatalog: createProviderCapabilityCatalog(features),
@@ -61,3 +71,35 @@ function createDefaultIntentProviderRegistry(): Required<IntentProviderRegistry>
       }),
   };
 }
+
+function createDeterministicIntentRules(
+  config: LoadedRuntimeConfig,
+  features: FeaturePlugin[],
+): DeterministicIntentRule[] {
+  const featureBackedRules = features.flatMap((feature) =>
+    feature.capabilities.flatMap((capability) =>
+      (capability.deterministicRules ?? []).map((match) => ({
+        capability: capability.name,
+        match,
+      })),
+    ),
+  );
+  const configuredFeatureRules = Object.keys(config.features).flatMap(
+    (featureId) => deterministicRuleRegistry[featureId] ?? [],
+  );
+
+  return [...featureBackedRules, ...configuredFeatureRules].filter(
+    (rule, index, rules) =>
+      rules.findIndex(
+        (candidate) =>
+          candidate.capability === rule.capability &&
+          candidate.match === rule.match,
+      ) === index,
+  );
+}
+
+const deterministicRuleRegistry: Record<string, DeterministicFeatureRule[]> = {
+  alarms: alarmDeterministicIntentRules,
+  calendar: calendarDeterministicIntentRules,
+  messaging: messagingDeterministicIntentRules,
+};
