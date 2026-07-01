@@ -156,4 +156,64 @@ describe("runPiServiceRuntime", () => {
 
     expect(capturedAudio?.filePath).toEqual(expect.stringContaining("capture"));
   });
+
+  it("logs cleanup failures without failing the service turn", async () => {
+    const signals = createServiceSignalController();
+    const stderr = createCapturedWriter();
+    const retryAfterFailure = vi.fn().mockResolvedValue(undefined);
+
+    await expect(
+      runPiServiceRuntime({
+        config: createDesktopVoiceConfig(
+          deterministicScenarios.alarmListEmpty.text,
+        ),
+        createVoiceAdapters: () => ({
+          audioInput: {
+            capture: () =>
+              Promise.resolve({
+                text: deterministicScenarios.alarmListEmpty.text,
+              }),
+          },
+          audioOutput: {
+            play: () => Promise.resolve(),
+          },
+          cleanup: () => Promise.reject(new Error("cleanup failed")),
+          speechToText: {
+            transcribe: () =>
+              Promise.resolve({
+                text: deterministicScenarios.alarmListEmpty.text,
+              }),
+          },
+          textToSpeech: {
+            synthesize: (text) => Promise.resolve({ text }),
+          },
+          wakeWord: {
+            detect: () =>
+              Promise.resolve({
+                detected: true,
+                phrase: "hey jarvis",
+              }),
+          },
+        }),
+        io: { stderr },
+        processSignals: signals,
+        retryAfterFailure,
+        runVoiceTurn: () => {
+          signals.emit("SIGTERM");
+
+          return Promise.resolve({
+            response: deterministicScenarios.alarmListEmpty.response,
+            status: "spoken",
+            textOutputWritten: false,
+          });
+        },
+      }),
+    ).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 1,
+    });
+
+    expect(retryAfterFailure).not.toHaveBeenCalled();
+    expect(stderr.writes).toContain(line("Runtime failure: cleanup failed"));
+  });
 });

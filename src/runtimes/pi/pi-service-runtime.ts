@@ -18,7 +18,11 @@ import {
   type VoiceRuntimeIo,
   type VoiceTurnResult,
 } from "../voice/voice-turn.js";
-import { createDesktopVoiceAdapters } from "../voice/desktop-voice-adapter-registry.js";
+import {
+  createDesktopVoiceAdapters,
+  type DesktopVoiceAdapters,
+} from "../voice/desktop-voice-adapter-registry.js";
+import { cleanupVoiceAdapters } from "../voice/voice-cleanup.js";
 
 type PiServiceRuntimeIo = VoiceRuntimeIo;
 
@@ -28,6 +32,10 @@ interface PiServiceRuntimeOptions extends Pick<
 > {
   config?: LoadedRuntimeConfig;
   configPath?: string;
+  createVoiceAdapters?: (
+    voiceConfig: ReturnType<typeof requireVoiceConfig>,
+    desktopVoiceConfig: ReturnType<typeof requireDesktopVoiceConfig>,
+  ) => DesktopVoiceAdapters;
   io?: PiServiceRuntimeIo;
   now?: () => Date;
   processSignals?: ServiceProcessSignals;
@@ -76,10 +84,9 @@ export async function runPiServiceRuntime(
 
       const voiceConfig = requireVoiceConfig(loadedConfig);
       const desktopVoiceConfig = requireDesktopVoiceConfig(loadedConfig);
-      const adapters = createDesktopVoiceAdapters(
-        voiceConfig,
-        desktopVoiceConfig,
-      );
+      const adapters = (
+        options.createVoiceAdapters ?? createDesktopVoiceAdapters
+      )(voiceConfig, desktopVoiceConfig);
 
       try {
         await (options.runVoiceTurn ?? runVoiceTurn)(
@@ -97,7 +104,7 @@ export async function runPiServiceRuntime(
           options.io,
         );
       } finally {
-        await adapters.cleanup?.();
+        await cleanupVoiceAdapters(() => adapters.cleanup?.(), options.io);
       }
     },
     ...(options.shutdownHooks ? { shutdownHooks: options.shutdownHooks } : {}),

@@ -20,7 +20,7 @@ import {
   type VoiceRuntimeIo,
   type VoiceTurnResult,
 } from "./voice-turn.js";
-import { logRuntimeFailure } from "../human-boundary.js";
+import { cleanupVoiceAdapters } from "./voice-cleanup.js";
 
 export interface VoiceRuntime {
   runOnce(): Promise<VoiceTurnResult>;
@@ -81,11 +81,7 @@ export async function createVoiceRuntime(
       try {
         return await runVoiceTurn(dependencies, options.io);
       } finally {
-        try {
-          await voiceAdapters.cleanup?.();
-        } catch (error) {
-          logRuntimeFailure(error, options.io ?? {});
-        }
+        await cleanupVoiceAdapters(() => voiceAdapters.cleanup?.(), options.io);
       }
     },
   };
