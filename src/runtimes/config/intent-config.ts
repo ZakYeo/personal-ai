@@ -2,7 +2,7 @@ import type { OpenAIIntentConfig } from "../../ports/assistant.js";
 import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
 import type { LoadedRuntimeConfig } from "./config.js";
 
-type ResolvedIntentConfig =
+export type ResolvedIntentConfig =
   | { provider: "deterministic" }
   | { openai: OpenAIIntentConfig; provider: "openai" };
 
