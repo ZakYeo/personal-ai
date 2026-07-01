@@ -135,6 +135,11 @@ Feature adapter registries should be explicit per-feature maps. Runtime
 composition should pass adapter factories narrow dependency/context objects
 instead of broad loaded runtime config so real feature integrations can add
 credentials or adapter-specific settings without spreading selection policy.
+The selected adapter's resolved config should be typed at the same boundary as
+the selected adapter factory. Do not pass `unknown` adapter config through a
+generic feature context and recover the real shape with casts inside factories.
+If adapter config differs by adapter ID, model that relationship in a resolved
+discriminated type or in the registry entry itself.
 
 The same rule applies to safety policy, fallback policy, and config resolution:
 centralize the policy where drift would create inconsistent user-facing or
@@ -188,6 +193,10 @@ boundary accepts an environment map, clock, IO streams, process state, network
 client, or shutdown hook, nested runtime creation should receive those same
 dependencies instead of falling back to `process.env`, `globalThis.fetch`,
 `new Date()`, or process streams.
+Clock dependencies should represent a clock, not a construction-time timestamp,
+for any runtime or assistant that can live beyond a single deterministic test
+call. Prefer injecting `now: () => Date` or a `ClockPort` through composition.
+Use a fixed `Date` only inside test helpers that intentionally freeze time.
 
 Command-based adapters should preserve diagnostics for every final failure
 mode. Non-zero exits, spawn failures where available, and timeouts should keep
@@ -234,6 +243,9 @@ should also guard against subtler boundary and abstraction drift.
   unregistered adapter errors should be owned once per policy family.
 - Model adapter registries directly instead of encoding feature, provider, or
   adapter identity into strings that later need parsing.
+- Keep selected adapter config tied to the selected adapter factory. Avoid
+  `unknown` adapter config bags and downstream casts when a typed resolver or
+  registry-local config parser can prove the shape once.
 - Keep provider adapters from becoming catch-all modules. HTTP transport,
   request construction, provider response extraction, provider-output parsing,
   and application type validation should split once a real adapter starts to
@@ -244,6 +256,9 @@ should also guard against subtler boundary and abstraction drift.
 - Nested runtime factories should preserve dependency injection all the way down
   the composition stack, especially for provider environment and network
   dependencies.
+- Runtime clock injection should remain live across long-running processes.
+  Avoid converting an injectable clock into a one-time `Date` snapshot during
+  nested runtime or assistant construction.
 - Shared user-facing matching semantics, such as wake phrase normalization,
   should live in one helper per adapter family so mock and real runtimes do not
   drift.
@@ -251,6 +266,13 @@ should also guard against subtler boundary and abstraction drift.
   feature-specific branches. When matching rules grow, prefer data-backed
   deterministic rules or feature-local fixtures that keep routing tied to
   declared capability metadata.
+- Cleanup and best-effort resource release should not silently change runtime
+  control-flow semantics. When shared runtimes treat cleanup failure as logged
+  diagnostics, environment-specific runtimes should use the same policy unless
+  a tested lifecycle requirement says cleanup failure must fail the turn.
+- Command-process failure wrappers should preserve available stdout and stderr
+  for all final failure modes, including spawn errors, non-zero exits, and
+  timeouts. A raw process error is not enough if output was captured.
 - Treat duplication reports as design prompts. A small clone may be acceptable,
   but repeated control-flow or policy duplication should trigger a search for
   the canonical owner before more branches are added.

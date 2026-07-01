@@ -254,12 +254,17 @@ must remain transitive. A voice or service runtime that builds the text
 assistant should forward injected environment maps, network clients, clocks, IO
 streams, and process state instead of allowing nested composition to read
 globals implicitly.
+For long-running runtimes, clock injection should remain a callable clock all
+the way to the assistant core. A runtime may freeze time for a deterministic
+test, but service and voice composition should not accidentally turn an injected
+clock into a single startup timestamp.
 
 Command-based adapters should execute configured programs as `command` plus an
 argument array, not as shell-concatenated command strings. They should enforce a
 timeout, capture stdout and stderr for diagnostics, preserve captured output on
-both non-zero exits and timeout failures, and let the runtime boundary decide
-what safe response or fallback output reaches the human.
+non-zero exits, spawn failures where available, and timeout failures, and let
+the runtime boundary decide what safe response or fallback output reaches the
+human.
 
 ## Process Lifecycle
 
@@ -290,6 +295,11 @@ The Raspberry Pi service command builds on this service boundary. It validates
 the required voice and desktop command config during startup, runs configured
 voice turns until a shutdown signal is received, logs diagnostics to stderr, and
 cleans up temporary capture and speech files after each service turn.
+Cleanup is best-effort runtime resource release unless a runtime explicitly
+documents and tests a stricter lifecycle guarantee. Voice and service runtimes
+should keep cleanup failure policy aligned with the shared runtime helper:
+preserve diagnostics internally and avoid turning cleanup drift into a different
+turn or retry outcome by accident.
 
 ## Failure Handling
 

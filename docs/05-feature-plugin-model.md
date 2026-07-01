@@ -126,6 +126,11 @@ feature-to-adapter registry. Existing deterministic adapters are selected as
 should add entries to the same registry shape and receive narrow adapter
 dependencies/config from runtime composition rather than importing provider
 selection policy into feature modules.
+Adapter-specific configuration should be resolved as part of selecting the
+adapter, not passed as an untyped generic bag. A feature adapter registry entry
+should either receive the exact resolved config type it needs or own the small
+resolver that proves that type. Avoid `unknown` adapter config plus casts inside
+feature adapter factories; that hides the real feature/provider invariant.
 
 Deterministic intent matching should follow the same capability-driven shape as
 real provider routing. A small deterministic adapter may use simple rules for
@@ -134,6 +139,11 @@ When deterministic matching grows, express rules as data tied to declared
 capability names, or keep feature-specific deterministic fixtures near the
 feature contract tests, so adding a feature does not require editing unrelated
 shared interpreter control flow.
+The review bar for deterministic routing is the same as the production routing
+bar: adding a capability should primarily add capability-owned metadata or
+rules, not another condition in a shared interpreter. Central deterministic
+matching may orchestrate registered rules, but it should not own feature
+knowledge beyond the declared capability contract.
 
 Feature authors should keep the declared parameter object literal stable with `as const satisfies FeatureCapabilityParameters` when it is shared outside the builder. This preserves literal metadata such as `required: true`, allowing `defineCapability` to make required arguments non-optional and optional arguments optional in the handler.
 

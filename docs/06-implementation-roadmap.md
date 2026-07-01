@@ -475,6 +475,8 @@ Deferred hardening themes to keep checking during Milestone 4:
   settings from leaking through core contracts.
 - Keep raw config parsing separate from runtime-specific resolution so selected
   provider, adapter, and command invariants are proved by one canonical owner.
+- Keep selected adapter config typed with the selected adapter factory rather
+  than passing untyped config bags through generic contexts and casting later.
 - Promote diagnostic-aware assistant outcomes to a stable public contract for
   runtime boundaries before more runtime helpers depend on preserved diagnostic
   data.
@@ -489,10 +491,14 @@ Deferred hardening themes to keep checking during Milestone 4:
   before adding another voice runtime or wake word adapter.
 - Ensure nested runtime factories forward injected environment, network, clock,
   IO, and process dependencies rather than falling back to globals.
-- Preserve captured command stdout/stderr for timeout diagnostics as well as
-  non-zero exits.
+- Preserve live clock injection through long-running runtime composition instead
+  of snapshotting a construction-time `Date`.
+- Preserve captured command stdout/stderr for spawn, timeout, and non-zero exit
+  diagnostics.
 - Keep deterministic intent matching data-backed or feature-local once it grows
   beyond the initial fixture set.
+- Keep cleanup failure handling aligned with shared runtime lifecycle semantics
+  unless a runtime documents and tests a stricter failure policy.
 
 ## Milestone 5: Raspberry Pi Deployment
 
