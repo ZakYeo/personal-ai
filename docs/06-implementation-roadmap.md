@@ -353,10 +353,10 @@ Implemented structure:
 
 - The text assistant runtime is named `createConfiguredTextRuntime`; deterministic
   behavior is selected through `intent.provider: "deterministic"`.
-- Broad config parsing remains in `src/runtimes/config/config.ts`, while
-  assistant policy projection, intent provider resolution, voice adapter ID
-  resolution, and desktop voice command resolution live in focused config
-  modules.
+- `src/runtimes/config/config.ts` owns top-level config loading and assembly,
+  while raw subsection parsing, assistant policy projection, intent provider
+  resolution, voice adapter ID resolution, and desktop voice command resolution
+  live in focused config modules.
 - Provider-facing capability catalog construction lives in shared runtime
   composition and is reused by OpenAI intent provider selection.
 
