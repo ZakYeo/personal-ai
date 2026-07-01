@@ -1,5 +1,6 @@
 import type { AlarmStore } from "../ports/alarm-store.js";
 import type { FeaturePlugin } from "../ports/feature.js";
+import type { LoadedRuntimeConfig } from "./config/config.js";
 import { defineCapability, defineFeature } from "../ports/feature.js";
 import { enabledDeterministicConfig } from "../test-support/deterministic-runtime-fixtures.js";
 import {
@@ -14,14 +15,16 @@ import {
 } from "./feature-adapter-selection.js";
 
 describe("createConfiguredFeatures", () => {
-  it("passes narrow adapter dependencies and adapter config to registered factories", () => {
+  it("passes narrow adapter dependencies and selected feature config to registered entries", () => {
     const alarmStore = createFakeAlarmStore();
     let observedContext: FeatureAdapterContext | undefined;
     const registry: FeatureAdapterRegistry = {
       calendar: {
-        mock: (context) => {
-          observedContext = context;
-          return createTestFeature("calendar");
+        mock: {
+          create: (context) => {
+            observedContext = context;
+            return createTestFeature("calendar");
+          },
         },
       },
     };
@@ -43,7 +46,7 @@ describe("createConfiguredFeatures", () => {
         env: expect.any(Object) as Record<string, string | undefined>,
         fetch: expect.any(Function) as typeof fetch,
       },
-      adapterConfig: undefined,
+      featureConfig: config.features.calendar,
     });
   });
 
@@ -84,8 +87,13 @@ describe("createConfiguredFeatures", () => {
     ).toThrow('Config feature "calendar".google must be configured.');
   });
 
-  it("resolves Google calendar config before invoking adapter factories", () => {
-    const factory = vi.fn(() => createTestFeature("calendar"));
+  it("lets registered entries resolve their selected adapter config", () => {
+    const resolvedConfigs: TestGoogleConfig[] = [];
+    const factory = vi.fn((adapterConfig: TestGoogleConfig) => {
+      resolvedConfigs.push(adapterConfig);
+
+      return createTestFeature("calendar");
+    });
     const googleCalendarConfig = withFeatureEnabled(
       "alarms",
       false,
@@ -116,18 +124,31 @@ describe("createConfiguredFeatures", () => {
     createConfiguredFeatures(config, {
       registry: {
         calendar: {
-          google: factory,
+          google: {
+            create: (context) => {
+              const adapterConfig = requireTestGoogleConfig(
+                context.featureConfig,
+              );
+
+              return factory(adapterConfig);
+            },
+          },
         },
       },
     });
 
-    expect(factory).toHaveBeenCalledWith(
-      expect.objectContaining({
-        adapterConfig: {
-          google: config.features.calendar.google,
+    expect(factory).toHaveBeenCalledWith({
+      google: {
+        accessTokenEnv: config.features.calendar.google.accessTokenEnv,
+      },
+    });
+    expect(resolvedConfigs).toEqual([
+      {
+        google: {
+          accessTokenEnv: config.features.calendar.google.accessTokenEnv,
         },
-      }),
-    );
+      },
+    ]);
   });
 });
 
@@ -149,5 +170,32 @@ function createFakeAlarmStore(): AlarmStore {
   return {
     add: vi.fn(),
     list: vi.fn(() => []),
+  };
+}
+
+interface TestGoogleConfig {
+  google: {
+    accessTokenEnv: string;
+  };
+}
+
+function requireTestGoogleConfig(
+  featureConfig: LoadedRuntimeConfig["features"][string],
+): TestGoogleConfig {
+  const googleConfig = featureConfig.google;
+
+  if (
+    typeof googleConfig !== "object" ||
+    googleConfig === null ||
+    !("accessTokenEnv" in googleConfig) ||
+    typeof googleConfig.accessTokenEnv !== "string"
+  ) {
+    throw new Error('Config feature "calendar".google must be configured.');
+  }
+
+  return {
+    google: {
+      accessTokenEnv: googleConfig.accessTokenEnv,
+    },
   };
 }
