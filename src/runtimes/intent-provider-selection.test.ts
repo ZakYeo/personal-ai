@@ -31,6 +31,7 @@ describe("createConfiguredIntentInterpreter", () => {
         env: {},
         fetch: expect.any(Function) as typeof fetch,
       },
+      deterministicRules: [],
       features: [],
       intent: { provider: "deterministic" },
     });

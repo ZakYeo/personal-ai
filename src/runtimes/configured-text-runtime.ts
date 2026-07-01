@@ -3,7 +3,7 @@ import type { Assistant } from "../core/assistant/index.js";
 import type { ClockPort } from "../ports/assistant.js";
 import { loadConfig, type LoadedRuntimeConfig } from "./config/config.js";
 import { toAssistantPolicyConfig } from "./config/assistant-policy-config.js";
-import { createConfiguredFeatures } from "./feature-adapter-selection.js";
+import { createConfiguredFeatureSelection } from "./feature-adapter-selection.js";
 import { createConfiguredIntentInterpreter } from "./intent-provider-selection.js";
 
 export interface ConfiguredTextRuntimeOptions {
@@ -25,7 +25,7 @@ export async function createConfiguredTextRuntime(
   const clock = createClock(options.now);
   const env = options.env ?? process.env;
   const fetch = options.fetch ?? globalThis.fetch;
-  const features = createConfiguredFeatures(config, {
+  const featureSelection = createConfiguredFeatureSelection(config, {
     dependencies: {
       env,
       fetch,
@@ -35,11 +35,18 @@ export async function createConfiguredTextRuntime(
   return createAssistant({
     clock,
     config: toAssistantPolicyConfig(config),
-    features,
-    intentInterpreter: createConfiguredIntentInterpreter(config, features, {
-      env,
-      fetch,
-    }),
+    features: featureSelection.features,
+    intentInterpreter: createConfiguredIntentInterpreter(
+      config,
+      featureSelection.features,
+      {
+        env,
+        fetch,
+      },
+      {
+        deterministicRules: featureSelection.deterministicIntentRules,
+      },
+    ),
   });
 }
 

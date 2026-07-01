@@ -1,12 +1,24 @@
 import { createInMemoryAlarmStore } from "../adapters/local/in-memory-alarm-store.js";
 import { createGoogleCalendarAdapter } from "../adapters/google-calendar/google-calendar-adapter.js";
 import { createMockCalendar } from "../adapters/mock/mock-calendar.js";
-import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
-import { createCalendarFeature } from "../features/calendar/calendar-feature.js";
-import { createMessagingFeature } from "../features/messaging/messaging-feature.js";
+import {
+  alarmDeterministicIntentRules,
+  createAlarmFeature,
+} from "../features/alarms/alarm-feature.js";
+import {
+  calendarDeterministicIntentRules,
+  createCalendarFeature,
+} from "../features/calendar/calendar-feature.js";
+import {
+  createMessagingFeature,
+  messagingDeterministicIntentRules,
+} from "../features/messaging/messaging-feature.js";
 import type { AlarmStore } from "../ports/alarm-store.js";
 import type { GoogleCalendarConfig } from "../ports/calendar.js";
-import type { FeaturePlugin } from "../ports/feature.js";
+import type {
+  DeterministicFeatureRule,
+  FeaturePlugin,
+} from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
 
@@ -21,14 +33,21 @@ export interface FeatureAdapterContext {
   featureConfig: LoadedRuntimeConfig["features"][string];
 }
 
-export interface FeatureAdapterEntry {
+interface FeatureAdapterEntry {
   create(context: FeatureAdapterContext): FeaturePlugin;
 }
 
-export type FeatureAdapterRegistry = Record<
-  string,
-  Record<string, FeatureAdapterEntry>
->;
+export interface FeatureRegistryEntry {
+  adapters: Record<string, FeatureAdapterEntry>;
+  deterministicRules?: DeterministicFeatureRule[];
+}
+
+export type FeatureAdapterRegistry = Record<string, FeatureRegistryEntry>;
+
+interface ConfiguredFeatureSelection {
+  deterministicIntentRules: DeterministicFeatureRule[];
+  features: FeaturePlugin[];
+}
 
 interface CreateConfiguredFeaturesOptions {
   dependencies?: Partial<FeatureAdapterDependencies>;
@@ -39,19 +58,32 @@ export function createConfiguredFeatures(
   config: LoadedRuntimeConfig,
   options: CreateConfiguredFeaturesOptions = {},
 ): FeaturePlugin[] {
+  return createConfiguredFeatureSelection(config, options).features;
+}
+
+export function createConfiguredFeatureSelection(
+  config: LoadedRuntimeConfig,
+  options: CreateConfiguredFeaturesOptions = {},
+): ConfiguredFeatureSelection {
   const dependencies = mergeFeatureAdapterDependencies(options.dependencies);
   const registry = options.registry ?? createDefaultFeatureAdapterRegistry();
 
-  return Object.entries(config.features)
-    .filter(([, featureConfig]) => featureConfig.enabled)
-    .map(([featureId, featureConfig]) =>
-      selectConfiguredFeatureAdapter(
-        featureId,
-        featureConfig,
-        registry,
-        dependencies,
+  return {
+    deterministicIntentRules: createConfiguredDeterministicIntentRules(
+      config,
+      registry,
+    ),
+    features: Object.entries(config.features)
+      .filter(([, featureConfig]) => featureConfig.enabled)
+      .map(([featureId, featureConfig]) =>
+        selectConfiguredFeatureAdapter(
+          featureId,
+          featureConfig,
+          registry,
+          dependencies,
+        ),
       ),
-    );
+  };
 }
 
 function createFeatureAdapterDependencies(): FeatureAdapterDependencies {
@@ -74,37 +106,55 @@ function mergeFeatureAdapterDependencies(
 function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
   return {
     alarms: {
-      local: {
-        create: (context) =>
-          createAlarmFeature(context.dependencies.alarmStore),
-      },
-    },
-    calendar: {
-      google: {
-        create: (context) => {
-          const adapterConfig = requireCalendarGoogleAdapterConfig(
-            context.featureConfig,
-          );
-
-          return createCalendarFeature(
-            createGoogleCalendarAdapter({
-              config: adapterConfig.google,
-              env: context.dependencies.env,
-              fetch: context.dependencies.fetch,
-            }),
-          );
+      adapters: {
+        local: {
+          create: (context) =>
+            createAlarmFeature(context.dependencies.alarmStore),
         },
       },
-      mock: {
-        create: () => createCalendarFeature(createMockCalendar()),
+      deterministicRules: alarmDeterministicIntentRules,
+    },
+    calendar: {
+      adapters: {
+        google: {
+          create: (context) => {
+            const adapterConfig = requireCalendarGoogleAdapterConfig(
+              context.featureConfig,
+            );
+
+            return createCalendarFeature(
+              createGoogleCalendarAdapter({
+                config: adapterConfig.google,
+                env: context.dependencies.env,
+                fetch: context.dependencies.fetch,
+              }),
+            );
+          },
+        },
+        mock: {
+          create: () => createCalendarFeature(createMockCalendar()),
+        },
       },
+      deterministicRules: calendarDeterministicIntentRules,
     },
     messaging: {
-      mock: {
-        create: () => createMessagingFeature(),
+      adapters: {
+        mock: {
+          create: () => createMessagingFeature(),
+        },
       },
+      deterministicRules: messagingDeterministicIntentRules,
     },
   };
+}
+
+function createConfiguredDeterministicIntentRules(
+  config: LoadedRuntimeConfig,
+  registry: FeatureAdapterRegistry,
+): DeterministicFeatureRule[] {
+  return Object.keys(config.features).flatMap(
+    (featureId) => registry[featureId]?.deterministicRules ?? [],
+  );
 }
 
 function selectConfiguredFeatureAdapter(
@@ -113,16 +163,16 @@ function selectConfiguredFeatureAdapter(
   registry: FeatureAdapterRegistry,
   dependencies: FeatureAdapterDependencies,
 ): FeaturePlugin {
-  const adapterRegistry = registry[featureId];
+  const featureRegistry = registry[featureId];
 
-  if (!adapterRegistry) {
+  if (!featureRegistry) {
     throw new Error(`Config feature "${featureId}" is not registered.`);
   }
 
   const adapter = selectConfiguredRuntimeEntry({
     configuredId: featureConfig.adapter,
     missingMessage: `Config feature "${featureId}".adapter must be set for enabled features.`,
-    registry: adapterRegistry,
+    registry: featureRegistry.adapters,
     unknownMessage: (adapterId) =>
       `Config feature "${featureId}" adapter "${adapterId}" is not registered.`,
   });

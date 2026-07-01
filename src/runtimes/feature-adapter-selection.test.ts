@@ -2,13 +2,17 @@ import type { AlarmStore } from "../ports/alarm-store.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import { defineCapability, defineFeature } from "../ports/feature.js";
-import { enabledDeterministicConfig } from "../test-support/deterministic-runtime-fixtures.js";
+import {
+  disabledCalendarConfig,
+  enabledDeterministicConfig,
+} from "../test-support/deterministic-runtime-fixtures.js";
 import {
   withFeatureAdapterId,
   withFeatureEnabled,
   withoutFeatureAdapterId,
 } from "../test-support/runtime-composition.js";
 import {
+  createConfiguredFeatureSelection,
   createConfiguredFeatures,
   type FeatureAdapterContext,
   type FeatureAdapterRegistry,
@@ -20,10 +24,12 @@ describe("createConfiguredFeatures", () => {
     let observedContext: FeatureAdapterContext | undefined;
     const registry: FeatureAdapterRegistry = {
       calendar: {
-        mock: {
-          create: (context) => {
-            observedContext = context;
-            return createTestFeature("calendar");
+        adapters: {
+          mock: {
+            create: (context) => {
+              observedContext = context;
+              return createTestFeature("calendar");
+            },
           },
         },
       },
@@ -59,6 +65,20 @@ describe("createConfiguredFeatures", () => {
         ),
       ),
     ).not.toThrow();
+  });
+
+  it("exposes configured deterministic rules separately from enabled feature construction", () => {
+    const selection = createConfiguredFeatureSelection(disabledCalendarConfig);
+
+    expect(selection.features.map((feature) => feature.id)).toEqual([
+      "messaging",
+      "alarms",
+    ]);
+    expect(selection.deterministicIntentRules).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ capability: "calendar.search_events" }),
+      ]),
+    );
   });
 
   it("rejects enabled features without registered feature adapters", () => {
@@ -124,13 +144,15 @@ describe("createConfiguredFeatures", () => {
     createConfiguredFeatures(config, {
       registry: {
         calendar: {
-          google: {
-            create: (context) => {
-              const adapterConfig = requireTestGoogleConfig(
-                context.featureConfig,
-              );
+          adapters: {
+            google: {
+              create: (context) => {
+                const adapterConfig = requireTestGoogleConfig(
+                  context.featureConfig,
+                );
 
-              return factory(adapterConfig);
+                return factory(adapterConfig);
+              },
             },
           },
         },
