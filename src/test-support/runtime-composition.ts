@@ -11,7 +11,7 @@ type ConfiguredTextRuntimeHarnessOptions = Partial<{
   configPath: string;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
-  now: Date;
+  now: () => Date;
   useRuntimeDefaultConfig: boolean;
 }>;
 
@@ -29,7 +29,7 @@ export async function createConfiguredTextRuntimeHarness(
     ...(options.configPath ? { configPath: options.configPath } : {}),
     ...(options.env ? { env: options.env } : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
-    now: options.now ?? deterministicNow,
+    now: options.now ?? (() => deterministicNow),
   });
 }
 

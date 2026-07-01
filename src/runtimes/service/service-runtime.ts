@@ -157,7 +157,7 @@ function createServiceAssistant(
     ...(options.configPath ? { configPath: options.configPath } : {}),
     ...(options.env ? { env: options.env } : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
-    ...(options.now ? { now: options.now() } : {}),
+    ...(options.now ? { now: options.now } : {}),
   });
 }
 

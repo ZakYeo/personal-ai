@@ -144,7 +144,7 @@ function buildRuntimeOptions(
   return {
     env,
     ...(parsed.configPath ? { configPath: parsed.configPath } : {}),
-    ...(fixedNow ? { now: new Date(fixedNow) } : {}),
+    ...(fixedNow ? { now: () => new Date(fixedNow) } : {}),
   };
 }
 
@@ -162,7 +162,7 @@ function buildVoiceRuntimeOptions(
       stderr: io.stderr,
     },
     ...(parsed.configPath ? { configPath: parsed.configPath } : {}),
-    ...(fixedNow ? { now: new Date(fixedNow) } : {}),
+    ...(fixedNow ? { now: () => new Date(fixedNow) } : {}),
     ...(parsed.utterance ? { utterance: parsed.utterance } : {}),
   };
 }

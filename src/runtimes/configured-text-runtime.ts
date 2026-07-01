@@ -11,7 +11,7 @@ export interface ConfiguredTextRuntimeOptions {
   configPath?: string;
   env?: Record<string, string | undefined>;
   fetch?: typeof fetch;
-  now?: Date;
+  now?: () => Date;
 }
 
 export async function createConfiguredTextRuntime(
@@ -43,10 +43,10 @@ export async function createConfiguredTextRuntime(
   });
 }
 
-function createClock(now: Date | undefined): ClockPort {
+function createClock(now: (() => Date) | undefined): ClockPort {
   if (now) {
     return {
-      now: () => now,
+      now,
     };
   }
 

@@ -139,6 +139,45 @@ describe("createConfiguredTextRuntime", () => {
     );
   });
 
+  it("keeps injected clocks live across assistant calls", async () => {
+    let now = new Date("2026-06-26T09:00:00.000Z");
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "wedding-2026",
+              summary: "Upcoming wedding",
+              start: { date: "2026-09-12" },
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+    const assistant = await createConfiguredTextRuntimeHarness({
+      config: createRuntimeConfigWithGoogleCalendarAdapter(),
+      env: { GOOGLE_CALENDAR_ACCESS_TOKEN: "test-google-token" },
+      fetch,
+      now: () => now,
+    });
+
+    await assistant.handleText(deterministicScenarios.calendarWedding.text);
+    now = new Date("2026-06-26T09:01:00.000Z");
+    await assistant.handleText(deterministicScenarios.calendarWedding.text);
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("timeMin=2026-06-26T09%3A00%3A00.000Z"),
+      expect.any(Object),
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("timeMin=2026-06-26T09%3A01%3A00.000Z"),
+      expect.any(Object),
+    );
+  });
+
   it("rejects enabled features without registered adapters", async () => {
     await expect(
       createConfiguredTextRuntimeHarness({

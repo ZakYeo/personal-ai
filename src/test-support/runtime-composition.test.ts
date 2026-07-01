@@ -90,7 +90,9 @@ describe("runtime composition test support", () => {
 
   it("allows explicit clock overrides", async () => {
     const now = new Date(deterministicNow.getTime() + 60_000);
-    const assistant = await createConfiguredTextRuntimeHarness({ now });
+    const assistant = await createConfiguredTextRuntimeHarness({
+      now: () => now,
+    });
 
     await expect(
       assistant.handleText(
