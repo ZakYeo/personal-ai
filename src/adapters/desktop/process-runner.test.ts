@@ -5,6 +5,7 @@ import {
 } from "../../test-support/adapter-contract.js";
 import type {
   CommandExecutionError,
+  CommandSpawnError,
   CommandTimeoutError,
 } from "./process-runner.js";
 import { runCommand } from "./process-runner.js";
@@ -49,5 +50,17 @@ describe("runCommand", () => {
       stdout: "partial transcript",
       timeoutMs: 10,
     } satisfies Partial<CommandTimeoutError>);
+  });
+
+  it("rejects spawn failures with preserved diagnostics", async () => {
+    await expect(
+      runCommand({
+        command: "/definitely/missing/personal-ai-command",
+      }),
+    ).rejects.toMatchObject({
+      cause: expect.any(Error) as Error,
+      stderr: "",
+      stdout: "",
+    } satisfies Partial<CommandSpawnError>);
   });
 });

@@ -35,6 +35,18 @@ export class CommandTimeoutError extends Error {
   }
 }
 
+export class CommandSpawnError extends Error {
+  constructor(
+    message: string,
+    readonly cause: unknown,
+    readonly stderr: string,
+    readonly stdout: string,
+  ) {
+    super(message);
+    this.name = "CommandSpawnError";
+  }
+}
+
 const defaultTimeoutMs = 30_000;
 
 export function runCommand(
@@ -83,7 +95,17 @@ export function runCommand(
 
       settled = true;
       clearTimeout(timer);
-      reject(error);
+      const stdout = Buffer.concat(stdoutChunks).toString("utf8");
+      const stderr = Buffer.concat(stderrChunks).toString("utf8");
+
+      reject(
+        new CommandSpawnError(
+          `Command "${request.command}" failed to start.`,
+          error,
+          stderr,
+          stdout,
+        ),
+      );
     });
 
     child.on("close", (code) => {
