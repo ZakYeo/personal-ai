@@ -21,13 +21,16 @@ export async function createDesktopVoiceRuntime(
   options: DesktopVoiceRuntimeOptions = {},
 ): Promise<VoiceRuntime> {
   return createVoiceRuntime({
-    createAdapters: createDesktopVoiceAdapters,
     ...(options.config ? { config: options.config } : {}),
     ...(options.configPath ? { configPath: options.configPath } : {}),
     ...(options.env ? { env: options.env } : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(options.io ? { io: options.io } : {}),
     ...(options.now ? { now: options.now } : {}),
-    resolveAdapterOptions: requireDesktopVoiceConfig,
+    resolveAdapters: (config, voiceConfig) =>
+      createDesktopVoiceAdapters(
+        voiceConfig,
+        requireDesktopVoiceConfig(config),
+      ),
   });
 }

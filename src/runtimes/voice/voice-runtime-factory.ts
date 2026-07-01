@@ -35,23 +35,21 @@ interface VoiceAdapters {
   wakeWord: WakeWordPort;
 }
 
-interface VoiceRuntimeFactoryOptions<TAdapterOptions> extends Pick<
+interface VoiceRuntimeFactoryOptions extends Pick<
   ConfiguredTextRuntimeOptions,
   "env" | "fetch" | "now"
 > {
-  adapterOptions?: TAdapterOptions;
   config?: LoadedRuntimeConfig;
   configPath?: string;
-  createAdapters(
-    config: ResolvedVoiceConfig,
-    options: TAdapterOptions,
-  ): VoiceAdapters;
   io?: VoiceRuntimeIo;
-  resolveAdapterOptions?(config: LoadedRuntimeConfig): TAdapterOptions;
+  resolveAdapters(
+    config: LoadedRuntimeConfig,
+    voiceConfig: ResolvedVoiceConfig,
+  ): VoiceAdapters;
 }
 
-export async function createVoiceRuntime<TAdapterOptions>(
-  options: VoiceRuntimeFactoryOptions<TAdapterOptions>,
+export async function createVoiceRuntime(
+  options: VoiceRuntimeFactoryOptions,
 ): Promise<VoiceRuntime> {
   const config =
     options.config ??
@@ -59,10 +57,7 @@ export async function createVoiceRuntime<TAdapterOptions>(
       options.configPath ? { configPath: options.configPath } : undefined,
     ));
   const voiceConfig = requireVoiceConfig(config);
-  const adapterOptions = options.resolveAdapterOptions
-    ? options.resolveAdapterOptions(config)
-    : (options.adapterOptions as TAdapterOptions);
-  const voiceAdapters = options.createAdapters(voiceConfig, adapterOptions);
+  const voiceAdapters = options.resolveAdapters(config, voiceConfig);
 
   const dependencies: VoiceRuntimeDependencies = {
     assistant: await createConfiguredTextRuntime({

@@ -25,13 +25,13 @@ export async function createMockVoiceRuntime(
     "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?";
 
   return createVoiceRuntime({
-    adapterOptions: { utterance },
-    createAdapters: createMockVoiceAdapters,
     ...(options.config ? { config: options.config } : {}),
     ...(options.configPath ? { configPath: options.configPath } : {}),
     ...(options.env ? { env: options.env } : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(options.io ? { io: options.io } : {}),
     ...(options.now ? { now: options.now } : {}),
+    resolveAdapters: (_config, voiceConfig) =>
+      createMockVoiceAdapters(voiceConfig, { utterance }),
   });
 }
