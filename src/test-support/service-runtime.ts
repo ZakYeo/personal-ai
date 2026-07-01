@@ -39,6 +39,11 @@ export function createServiceRuntimeHarness(
         ...(options.processSignals
           ? { processSignals: options.processSignals }
           : {}),
+        retryAfterFailure:
+          options.retryAfterFailure ??
+          (() => {
+            return Promise.resolve();
+          }),
         runTurn,
         ...(options.shutdownHooks
           ? { shutdownHooks: options.shutdownHooks }

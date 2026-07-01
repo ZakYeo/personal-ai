@@ -7,7 +7,11 @@ import {
   createServiceSignalController,
 } from "../../test-support/service-runtime.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
-import type { ServiceTurnContext } from "./service-runtime.js";
+import type {
+  ServiceProcessSignals,
+  ServiceSignal,
+  ServiceTurnContext,
+} from "./service-runtime.js";
 
 describe("runServiceRuntime", () => {
   it("can compose the configured text assistant from an injected config path", async () => {
@@ -53,8 +57,40 @@ describe("runServiceRuntime", () => {
     );
   });
 
-  it("keeps running after a recoverable service turn failure", async () => {
+  it("returns a safe startup failure outcome and cleans up when signal registration fails", async () => {
+    const unregister = vi.fn();
+    const processSignals: ServiceProcessSignals = {
+      onSignal(signal: ServiceSignal) {
+        if (signal === "SIGTERM") {
+          throw new Error("raw signal registration failure");
+        }
+
+        return unregister;
+      },
+    };
+    const runTurn = vi.fn().mockResolvedValue(undefined);
     const harness = createServiceRuntimeHarness({
+      processSignals,
+      runTurn,
+    });
+
+    await expect(harness.run()).resolves.toEqual({
+      response: safeRuntimeFallbackResponse,
+      status: "startup_failed",
+      turnsCompleted: 0,
+    });
+
+    expect(unregister).toHaveBeenCalledTimes(1);
+    expect(harness.stderr.writes).toContain(
+      line("Runtime failure: raw signal registration failure"),
+    );
+    expect(runTurn).not.toHaveBeenCalled();
+  });
+
+  it("keeps running after a recoverable service turn failure", async () => {
+    const retryAfterFailure = vi.fn().mockResolvedValue(undefined);
+    const harness = createServiceRuntimeHarness({
+      retryAfterFailure,
       runTurn: vi
         .fn()
         .mockRejectedValueOnce(new Error("raw turn failure"))
@@ -70,8 +106,34 @@ describe("runServiceRuntime", () => {
     });
 
     expect(harness.runTurn).toHaveBeenCalledTimes(2);
+    expect(retryAfterFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        failures: 1,
+      }),
+    );
     expect(harness.stderr.writes).toContain(
       line("Runtime failure: raw turn failure"),
+    );
+  });
+
+  it("returns a safe failure outcome when the retry policy treats repeated turn failures as unrecoverable", async () => {
+    const harness = createServiceRuntimeHarness({
+      retryAfterFailure: vi.fn().mockRejectedValue(new Error("raw retry stop")),
+      runTurn: vi.fn().mockRejectedValue(new Error("raw turn failure")),
+    });
+
+    await expect(harness.run()).resolves.toEqual({
+      response: safeRuntimeFallbackResponse,
+      status: "failed",
+      turnsCompleted: 0,
+    });
+
+    expect(harness.runTurn).toHaveBeenCalledTimes(1);
+    expect(harness.stderr.writes).toContain(
+      line("Runtime failure: raw turn failure"),
+    );
+    expect(harness.stderr.writes).toContain(
+      line("Runtime failure: raw retry stop"),
     );
   });
 

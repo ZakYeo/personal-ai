@@ -505,8 +505,9 @@ Raspberry Pi-specific device behavior.
 
 Included:
 
-- A small service runtime contract with injectable logger, clock, config path,
-  IO/process state, signal handling, and shutdown hooks.
+- A small service runtime contract with injectable stderr diagnostics, clock,
+  config path, IO/process state, signal handling, retry policy, and shutdown
+  hooks.
 - Tests for startup failure, one recoverable loop failure, graceful shutdown,
   and safe human/operator-facing diagnostics.
 - Shared service runtime test-support helpers before broad service tests
@@ -526,7 +527,7 @@ Preparatory baseline:
 
 - `src/runtimes/service/service-runtime.ts` owns a neutral service loop with
   injectable assistant composition, turn execution, clock access, signal
-  registration, stderr diagnostics, and shutdown hooks.
+  registration, retry behavior, stderr diagnostics, and shutdown hooks.
 - `src/test-support/service-runtime.ts` provides service runtime dependency
   builders and injected signal controllers before broader service tests
   accumulate setup.
