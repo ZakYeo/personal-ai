@@ -5,6 +5,7 @@ import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
 import { createCalendarFeature } from "../features/calendar/calendar-feature.js";
 import { createMessagingFeature } from "../features/messaging/messaging-feature.js";
 import type { AlarmStore } from "../ports/alarm-store.js";
+import type { GoogleCalendarConfig } from "../ports/calendar.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
@@ -16,8 +17,8 @@ export interface FeatureAdapterDependencies {
 }
 
 export interface FeatureAdapterContext {
+  adapterConfig: unknown;
   dependencies: FeatureAdapterDependencies;
-  featureConfig: LoadedRuntimeConfig["features"][string];
 }
 
 export type FeatureAdapterFactory = (
@@ -45,8 +46,8 @@ export function createConfiguredFeatures(
     .filter(([, featureConfig]) => featureConfig.enabled)
     .map(([featureId, featureConfig]) =>
       selectConfiguredFeatureAdapter(featureId, featureConfig, registry, {
+        adapterConfig: undefined,
         dependencies,
-        featureConfig,
       }),
     );
 }
@@ -75,15 +76,12 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
     },
     calendar: {
       google: (context) => {
-        if (!context.featureConfig.google) {
-          throw new Error(
-            'Config feature "calendar".google must be configured.',
-          );
-        }
+        const adapterConfig =
+          context.adapterConfig as CalendarGoogleAdapterConfig;
 
         return createCalendarFeature(
           createGoogleCalendarAdapter({
-            config: context.featureConfig.google,
+            config: adapterConfig.google,
             env: context.dependencies.env,
             fetch: context.dependencies.fetch,
           }),
@@ -117,5 +115,45 @@ function selectConfiguredFeatureAdapter(
       `Config feature "${featureId}" adapter "${adapterId}" is not registered.`,
   });
 
-  return factory(context);
+  return factory({
+    ...context,
+    adapterConfig: resolveFeatureAdapterConfig(featureId, featureConfig),
+  });
 }
+
+interface CalendarGoogleAdapterConfig {
+  google: GoogleCalendarConfig;
+}
+
+function resolveFeatureAdapterConfig(
+  featureId: string,
+  featureConfig: LoadedRuntimeConfig["features"][string],
+): unknown {
+  const resolver = featureAdapterConfigResolvers[featureId];
+
+  return resolver?.(featureConfig.adapter, featureConfig);
+}
+
+type FeatureAdapterConfigResolver = (
+  adapterId: string | undefined,
+  featureConfig: LoadedRuntimeConfig["features"][string],
+) => unknown;
+
+const featureAdapterConfigResolvers: Record<
+  string,
+  FeatureAdapterConfigResolver
+> = {
+  calendar: (adapterId, featureConfig) => {
+    if (adapterId !== "google") {
+      return;
+    }
+
+    if (!featureConfig.google) {
+      throw new Error('Config feature "calendar".google must be configured.');
+    }
+
+    return {
+      google: featureConfig.google,
+    } satisfies CalendarGoogleAdapterConfig;
+  },
+};

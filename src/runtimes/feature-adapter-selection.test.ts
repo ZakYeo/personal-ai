@@ -14,7 +14,7 @@ import {
 } from "./feature-adapter-selection.js";
 
 describe("createConfiguredFeatures", () => {
-  it("passes narrow adapter dependencies and feature config to registered factories", () => {
+  it("passes narrow adapter dependencies and adapter config to registered factories", () => {
     const alarmStore = createFakeAlarmStore();
     let observedContext: FeatureAdapterContext | undefined;
     const registry: FeatureAdapterRegistry = {
@@ -43,7 +43,7 @@ describe("createConfiguredFeatures", () => {
         env: expect.any(Object) as Record<string, string | undefined>,
         fetch: expect.any(Function) as typeof fetch,
       },
-      featureConfig: { enabled: true, adapter: "mock" },
+      adapterConfig: undefined,
     });
   });
 
@@ -82,6 +82,52 @@ describe("createConfiguredFeatures", () => {
     expect(() =>
       createConfiguredFeatures(withFeatureAdapterId("calendar", "google")),
     ).toThrow('Config feature "calendar".google must be configured.');
+  });
+
+  it("resolves Google calendar config before invoking adapter factories", () => {
+    const factory = vi.fn(() => createTestFeature("calendar"));
+    const googleCalendarConfig = withFeatureEnabled(
+      "alarms",
+      false,
+      withFeatureEnabled(
+        "messaging",
+        false,
+        withFeatureAdapterId("calendar", "google"),
+      ),
+    );
+    const config = {
+      ...googleCalendarConfig,
+      features: {
+        ...googleCalendarConfig.features,
+        calendar: {
+          enabled: true,
+          adapter: "google",
+          google: {
+            accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
+            baseUrl: "https://calendar.example.test/v3",
+            calendarId: "primary",
+            maxResults: 10,
+            timeoutMs: 30_000,
+          },
+        },
+      },
+    };
+
+    createConfiguredFeatures(config, {
+      registry: {
+        calendar: {
+          google: factory,
+        },
+      },
+    });
+
+    expect(factory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adapterConfig: {
+          google: config.features.calendar.google,
+        },
+      }),
+    );
   });
 });
 
