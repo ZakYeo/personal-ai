@@ -93,15 +93,16 @@ Run the CLI with a local OpenAI intent config:
 OPENAI_API_KEY=... npm run cli -- ask --config path/to/openai-config.json "Hey Jarvis, list my alarms"
 ```
 
-Run the live OpenAI intent E2E smoke test:
+Run the live OpenAI intent routing E2E test:
 
 ```bash
 npm run test:e2e:openai
 ```
 
-This command is opt-in, calls the live OpenAI Responses API, uses
-`gpt-5.4-nano`, and may consume API quota. It is not part of `npm run check`;
-normal validation remains deterministic and network-free.
+This command is opt-in, calls the live OpenAI Responses API, covers routing for
+the currently enabled feature capabilities, uses `gpt-5.4-nano`, and may
+consume API quota. It is not part of `npm run check`; normal validation remains
+deterministic and network-free.
 
 Run the CLI with a local Google Calendar feature config:
 
@@ -115,7 +116,7 @@ Common development commands:
 
 - `npm test` - run Vitest in watch mode.
 - `npm run test:run` - run Vitest once.
-- `npm run test:e2e:openai` - run the opt-in live OpenAI intent smoke test.
+- `npm run test:e2e:openai` - run the opt-in live OpenAI intent routing E2E test.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.

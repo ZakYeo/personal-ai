@@ -77,7 +77,7 @@
 - `npm test` - run Vitest.
 - `npm run test:run` - run Vitest once without watch mode.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
-- `npm run test:e2e:openai` - run the opt-in live OpenAI intent smoke test with `.env`.
+- `npm run test:e2e:openai` - run the opt-in live OpenAI intent routing E2E test with `.env`.
 - `npm run build` - compile the production JavaScript output.
 - `npm run cli -- ask "..."` - run the deterministic text CLI in development.
 - `npm run cli -- voice-once --utterance "..."` - run one simulated mock voice turn.
