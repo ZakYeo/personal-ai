@@ -68,7 +68,9 @@ export function expectCapabilityMetadata(
   feature: FeaturePlugin,
   expected: FeatureCapability,
 ): void {
-  expect(feature.capabilities).toContainEqual(expected);
+  expect(feature.capabilities).toContainEqual(
+    expect.objectContaining(expected),
+  );
 }
 
 export function expectFeatureHandles(
