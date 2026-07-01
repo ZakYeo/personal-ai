@@ -571,12 +571,38 @@ Implemented structure:
 - Temporary voice capture and speech files are cleaned up after each service
   turn.
 - ARM64 Docker/QEMU userland smoke commands are documented as optional
-  compatibility checks. Full Raspberry Pi OS QEMU VM support is deferred.
+  compatibility checks. Automated Raspberry Pi OS provisioning and `systemd`
+  validation remain deferred.
 
-Future milestone candidate:
+### Milestone 5.3: Raspberry Pi OS QEMU Smoke Support
 
-- Full Raspberry Pi OS QEMU VM support for closer service and OS simulation,
-  including documented image boot, service startup, shutdown, and limitations.
+Status: implemented.
+
+Goal: provide an opt-in Raspberry Pi OS QEMU smoke path for closer service and
+OS simulation without making default validation depend on hardware, QEMU, or
+downloaded OS images.
+
+Included:
+
+- `smoke:pi:qemu` script that validates explicit local Pi service config, image,
+  kernel, DTB, and QEMU binary inputs.
+- Stable dry-run output by default, with `--run` required before spawning QEMU.
+- Operator overrides for QEMU binary path, SSH host port, memory, and CPU count.
+- Documentation for required local artifacts, example usage, and limitations.
+
+Excluded:
+
+- Downloading or generating Raspberry Pi OS images, kernels, or DTBs.
+- Automated guest provisioning or `systemd` installation.
+- Inclusion in `npm run check` or repository hooks.
+
+Acceptance criteria:
+
+- The script prints a reproducible QEMU command by default.
+- Missing artifacts, missing QEMU, and invalid numeric options fail before
+  spawn with clear operator-facing messages.
+- QEMU is spawned only when `--run` is explicit.
+- README, AGENTS, runtime docs, and roadmap describe the smoke path and limits.
 
 ## Roadmap Rule
 

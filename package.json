@@ -28,6 +28,7 @@
     "package:sort": "sort-package-json",
     "package:sort:check": "sort-package-json --check",
     "secrets:check": "secretlint \"**/*\"",
+    "smoke:pi:qemu": "tsx src/runtimes/pi/pi-qemu-smoke.ts",
     "spellcheck": "cspell .",
     "test": "vitest",
     "test:coverage": "vitest --run --coverage",

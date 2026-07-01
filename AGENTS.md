@@ -85,6 +85,7 @@
 - `npm run cli -- voice-once --utterance "..."` - run one simulated mock voice turn.
 - `npm run cli -- desktop-voice-once --config path/to/desktop-config.json` - run one configured desktop voice turn.
 - `npm run cli -- pi-service --config path/to/pi-config.json` - run the Raspberry Pi service loop with local command-based voice config.
+- `npm run smoke:pi:qemu -- --config path/to/pi-config.json --image path/to/raspios.img --kernel path/to/kernel8.img --dtb path/to/pi.dtb` - print an opt-in Raspberry Pi OS QEMU smoke command; add `--run` only when intentionally spawning QEMU with local operator-provided artifacts.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.
 - `npm run package:sort:check` - check deterministic `package.json` ordering.

@@ -325,8 +325,25 @@ docker run --privileged --rm tonistiigi/binfmt --install arm64
 ```
 
 This container smoke path does not emulate Raspberry Pi audio hardware,
-firmware, GPIO, or `systemd`. Full Raspberry Pi OS QEMU VM support is deferred
-to a future milestone.
+firmware, GPIO, or `systemd`. Automated Raspberry Pi OS provisioning and
+`systemd` validation remain deferred.
+
+The first Raspberry Pi OS QEMU smoke path is opt-in and operator-driven:
+
+```bash
+npm run smoke:pi:qemu -- \
+  --config path/to/pi-config.json \
+  --image path/to/raspios.img \
+  --kernel path/to/kernel8.img \
+  --dtb path/to/bcm2710-rpi-3-b-plus.dtb
+```
+
+By default, this validates required local artifacts and prints the QEMU command
+without spawning a VM. Passing `--run` starts QEMU with the printed arguments.
+The command does not download Raspberry Pi OS images, kernels, or DTBs, does not
+provision `systemd`, and is not part of the deterministic `npm run check` gate.
+After the guest boots, run `npm run cli -- pi-service --config
+path/to/pi-config.json` inside the guest or an equivalent deployed checkout.
 
 ## Documentation Maintenance
 

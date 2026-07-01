@@ -116,6 +116,21 @@ docker run --privileged --rm tonistiigi/binfmt --install arm64
 
 This is a compatibility smoke check, not full Raspberry Pi hardware simulation.
 
+Print an opt-in Raspberry Pi OS QEMU smoke command:
+
+```bash
+npm run smoke:pi:qemu -- \
+  --config path/to/pi-config.json \
+  --image path/to/raspios.img \
+  --kernel path/to/kernel8.img \
+  --dtb path/to/bcm2710-rpi-3-b-plus.dtb
+```
+
+This command validates the local config, image, kernel, DTB, and QEMU binary,
+then prints the QEMU command plus the `pi-service` command to run after the
+guest boots. Add `--run` to spawn QEMU. This smoke path is opt-in, requires
+operator-provided Raspberry Pi OS artifacts, and is not part of `npm run check`.
+
 Run the CLI with a local OpenAI intent config:
 
 ```bash
@@ -153,6 +168,8 @@ Common development commands:
 - `npm run build` - compile production JavaScript.
 - `npm run cli -- pi-service --config path/to/pi-config.json` - run the
   Raspberry Pi service loop.
+- `npm run smoke:pi:qemu -- --config path/to/pi-config.json --image path/to/raspios.img --kernel path/to/kernel8.img --dtb path/to/pi.dtb` -
+  print an opt-in Raspberry Pi OS QEMU smoke command.
 - `npm run architecture:check` - enforce dependency boundaries.
 - `npm run check` - run the full validation suite.
 
