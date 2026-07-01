@@ -13,7 +13,7 @@ const defaultConfigPath = fileURLToPath(
   new URL("../../../config/default.json", import.meta.url),
 );
 
-export interface LoadConfigOptions {
+interface LoadConfigOptions {
   configPath?: string;
 }
 

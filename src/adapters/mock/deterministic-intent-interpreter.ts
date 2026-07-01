@@ -8,7 +8,7 @@ import type {
 } from "../../ports/intent.js";
 import { stripWakePhrase } from "../spoken-text.js";
 
-export interface DeterministicIntentRule {
+interface DeterministicIntentRule {
   capability: string;
   match(normalizedText: string): AssistantCommand["parameters"] | undefined;
 }

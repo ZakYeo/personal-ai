@@ -20,7 +20,7 @@ type IntentProviderFactory<TIntent extends ResolvedIntentConfig> = (context: {
   intent: TIntent;
 }) => IntentInterpreterPort;
 
-export type IntentProviderRegistry = {
+type IntentProviderRegistry = {
   [TIntent in ResolvedIntentConfig as TIntent["provider"]]?: IntentProviderFactory<TIntent>;
 };
 
