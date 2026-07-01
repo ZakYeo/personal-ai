@@ -8,7 +8,16 @@ import type {
 } from "../../ports/intent.js";
 import { stripWakePhrase } from "../spoken-text.js";
 
+export interface DeterministicIntentRule {
+  capability: string;
+  match(normalizedText: string): AssistantCommand["parameters"] | undefined;
+}
+
 export class DeterministicIntentInterpreter implements IntentInterpreterPort {
+  constructor(
+    private readonly rules: DeterministicIntentRule[] = defaultDeterministicIntentRules,
+  ) {}
+
   interpret(
     text: string,
     context: AssistantContext,
@@ -18,52 +27,14 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
       context.config.assistant.wakePhrases,
     );
 
-    if (
-      normalizedText.includes("calendar") &&
-      normalizedText.includes("upcoming wedding")
-    ) {
-      return Promise.resolve({
-        command: createCommand("calendar.search_events", text, {
-          query: "upcoming wedding",
-        }),
-      });
-    }
+    for (const rule of this.rules) {
+      const parameters = rule.match(normalizedText);
 
-    if (
-      normalizedText.includes("whatsapp") &&
-      (normalizedText.includes("respond") ||
-        normalizedText.includes("reply") ||
-        normalizedText.includes("draft"))
-    ) {
-      return Promise.resolve({
-        command: createCommand("messaging.draft_reply", text, {
-          channel: "whatsapp",
-        }),
-      });
-    }
-
-    const alarmCreateMatch = normalizedText.match(
-      /\bset (?:an? )?alarm(?: to (?<label>.+?))? in (?<minutes>\d+) minutes?\b/u,
-    );
-
-    if (alarmCreateMatch?.groups?.minutes) {
-      return Promise.resolve({
-        command: createCommand("alarm.create", text, {
-          label: alarmCreateMatch.groups.label ?? "alarm",
-          minutesFromNow: Number(alarmCreateMatch.groups.minutes),
-        }),
-      });
-    }
-
-    if (
-      normalizedText.includes("alarm") &&
-      (normalizedText.includes("list") ||
-        normalizedText.includes("show") ||
-        normalizedText.includes("what alarms"))
-    ) {
-      return Promise.resolve({
-        command: createCommand("alarm.list", text, {}),
-      });
+      if (parameters) {
+        return Promise.resolve({
+          command: createCommand(rule.capability, text, parameters),
+        });
+      }
     }
 
     return Promise.resolve({
@@ -93,3 +64,50 @@ function createCommand(
     rawText,
   };
 }
+
+const defaultDeterministicIntentRules: DeterministicIntentRule[] = [
+  {
+    capability: "calendar.search_events",
+    match: (text) =>
+      text.includes("calendar") && text.includes("upcoming wedding")
+        ? { query: "upcoming wedding" }
+        : undefined,
+  },
+  {
+    capability: "messaging.draft_reply",
+    match: (text) =>
+      text.includes("whatsapp") &&
+      (text.includes("respond") ||
+        text.includes("reply") ||
+        text.includes("draft"))
+        ? { channel: "whatsapp" }
+        : undefined,
+  },
+  {
+    capability: "alarm.create",
+    match: (text) => {
+      const alarmCreateMatch = text.match(
+        /\bset (?:an? )?alarm(?: to (?<label>.+?))? in (?<minutes>\d+) minutes?\b/u,
+      );
+
+      if (!alarmCreateMatch?.groups?.minutes) {
+        return;
+      }
+
+      return {
+        label: alarmCreateMatch.groups.label ?? "alarm",
+        minutesFromNow: Number(alarmCreateMatch.groups.minutes),
+      };
+    },
+  },
+  {
+    capability: "alarm.list",
+    match: (text) =>
+      text.includes("alarm") &&
+      (text.includes("list") ||
+        text.includes("show") ||
+        text.includes("what alarms"))
+        ? {}
+        : undefined,
+  },
+];

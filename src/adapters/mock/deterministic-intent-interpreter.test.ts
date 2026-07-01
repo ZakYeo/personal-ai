@@ -84,6 +84,25 @@ describe("DeterministicIntentInterpreter", () => {
     });
   });
 
+  it("interprets commands through configured deterministic rule data", async () => {
+    const ruleBackedInterpreter = new DeterministicIntentInterpreter([
+      {
+        capability: "test.echo",
+        match: (text) => (text.includes("echo") ? { value: text } : undefined),
+      },
+    ]);
+
+    await expect(
+      ruleBackedInterpreter.interpret("Hey Jarvis, echo this", context),
+    ).resolves.toEqual({
+      command: {
+        capability: "test.echo",
+        parameters: { value: "echo this" },
+        rawText: "Hey Jarvis, echo this",
+      },
+    });
+  });
+
   it("returns an unknown response when no deterministic command matches", async () => {
     await expect(
       interpreter.interpret("Hey Jarvis, order lunch", context),
