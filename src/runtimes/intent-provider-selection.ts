@@ -5,7 +5,10 @@ import {
 import { alarmDeterministicIntentRules } from "../features/alarms/alarm-feature.js";
 import { calendarDeterministicIntentRules } from "../features/calendar/calendar-feature.js";
 import { messagingDeterministicIntentRules } from "../features/messaging/messaging-feature.js";
-import type { DeterministicFeatureRule, FeaturePlugin  } from "../ports/feature.js";
+import type {
+  DeterministicFeatureRule,
+  FeaturePlugin,
+} from "../ports/feature.js";
 import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
 import type { IntentInterpreterPort } from "../ports/intent.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
