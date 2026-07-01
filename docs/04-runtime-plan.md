@@ -92,18 +92,28 @@ desktop voice adapters so user-facing wake behavior stays consistent.
 
 ### Raspberry Pi Runtime
 
-The Raspberry Pi runtime is a later target.
+The Raspberry Pi runtime runs the assistant as a long-lived service process.
 
 It should:
 
 - Run as a long-lived device process.
-- Use Pi-compatible audio input and output adapters.
+- Use Pi-compatible command-based audio input, speech-to-text, text-to-speech,
+  and audio output adapters.
 - Load device-specific configuration.
 - Log in a way that is suitable for a service.
 - Keep the service loop alive for recoverable command failures.
 - Eventually run under `systemd`.
 
-The Raspberry Pi runtime should not fork the assistant behavior. It should compose the same assistant core with Pi-specific adapters.
+The first implemented service command is:
+
+```bash
+personal-ai pi-service --config path/to/pi-config.json
+```
+
+The Raspberry Pi runtime does not fork assistant behavior. It composes the same
+assistant core with the existing service loop, shared voice-turn orchestration,
+and configured command-based voice adapters. Pi-specific command choices belong
+in local config, not in the checked-in default config.
 
 ## Configuration
 
@@ -276,6 +286,11 @@ failures clean up partial handlers, recoverable turn failures are logged before
 the injected retry policy runs, and injected `SIGINT`/`SIGTERM` handlers request
 graceful shutdown before unregistering.
 
+The Raspberry Pi service command builds on this service boundary. It validates
+the required voice and desktop command config during startup, runs configured
+voice turns until a shutdown signal is received, logs diagnostics to stderr, and
+cleans up temporary capture and speech files after each service turn.
+
 ## Failure Handling
 
 Runtimes are the last line of defense before a failure reaches a human. Lower-level code may throw, but runtime control loops should catch unhandled errors, preserve diagnostic detail in logs, and return a safe response such as "I hit a problem and could not complete that." Core-level feature failures should also preserve diagnostic causes while returning safe public text rather than raw exception messages.
@@ -291,10 +306,27 @@ The first Raspberry Pi deployment should be intentionally simple:
 - Install Node.js.
 - Install application dependencies.
 - Provide environment-specific config.
-- Run a service command.
+- Run `npm run cli -- pi-service --config path/to/pi-config.json`.
 - Later wrap it in `systemd`.
 
-Containerization can be considered later, but it is not required for the first Pi deployment.
+An optional ARM64 Linux container smoke check can validate Pi-like userland
+compatibility without real hardware:
+
+```bash
+docker run --rm --platform linux/arm64 \
+  -v "$PWD":/workspace -w /workspace node:22-bookworm-slim \
+  sh -lc "npm ci && npm run build && npm run cli -- ask 'Hey Jarvis, list my alarms'"
+```
+
+On non-ARM hosts, Docker may need QEMU/binfmt enabled first:
+
+```bash
+docker run --privileged --rm tonistiigi/binfmt --install arm64
+```
+
+This container smoke path does not emulate Raspberry Pi audio hardware,
+firmware, GPIO, or `systemd`. Full Raspberry Pi OS QEMU VM support is deferred
+to a future milestone.
 
 ## Documentation Maintenance
 

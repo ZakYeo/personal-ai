@@ -18,6 +18,8 @@ Implemented today:
 - Desktop voice runtime for one configured local voice turn.
 - Neutral service runtime boundary baseline implemented in preparation for
   Milestone 5.1.
+- Raspberry Pi service command that runs configured command-based voice turns in
+  a long-running service loop.
 - Config-driven adapter selection for intent, features, and voice components.
 - Explicit nested feature adapter registration for mock/local feature adapters.
 - Focused runtime config resolvers for assistant policy, intent providers,
@@ -45,6 +47,8 @@ milestones, completed work, and planned provider or Raspberry Pi work.
 Desktop voice experiments also need local audio/STT/TTS commands configured in a
 local config file. See the [runtime plan](docs/04-runtime-plan.md) for the
 desktop voice config shape.
+Raspberry Pi service experiments use the same explicit command-based voice
+configuration and should keep machine-specific commands in a local config file.
 
 OpenAI intent experiments need a local config file that selects
 `intent.provider: "openai"` and an API key in the configured environment
@@ -89,6 +93,29 @@ Run one configured desktop voice turn:
 npm run cli -- desktop-voice-once --config path/to/desktop-config.json
 ```
 
+Run the Raspberry Pi service loop with local command-based voice config:
+
+```bash
+npm run cli -- pi-service --config path/to/pi-config.json
+```
+
+Run an optional ARM64 Linux container smoke check for Pi-like userland
+compatibility:
+
+```bash
+docker run --rm --platform linux/arm64 \
+  -v "$PWD":/workspace -w /workspace node:22-bookworm-slim \
+  sh -lc "npm ci && npm run build && npm run cli -- ask 'Hey Jarvis, list my alarms'"
+```
+
+On non-ARM hosts, Docker may need QEMU/binfmt enabled first:
+
+```bash
+docker run --privileged --rm tonistiigi/binfmt --install arm64
+```
+
+This is a compatibility smoke check, not full Raspberry Pi hardware simulation.
+
 Run the CLI with a local OpenAI intent config:
 
 ```bash
@@ -124,6 +151,8 @@ Common development commands:
 - `npm run format:check` - check Prettier formatting.
 - `npm run typecheck` - run TypeScript without emitting files.
 - `npm run build` - compile production JavaScript.
+- `npm run cli -- pi-service --config path/to/pi-config.json` - run the
+  Raspberry Pi service loop.
 - `npm run architecture:check` - enforce dependency boundaries.
 - `npm run check` - run the full validation suite.
 

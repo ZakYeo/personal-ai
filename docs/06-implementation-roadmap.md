@@ -536,6 +536,8 @@ Preparatory baseline:
 
 ### Milestone 5.2: Raspberry Pi Deployment
 
+Status: implemented.
+
 Goal: deploy the assistant to a Raspberry Pi as a long-running personal
 assistant process.
 
@@ -553,6 +555,28 @@ Acceptance criteria:
 - The Pi runtime uses the same assistant core.
 - Pi-specific dependencies are isolated to adapters and runtime code.
 - The assistant can start, process commands, and shut down cleanly.
+
+Implemented structure:
+
+- `pi-service` runs a long-lived Raspberry Pi service loop from the CLI with an
+  explicit local config path.
+- The Pi runtime composes the neutral service runtime boundary, configured text
+  assistant, shared voice-turn orchestration, and existing command-based voice
+  adapters.
+- Startup validates required voice adapter IDs and desktop command settings;
+  invalid config returns a safe startup failure outcome while logging
+  diagnostics internally.
+- Recoverable voice turn failures are logged and retried through the service
+  retry policy, while `SIGINT` and `SIGTERM` request graceful shutdown.
+- Temporary voice capture and speech files are cleaned up after each service
+  turn.
+- ARM64 Docker/QEMU userland smoke commands are documented as optional
+  compatibility checks. Full Raspberry Pi OS QEMU VM support is deferred.
+
+Future milestone candidate:
+
+- Full Raspberry Pi OS QEMU VM support for closer service and OS simulation,
+  including documented image boot, service startup, shutdown, and limitations.
 
 ## Roadmap Rule
 

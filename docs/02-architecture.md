@@ -138,7 +138,8 @@ Expected runtimes:
 - Desktop voice runtime for local microphone and speaker development.
 - Neutral service runtime boundary for long-running startup, loop failure,
   signal, and shutdown behavior.
-- Raspberry Pi service runtime for deployment as a long-running device process.
+- Raspberry Pi service runtime for deployment as a long-running device process
+  using explicit local command-based voice configuration.
 
 The assistant core should not contain desktop-specific or Raspberry Pi-specific imports.
 

@@ -25,6 +25,7 @@
     "TTS",
     "Vitest",
     "Vosk",
+    "binfmt",
     "depcruise",
     "githooks",
     "jscpd",
@@ -34,6 +35,8 @@
     "systemd",
     "test-support",
     "tsx",
+    "tonistiigi",
+    "userland",
     "wakePhrases"
   ]
 }

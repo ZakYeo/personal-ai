@@ -50,7 +50,7 @@ export interface ServiceRuntimeOptions {
   shutdownHooks?: Array<(context: ServiceShutdownContext) => Promise<void>>;
 }
 
-type ServiceRuntimeResult =
+export type ServiceRuntimeResult =
   | {
       status: "failed";
       response: AssistantResponse;

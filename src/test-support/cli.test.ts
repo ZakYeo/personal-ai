@@ -52,7 +52,7 @@ describe("CLI integration test support", () => {
         1,
         [],
         [
-          'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n       personal-ai desktop-voice-once [--config path/to/config.json]\n',
+          'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n       personal-ai desktop-voice-once [--config path/to/config.json]\n       personal-ai pi-service --config path/to/pi-config.json\n',
         ],
       ),
     );

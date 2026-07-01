@@ -10,8 +10,13 @@ import {
 } from "../human-boundary.js";
 import { createDesktopVoiceRuntime } from "../voice/desktop-voice-runtime.js";
 import { createMockVoiceRuntime } from "../voice/mock-voice-runtime.js";
+import { runPiServiceRuntime } from "../pi/pi-service-runtime.js";
 import type { AssistantResponse } from "../../ports/assistant.js";
 import type { Assistant } from "../../core/assistant/index.js";
+import type {
+  ServiceProcessSignals,
+  ServiceRuntimeResult,
+} from "../service/service-runtime.js";
 
 interface CliIo {
   env: NodeJS.ProcessEnv;
@@ -31,12 +36,22 @@ interface ParsedVoiceCommand {
   utterance?: string;
 }
 
-type ParsedCliCommand = ParsedAskCommand | ParsedVoiceCommand;
+interface ParsedPiServiceCommand {
+  kind: "pi-service";
+  configPath: string;
+}
+
+type ParsedCliCommand =
+  | ParsedAskCommand
+  | ParsedPiServiceCommand
+  | ParsedVoiceCommand;
 
 interface CliDependencies {
   createDesktopVoiceRuntime?: typeof createDesktopVoiceRuntime;
+  createPiServiceRuntime?: typeof runPiServiceRuntime;
   createRuntime?: typeof createConfiguredTextRuntime;
   createVoiceRuntime?: typeof createMockVoiceRuntime;
+  processSignals?: ServiceProcessSignals;
 }
 
 interface ProcessState {
@@ -57,6 +72,17 @@ export async function main(
   if (!parsed) {
     io.stderr.write(`${usage()}\n`);
     return 1;
+  }
+
+  if (parsed.kind === "pi-service") {
+    const result = await handlePiServiceCommand(parsed, io, dependencies);
+
+    if (result.status !== "stopped") {
+      io.stdout.write(`${result.response.text}\n`);
+      return 1;
+    }
+
+    return 0;
   }
 
   if (parsed.kind === "voice-once" || parsed.kind === "desktop-voice-once") {
@@ -141,6 +167,27 @@ function buildVoiceRuntimeOptions(
   };
 }
 
+function buildPiServiceRuntimeOptions(
+  parsed: ParsedPiServiceCommand,
+  env: NodeJS.ProcessEnv,
+  io: CliIo,
+  dependencies: CliDependencies,
+): Parameters<typeof runPiServiceRuntime>[0] {
+  const fixedNow = env.PERSONAL_AI_FIXED_NOW;
+
+  return {
+    configPath: parsed.configPath,
+    env,
+    io: {
+      fallbackOutput: io.stdout,
+      stderr: io.stderr,
+    },
+    ...(fixedNow ? { now: () => new Date(fixedNow) } : {}),
+    processSignals:
+      dependencies.processSignals ?? createNodeProcessSignals(process),
+  };
+}
+
 async function handleRuntimeCommand(
   parsed: ParsedAskCommand,
   io: CliIo,
@@ -191,6 +238,29 @@ async function handleVoiceCommand(
   }
 }
 
+async function handlePiServiceCommand(
+  parsed: ParsedPiServiceCommand,
+  io: CliIo,
+  dependencies: CliDependencies,
+): Promise<ServiceRuntimeResult> {
+  try {
+    const createPiServiceRuntime =
+      dependencies.createPiServiceRuntime ?? runPiServiceRuntime;
+
+    return await createPiServiceRuntime(
+      buildPiServiceRuntimeOptions(parsed, io.env, io, dependencies),
+    );
+  } catch (error) {
+    logRuntimeFailure(error, io);
+
+    return {
+      response: safeRuntimeFallbackResponse,
+      status: "startup_failed",
+      turnsCompleted: 0,
+    };
+  }
+}
+
 function handleRuntimeText(
   runtime: Assistant,
   commandText: string,
@@ -209,6 +279,10 @@ function parseCliCommand(args: string[]): ParsedCliCommand | undefined {
 
   if (args[0] === "desktop-voice-once") {
     return parseDesktopVoiceCommand(args);
+  }
+
+  if (args[0] === "pi-service") {
+    return parsePiServiceCommand(args);
   }
 
   return undefined;
@@ -311,10 +385,57 @@ function parseDesktopVoiceCommand(
   };
 }
 
+function parsePiServiceCommand(
+  args: string[],
+): ParsedPiServiceCommand | undefined {
+  let configPath: string | undefined;
+
+  for (let index = 1; index < args.length; index += 1) {
+    const arg = args[index];
+
+    if (arg === "--config") {
+      const nextArg = args[index + 1];
+
+      if (!nextArg) {
+        return undefined;
+      }
+
+      configPath = nextArg;
+      index += 1;
+    } else {
+      return undefined;
+    }
+  }
+
+  if (!configPath) {
+    return undefined;
+  }
+
+  return {
+    configPath,
+    kind: "pi-service",
+  };
+}
+
+function createNodeProcessSignals(
+  processState: Pick<NodeJS.Process, "off" | "on">,
+): ServiceProcessSignals {
+  return {
+    onSignal(signal, handler) {
+      processState.on(signal, handler);
+
+      return () => {
+        processState.off(signal, handler);
+      };
+    },
+  };
+}
+
 function usage(): string {
   return [
     'Usage: personal-ai ask [--config path/to/config.json] "command text"',
     '       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]',
     "       personal-ai desktop-voice-once [--config path/to/config.json]",
+    "       personal-ai pi-service --config path/to/pi-config.json",
   ].join("\n");
 }
