@@ -202,7 +202,10 @@ responses from `unknown`, and preserve useful status, body, transport, timeout,
 and parsing diagnostics internally. Tests for provider adapters should use the
 shared `src/test-support/adapter-contract.ts` helpers for credential
 environments, non-OK responses, malformed JSON, transport failures, and timeout
-behavior instead of live network calls.
+behavior instead of live network calls. Live provider smoke tests may exist only
+as explicit opt-in E2E commands; they must stay out of the default validation
+gate, keep credentials in environment variables, and avoid checking API key
+values into code or docs.
 
 Tests should prefer focused harness and one-change fixture helpers over broad
 inline object spreads. When a test changes one adapter ID, provider ID, missing

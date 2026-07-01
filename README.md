@@ -47,6 +47,8 @@ desktop voice config shape.
 OpenAI intent experiments need a local config file that selects
 `intent.provider: "openai"` and an API key in the configured environment
 variable. Do not store API keys in repository config files.
+The opt-in OpenAI E2E test loads `.env` with Node's `--env-file` support and
+uses the `OPENAI_API_KEY` variable name.
 
 Google Calendar experiments need a local config file that selects
 `features.calendar.adapter: "google"` and an OAuth access token in the
@@ -91,6 +93,16 @@ Run the CLI with a local OpenAI intent config:
 OPENAI_API_KEY=... npm run cli -- ask --config path/to/openai-config.json "Hey Jarvis, list my alarms"
 ```
 
+Run the live OpenAI intent E2E smoke test:
+
+```bash
+npm run test:e2e:openai
+```
+
+This command is opt-in, calls the live OpenAI Responses API, uses
+`gpt-5.4-nano`, and may consume API quota. It is not part of `npm run check`;
+normal validation remains deterministic and network-free.
+
 Run the CLI with a local Google Calendar feature config:
 
 ```bash
@@ -103,6 +115,7 @@ Common development commands:
 
 - `npm test` - run Vitest in watch mode.
 - `npm run test:run` - run Vitest once.
+- `npm run test:e2e:openai` - run the opt-in live OpenAI intent smoke test.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.

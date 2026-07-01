@@ -317,6 +317,9 @@ Implemented structure:
   shape, and preserves provider failures as diagnostics.
 - Tests mock HTTP and environment dependencies; the checked-in default config
   remains deterministic.
+- `npm run test:e2e:openai` provides an opt-in live Responses API smoke test
+  using `OPENAI_API_KEY` from `.env` and `gpt-5.4-nano`; it is excluded from
+  normal deterministic validation.
 
 Next implementation slices:
 

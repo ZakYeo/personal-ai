@@ -198,6 +198,10 @@ The OpenAI adapter keeps request construction, Responses API transport,
 provider-output text extraction, and assistant intent-output parsing in separate
 adapter-local modules, with the interpreter class only orchestrating those
 pieces.
+OpenAI adapter contract tests remain deterministic by default. A separate
+opt-in `npm run test:e2e:openai` smoke test may load `.env`, read the
+`OPENAI_API_KEY` variable, call the live Responses API with a weak/cheap model,
+and consume provider quota. This live test is not part of `npm run check`.
 The `google` calendar adapter is opt-in and selected with
 `features.calendar.adapter: google`. It requires an OAuth access token from the
 configured environment variable, defaulting to
