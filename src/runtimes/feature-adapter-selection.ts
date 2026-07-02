@@ -16,13 +16,16 @@ export interface FeatureAdapterDependencies {
   fetch: typeof fetch;
 }
 
-export interface FeatureAdapterContext {
+export interface FeatureAdapterContext<TAdapterConfig = unknown> {
+  adapterConfig: TAdapterConfig;
   dependencies: FeatureAdapterDependencies;
-  featureConfig: LoadedRuntimeConfig["features"][string];
 }
 
-interface FeatureAdapterEntry {
-  create(context: FeatureAdapterContext): FeaturePlugin;
+export interface FeatureAdapterEntry<TAdapterConfig = unknown> {
+  create(context: FeatureAdapterContext<TAdapterConfig>): FeaturePlugin;
+  resolveConfig(
+    featureConfig: LoadedRuntimeConfig["features"][string],
+  ): TAdapterConfig;
 }
 
 export interface FeatureRegistryEntry {
@@ -38,6 +41,12 @@ interface ConfiguredFeatureSelection {
 interface CreateConfiguredFeaturesOptions {
   dependencies?: Partial<FeatureAdapterDependencies>;
   registry?: FeatureAdapterRegistry;
+}
+
+export function defineFeatureAdapterEntry<TAdapterConfig>(
+  entry: FeatureAdapterEntry<TAdapterConfig>,
+): FeatureAdapterEntry<TAdapterConfig> {
+  return entry;
 }
 
 export function createConfiguredFeatures(
@@ -89,39 +98,39 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
   return {
     alarms: {
       adapters: {
-        local: {
+        local: defineFeatureAdapterEntry({
           create: (context) =>
             createAlarmFeature(context.dependencies.alarmStore),
-        },
+          resolveConfig: () => {},
+        }),
       },
     },
     calendar: {
       adapters: {
-        google: {
+        google: defineFeatureAdapterEntry({
           create: (context) => {
-            const adapterConfig = requireCalendarGoogleAdapterConfig(
-              context.featureConfig,
-            );
-
             return createCalendarFeature(
               createGoogleCalendarAdapter({
-                config: adapterConfig.google,
+                config: context.adapterConfig.google,
                 env: context.dependencies.env,
                 fetch: context.dependencies.fetch,
               }),
             );
           },
-        },
-        mock: {
+          resolveConfig: requireCalendarGoogleAdapterConfig,
+        }),
+        mock: defineFeatureAdapterEntry({
           create: () => createCalendarFeature(createMockCalendar()),
-        },
+          resolveConfig: () => {},
+        }),
       },
     },
     messaging: {
       adapters: {
-        mock: {
+        mock: defineFeatureAdapterEntry({
           create: () => createMessagingFeature(),
-        },
+          resolveConfig: () => {},
+        }),
       },
     },
   };
@@ -147,9 +156,11 @@ function selectConfiguredFeatureAdapter(
       `Config feature "${featureId}" adapter "${adapterId}" is not registered.`,
   });
 
+  const adapterConfig = adapter.resolveConfig(featureConfig);
+
   return adapter.create({
+    adapterConfig,
     dependencies,
-    featureConfig,
   });
 }
 

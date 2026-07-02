@@ -14,6 +14,7 @@ import {
 import {
   createConfiguredFeatureSelection,
   createConfiguredFeatures,
+  defineFeatureAdapterEntry,
   type FeatureAdapterContext,
   type FeatureAdapterRegistry,
 } from "./feature-adapter-selection.js";
@@ -25,12 +26,13 @@ describe("createConfiguredFeatures", () => {
     const registry: FeatureAdapterRegistry = {
       calendar: {
         adapters: {
-          mock: {
+          mock: defineFeatureAdapterEntry({
             create: (context) => {
               observedContext = context;
               return createTestFeature("calendar");
             },
-          },
+            resolveConfig: () => {},
+          }),
         },
       },
     };
@@ -52,7 +54,7 @@ describe("createConfiguredFeatures", () => {
         env: expect.any(Object) as Record<string, string | undefined>,
         fetch: expect.any(Function) as typeof fetch,
       },
-      featureConfig: config.features.calendar,
+      adapterConfig: undefined,
     });
   });
 
@@ -141,15 +143,13 @@ describe("createConfiguredFeatures", () => {
       registry: {
         calendar: {
           adapters: {
-            google: {
+            google: defineFeatureAdapterEntry({
+              resolveConfig: (featureConfig) =>
+                requireTestGoogleConfig(featureConfig),
               create: (context) => {
-                const adapterConfig = requireTestGoogleConfig(
-                  context.featureConfig,
-                );
-
-                return factory(adapterConfig);
+                return factory(context.adapterConfig);
               },
-            },
+            }),
           },
         },
       },
