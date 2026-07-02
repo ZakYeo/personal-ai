@@ -51,8 +51,8 @@ export const deterministicScenarios = {
   unsupportedCalendar: {
     text: "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?",
     response: {
-      status: "unsupported",
-      text: "I do not have an enabled feature for calendar.search_events.",
+      status: "unknown",
+      text: "I could not map that to a deterministic command.",
     },
   },
 } as const satisfies Record<string, DeterministicScenario>;

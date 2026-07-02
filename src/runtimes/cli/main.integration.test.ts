@@ -312,7 +312,7 @@ describe("personal-ai ask CLI", () => {
     });
   });
 
-  it("prints a deterministic unsupported response", async () => {
+  it("prints a deterministic unknown response for a disabled feature command", async () => {
     await expect(
       runAsk({
         config: disabledCalendarConfig,
