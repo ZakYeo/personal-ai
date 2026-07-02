@@ -18,7 +18,7 @@ const alarmListParameters = {} as const satisfies FeatureCapabilityParameters;
 
 type AlarmCreateArgs = FeatureArgsFromParameters<typeof alarmCreateParameters>;
 
-export const alarmDeterministicIntentRules: DeterministicFeatureRule[] = [
+const alarmDeterministicIntentRules: DeterministicFeatureRule[] = [
   {
     capability: "alarm.create",
     match: (text) => {

@@ -15,7 +15,7 @@ type CalendarSearchEventsArgs = FeatureArgsFromParameters<
   typeof calendarSearchEventsParameters
 >;
 
-export const calendarDeterministicIntentRules: DeterministicFeatureRule[] = [
+const calendarDeterministicIntentRules: DeterministicFeatureRule[] = [
   {
     capability: "calendar.search_events",
     match: (text) =>

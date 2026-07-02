@@ -15,7 +15,7 @@ type MessagingDraftReplyArgs = FeatureArgsFromParameters<
   typeof messagingDraftReplyParameters
 >;
 
-export const messagingDeterministicIntentRules: DeterministicFeatureRule[] = [
+const messagingDeterministicIntentRules: DeterministicFeatureRule[] = [
   {
     capability: "messaging.draft_reply",
     match: (text) =>

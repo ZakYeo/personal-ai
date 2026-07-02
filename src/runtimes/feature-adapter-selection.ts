@@ -19,7 +19,7 @@ export interface FeatureAdapterContext<TAdapterConfig = unknown> {
   dependencies: FeatureAdapterDependencies;
 }
 
-export interface FeatureAdapterEntry<TAdapterConfig = unknown> {
+interface FeatureAdapterEntry<TAdapterConfig = unknown> {
   create(context: FeatureAdapterContext<TAdapterConfig>): FeaturePlugin;
   resolveConfig(
     featureConfig: LoadedRuntimeConfig["features"][string],
