@@ -67,18 +67,14 @@ describe("createConfiguredFeatures", () => {
     ).not.toThrow();
   });
 
-  it("exposes configured deterministic rules separately from enabled feature construction", () => {
+  it("does not expose registry-level deterministic rules", () => {
     const selection = createConfiguredFeatureSelection(disabledCalendarConfig);
 
     expect(selection.features.map((feature) => feature.id)).toEqual([
       "messaging",
       "alarms",
     ]);
-    expect(selection.deterministicIntentRules).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ capability: "calendar.search_events" }),
-      ]),
-    );
+    expect(selection).not.toHaveProperty("deterministicIntentRules");
   });
 
   it("rejects enabled features without registered feature adapters", () => {

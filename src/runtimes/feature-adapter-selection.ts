@@ -1,24 +1,12 @@
 import { createInMemoryAlarmStore } from "../adapters/local/in-memory-alarm-store.js";
 import { createGoogleCalendarAdapter } from "../adapters/google-calendar/google-calendar-adapter.js";
 import { createMockCalendar } from "../adapters/mock/mock-calendar.js";
-import {
-  alarmDeterministicIntentRules,
-  createAlarmFeature,
-} from "../features/alarms/alarm-feature.js";
-import {
-  calendarDeterministicIntentRules,
-  createCalendarFeature,
-} from "../features/calendar/calendar-feature.js";
-import {
-  createMessagingFeature,
-  messagingDeterministicIntentRules,
-} from "../features/messaging/messaging-feature.js";
+import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
+import { createCalendarFeature } from "../features/calendar/calendar-feature.js";
+import { createMessagingFeature } from "../features/messaging/messaging-feature.js";
 import type { AlarmStore } from "../ports/alarm-store.js";
 import type { GoogleCalendarConfig } from "../ports/calendar.js";
-import type {
-  DeterministicFeatureRule,
-  FeaturePlugin,
-} from "../ports/feature.js";
+import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
 
@@ -39,13 +27,11 @@ interface FeatureAdapterEntry {
 
 export interface FeatureRegistryEntry {
   adapters: Record<string, FeatureAdapterEntry>;
-  deterministicRules?: DeterministicFeatureRule[];
 }
 
 export type FeatureAdapterRegistry = Record<string, FeatureRegistryEntry>;
 
 interface ConfiguredFeatureSelection {
-  deterministicIntentRules: DeterministicFeatureRule[];
   features: FeaturePlugin[];
 }
 
@@ -69,10 +55,6 @@ export function createConfiguredFeatureSelection(
   const registry = options.registry ?? createDefaultFeatureAdapterRegistry();
 
   return {
-    deterministicIntentRules: createConfiguredDeterministicIntentRules(
-      config,
-      registry,
-    ),
     features: Object.entries(config.features)
       .filter(([, featureConfig]) => featureConfig.enabled)
       .map(([featureId, featureConfig]) =>
@@ -112,7 +94,6 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
             createAlarmFeature(context.dependencies.alarmStore),
         },
       },
-      deterministicRules: alarmDeterministicIntentRules,
     },
     calendar: {
       adapters: {
@@ -135,7 +116,6 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
           create: () => createCalendarFeature(createMockCalendar()),
         },
       },
-      deterministicRules: calendarDeterministicIntentRules,
     },
     messaging: {
       adapters: {
@@ -143,18 +123,8 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
           create: () => createMessagingFeature(),
         },
       },
-      deterministicRules: messagingDeterministicIntentRules,
     },
   };
-}
-
-function createConfiguredDeterministicIntentRules(
-  config: LoadedRuntimeConfig,
-  registry: FeatureAdapterRegistry,
-): DeterministicFeatureRule[] {
-  return Object.keys(config.features).flatMap(
-    (featureId) => registry[featureId]?.deterministicRules ?? [],
-  );
 }
 
 function selectConfiguredFeatureAdapter(

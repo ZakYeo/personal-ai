@@ -43,9 +43,6 @@ export async function createConfiguredTextRuntime(
         env,
         fetch,
       },
-      {
-        deterministicRules: featureSelection.deterministicIntentRules,
-      },
     ),
   });
 }

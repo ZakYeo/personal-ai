@@ -2,10 +2,7 @@ import {
   DeterministicIntentInterpreter,
   type DeterministicIntentRule,
 } from "../adapters/mock/deterministic-intent-interpreter.js";
-import type {
-  DeterministicFeatureRule,
-  FeaturePlugin,
-} from "../ports/feature.js";
+import type { FeaturePlugin } from "../ports/feature.js";
 import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
 import type { IntentInterpreterPort } from "../ports/intent.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
@@ -23,7 +20,6 @@ interface IntentInterpreterDependencies {
 type IntentProviderFactory<TIntent extends ResolvedIntentConfig> = (context: {
   config: LoadedRuntimeConfig;
   dependencies: IntentInterpreterDependencies;
-  deterministicRules: DeterministicFeatureRule[];
   features: FeaturePlugin[];
   intent: TIntent;
 }) => IntentInterpreterPort;
@@ -33,7 +29,6 @@ type IntentProviderRegistry = {
 };
 
 interface CreateConfiguredIntentInterpreterOptions {
-  deterministicRules?: DeterministicFeatureRule[];
   registry?: IntentProviderRegistry;
 }
 
@@ -58,7 +53,6 @@ export function createConfiguredIntentInterpreter(
   return factory({
     config,
     dependencies,
-    deterministicRules: options.deterministicRules ?? [],
     features,
     intent,
   });
@@ -66,9 +60,9 @@ export function createConfiguredIntentInterpreter(
 
 function createDefaultIntentProviderRegistry(): Required<IntentProviderRegistry> {
   return {
-    deterministic: ({ deterministicRules, features }) =>
+    deterministic: ({ features }) =>
       new DeterministicIntentInterpreter(
-        createDeterministicIntentRules(features, deterministicRules),
+        createDeterministicIntentRules(features),
       ),
     openai: ({ dependencies, features, intent }) =>
       new OpenAIIntentInterpreter({
@@ -82,7 +76,6 @@ function createDefaultIntentProviderRegistry(): Required<IntentProviderRegistry>
 
 function createDeterministicIntentRules(
   features: FeaturePlugin[],
-  configuredRules: DeterministicFeatureRule[],
 ): DeterministicIntentRule[] {
   const featureBackedRules = features.flatMap((feature) =>
     feature.capabilities.flatMap((capability) =>
@@ -93,7 +86,7 @@ function createDeterministicIntentRules(
     ),
   );
 
-  return [...featureBackedRules, ...configuredRules].filter(
+  return featureBackedRules.filter(
     (rule, index, rules) =>
       rules.findIndex(
         (candidate) =>
