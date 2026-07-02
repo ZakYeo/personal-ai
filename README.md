@@ -37,7 +37,21 @@ Implemented today:
   unused-code, typecheck, test, and binary validation scripts.
 
 See the [implementation roadmap](docs/06-implementation-roadmap.md) for
-milestones, completed work, and planned provider or Raspberry Pi work.
+milestones, completed work, and planned persistent-state, Raspberry Pi
+operations, and additional provider work.
+
+Current roadmap position:
+
+- Milestones 1 through 5.3 are implemented in the repository, including the
+  deterministic text assistant, safety pipeline, harness hardening, tooling,
+  mock and desktop voice runtimes, OpenAI intent routing, Google Calendar
+  search, the neutral service runtime, the Raspberry Pi service command, and
+  opt-in Raspberry Pi OS QEMU smoke support.
+- The next planned product milestone is persistent local assistant state,
+  starting with a file-backed alarm store behind the existing `AlarmStore` port.
+- Raspberry Pi `systemd` installation notes and additional real providers are
+  planned follow-up milestones, not part of the default deterministic validation
+  gate.
 
 ## Requirements
 

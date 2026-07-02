@@ -4,6 +4,19 @@
 
 Work should be delivered in thin, committable TDD slices. Each slice starts with a focused failing test or test update, implements the smallest code and documentation change needed to pass, and is committed as one singular commit before the next slice begins.
 
+## Current Position
+
+The architecture, deterministic core, safety pipeline, harness layers, tooling,
+mock voice loop, desktop voice runtime, real provider adapter foundations,
+Google Calendar adapter, neutral service runtime, Raspberry Pi service command,
+and opt-in Raspberry Pi OS QEMU smoke support are implemented.
+
+The next product milestone should move the assistant from mostly stateless
+runtime experiments toward useful local behavior that survives restarts. Start
+with persistent local alarm state because it is small, local-first,
+Pi-relevant, and exercises the existing adapter/config boundaries without
+adding another external provider.
+
 ## Milestone 1: Deterministic Text Assistant
 
 Goal: prove the assistant core, ports, feature plugin model, and dependency boundaries without voice or external APIs.
@@ -289,7 +302,7 @@ Harness follow-up:
 
 ## Milestone 4: Real Provider Experiments
 
-Status: started.
+Status: implemented for the first provider track.
 
 Goal: add real adapters one at a time without changing core behavior.
 
@@ -321,7 +334,7 @@ Implemented structure:
   for currently enabled feature capabilities using `OPENAI_API_KEY` from `.env`
   and `gpt-5.4-nano`; it is excluded from normal deterministic validation.
 
-Next implementation slices:
+Completed implementation slices:
 
 ### Milestone 4.1: Runtime Composition Refinement
 
@@ -468,7 +481,7 @@ Implemented structure:
   variable, validates provider output from `unknown`, and preserves provider
   failures as diagnostics.
 
-Deferred hardening themes to keep checking during Milestone 4:
+Ongoing hardening themes to keep checking during future provider work:
 
 - Split broad runtime config into narrower core, provider, feature, and runtime
   composition shapes where that removes optionality or prevents provider/runtime
@@ -504,7 +517,7 @@ Deferred hardening themes to keep checking during Milestone 4:
 
 ### Milestone 5.1: Service Runtime Boundary
 
-Status: baseline implemented in preparation for this milestone.
+Status: implemented.
 
 Goal: define the long-running service runtime boundary before adding
 Raspberry Pi-specific device behavior.
@@ -529,7 +542,7 @@ Acceptance criteria:
 - Process state, clocks, IO streams, and shutdown hooks remain injectable at the
   runtime boundary.
 
-Preparatory baseline:
+Implemented structure:
 
 - `src/runtimes/service/service-runtime.ts` owns a neutral service loop with
   injectable assistant composition, turn execution, clock access, signal
@@ -544,15 +557,15 @@ Preparatory baseline:
 
 Status: implemented.
 
-Goal: deploy the assistant to a Raspberry Pi as a long-running personal
-assistant process.
+Goal: provide the repository runtime needed to run the assistant on a Raspberry
+Pi as a long-running personal assistant process.
 
 Included:
 
 - Raspberry Pi runtime.
 - Pi-specific audio configuration.
 - Service command.
-- `systemd` service definition or deployment notes.
+- Deployment notes for running the service command locally on a device.
 - Device-specific config.
 - Logging suitable for a long-running service.
 
@@ -609,6 +622,146 @@ Acceptance criteria:
   spawn with clear operator-facing messages.
 - QEMU is spawned only when `--run` is explicit.
 - README, AGENTS, runtime docs, and roadmap describe the smoke path and limits.
+
+## Milestone 6: Persistent Local Assistant State
+
+Status: planned.
+
+Goal: make local-first assistant state survive process restarts while preserving
+the existing ports-and-adapters boundaries.
+
+This milestone should stay intentionally narrow. Persistent state belongs behind
+application-owned ports, is selected by runtime config, and must not push file
+system details into core or feature logic.
+
+### Milestone 6.1: File-Backed Alarm Store
+
+Status: next.
+
+Goal: add a persistent local alarm store adapter behind the existing
+`AlarmStore` port.
+
+Included:
+
+- A JSON-file-backed alarm store adapter selected through
+  `features.alarms.adapter`.
+- Runtime config for the local alarm store file path.
+- Field-by-field parsing and validation of stored alarm data from `unknown`.
+- Atomic or failure-aware write behavior documented and tested at the adapter
+  boundary.
+- Adapter contract or local persistence test-support helpers if setup starts to
+  repeat.
+- README, AGENTS, and docs updates describing the persistent alarm option.
+
+Excluded:
+
+- Database dependencies.
+- Cloud sync.
+- Recurring alarms unless a separate capability slice justifies them.
+- Reminder scheduling or background notification delivery.
+
+Acceptance criteria:
+
+- The default checked-in config remains deterministic and safe for tests.
+- The in-memory alarm store remains available.
+- A configured file-backed alarm store preserves alarms across adapter
+  instances.
+- Malformed or missing persisted data fails safely with internal diagnostics and
+  no raw file system details in human-facing responses.
+- Tests cover persistence, invalid persisted data, write failure diagnostics,
+  and runtime config selection.
+- `npm run check` passes.
+
+### Milestone 6.2: State Configuration and Lifecycle Hardening
+
+Status: planned.
+
+Goal: make stateful local adapters predictable across CLI, desktop voice, and
+service runtimes.
+
+Included:
+
+- A canonical runtime-owned resolver for local state paths and state adapter
+  config.
+- Clear lifecycle rules for reading, writing, and cleanup of local state.
+- Tests proving nested runtime factories forward injected IO, clock, and config
+  dependencies to stateful adapters.
+- Documentation for local config examples that keep machine-specific paths out
+  of `config/default.json`.
+
+Excluded:
+
+- A general repository-wide persistence framework before a second stateful
+  adapter proves the shape.
+- Cross-device sync.
+- Background scheduling.
+
+Acceptance criteria:
+
+- Config parsing remains separate from runtime-specific state resolution.
+- Stateful adapters receive the narrowest validated config they need.
+- CLI, desktop voice, and Pi service composition can select the persistent
+  alarm store without duplicating adapter-selection policy.
+- Tests use focused runtime-composition helpers rather than broad inline config
+  spreads.
+
+## Milestone 7: Raspberry Pi Operations Hardening
+
+Status: planned.
+
+Goal: turn the implemented Pi service command into an operator-friendly device
+deployment path without making default validation depend on Raspberry Pi
+hardware.
+
+Included:
+
+- `systemd` unit template and installation notes.
+- Local config examples for command-based Pi audio, STT, TTS, and output.
+- Log and restart guidance for long-running service operation.
+- Optional smoke or checklist coverage for generated service files and expected
+  command invocation.
+
+Excluded:
+
+- Downloading Raspberry Pi OS images.
+- Automated image provisioning.
+- Hardware-in-the-loop tests in `npm run check`.
+
+Acceptance criteria:
+
+- A human can install and run the service under `systemd` using documented
+  commands and local config.
+- Service files do not embed credentials or machine-specific secrets.
+- Documentation clearly separates deterministic repository validation from
+  opt-in device validation.
+- Any generated deployment artifacts are tested without requiring real Pi
+  hardware.
+
+## Milestone 8: Additional Real Capabilities
+
+Status: planned.
+
+Goal: add another useful real capability only after persistent local alarm state
+and Pi operations are stable enough to make the assistant useful day to day.
+
+Candidate slices:
+
+- A real messaging adapter behind the existing messaging feature port.
+- A second intent provider, such as Anthropic or a local model, behind the
+  existing intent interpreter port.
+- A local STT or TTS provider adapter behind the existing voice ports.
+- Calendar follow-up improvements that remain read-only unless explicit safety
+  and confirmation rules are documented and tested.
+
+Acceptance criteria:
+
+- Each adapter remains opt-in through local config.
+- Credentials stay in environment variables or operator-owned local config files
+  outside the repository.
+- Deterministic tests cover provider failures and malformed output without live
+  network calls.
+- High-risk capabilities fail closed and require confirmation unless a narrow,
+  documented exception is tested.
 
 ## Roadmap Rule
 
