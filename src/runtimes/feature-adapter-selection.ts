@@ -4,14 +4,12 @@ import { createMockCalendar } from "../adapters/mock/mock-calendar.js";
 import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
 import { createCalendarFeature } from "../features/calendar/calendar-feature.js";
 import { createMessagingFeature } from "../features/messaging/messaging-feature.js";
-import type { AlarmStore } from "../ports/alarm-store.js";
 import type { GoogleCalendarConfig } from "../ports/calendar.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
 
 export interface FeatureAdapterDependencies {
-  alarmStore: AlarmStore;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
 }
@@ -79,7 +77,6 @@ export function createConfiguredFeatureSelection(
 
 function createFeatureAdapterDependencies(): FeatureAdapterDependencies {
   return {
-    alarmStore: createInMemoryAlarmStore(),
     env: process.env,
     fetch: globalThis.fetch,
   };
@@ -99,8 +96,7 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
     alarms: {
       adapters: {
         local: defineFeatureAdapterEntry({
-          create: (context) =>
-            createAlarmFeature(context.dependencies.alarmStore),
+          create: () => createAlarmFeature(createInMemoryAlarmStore()),
           resolveConfig: () => {},
         }),
       },

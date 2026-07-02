@@ -1,4 +1,3 @@
-import type { AlarmStore } from "../ports/alarm-store.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import { defineCapability, defineFeature } from "../ports/feature.js";
@@ -20,8 +19,7 @@ import {
 } from "./feature-adapter-selection.js";
 
 describe("createConfiguredFeatures", () => {
-  it("passes narrow adapter dependencies and selected feature config to registered entries", () => {
-    const alarmStore = createFakeAlarmStore();
+  it("passes narrow adapter dependencies and selected adapter config to registered entries", () => {
     let observedContext: FeatureAdapterContext | undefined;
     const registry: FeatureAdapterRegistry = {
       calendar: {
@@ -43,14 +41,16 @@ describe("createConfiguredFeatures", () => {
     );
 
     const features = createConfiguredFeatures(config, {
-      dependencies: { alarmStore },
       registry,
     });
 
     expect(features.map((feature) => feature.id)).toEqual(["calendar"]);
+    expect(Object.keys(observedContext?.dependencies ?? {}).sort()).toEqual([
+      "env",
+      "fetch",
+    ]);
     expect(observedContext).toMatchObject({
       dependencies: {
-        alarmStore,
         env: expect.any(Object) as Record<string, string | undefined>,
         fetch: expect.any(Function) as typeof fetch,
       },
@@ -182,13 +182,6 @@ function createTestFeature(id: string): FeaturePlugin {
       }),
     },
   });
-}
-
-function createFakeAlarmStore(): AlarmStore {
-  return {
-    add: vi.fn(),
-    list: vi.fn(() => []),
-  };
 }
 
 interface TestGoogleConfig {
