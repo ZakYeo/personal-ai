@@ -101,7 +101,7 @@ Expected ports include:
 - `ClockPort`
 - `ConfigPort`
 - `MemoryPort`
-- `AlarmStore`
+- `AlarmStore` for storing alarms and assigning storage-owned alarm IDs
 
 ## Adapters
 

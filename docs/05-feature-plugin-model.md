@@ -199,6 +199,8 @@ Create a deterministic draft response. Do not send anything in the first milesto
 ### Alarms
 
 Local or in-memory capability for creating and listing alarms.
+Alarm identity belongs to the selected `AlarmStore`; feature logic provides the
+alarm details and reports the stored record returned by the port.
 
 Example command:
 

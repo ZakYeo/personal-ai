@@ -7,7 +7,7 @@ import type {
   FeatureResult,
 } from "../../ports/feature.js";
 import { defineCapability, defineFeature } from "../../ports/feature.js";
-import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
+import type { AlarmStore } from "../../ports/alarm-store.js";
 
 const alarmCreateParameters = {
   label: { type: "string" },
@@ -86,13 +86,10 @@ function createAlarm(
   const scheduledFor = new Date(
     context.clock.now().getTime() + args.minutesFromNow * 60_000,
   ).toISOString();
-  const alarm: AlarmRecord = {
-    id: `alarm-${store.list().length + 1}`,
+  const alarm = store.add({
     label,
     scheduledFor,
-  };
-
-  store.add(alarm);
+  });
 
   return {
     text: `Alarm set for ${scheduledFor} (${label}).`,

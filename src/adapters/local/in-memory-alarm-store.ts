@@ -5,7 +5,14 @@ export function createInMemoryAlarmStore(): AlarmStore {
 
   return {
     add: (alarm) => {
-      alarms.push(alarm);
+      const storedAlarm: AlarmRecord = {
+        ...alarm,
+        id: `alarm-${alarms.length + 1}`,
+      };
+
+      alarms.push(storedAlarm);
+
+      return storedAlarm;
     },
     list: () => [...alarms],
   };

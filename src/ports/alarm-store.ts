@@ -4,7 +4,9 @@ export interface AlarmRecord {
   scheduledFor: string;
 }
 
+export type NewAlarmRecord = Omit<AlarmRecord, "id">;
+
 export interface AlarmStore {
-  add(alarm: AlarmRecord): void;
+  add(alarm: NewAlarmRecord): AlarmRecord;
   list(): AlarmRecord[];
 }

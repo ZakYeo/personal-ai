@@ -57,6 +57,26 @@ describe("createAlarmFeature", () => {
     );
   });
 
+  it("uses the alarm ID assigned by the store", async () => {
+    await expectDecodedFeatureExecution(
+      createAlarmFeature(createTestAlarmStore("persisted-alarm")),
+      "alarm.create",
+      {
+        label: "ping me",
+        minutesFromNow: 10,
+      },
+      {
+        text: "Alarm set for 2026-06-26T09:10:00.000Z (ping me).",
+        data: {
+          id: "persisted-alarm-1",
+          label: "ping me",
+          scheduledFor: "2026-06-26T09:10:00.000Z",
+        },
+      },
+      context,
+    );
+  });
+
   it("lists alarms from the in-memory store", async () => {
     const feature = createAlarmFeature(createTestAlarmStore());
 
@@ -90,12 +110,19 @@ describe("createAlarmFeature", () => {
   });
 });
 
-function createTestAlarmStore(): AlarmStore {
+function createTestAlarmStore(idPrefix = "alarm"): AlarmStore {
   const alarms: AlarmRecord[] = [];
 
   return {
     add: (alarm) => {
-      alarms.push(alarm);
+      const storedAlarm = {
+        ...alarm,
+        id: `${idPrefix}-${alarms.length + 1}`,
+      };
+
+      alarms.push(storedAlarm);
+
+      return storedAlarm;
     },
     list: () => [...alarms],
   };

@@ -9,7 +9,9 @@ describe("createInMemoryAlarmStore", () => {
       scheduledFor: "2026-06-26T09:10:00.000Z",
     };
 
-    store.add(alarm);
+    expect(
+      store.add({ label: alarm.label, scheduledFor: alarm.scheduledFor }),
+    ).toEqual(alarm);
     const listedAlarms = store.list();
     listedAlarms.push({
       id: "alarm-2",
