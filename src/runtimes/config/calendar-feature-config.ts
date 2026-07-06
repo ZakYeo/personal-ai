@@ -5,7 +5,7 @@ import {
   parseOptionalPositiveInteger,
 } from "./config-parse-utils.js";
 
-export interface CalendarFeatureProviderConfig {
+interface CalendarFeatureProviderConfig {
   google?: GoogleCalendarConfig;
 }
 

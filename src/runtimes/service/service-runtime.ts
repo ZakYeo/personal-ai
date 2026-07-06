@@ -230,7 +230,7 @@ async function retryAfterTurnFailure(
   await retryAfterFailure(context);
 }
 
-export function createFixedDelayRetryAfterFailure(options: {
+function createFixedDelayRetryAfterFailure(options: {
   delayMs: number;
   sleep: (ms: number) => Promise<void>;
 }): (context: ServiceTurnFailureContext) => Promise<void> {

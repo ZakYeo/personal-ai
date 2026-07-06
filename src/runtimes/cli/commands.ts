@@ -105,7 +105,7 @@ export async function runCliCommand(
   return command.run(parsed, io, dependencies);
 }
 
-export function usage(): string {
+function usage(): string {
   return cliCommands
     .map(
       (command, index) =>
