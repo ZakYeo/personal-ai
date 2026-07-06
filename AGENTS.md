@@ -88,6 +88,7 @@
 - `npm run cli -- ask "..."` - run the deterministic text CLI in development.
 - `npm run cli -- voice-once --utterance "..."` - run one simulated mock voice turn.
 - `npm run cli -- desktop-voice-once --config path/to/desktop-config.json` - run one configured desktop voice turn.
+- `npm run cli -- desktop-voice-once --config config/desktop-voice-demo.json` - run the committed deterministic command-based desktop voice demo.
 - `npm run cli -- desktop-voice-service --config path/to/desktop-config.json` - run the always-listening desktop voice service loop with local command-based voice config.
 - `npm run cli -- pi-service --config path/to/pi-config.json` - run the Raspberry Pi service loop with local command-based voice config.
 - `npm run smoke:pi:qemu -- --config path/to/pi-config.json --image path/to/raspios.img --kernel path/to/kernel8.img --dtb path/to/pi.dtb` - print an opt-in Raspberry Pi OS QEMU smoke command; add `--run` only when intentionally spawning QEMU with local operator-provided artifacts.

@@ -109,6 +109,12 @@ Run one configured desktop voice turn:
 npm run cli -- desktop-voice-once --config path/to/desktop-config.json
 ```
 
+Run the committed deterministic desktop voice demo config:
+
+```bash
+npm run cli -- desktop-voice-once --config config/desktop-voice-demo.json
+```
+
 Run the always-listening desktop voice service with local command-based voice
 config:
 
@@ -189,6 +195,8 @@ Common development commands:
 - `npm run format:check` - check Prettier formatting.
 - `npm run typecheck` - run TypeScript without emitting files.
 - `npm run build` - compile production JavaScript.
+- `npm run cli -- desktop-voice-once --config config/desktop-voice-demo.json` -
+  run the committed command-based desktop voice demo.
 - `npm run cli -- desktop-voice-service --config path/to/desktop-config.json` -
   run the always-listening desktop voice service loop.
 - `npm run cli -- pi-service --config path/to/pi-config.json` - run the

@@ -1,0 +1,58 @@
+{
+  "assistant": {
+    "name": "Jarvis",
+    "wakePhrases": ["hey jarvis"]
+  },
+  "intent": {
+    "provider": "deterministic"
+  },
+  "voice": {
+    "input": "sox-rec",
+    "wakeWord": "text-prefix",
+    "speechToText": "command",
+    "textToSpeech": "command",
+    "audioOutput": "sox-play"
+  },
+  "desktopVoice": {
+    "wakeAudioInput": {
+      "command": "/bin/sh",
+      "args": ["-c", "printf '%s' wake-window > \"$1\"", "sh", "{output}"],
+      "timeoutMs": 5000
+    },
+    "audioInput": {
+      "command": "/bin/sh",
+      "args": ["-c", "printf '%s' command-window > \"$1\"", "sh", "{output}"],
+      "timeoutMs": 10000
+    },
+    "speechToText": {
+      "command": "/bin/sh",
+      "args": ["-c", "printf '%s' 'Hey Jarvis, list my alarms'"],
+      "timeoutMs": 30000
+    },
+    "textToSpeech": {
+      "command": "/bin/sh",
+      "args": ["-c", "printf '%s' \"$1\" > \"$2\"", "sh", "{text}", "{output}"],
+      "timeoutMs": 30000
+    },
+    "audioOutput": {
+      "command": "/bin/sh",
+      "args": ["-c", ":"],
+      "timeoutMs": 10000
+    }
+  },
+  "features": {
+    "calendar": {
+      "enabled": true,
+      "adapter": "mock"
+    },
+    "messaging": {
+      "enabled": true,
+      "adapter": "mock"
+    },
+    "alarms": {
+      "enabled": true,
+      "adapter": "local",
+      "confirmationRequiredCapabilities": ["alarm.create"]
+    }
+  }
+}

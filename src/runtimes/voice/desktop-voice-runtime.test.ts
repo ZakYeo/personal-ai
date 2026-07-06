@@ -1,6 +1,7 @@
 import { access, mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createDesktopVoiceRuntime } from "./desktop-voice-runtime.js";
 import {
   createDesktopVoiceCommand,
@@ -11,6 +12,21 @@ import { deterministicScenarios } from "../../test-support/deterministic-scenari
 import { withVoiceAdapterId } from "../../test-support/runtime-composition.js";
 
 describe("desktop voice runtime", () => {
+  it("runs one turn with the committed desktop voice demo config", async () => {
+    const runtime = await createDesktopVoiceRuntime({
+      configPath: fileURLToPath(
+        new URL("../../../config/desktop-voice-demo.json", import.meta.url),
+      ),
+    });
+
+    await expect(runtime.runOnce()).resolves.toMatchObject({
+      response: deterministicScenarios.alarmListEmpty.response,
+      status: "spoken",
+      transcript: deterministicScenarios.alarmListEmpty.text,
+      wakePhrase: "hey jarvis",
+    });
+  });
+
   it("runs one configured desktop voice turn through the assistant core", async () => {
     const runtime = await createDesktopVoiceRuntime({
       config: createDesktopVoiceConfig(

@@ -78,6 +78,12 @@ the mock voice loop.
 Temporary capture and speech files are owned by runtime composition, not by the
 desktop command adapters. The runtime provides a temp-file owner to adapters and
 cleans up files after each turn while logging cleanup failures internally.
+The repository includes `config/desktop-voice-demo.json` as a deterministic
+command-based smoke config for this path. It uses shell commands to simulate
+capture, STT, TTS, and audio output so it is safe to commit and does not depend
+on local microphone, provider, or credential setup. Audible real voice still
+belongs in operator-owned local config with machine-specific STT/TTS/audio
+commands.
 
 Shared voice-turn orchestration, voice result metadata, and fallback semantics
 belong in neutral voice runtime modules. Mock voice and desktop voice runtimes
