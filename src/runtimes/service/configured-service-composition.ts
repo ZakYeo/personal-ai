@@ -12,7 +12,7 @@ import type {
   ServiceTurnFailureContext,
 } from "./service-runtime.js";
 
-export interface ConfiguredServiceCompositionOptions extends Pick<
+interface ConfiguredServiceCompositionOptions extends Pick<
   ConfiguredTextRuntimeOptions,
   "env" | "fetch" | "now"
 > {
