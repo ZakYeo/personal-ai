@@ -1,5 +1,4 @@
 import type { Assistant } from "../../core/assistant/index.js";
-import type { AssistantResponse } from "../../ports/assistant.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -11,10 +10,13 @@ import {
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
-import { handleAssistantText, speakResponse } from "./voice-response.js";
+import { runDetectedVoiceCommand } from "./voice-command.js";
+import { speakResponse } from "./voice-response.js";
 import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
+import type { VoiceTurnResult } from "./voice-turn-result.js";
 
 export type { VoiceRuntimeIo } from "./voice-runtime-io.js";
+export type { VoiceTurnResult } from "./voice-turn-result.js";
 
 export interface VoiceTurnConfig {
   wakePhrases: string[];
@@ -28,15 +30,6 @@ export interface VoiceRuntimeDependencies {
   textToSpeech: TextToSpeechPort;
   turnConfig: VoiceTurnConfig;
   wakeWord: WakeWordPort;
-}
-
-export interface VoiceTurnResult {
-  response: AssistantResponse;
-  spokenText?: string;
-  status: "spoken" | "ignored" | "fallback_output";
-  textOutputWritten: boolean;
-  transcript?: string;
-  wakePhrase?: string;
 }
 
 export async function runVoiceTurn(
@@ -65,19 +58,12 @@ export async function runVoiceTurn(
       };
     }
 
-    const response = await handleAssistantText(
-      dependencies.assistant,
+    return await runDetectedVoiceCommand(
+      dependencies,
       transcript.text,
       io,
+      detection.phrase ? { wakePhrase: detection.phrase } : {},
     );
-    const speechOutput = await speakResponse(dependencies, response, io);
-
-    return {
-      response,
-      ...speechOutput,
-      transcript: transcript.text,
-      ...(detection.phrase ? { wakePhrase: detection.phrase } : {}),
-    };
   } catch (error) {
     logRuntimeFailure(error, io);
 

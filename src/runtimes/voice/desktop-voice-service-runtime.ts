@@ -2,12 +2,8 @@ import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js
 import type { LoadedRuntimeConfig } from "../config/config.js";
 import { requireDesktopVoiceServiceConfig } from "../config/desktop-voice-config.js";
 import { requireVoiceConfig } from "../config/voice-config.js";
+import { runConfiguredServiceRuntime } from "../service/configured-service-composition.js";
 import {
-  createConfiguredServiceAssistant,
-  forwardConfiguredServiceOptions,
-} from "../service/configured-service-composition.js";
-import {
-  runServiceRuntime,
   type ServiceProcessSignals,
   type ServiceRuntimeResult,
   type ServiceShutdownContext,
@@ -50,24 +46,11 @@ interface DesktopVoiceServiceRuntimeOptions extends Pick<
 export async function runDesktopVoiceServiceRuntime(
   options: DesktopVoiceServiceRuntimeOptions = {},
 ): Promise<ServiceRuntimeResult> {
-  let loadedConfig: LoadedRuntimeConfig | undefined;
-
-  return runServiceRuntime({
-    ...forwardConfiguredServiceOptions(options),
-    createAssistant: createConfiguredServiceAssistant(
-      options,
-      validateDesktopVoiceServiceConfig,
-      (config) => {
-        loadedConfig = config;
-      },
-    ),
-    runTurn: async ({ assistant }) => {
-      if (!loadedConfig) {
-        throw new Error("Desktop voice service config was not loaded.");
-      }
-
-      const voiceConfig = requireVoiceConfig(loadedConfig);
-      const desktopVoiceConfig = requireDesktopVoiceServiceConfig(loadedConfig);
+  return runConfiguredServiceRuntime(options, {
+    validateConfig: validateDesktopVoiceServiceConfig,
+    runTurn: async ({ assistant, config }) => {
+      const voiceConfig = requireVoiceConfig(config);
+      const desktopVoiceConfig = requireDesktopVoiceServiceConfig(config);
       const adapters = (
         options.createVoiceAdapters ?? createDesktopVoiceServiceAdapters
       )(voiceConfig, desktopVoiceConfig);
@@ -81,7 +64,7 @@ export async function runDesktopVoiceServiceRuntime(
             speechToText: adapters.speechToText,
             textToSpeech: adapters.textToSpeech,
             turnConfig: {
-              wakePhrases: loadedConfig.assistant.wakePhrases,
+              wakePhrases: config.assistant.wakePhrases,
             },
             wakeAudioInput: adapters.wakeAudioInput,
             wakeWord: adapters.wakeWord,

@@ -92,4 +92,84 @@ describe("voice activation", () => {
     ]);
     expect(stderr.writes).toEqual(["Runtime failure: speaker unavailable\n"]);
   });
+
+  it.each([
+    {
+      name: "wake audio capture",
+      configure: (
+        dependencies: ReturnType<typeof createVoiceActivationDependencies>,
+      ) => ({
+        ...dependencies,
+        wakeAudioInput: {
+          capture: () =>
+            Promise.reject(new Error("wake microphone unavailable")),
+        },
+      }),
+      message: "wake microphone unavailable",
+    },
+    {
+      name: "wake speech-to-text",
+      configure: (
+        dependencies: ReturnType<typeof createVoiceActivationDependencies>,
+      ) => ({
+        ...dependencies,
+        speechToText: {
+          transcribe: () => Promise.reject(new Error("wake stt unavailable")),
+        },
+      }),
+      message: "wake stt unavailable",
+    },
+    {
+      name: "command audio capture",
+      configure: (
+        dependencies: ReturnType<typeof createVoiceActivationDependencies>,
+      ) => ({
+        ...dependencies,
+        commandAudioInput: {
+          capture: () =>
+            Promise.reject(new Error("command microphone unavailable")),
+        },
+      }),
+      message: "command microphone unavailable",
+    },
+    {
+      name: "command speech-to-text",
+      configure: (
+        dependencies: ReturnType<typeof createVoiceActivationDependencies>,
+      ) => {
+        let transcriptions = 0;
+
+        return {
+          ...dependencies,
+          speechToText: {
+            transcribe: (audio) => {
+              transcriptions += 1;
+
+              if (transcriptions === 2) {
+                return Promise.reject(new Error("command stt unavailable"));
+              }
+
+              return Promise.resolve({ text: audio.text });
+            },
+          },
+        };
+      },
+      message: "command stt unavailable",
+    },
+  ])("lets $name failures reach the service boundary", async (scenario) => {
+    const fallbackOutput = createCapturedWriter();
+    const stderr = createCapturedWriter();
+    const dependencies = scenario.configure(
+      createVoiceActivationDependencies({ wakeUtterance: "Hey Jarvis" }),
+    );
+
+    await expect(
+      runVoiceActivation(dependencies, {
+        fallbackOutput,
+        stderr,
+      }),
+    ).rejects.toThrow(scenario.message);
+    expect(fallbackOutput.writes).toEqual([]);
+    expect(stderr.writes).toEqual([]);
+  });
 });

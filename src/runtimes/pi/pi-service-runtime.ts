@@ -2,12 +2,8 @@ import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js
 import type { LoadedRuntimeConfig } from "../config/config.js";
 import { requireDesktopVoiceConfig } from "../config/desktop-voice-config.js";
 import { requireVoiceConfig } from "../config/voice-config.js";
+import { runConfiguredServiceRuntime } from "../service/configured-service-composition.js";
 import {
-  createConfiguredServiceAssistant,
-  forwardConfiguredServiceOptions,
-} from "../service/configured-service-composition.js";
-import {
-  runServiceRuntime,
   type ServiceProcessSignals,
   type ServiceRuntimeResult,
   type ServiceShutdownContext,
@@ -51,24 +47,11 @@ interface PiServiceRuntimeOptions extends Pick<
 export async function runPiServiceRuntime(
   options: PiServiceRuntimeOptions = {},
 ): Promise<ServiceRuntimeResult> {
-  let loadedConfig: LoadedRuntimeConfig | undefined;
-
-  return runServiceRuntime({
-    ...forwardConfiguredServiceOptions(options),
-    createAssistant: createConfiguredServiceAssistant(
-      options,
-      validatePiServiceConfig,
-      (config) => {
-        loadedConfig = config;
-      },
-    ),
-    runTurn: async ({ assistant }) => {
-      if (!loadedConfig) {
-        throw new Error("Pi service config was not loaded.");
-      }
-
-      const voiceConfig = requireVoiceConfig(loadedConfig);
-      const desktopVoiceConfig = requireDesktopVoiceConfig(loadedConfig);
+  return runConfiguredServiceRuntime(options, {
+    validateConfig: validatePiServiceConfig,
+    runTurn: async ({ assistant, config }) => {
+      const voiceConfig = requireVoiceConfig(config);
+      const desktopVoiceConfig = requireDesktopVoiceConfig(config);
       const adapters = (
         options.createVoiceAdapters ?? createDesktopVoiceAdapters
       )(voiceConfig, desktopVoiceConfig);
@@ -82,7 +65,7 @@ export async function runPiServiceRuntime(
             speechToText: adapters.speechToText,
             textToSpeech: adapters.textToSpeech,
             turnConfig: {
-              wakePhrases: loadedConfig.assistant.wakePhrases,
+              wakePhrases: config.assistant.wakePhrases,
             },
             wakeWord: adapters.wakeWord,
           },

@@ -12,6 +12,7 @@ import type {
   VoiceActivationResult,
 } from "./voice-activation.js";
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
+import type { DesktopVoiceServiceAdapters } from "./desktop-voice-adapter-registry.js";
 import type { VoiceRuntimeIo } from "./voice-turn.js";
 
 describe("runDesktopVoiceServiceRuntime", () => {
@@ -106,6 +107,64 @@ describe("runDesktopVoiceServiceRuntime", () => {
     );
   });
 
+  it.each([
+    {
+      failure: "wake microphone unavailable",
+      mode: "wake-audio" as const,
+    },
+    {
+      failure: "wake stt unavailable",
+      mode: "wake-stt" as const,
+    },
+    {
+      failure: "command microphone unavailable",
+      mode: "command-audio" as const,
+    },
+    {
+      failure: "command stt unavailable",
+      mode: "command-stt" as const,
+    },
+  ])(
+    "retries real activation after $mode infrastructure failure",
+    async ({ failure, mode }) => {
+      const signals = createServiceSignalController();
+      const stderr = createCapturedWriter();
+      const retryAfterFailure = vi.fn().mockResolvedValue(undefined);
+      let adapterCreations = 0;
+
+      await expect(
+        runDesktopVoiceServiceRuntime({
+          config: createDesktopVoiceConfig(
+            deterministicScenarios.alarmListEmpty.text,
+          ),
+          createVoiceAdapters: () => {
+            adapterCreations += 1;
+
+            if (adapterCreations === 1) {
+              return createInfrastructureFailureAdapters(mode, failure);
+            }
+
+            return createSuccessfulActivationAdapters(() => {
+              signals.emit("SIGTERM");
+            });
+          },
+          io: { stderr },
+          processSignals: signals,
+          retryAfterFailure,
+        }),
+      ).resolves.toEqual({
+        status: "stopped",
+        turnsCompleted: 1,
+      });
+
+      expect(adapterCreations).toBe(2);
+      expect(retryAfterFailure).toHaveBeenCalledWith(
+        expect.objectContaining({ failures: 1 }),
+      );
+      expect(stderr.writes).toContain(line(`Runtime failure: ${failure}`));
+    },
+  );
+
   it("returns a safe startup failure outcome when wake audio config is missing", async () => {
     const stderr = createCapturedWriter();
 
@@ -161,3 +220,88 @@ describe("runDesktopVoiceServiceRuntime", () => {
     expect(commandAudio?.filePath).toEqual(expect.stringContaining("capture"));
   });
 });
+
+type InfrastructureFailureMode =
+  | "command-audio"
+  | "command-stt"
+  | "wake-audio"
+  | "wake-stt";
+
+function createInfrastructureFailureAdapters(
+  mode: InfrastructureFailureMode,
+  message: string,
+): DesktopVoiceServiceAdapters {
+  const adapters = createSuccessfulActivationAdapters();
+  let transcriptions = 0;
+
+  if (mode === "wake-audio") {
+    return {
+      ...adapters,
+      wakeAudioInput: {
+        capture: () => Promise.reject(new Error(message)),
+      },
+    };
+  }
+
+  if (mode === "command-audio") {
+    return {
+      ...adapters,
+      audioInput: {
+        capture: () => Promise.reject(new Error(message)),
+      },
+    };
+  }
+
+  return {
+    ...adapters,
+    speechToText: {
+      transcribe: (audio) => {
+        transcriptions += 1;
+
+        if (
+          (mode === "wake-stt" && transcriptions === 1) ||
+          (mode === "command-stt" && transcriptions === 2)
+        ) {
+          return Promise.reject(new Error(message));
+        }
+
+        return Promise.resolve({ text: audio.text });
+      },
+    },
+  };
+}
+
+function createSuccessfulActivationAdapters(
+  onPlay?: () => void,
+): DesktopVoiceServiceAdapters {
+  return {
+    audioInput: {
+      capture: () =>
+        Promise.resolve({
+          text: deterministicScenarios.alarmListEmpty.text,
+        }),
+    },
+    audioOutput: {
+      play: () => {
+        onPlay?.();
+        return Promise.resolve();
+      },
+    },
+    speechToText: {
+      transcribe: (audio) => Promise.resolve({ text: audio.text }),
+    },
+    textToSpeech: {
+      synthesize: (text) => Promise.resolve({ text }),
+    },
+    wakeAudioInput: {
+      capture: () => Promise.resolve({ text: "Hey Jarvis" }),
+    },
+    wakeWord: {
+      detect: () =>
+        Promise.resolve({
+          detected: true,
+          phrase: "hey jarvis",
+        }),
+    },
+  };
+}
