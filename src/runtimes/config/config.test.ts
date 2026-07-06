@@ -484,7 +484,7 @@ describe("parseAssistantConfig", () => {
     ).toThrow('Config feature "calendar".adapter must be a non-empty string.');
   });
 
-  it("keeps feature adapter provider config out of the enumerable parsed feature shape", () => {
+  it("keeps feature adapter provider config unparsed on the selected feature shape", () => {
     const feature = parseAssistantConfig(
       createMinimalConfig({
         features: {
@@ -498,10 +498,6 @@ describe("parseAssistantConfig", () => {
     ).features.calendar;
 
     expect(feature).toEqual({
-      enabled: true,
-      adapter: "google",
-    });
-    expect(feature?.rawConfig).toEqual({
       enabled: true,
       adapter: "google",
       google: {},

@@ -1,10 +1,10 @@
 import type { AssistantPolicyConfig } from "../../ports/assistant.js";
 import { isRecord } from "./config-parse-utils.js";
 
-export type ParsedFeatureConfig = AssistantPolicyConfig["features"][string] & {
-  adapter?: string;
-  rawConfig?: Record<string, unknown>;
-};
+export type ParsedFeatureConfig = Record<string, unknown> &
+  AssistantPolicyConfig["features"][string] & {
+    adapter?: string;
+  };
 
 export type ParsedFeaturesConfig = Record<string, ParsedFeatureConfig>;
 
@@ -24,16 +24,12 @@ export function parseFeaturesConfig(
       );
     }
 
-    const parsedFeature: ParsedFeatureConfig = {
+    features[featureId] = {
+      ...featureConfig,
       enabled: featureConfig.enabled,
       ...parseFeatureAdapter(featureId, featureConfig),
       ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
     };
-    Object.defineProperty(parsedFeature, "rawConfig", {
-      enumerable: false,
-      value: featureConfig,
-    });
-    features[featureId] = parsedFeature;
   }
 
   return features;

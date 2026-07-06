@@ -168,9 +168,7 @@ interface CalendarGoogleAdapterConfig {
 function requireCalendarGoogleAdapterConfig(
   featureConfig: LoadedRuntimeConfig["features"][string],
 ): CalendarGoogleAdapterConfig {
-  const calendarConfig = parseCalendarFeatureConfig(
-    featureConfig.rawConfig ?? featureConfig,
-  );
+  const calendarConfig = parseCalendarFeatureConfig(featureConfig);
 
   if (!calendarConfig.google) {
     throw new Error('Config feature "calendar".google must be configured.');

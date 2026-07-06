@@ -211,12 +211,7 @@ function onlyGoogleCalendarConfig(
         ...(config.features.calendar?.adapter
           ? { adapter: config.features.calendar.adapter }
           : {}),
-        rawConfig: {
-          ...(config.features.calendar?.rawConfig ??
-            config.features.calendar ??
-            {}),
-          ...calendarOverrides,
-        },
+        ...calendarOverrides,
       },
     },
   };
@@ -231,8 +226,7 @@ interface TestGoogleConfig {
 function requireTestGoogleConfig(
   featureConfig: LoadedRuntimeConfig["features"][string],
 ): TestGoogleConfig {
-  const rawConfig = featureConfig.rawConfig ?? {};
-  const googleConfig = rawConfig.google;
+  const googleConfig = featureConfig.google;
 
   if (
     typeof googleConfig !== "object" ||

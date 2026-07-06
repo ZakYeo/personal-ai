@@ -60,16 +60,12 @@ export function createRuntimeConfigWithGoogleCalendarAdapter(): LoadedRuntimeCon
       calendar: {
         enabled: true,
         adapter: "google",
-        rawConfig: {
-          enabled: true,
-          adapter: "google",
-          google: {
-            accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-            baseUrl: "https://calendar.example.test/v3",
-            calendarId: "primary",
-            maxResults: 10,
-            timeoutMs: 30_000,
-          },
+        google: {
+          accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
+          baseUrl: "https://calendar.example.test/v3",
+          calendarId: "primary",
+          maxResults: 10,
+          timeoutMs: 30_000,
         },
       },
     },
@@ -114,11 +110,6 @@ export function withFeatureAdapterId(
         ...feature,
         adapter,
         enabled,
-        rawConfig: {
-          ...(feature?.rawConfig ?? feature ?? {}),
-          adapter,
-          enabled,
-        },
       },
     },
   };
@@ -138,10 +129,6 @@ export function withFeatureEnabled(
       [featureId]: {
         ...(feature ?? {}),
         enabled,
-        rawConfig: {
-          ...(feature?.rawConfig ?? feature ?? {}),
-          enabled,
-        },
       },
     },
   };
@@ -155,11 +142,6 @@ export function withoutFeatureAdapterId(
     ...(config.features[featureId] ?? { enabled: true }),
   };
   delete featureWithoutAdapter.adapter;
-  const rawConfig = {
-    ...(featureWithoutAdapter.rawConfig ?? featureWithoutAdapter),
-  };
-  delete rawConfig.adapter;
-  featureWithoutAdapter.rawConfig = rawConfig;
 
   return {
     ...config,

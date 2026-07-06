@@ -1,5 +1,6 @@
 import {
   createConfiguredTextRuntimeHarness,
+  createRuntimeConfigWithGoogleCalendarAdapter,
   createRuntimeConfigWithMissingFeatureAdapter,
   createRuntimeConfigWithUnknownFeatureAdapter,
   createRuntimeConfigWithUnknownIntentProvider,
@@ -11,6 +12,7 @@ import {
   writeRuntimeHarnessConfig,
   withVoiceAdapterId,
 } from "./runtime-composition.js";
+import { loadConfig } from "../runtimes/config/config.js";
 import { deterministicScenarios } from "./deterministic-scenarios.js";
 import {
   deterministicNow,
@@ -58,6 +60,28 @@ describe("runtime composition test support", () => {
     });
     expect(createRuntimeConfigWithMissingFeatureAdapter()).toMatchObject({
       features: { calendar: { enabled: true } },
+    });
+  });
+
+  it("round-trips Google calendar provider config through runtime harness files", async () => {
+    const configPath = await writeRuntimeHarnessConfig(
+      createRuntimeConfigWithGoogleCalendarAdapter(),
+    );
+
+    await expect(loadConfig({ configPath })).resolves.toMatchObject({
+      features: {
+        calendar: {
+          adapter: "google",
+          enabled: true,
+          google: {
+            accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
+            baseUrl: "https://calendar.example.test/v3",
+            calendarId: "primary",
+            maxResults: 10,
+            timeoutMs: 30_000,
+          },
+        },
+      },
     });
   });
 
