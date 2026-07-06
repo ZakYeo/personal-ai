@@ -1,5 +1,3 @@
-import type { Assistant } from "../../core/assistant/index.js";
-import type { AssistantResponse } from "../../ports/assistant.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -11,47 +9,37 @@ import {
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
+import type {
+  VoiceRuntimeIo,
+  VoiceTurnConfig,
+  VoiceTurnResult,
+} from "./voice-turn.js";
 import { handleAssistantText, speakResponse } from "./voice-response.js";
+import type { Assistant } from "../../core/assistant/index.js";
 
-export interface VoiceRuntimeIo {
-  fallbackOutput?: { write(chunk: string): boolean | void };
-  stderr?: { write(chunk: string): boolean | void };
-}
-
-export interface VoiceTurnConfig {
-  wakePhrases: string[];
-}
-
-export interface VoiceRuntimeDependencies {
+export interface VoiceActivationDependencies {
   assistant: Assistant;
-  audioInput: AudioInputPort;
   audioOutput: AudioOutputPort;
+  commandAudioInput: AudioInputPort;
   speechToText: SpeechToTextPort;
   textToSpeech: TextToSpeechPort;
   turnConfig: VoiceTurnConfig;
+  wakeAudioInput: AudioInputPort;
   wakeWord: WakeWordPort;
 }
 
-export interface VoiceTurnResult {
-  response: AssistantResponse;
-  spokenText?: string;
-  status: "spoken" | "ignored" | "fallback_output";
-  textOutputWritten: boolean;
-  transcript?: string;
-  wakePhrase?: string;
-}
-
-export async function runVoiceTurn(
-  dependencies: VoiceRuntimeDependencies,
+export async function runVoiceActivation(
+  dependencies: VoiceActivationDependencies,
   io: VoiceRuntimeIo = {},
 ): Promise<VoiceTurnResult> {
   try {
-    const audio = await dependencies.audioInput.capture();
-    const transcript = await dependencies.speechToText.transcribe(audio);
+    const wakeAudio = await dependencies.wakeAudioInput.capture();
+    const wakeTranscript =
+      await dependencies.speechToText.transcribe(wakeAudio);
     const detection = await dependencies.wakeWord.detect({
       audio: {
-        ...audio,
-        text: transcript.text,
+        ...wakeAudio,
+        text: wakeTranscript.text,
       },
       wakePhrases: dependencies.turnConfig.wakePhrases,
     });
@@ -64,12 +52,16 @@ export async function runVoiceTurn(
         },
         status: "ignored",
         textOutputWritten: false,
+        transcript: wakeTranscript.text,
       };
     }
 
+    const commandAudio = await dependencies.commandAudioInput.capture();
+    const commandTranscript =
+      await dependencies.speechToText.transcribe(commandAudio);
     const response = await handleAssistantText(
       dependencies.assistant,
-      transcript.text,
+      commandTranscript.text,
       io,
     );
     const speechOutput = await speakResponse(dependencies, response, io);
@@ -77,7 +69,7 @@ export async function runVoiceTurn(
     return {
       response,
       ...speechOutput,
-      transcript: transcript.text,
+      transcript: commandTranscript.text,
       ...(detection.phrase ? { wakePhrase: detection.phrase } : {}),
     };
   } catch (error) {
