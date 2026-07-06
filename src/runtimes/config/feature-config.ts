@@ -1,13 +1,10 @@
 import type { AssistantPolicyConfig } from "../../ports/assistant.js";
-import {
-  parseCalendarFeatureConfig,
-  type CalendarFeatureProviderConfig,
-} from "./calendar-feature-config.js";
 import { isRecord } from "./config-parse-utils.js";
 
 export type ParsedFeatureConfig = AssistantPolicyConfig["features"][string] & {
   adapter?: string;
-} & CalendarFeatureProviderConfig;
+  rawConfig?: Record<string, unknown>;
+};
 
 export type ParsedFeaturesConfig = Record<string, ParsedFeatureConfig>;
 
@@ -27,12 +24,16 @@ export function parseFeaturesConfig(
       );
     }
 
-    features[featureId] = {
+    const parsedFeature: ParsedFeatureConfig = {
       enabled: featureConfig.enabled,
       ...parseFeatureAdapter(featureId, featureConfig),
-      ...parseFeatureProviderConfig(featureId, featureConfig),
       ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
     };
+    Object.defineProperty(parsedFeature, "rawConfig", {
+      enumerable: false,
+      value: featureConfig,
+    });
+    features[featureId] = parsedFeature;
   }
 
   return features;
@@ -57,24 +58,6 @@ function parseFeatureAdapter(
   return {
     adapter: value,
   };
-}
-
-type FeatureProviderConfigParser = (
-  featureConfig: Record<string, unknown>,
-) => Partial<ParsedFeatureConfig>;
-
-const featureProviderConfigParsers: Record<
-  string,
-  FeatureProviderConfigParser
-> = {
-  calendar: parseCalendarFeatureConfig,
-};
-
-function parseFeatureProviderConfig(
-  featureId: string,
-  featureConfig: Record<string, unknown>,
-): Partial<ParsedFeatureConfig> {
-  return featureProviderConfigParsers[featureId]?.(featureConfig) ?? {};
 }
 
 function parseConfirmationRequiredCapabilities(

@@ -105,6 +105,28 @@ describe("createConfiguredFeatures", () => {
     ).toThrow('Config feature "calendar".google must be configured.');
   });
 
+  it("resolves Google calendar adapter config with defaults when selected", () => {
+    const config = onlyGoogleCalendarConfig({
+      google: {},
+    });
+
+    const features = createConfiguredFeatures(config);
+
+    expect(features.map((feature) => feature.id)).toEqual(["calendar"]);
+  });
+
+  it("rejects invalid Google calendar adapter config only when selected", () => {
+    const config = onlyGoogleCalendarConfig({
+      google: {
+        timeoutMs: 0,
+      },
+    });
+
+    expect(() => createConfiguredFeatures(config)).toThrow(
+      'Config feature "calendar".google.timeoutMs must be a positive integer.',
+    );
+  });
+
   it("lets registered entries resolve their selected adapter config", () => {
     const resolvedConfigs: TestGoogleConfig[] = [];
     const factory = vi.fn((adapterConfig: TestGoogleConfig) => {
@@ -112,32 +134,15 @@ describe("createConfiguredFeatures", () => {
 
       return createTestFeature("calendar");
     });
-    const googleCalendarConfig = withFeatureEnabled(
-      "alarms",
-      false,
-      withFeatureEnabled(
-        "messaging",
-        false,
-        withFeatureAdapterId("calendar", "google"),
-      ),
-    );
-    const config = {
-      ...googleCalendarConfig,
-      features: {
-        ...googleCalendarConfig.features,
-        calendar: {
-          enabled: true,
-          adapter: "google",
-          google: {
-            accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-            baseUrl: "https://calendar.example.test/v3",
-            calendarId: "primary",
-            maxResults: 10,
-            timeoutMs: 30_000,
-          },
-        },
+    const config = onlyGoogleCalendarConfig({
+      google: {
+        accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
+        baseUrl: "https://calendar.example.test/v3",
+        calendarId: "primary",
+        maxResults: 10,
+        timeoutMs: 30_000,
       },
-    };
+    });
 
     createConfiguredFeatures(config, {
       registry: {
@@ -157,13 +162,13 @@ describe("createConfiguredFeatures", () => {
 
     expect(factory).toHaveBeenCalledWith({
       google: {
-        accessTokenEnv: config.features.calendar.google.accessTokenEnv,
+        accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
       },
     });
     expect(resolvedConfigs).toEqual([
       {
         google: {
-          accessTokenEnv: config.features.calendar.google.accessTokenEnv,
+          accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
         },
       },
     ]);
@@ -184,6 +189,39 @@ function createTestFeature(id: string): FeaturePlugin {
   });
 }
 
+function onlyGoogleCalendarConfig(
+  calendarOverrides: Record<string, unknown>,
+): LoadedRuntimeConfig {
+  const config = withFeatureEnabled(
+    "alarms",
+    false,
+    withFeatureEnabled(
+      "messaging",
+      false,
+      withFeatureAdapterId("calendar", "google"),
+    ),
+  );
+
+  return {
+    ...config,
+    features: {
+      ...config.features,
+      calendar: {
+        enabled: config.features.calendar?.enabled ?? true,
+        ...(config.features.calendar?.adapter
+          ? { adapter: config.features.calendar.adapter }
+          : {}),
+        rawConfig: {
+          ...(config.features.calendar?.rawConfig ??
+            config.features.calendar ??
+            {}),
+          ...calendarOverrides,
+        },
+      },
+    },
+  };
+}
+
 interface TestGoogleConfig {
   google: {
     accessTokenEnv: string;
@@ -193,7 +231,8 @@ interface TestGoogleConfig {
 function requireTestGoogleConfig(
   featureConfig: LoadedRuntimeConfig["features"][string],
 ): TestGoogleConfig {
-  const googleConfig = featureConfig.google;
+  const rawConfig = featureConfig.rawConfig ?? {};
+  const googleConfig = rawConfig.google;
 
   if (
     typeof googleConfig !== "object" ||

@@ -60,12 +60,16 @@ export function createRuntimeConfigWithGoogleCalendarAdapter(): LoadedRuntimeCon
       calendar: {
         enabled: true,
         adapter: "google",
-        google: {
-          accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-          baseUrl: "https://calendar.example.test/v3",
-          calendarId: "primary",
-          maxResults: 10,
-          timeoutMs: 30_000,
+        rawConfig: {
+          enabled: true,
+          adapter: "google",
+          google: {
+            accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
+            baseUrl: "https://calendar.example.test/v3",
+            calendarId: "primary",
+            maxResults: 10,
+            timeoutMs: 30_000,
+          },
         },
       },
     },
@@ -99,14 +103,22 @@ export function withFeatureAdapterId(
   adapter: string,
   config: LoadedRuntimeConfig = enabledDeterministicConfig,
 ): LoadedRuntimeConfig {
+  const feature = config.features[featureId];
+  const enabled = feature?.enabled ?? true;
+
   return {
     ...config,
     features: {
       ...config.features,
       [featureId]: {
-        ...config.features[featureId],
+        ...feature,
         adapter,
-        enabled: config.features[featureId]?.enabled ?? true,
+        enabled,
+        rawConfig: {
+          ...(feature?.rawConfig ?? feature ?? {}),
+          adapter,
+          enabled,
+        },
       },
     },
   };
@@ -117,13 +129,19 @@ export function withFeatureEnabled(
   enabled: boolean,
   config: LoadedRuntimeConfig = enabledDeterministicConfig,
 ): LoadedRuntimeConfig {
+  const feature = config.features[featureId];
+
   return {
     ...config,
     features: {
       ...config.features,
       [featureId]: {
-        ...(config.features[featureId] ?? {}),
+        ...(feature ?? {}),
         enabled,
+        rawConfig: {
+          ...(feature?.rawConfig ?? feature ?? {}),
+          enabled,
+        },
       },
     },
   };
@@ -137,6 +155,11 @@ export function withoutFeatureAdapterId(
     ...(config.features[featureId] ?? { enabled: true }),
   };
   delete featureWithoutAdapter.adapter;
+  const rawConfig = {
+    ...(featureWithoutAdapter.rawConfig ?? featureWithoutAdapter),
+  };
+  delete rawConfig.adapter;
+  featureWithoutAdapter.rawConfig = rawConfig;
 
   return {
     ...config,

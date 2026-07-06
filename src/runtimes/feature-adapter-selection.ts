@@ -6,6 +6,7 @@ import { createCalendarFeature } from "../features/calendar/calendar-feature.js"
 import { createMessagingFeature } from "../features/messaging/messaging-feature.js";
 import type { GoogleCalendarConfig } from "../ports/calendar.js";
 import type { FeaturePlugin } from "../ports/feature.js";
+import { parseCalendarFeatureConfig } from "./config/calendar-feature-config.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
 
@@ -167,11 +168,15 @@ interface CalendarGoogleAdapterConfig {
 function requireCalendarGoogleAdapterConfig(
   featureConfig: LoadedRuntimeConfig["features"][string],
 ): CalendarGoogleAdapterConfig {
-  if (!featureConfig.google) {
+  const calendarConfig = parseCalendarFeatureConfig(
+    featureConfig.rawConfig ?? featureConfig,
+  );
+
+  if (!calendarConfig.google) {
     throw new Error('Config feature "calendar".google must be configured.');
   }
 
   return {
-    google: featureConfig.google,
+    google: calendarConfig.google,
   };
 }

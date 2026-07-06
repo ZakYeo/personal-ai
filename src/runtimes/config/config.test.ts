@@ -484,78 +484,28 @@ describe("parseAssistantConfig", () => {
     ).toThrow('Config feature "calendar".adapter must be a non-empty string.');
   });
 
-  it("parses Google calendar config with defaults", () => {
-    expect(
-      parseAssistantConfig(
-        createMinimalConfig({
-          features: {
-            calendar: {
-              enabled: true,
-              adapter: "google",
-              google: {},
-            },
+  it("keeps feature adapter provider config out of the enumerable parsed feature shape", () => {
+    const feature = parseAssistantConfig(
+      createMinimalConfig({
+        features: {
+          calendar: {
+            enabled: true,
+            adapter: "google",
+            google: {},
           },
-        }),
-      ).features.calendar,
-    ).toEqual({
+        },
+      }),
+    ).features.calendar;
+
+    expect(feature).toEqual({
       enabled: true,
       adapter: "google",
-      google: {
-        accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-        baseUrl: "https://www.googleapis.com/calendar/v3",
-        calendarId: "primary",
-        maxResults: 10,
-        timeoutMs: 30_000,
-      },
     });
-  });
-
-  it("parses Google calendar config overrides", () => {
-    expect(
-      parseAssistantConfig(
-        createMinimalConfig({
-          features: {
-            calendar: {
-              enabled: true,
-              adapter: "google",
-              google: {
-                accessTokenEnv: "PERSONAL_AI_GOOGLE_CALENDAR_TOKEN",
-                baseUrl: "https://calendar.example.test/v3",
-                calendarId: "calendar@example.test",
-                maxResults: 5,
-                timeoutMs: 1000,
-              },
-            },
-          },
-        }),
-      ).features.calendar?.google,
-    ).toEqual({
-      accessTokenEnv: "PERSONAL_AI_GOOGLE_CALENDAR_TOKEN",
-      baseUrl: "https://calendar.example.test/v3",
-      calendarId: "calendar@example.test",
-      maxResults: 5,
-      timeoutMs: 1000,
+    expect(feature?.rawConfig).toEqual({
+      enabled: true,
+      adapter: "google",
+      google: {},
     });
-  });
-
-  it("rejects invalid Google calendar config", () => {
-    expect(() =>
-      parseAssistantConfig(
-        createMinimalConfig({
-          features: {
-            calendar: {
-              enabled: true,
-              adapter: "google",
-              google: {
-                timeoutMs: 0,
-              },
-            },
-          },
-        }),
-      ),
-    ).toThrow(
-      'Config feature "calendar".google.timeoutMs must be a positive integer.',
-    );
   });
 });
 
