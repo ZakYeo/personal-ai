@@ -155,12 +155,63 @@ describe("personal-ai ask CLI", () => {
     expect(stderr).toEqual([]);
   });
 
+  it("runs the desktop voice service command with injected dependencies", async () => {
+    const configPath = await writeTempConfig(
+      createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+    );
+    const { io, stdout, stderr } = createCliIo({
+      OPENAI_API_KEY: "test-api-key",
+    });
+
+    await expect(
+      main(["desktop-voice-service", "--config", configPath], io, {
+        createDesktopVoiceServiceRuntime: (options) => {
+          if (!options) {
+            throw new Error("Expected desktop voice service runtime options.");
+          }
+
+          expect(options.configPath).toBe(configPath);
+          expect(options.env?.OPENAI_API_KEY).toBe("test-api-key");
+          expect(options.io?.fallbackOutput).toBe(io.stdout);
+          expect(options.io?.stderr).toBe(io.stderr);
+          expect(options.processSignals).toBeDefined();
+
+          return Promise.resolve({
+            status: "stopped",
+            turnsCompleted: 1,
+          });
+        },
+      }),
+    ).resolves.toBe(0);
+
+    expect(stdout).toEqual([]);
+    expect(stderr).toEqual([]);
+  });
+
   it("prints a graceful response and diagnostics when Raspberry Pi service startup fails", async () => {
     const { io, stdout, stderr } = createCliIo();
 
     await expect(
       main(["pi-service", "--config", "pi-config.json"], io, {
         createPiServiceRuntime: () =>
+          Promise.resolve({
+            response: safeRuntimeFallbackResponse,
+            status: "startup_failed",
+            turnsCompleted: 0,
+          }),
+      }),
+    ).resolves.toBe(1);
+
+    expect(stdout).toEqual([`${safeRuntimeFallbackResponse.text}\n`]);
+    expect(stderr).toEqual([]);
+  });
+
+  it("prints a graceful response and diagnostics when desktop voice service startup fails", async () => {
+    const { io, stdout, stderr } = createCliIo();
+
+    await expect(
+      main(["desktop-voice-service", "--config", "desktop-config.json"], io, {
+        createDesktopVoiceServiceRuntime: () =>
           Promise.resolve({
             response: safeRuntimeFallbackResponse,
             status: "startup_failed",
@@ -329,7 +380,7 @@ describe("personal-ai ask CLI", () => {
       exitCode: 1,
       stdout: [],
       stderr: [
-        'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n       personal-ai desktop-voice-once [--config path/to/config.json]\n       personal-ai pi-service --config path/to/pi-config.json\n',
+        'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n       personal-ai desktop-voice-once [--config path/to/config.json]\n       personal-ai desktop-voice-service --config path/to/desktop-config.json\n       personal-ai pi-service --config path/to/pi-config.json\n',
       ],
     });
   });
@@ -464,7 +515,7 @@ describe("personal-ai ask CLI", () => {
     await expect(main(["ask"], io)).resolves.toBe(1);
     expect(stdout).toEqual([]);
     expect(stderr).toEqual([
-      'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n       personal-ai desktop-voice-once [--config path/to/config.json]\n       personal-ai pi-service --config path/to/pi-config.json\n',
+      'Usage: personal-ai ask [--config path/to/config.json] "command text"\n       personal-ai voice-once [--config path/to/config.json] [--utterance "spoken command"]\n       personal-ai desktop-voice-once [--config path/to/config.json]\n       personal-ai desktop-voice-service --config path/to/desktop-config.json\n       personal-ai pi-service --config path/to/pi-config.json\n',
     ]);
   });
 });
