@@ -28,10 +28,12 @@ export interface VoiceActivationDependencies {
   wakeWord: WakeWordPort;
 }
 
+export type VoiceActivationResult = VoiceTurnResult;
+
 export async function runVoiceActivation(
   dependencies: VoiceActivationDependencies,
   io: VoiceRuntimeIo = {},
-): Promise<VoiceTurnResult> {
+): Promise<VoiceActivationResult> {
   try {
     const wakeAudio = await dependencies.wakeAudioInput.capture();
     const wakeTranscript =

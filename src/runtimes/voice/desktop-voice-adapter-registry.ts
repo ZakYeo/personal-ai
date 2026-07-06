@@ -14,7 +14,10 @@ import type {
   VoiceTempFilePort,
   WakeWordPort,
 } from "../../ports/voice.js";
-import type { ResolvedDesktopVoiceConfig } from "../config/desktop-voice-config.js";
+import type {
+  ResolvedDesktopVoiceConfig,
+  ResolvedDesktopVoiceServiceConfig,
+} from "../config/desktop-voice-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
 import { createNodeVoiceTempFiles } from "./voice-temp-files.js";
@@ -26,6 +29,10 @@ export interface DesktopVoiceAdapters {
   textToSpeech: TextToSpeechPort;
   wakeWord: WakeWordPort;
   cleanup?(): Promise<void>;
+}
+
+export interface DesktopVoiceServiceAdapters extends DesktopVoiceAdapters {
+  wakeAudioInput: AudioInputPort;
 }
 
 export function createDesktopVoiceAdapters(
@@ -61,6 +68,26 @@ export function createDesktopVoiceAdapters(
       desktopVoiceAdapterRegistry.wakeWord,
     )(),
     cleanup: () => tempFiles.cleanup(),
+  };
+}
+
+export function createDesktopVoiceServiceAdapters(
+  voice: ResolvedVoiceConfig,
+  desktopVoice: ResolvedDesktopVoiceServiceConfig,
+): DesktopVoiceServiceAdapters {
+  const adapters = createDesktopVoiceAdapters(voice, desktopVoice);
+  const tempFiles = createNodeVoiceTempFiles();
+
+  return {
+    ...adapters,
+    wakeAudioInput: selectConfiguredVoiceAdapter(
+      voice,
+      "input",
+      desktopVoiceAdapterRegistry.input,
+    )(desktopVoice.wakeAudioInput, tempFiles),
+    cleanup: async () => {
+      await Promise.all([adapters.cleanup?.(), tempFiles.cleanup()]);
+    },
   };
 }
 
