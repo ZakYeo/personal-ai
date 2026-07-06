@@ -90,6 +90,25 @@ returns the `runOnce` entry point.
 Text wake phrase normalization and prefix matching are shared by the mock and
 desktop voice adapters so user-facing wake behavior stays consistent.
 
+The desktop voice service command is:
+
+```bash
+personal-ai desktop-voice-service --config path/to/desktop-config.json
+```
+
+This command runs the desktop voice stack in a long-lived service loop. Each
+service iteration captures a short wake audio window, transcribes it, detects
+the configured wake phrase, and ignores the turn if no wake phrase is detected.
+After wake detection, it captures a separate command utterance, transcribes that
+command audio, sends the command transcript through the same assistant core, and
+speaks or fallback-prints the response. Recoverable activation failures are
+logged internally and retried by the neutral service loop. Startup still fails
+closed for missing voice adapter IDs or missing desktop command config, and temp
+voice files are cleaned up after each activation attempt. The first
+always-listening implementation remains command-based and STT-backed; native
+low-power wake engines or provider-event wake adapters can be added later behind
+the same runtime boundary.
+
 ### Raspberry Pi Runtime
 
 The Raspberry Pi runtime runs the assistant as a long-lived service process.
@@ -135,6 +154,11 @@ voice:
   audioOutput: mock
 
 desktopVoice:
+  wakeAudioInput:
+    command: rec
+    args:
+      - "{output}"
+    timeoutMs: 5000
   audioInput:
     command: rec
     args:
@@ -197,6 +221,9 @@ must reject missing or unregistered voice adapter IDs during composition.
 Desktop voice runtimes must also reject missing desktop command settings for
 selected command-based adapters. Desktop voice command adapters replace
 `{input}`, `{output}`, and `{text}` placeholders in configured argument values.
+The desktop voice service additionally requires `desktopVoice.wakeAudioInput`
+for short wake-window capture; `desktopVoice.audioInput` remains the command
+utterance capture config.
 
 The `openai` intent provider is opt-in and selected with
 `intent.provider: openai`. It requires `intent.openai.model`; `apiKeyEnv`,

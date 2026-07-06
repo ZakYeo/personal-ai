@@ -623,6 +623,33 @@ Acceptance criteria:
 - QEMU is spawned only when `--run` is explicit.
 - README, AGENTS, runtime docs, and roadmap describe the smoke path and limits.
 
+### Milestone 5.4: Desktop Voice Service Activation
+
+Status: implemented.
+
+Goal: provide true desktop voice activation without adding native wake-word SDKs
+or live provider dependencies to the deterministic validation gate.
+
+Included:
+
+- `desktop-voice-service` CLI command with an explicit local config path.
+- Two-stage command-based activation: short wake-window capture followed by a
+  separate command utterance capture.
+- Shared voice activation orchestration that reuses assistant diagnostics,
+  spoken response fallback, wake phrase matching, and service-loop retry
+  semantics.
+- Required `desktopVoice.wakeAudioInput` command config for the service runtime.
+
+Acceptance criteria:
+
+- Missing wake audio config fails at startup with a safe human-facing response
+  and internal diagnostics.
+- Non-wake audio is ignored without invoking the assistant.
+- Wake detection captures and transcribes a separate command utterance before
+  invoking the assistant core.
+- Recoverable activation failures are logged and retried by the service loop.
+- One-shot desktop voice behavior remains backward compatible.
+
 ## Milestone 6: Persistent Local Assistant State
 
 Status: planned.

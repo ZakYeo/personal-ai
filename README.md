@@ -16,6 +16,8 @@ Implemented today:
 - Configured text CLI runtime with deterministic behavior by default.
 - Mock voice loop for one simulated voice turn.
 - Desktop voice runtime for one configured local voice turn.
+- Desktop voice service command for always-listening wake activation with
+  separate wake-window and command captures.
 - Neutral service runtime boundary baseline implemented in preparation for
   Milestone 5.1.
 - Raspberry Pi service command that runs configured command-based voice turns in
@@ -42,11 +44,11 @@ operations, and additional provider work.
 
 Current roadmap position:
 
-- Milestones 1 through 5.3 are implemented in the repository, including the
+- Milestones 1 through 5.4 are implemented in the repository, including the
   deterministic text assistant, safety pipeline, harness hardening, tooling,
   mock and desktop voice runtimes, OpenAI intent routing, Google Calendar
-  search, the neutral service runtime, the Raspberry Pi service command, and
-  opt-in Raspberry Pi OS QEMU smoke support.
+  search, the neutral service runtime, the Raspberry Pi service command, opt-in
+  Raspberry Pi OS QEMU smoke support, and desktop voice service activation.
 - The next planned product milestone is persistent local assistant state,
   starting with a file-backed alarm store behind the existing `AlarmStore` port.
 - Raspberry Pi `systemd` installation notes and additional real providers are
@@ -105,6 +107,13 @@ Run one configured desktop voice turn:
 
 ```bash
 npm run cli -- desktop-voice-once --config path/to/desktop-config.json
+```
+
+Run the always-listening desktop voice service with local command-based voice
+config:
+
+```bash
+npm run cli -- desktop-voice-service --config path/to/desktop-config.json
 ```
 
 Run the Raspberry Pi service loop with local command-based voice config:
@@ -180,6 +189,8 @@ Common development commands:
 - `npm run format:check` - check Prettier formatting.
 - `npm run typecheck` - run TypeScript without emitting files.
 - `npm run build` - compile production JavaScript.
+- `npm run cli -- desktop-voice-service --config path/to/desktop-config.json` -
+  run the always-listening desktop voice service loop.
 - `npm run cli -- pi-service --config path/to/pi-config.json` - run the
   Raspberry Pi service loop.
 - `npm run smoke:pi:qemu -- --config path/to/pi-config.json --image path/to/raspios.img --kernel path/to/kernel8.img --dtb path/to/pi.dtb` -
