@@ -8,12 +8,12 @@ import {
 } from "../human-boundary.js";
 import type { VoiceRuntimeIo } from "./voice-turn.js";
 
-export interface VoiceSpeechDependencies {
+interface VoiceSpeechDependencies {
   audioOutput: AudioOutputPort;
   textToSpeech: TextToSpeechPort;
 }
 
-export interface VoiceSpeechOutputResult {
+interface VoiceSpeechOutputResult {
   spokenText?: string;
   status: "fallback_output" | "spoken";
   textOutputWritten: boolean;
