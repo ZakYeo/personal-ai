@@ -1,4 +1,5 @@
 import type { GoogleCalendarConfig } from "../../ports/calendar.js";
+import { fetchProviderJson, trimTrailingSlash } from "../http-json-client.js";
 import { GoogleCalendarError } from "./google-calendar-error.js";
 
 interface FetchGoogleCalendarEventsOptions {
@@ -12,54 +13,24 @@ interface FetchGoogleCalendarEventsOptions {
 export async function fetchGoogleCalendarEvents(
   options: FetchGoogleCalendarEventsOptions,
 ): Promise<unknown> {
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    options.config.timeoutMs,
-  );
-
-  try {
-    const response = await options.fetch(createEventsUrl(options), {
+  return fetchProviderJson({
+    createError: ({ cause, message, responseBody, status }) =>
+      new GoogleCalendarError(message, status, responseBody, { cause }),
+    fetch: options.fetch,
+    invalidJsonMessage:
+      "Google Calendar events response body was not valid JSON.",
+    nonOkMessage: (status) =>
+      `Google Calendar events request failed with status ${status}.`,
+    request: {
       headers: {
         authorization: `Bearer ${options.accessToken}`,
       },
       method: "GET",
-      signal: controller.signal,
-    });
-    const responseBody = await response.text();
-
-    if (!response.ok) {
-      throw new GoogleCalendarError(
-        `Google Calendar events request failed with status ${response.status}.`,
-        response.status,
-        responseBody,
-      );
-    }
-
-    try {
-      return JSON.parse(responseBody) as unknown;
-    } catch (error) {
-      throw new GoogleCalendarError(
-        "Google Calendar events response body was not valid JSON.",
-        response.status,
-        responseBody,
-        { cause: error },
-      );
-    }
-  } catch (error) {
-    if (isAbortError(error)) {
-      throw new GoogleCalendarError(
-        `Google Calendar events request timed out after ${options.config.timeoutMs}ms.`,
-        undefined,
-        undefined,
-        { cause: error },
-      );
-    }
-
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
+    },
+    timeoutMessage: `Google Calendar events request timed out after ${options.config.timeoutMs}ms.`,
+    timeoutMs: options.config.timeoutMs,
+    url: createEventsUrl(options),
+  });
 }
 
 function createEventsUrl({
@@ -80,12 +51,4 @@ function createEventsUrl({
   url.searchParams.set("maxResults", String(config.maxResults));
 
   return url.toString();
-}
-
-function isAbortError(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "AbortError";
-}
-
-function trimTrailingSlash(value: string): string {
-  return value.replace(/\/+$/u, "");
 }
