@@ -12,6 +12,7 @@ import type {
   ServiceSignal,
   ServiceTurnContext,
 } from "./service-runtime.js";
+import { runServiceRuntime } from "./service-runtime.js";
 
 describe("runServiceRuntime", () => {
   it("can compose the configured text assistant from an injected config path", async () => {
@@ -111,6 +112,47 @@ describe("runServiceRuntime", () => {
         failures: 1,
       }),
     );
+    expect(harness.stderr.writes).toContain(
+      line("Runtime failure: raw turn failure"),
+    );
+  });
+
+  it("uses the default fixed-delay retry policy with injected sleep after a turn failure", async () => {
+    const sleep = vi.fn().mockResolvedValue(undefined);
+    const runTurn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("raw turn failure"))
+      .mockImplementationOnce((context: ServiceTurnContext) => {
+        context.requestShutdown("test complete");
+        return Promise.resolve();
+      });
+    const harness = createServiceRuntimeHarness({
+      runTurn,
+    });
+
+    await expect(
+      runServiceRuntime({
+        createAssistant: () =>
+          Promise.resolve({
+            handleText: () =>
+              Promise.resolve(deterministicScenarios.alarmListEmpty.response),
+            handleTextWithDiagnostics: () =>
+              Promise.resolve({
+                response: deterministicScenarios.alarmListEmpty.response,
+              }),
+          }),
+        io: { stderr: harness.stderr },
+        now: () => new Date("2026-06-26T09:00:00.000Z"),
+        runTurn,
+        sleep,
+      }),
+    ).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 1,
+    });
+
+    expect(sleep).toHaveBeenCalledWith(1000);
+    expect(runTurn).toHaveBeenCalledTimes(2);
     expect(harness.stderr.writes).toContain(
       line("Runtime failure: raw turn failure"),
     );

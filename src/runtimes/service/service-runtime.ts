@@ -46,6 +46,7 @@ export interface ServiceRuntimeOptions {
   now?: () => Date;
   processSignals?: ServiceProcessSignals;
   retryAfterFailure?: (context: ServiceTurnFailureContext) => Promise<void>;
+  sleep?: (ms: number) => Promise<void>;
   runTurn(context: ServiceTurnContext): Promise<void>;
   shutdownHooks?: Array<(context: ServiceShutdownContext) => Promise<void>>;
 }
@@ -219,13 +220,26 @@ async function retryAfterTurnFailure(
   options: ServiceRuntimeOptions,
   context: ServiceTurnFailureContext,
 ): Promise<void> {
-  if (options.retryAfterFailure) {
-    await options.retryAfterFailure(context);
-    return;
-  }
+  const retryAfterFailure =
+    options.retryAfterFailure ??
+    createFixedDelayRetryAfterFailure({
+      delayMs: 1000,
+      sleep: options.sleep ?? sleepWithTimeout,
+    });
 
-  await new Promise((resolve) => {
-    setTimeout(resolve, 1000);
+  await retryAfterFailure(context);
+}
+
+export function createFixedDelayRetryAfterFailure(options: {
+  delayMs: number;
+  sleep: (ms: number) => Promise<void>;
+}): (context: ServiceTurnFailureContext) => Promise<void> {
+  return () => options.sleep(options.delayMs);
+}
+
+function sleepWithTimeout(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
   });
 }
 
