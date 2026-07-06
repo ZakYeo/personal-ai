@@ -1,10 +1,11 @@
-import {
-  createConfiguredTextRuntime,
-  type ConfiguredTextRuntimeOptions,
-} from "../configured-text-runtime.js";
-import { loadConfig, type LoadedRuntimeConfig } from "../config/config.js";
+import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js";
+import type { LoadedRuntimeConfig } from "../config/config.js";
 import { requireDesktopVoiceServiceConfig } from "../config/desktop-voice-config.js";
 import { requireVoiceConfig } from "../config/voice-config.js";
+import {
+  createConfiguredServiceAssistant,
+  forwardConfiguredServiceOptions,
+} from "../service/configured-service-composition.js";
 import {
   runServiceRuntime,
   type ServiceProcessSignals,
@@ -52,30 +53,14 @@ export async function runDesktopVoiceServiceRuntime(
   let loadedConfig: LoadedRuntimeConfig | undefined;
 
   return runServiceRuntime({
-    ...(options.config ? { config: options.config } : {}),
-    ...(options.configPath ? { configPath: options.configPath } : {}),
-    createAssistant: async () => {
-      loadedConfig = await loadDesktopVoiceServiceConfig(options);
-      requireVoiceConfig(loadedConfig);
-      requireDesktopVoiceServiceConfig(loadedConfig);
-
-      return createConfiguredTextRuntime({
-        config: loadedConfig,
-        ...(options.env ? { env: options.env } : {}),
-        ...(options.fetch ? { fetch: options.fetch } : {}),
-        ...(options.now ? { now: options.now } : {}),
-      });
-    },
-    ...(options.env ? { env: options.env } : {}),
-    ...(options.fetch ? { fetch: options.fetch } : {}),
-    ...(options.io ? { io: options.io } : {}),
-    ...(options.now ? { now: options.now } : {}),
-    ...(options.processSignals
-      ? { processSignals: options.processSignals }
-      : {}),
-    ...(options.retryAfterFailure
-      ? { retryAfterFailure: options.retryAfterFailure }
-      : {}),
+    ...forwardConfiguredServiceOptions(options),
+    createAssistant: createConfiguredServiceAssistant(
+      options,
+      validateDesktopVoiceServiceConfig,
+      (config) => {
+        loadedConfig = config;
+      },
+    ),
     runTurn: async ({ assistant }) => {
       if (!loadedConfig) {
         throw new Error("Desktop voice service config was not loaded.");
@@ -107,18 +92,10 @@ export async function runDesktopVoiceServiceRuntime(
         await cleanupVoiceAdapters(() => adapters.cleanup?.(), options.io);
       }
     },
-    ...(options.shutdownHooks ? { shutdownHooks: options.shutdownHooks } : {}),
   });
 }
 
-function loadDesktopVoiceServiceConfig(
-  options: DesktopVoiceServiceRuntimeOptions,
-): Promise<LoadedRuntimeConfig> {
-  if (options.config) {
-    return Promise.resolve(options.config);
-  }
-
-  return loadConfig(
-    options.configPath ? { configPath: options.configPath } : undefined,
-  );
+function validateDesktopVoiceServiceConfig(config: LoadedRuntimeConfig): void {
+  requireVoiceConfig(config);
+  requireDesktopVoiceServiceConfig(config);
 }

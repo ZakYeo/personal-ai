@@ -6,7 +6,7 @@ import {
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
-import type { VoiceRuntimeIo } from "./voice-turn.js";
+import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
 
 interface VoiceSpeechDependencies {
   audioOutput: AudioOutputPort;

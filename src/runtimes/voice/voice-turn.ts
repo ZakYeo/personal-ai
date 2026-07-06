@@ -12,11 +12,9 @@ import {
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
 import { handleAssistantText, speakResponse } from "./voice-response.js";
+import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
 
-export interface VoiceRuntimeIo {
-  fallbackOutput?: { write(chunk: string): boolean | void };
-  stderr?: { write(chunk: string): boolean | void };
-}
+export type { VoiceRuntimeIo } from "./voice-runtime-io.js";
 
 export interface VoiceTurnConfig {
   wakePhrases: string[];

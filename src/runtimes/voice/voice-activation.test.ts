@@ -56,17 +56,15 @@ describe("voice activation", () => {
       wakeUtterance: "Hey Jarvis",
     });
 
-    await expect(
-      runVoiceActivation(dependencies, {
-        fallbackOutput: spoken,
-        stderr,
-      }),
-    ).resolves.toMatchObject({
-      response: runtimeFailureResponse,
-      spokenText: runtimeFailureResponse.text,
-      status: "spoken",
-      textOutputWritten: false,
+    const result = await runVoiceActivation(dependencies, {
+      fallbackOutput: spoken,
+      stderr,
     });
+
+    expect(result.response).toEqual(runtimeFailureResponse);
+    expect(result.spokenText).toBe(runtimeFailureResponse.text);
+    expect(result.status).toBe("spoken");
+    expect(result.textOutputWritten).toBe(false);
     expect(spoken.writes).toEqual([`${runtimeFailureResponse.text}\n`]);
     expect(stderr.writes).toEqual(["Runtime failure: raw assistant failure\n"]);
   });

@@ -129,19 +129,12 @@ describe("personal-ai ask CLI", () => {
     const { io, stdout, stderr } = createCliIo({
       OPENAI_API_KEY: "test-api-key",
     });
+    const assertOptions = createServiceOptionsAssertion(configPath, io);
 
     await expect(
       main(["pi-service", "--config", configPath], io, {
         createPiServiceRuntime: (options) => {
-          if (!options) {
-            throw new Error("Expected Pi service runtime options.");
-          }
-
-          expect(options.configPath).toBe(configPath);
-          expect(options.env?.OPENAI_API_KEY).toBe("test-api-key");
-          expect(options.io?.fallbackOutput).toBe(io.stdout);
-          expect(options.io?.stderr).toBe(io.stderr);
-          expect(options.processSignals).toBeDefined();
+          assertOptions(options);
 
           return Promise.resolve({
             status: "stopped",
@@ -162,19 +155,12 @@ describe("personal-ai ask CLI", () => {
     const { io, stdout, stderr } = createCliIo({
       OPENAI_API_KEY: "test-api-key",
     });
+    const assertOptions = createServiceOptionsAssertion(configPath, io);
 
     await expect(
       main(["desktop-voice-service", "--config", configPath], io, {
         createDesktopVoiceServiceRuntime: (options) => {
-          if (!options) {
-            throw new Error("Expected desktop voice service runtime options.");
-          }
-
-          expect(options.configPath).toBe(configPath);
-          expect(options.env?.OPENAI_API_KEY).toBe("test-api-key");
-          expect(options.io?.fallbackOutput).toBe(io.stdout);
-          expect(options.io?.stderr).toBe(io.stderr);
-          expect(options.processSignals).toBeDefined();
+          assertOptions(options);
 
           return Promise.resolve({
             status: "stopped",
@@ -519,3 +505,25 @@ describe("personal-ai ask CLI", () => {
     ]);
   });
 });
+
+function createServiceOptionsAssertion(
+  configPath: string,
+  io: ReturnType<typeof createCliIo>["io"],
+) {
+  return (options?: {
+    configPath?: string;
+    env?: NodeJS.ProcessEnv;
+    io?: { fallbackOutput?: unknown; stderr?: unknown };
+    processSignals?: unknown;
+  }): void => {
+    if (!options) {
+      throw new Error("Expected service runtime options.");
+    }
+
+    expect(options.configPath).toBe(configPath);
+    expect(options.env?.OPENAI_API_KEY).toBe("test-api-key");
+    expect(options.io?.fallbackOutput).toBe(io.stdout);
+    expect(options.io?.stderr).toBe(io.stderr);
+    expect(options.processSignals).toBeDefined();
+  };
+}

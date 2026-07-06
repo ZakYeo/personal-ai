@@ -1,10 +1,11 @@
-import {
-  createConfiguredTextRuntime,
-  type ConfiguredTextRuntimeOptions,
-} from "../configured-text-runtime.js";
-import { loadConfig, type LoadedRuntimeConfig } from "../config/config.js";
+import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js";
+import type { LoadedRuntimeConfig } from "../config/config.js";
 import { requireDesktopVoiceConfig } from "../config/desktop-voice-config.js";
 import { requireVoiceConfig } from "../config/voice-config.js";
+import {
+  createConfiguredServiceAssistant,
+  forwardConfiguredServiceOptions,
+} from "../service/configured-service-composition.js";
 import {
   runServiceRuntime,
   type ServiceProcessSignals,
@@ -53,30 +54,14 @@ export async function runPiServiceRuntime(
   let loadedConfig: LoadedRuntimeConfig | undefined;
 
   return runServiceRuntime({
-    ...(options.config ? { config: options.config } : {}),
-    ...(options.configPath ? { configPath: options.configPath } : {}),
-    createAssistant: async () => {
-      loadedConfig = await loadPiServiceConfig(options);
-      requireVoiceConfig(loadedConfig);
-      requireDesktopVoiceConfig(loadedConfig);
-
-      return createConfiguredTextRuntime({
-        config: loadedConfig,
-        ...(options.env ? { env: options.env } : {}),
-        ...(options.fetch ? { fetch: options.fetch } : {}),
-        ...(options.now ? { now: options.now } : {}),
-      });
-    },
-    ...(options.env ? { env: options.env } : {}),
-    ...(options.fetch ? { fetch: options.fetch } : {}),
-    ...(options.io ? { io: options.io } : {}),
-    ...(options.now ? { now: options.now } : {}),
-    ...(options.processSignals
-      ? { processSignals: options.processSignals }
-      : {}),
-    ...(options.retryAfterFailure
-      ? { retryAfterFailure: options.retryAfterFailure }
-      : {}),
+    ...forwardConfiguredServiceOptions(options),
+    createAssistant: createConfiguredServiceAssistant(
+      options,
+      validatePiServiceConfig,
+      (config) => {
+        loadedConfig = config;
+      },
+    ),
     runTurn: async ({ assistant }) => {
       if (!loadedConfig) {
         throw new Error("Pi service config was not loaded.");
@@ -107,18 +92,10 @@ export async function runPiServiceRuntime(
         await cleanupVoiceAdapters(() => adapters.cleanup?.(), options.io);
       }
     },
-    ...(options.shutdownHooks ? { shutdownHooks: options.shutdownHooks } : {}),
   });
 }
 
-function loadPiServiceConfig(
-  options: PiServiceRuntimeOptions,
-): Promise<LoadedRuntimeConfig> {
-  if (options.config) {
-    return Promise.resolve(options.config);
-  }
-
-  return loadConfig(
-    options.configPath ? { configPath: options.configPath } : undefined,
-  );
+function validatePiServiceConfig(config: LoadedRuntimeConfig): void {
+  requireVoiceConfig(config);
+  requireDesktopVoiceConfig(config);
 }

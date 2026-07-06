@@ -460,38 +460,23 @@ function parseDesktopVoiceCommand(
 function parsePiServiceCommand(
   args: string[],
 ): ParsedPiServiceCommand | undefined {
-  let configPath: string | undefined;
-
-  for (let index = 1; index < args.length; index += 1) {
-    const arg = args[index];
-
-    if (arg === "--config") {
-      const nextArg = args[index + 1];
-
-      if (!nextArg) {
-        return undefined;
-      }
-
-      configPath = nextArg;
-      index += 1;
-    } else {
-      return undefined;
-    }
-  }
-
-  if (!configPath) {
-    return undefined;
-  }
-
-  return {
-    configPath,
-    kind: "pi-service",
-  };
+  return parseRequiredConfigCommand(args, "pi-service");
 }
 
 function parseDesktopVoiceServiceCommand(
   args: string[],
 ): ParsedDesktopVoiceServiceCommand | undefined {
+  return parseRequiredConfigCommand(args, "desktop-voice-service");
+}
+
+function parseRequiredConfigCommand<
+  TKind extends
+    | ParsedPiServiceCommand["kind"]
+    | ParsedDesktopVoiceServiceCommand["kind"],
+>(
+  args: string[],
+  kind: TKind,
+): { configPath: string; kind: TKind } | undefined {
   let configPath: string | undefined;
 
   for (let index = 1; index < args.length; index += 1) {
@@ -517,7 +502,7 @@ function parseDesktopVoiceServiceCommand(
 
   return {
     configPath,
-    kind: "desktop-voice-service",
+    kind,
   };
 }
 
