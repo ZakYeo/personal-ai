@@ -259,6 +259,11 @@ describe("parseAssistantConfig", () => {
 
   it("parses desktop voice command config", () => {
     const desktopVoice = {
+      wakeAudioInput: {
+        command: "fake-wake-rec",
+        args: ["--output", "{output}"],
+        timeoutMs: 1000,
+      },
       speechToText: {
         command: "fake-stt",
         args: ["--input", "{input}"],

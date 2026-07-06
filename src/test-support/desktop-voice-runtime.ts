@@ -30,6 +30,10 @@ export function createDesktopVoiceConfig(
         "{text}",
         "{output}",
       ),
+      wakeAudioInput: createDesktopVoiceCommand(
+        'printf wake-audio > "$1"',
+        "{output}",
+      ),
     },
     voice: {
       audioOutput: "sox-play",
@@ -74,6 +78,18 @@ export function withoutDesktopAudioInput(
 ): LoadedRuntimeConfig {
   const desktopVoice = { ...config.desktopVoice };
   delete desktopVoice.audioInput;
+
+  return {
+    ...config,
+    desktopVoice,
+  };
+}
+
+export function withoutDesktopWakeAudioInput(
+  config: LoadedRuntimeConfig,
+): LoadedRuntimeConfig {
+  const desktopVoice = { ...config.desktopVoice };
+  delete desktopVoice.wakeAudioInput;
 
   return {
     ...config,

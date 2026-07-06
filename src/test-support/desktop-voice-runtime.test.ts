@@ -4,6 +4,7 @@ import {
   withDesktopSpeechToTextFailure,
   withoutDesktopAudioInput,
   withoutDesktopSpeechToText,
+  withoutDesktopWakeAudioInput,
 } from "./desktop-voice-runtime.js";
 import { deterministicScenarios } from "./deterministic-scenarios.js";
 
@@ -40,6 +41,9 @@ describe("desktop voice runtime test support", () => {
     expect(withoutDesktopAudioInput(config).desktopVoice).not.toHaveProperty(
       "audioInput",
     );
+    expect(
+      withoutDesktopWakeAudioInput(config).desktopVoice,
+    ).not.toHaveProperty("wakeAudioInput");
     expect(
       withDesktopSpeechToTextFailure(config, "stt provider token failure", 12)
         .desktopVoice?.speechToText,

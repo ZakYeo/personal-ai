@@ -6,6 +6,7 @@ export interface ParsedDesktopVoiceConfig {
   audioOutput?: VoiceCommandConfig;
   speechToText?: VoiceCommandConfig;
   textToSpeech?: VoiceCommandConfig;
+  wakeAudioInput?: VoiceCommandConfig;
 }
 
 export interface ResolvedDesktopVoiceConfig {
@@ -13,6 +14,11 @@ export interface ResolvedDesktopVoiceConfig {
   audioOutput: VoiceCommandConfig;
   speechToText: VoiceCommandConfig;
   textToSpeech: VoiceCommandConfig;
+  wakeAudioInput?: VoiceCommandConfig;
+}
+
+export interface ResolvedDesktopVoiceServiceConfig extends ResolvedDesktopVoiceConfig {
+  wakeAudioInput: VoiceCommandConfig;
 }
 
 export function parseDesktopVoiceConfig(value: unknown): {
@@ -32,6 +38,7 @@ export function parseDesktopVoiceConfig(value: unknown): {
       ...parseVoiceCommand("audioOutput", value.audioOutput),
       ...parseVoiceCommand("speechToText", value.speechToText),
       ...parseVoiceCommand("textToSpeech", value.textToSpeech),
+      ...parseVoiceCommand("wakeAudioInput", value.wakeAudioInput),
     },
   };
 }
@@ -44,6 +51,18 @@ export function requireDesktopVoiceConfig(config: {
     audioOutput: requireDesktopVoiceCommand(config, "audioOutput"),
     speechToText: requireDesktopVoiceCommand(config, "speechToText"),
     textToSpeech: requireDesktopVoiceCommand(config, "textToSpeech"),
+    ...(config.desktopVoice?.wakeAudioInput
+      ? { wakeAudioInput: config.desktopVoice.wakeAudioInput }
+      : {}),
+  };
+}
+
+export function requireDesktopVoiceServiceConfig(config: {
+  desktopVoice?: ParsedDesktopVoiceConfig;
+}): ResolvedDesktopVoiceServiceConfig {
+  return {
+    ...requireDesktopVoiceConfig(config),
+    wakeAudioInput: requireDesktopVoiceCommand(config, "wakeAudioInput"),
   };
 }
 
