@@ -1,14 +1,13 @@
 import { env } from "node:process";
 import { join } from "node:path";
 
-import {
-  createDesktopVoiceCommand,
-  createDesktopVoiceConfig,
-} from "../test-support/desktop-voice-runtime.js";
+import { createFileFedDesktopVoiceOpenAISmokeConfig } from "../test-support/desktop-voice-openai-smoke.js";
 import { createCapturedWriter, line } from "../test-support/primitives.js";
 import { createServiceSignalController } from "../test-support/service-runtime.js";
+import { loadConfig } from "./config/config.js";
 import type { ServiceRuntimeResult } from "./service/service-runtime.js";
 import { runDesktopVoiceServiceRuntime } from "./voice/desktop-voice-service-runtime.js";
+import { runVoiceActivation } from "./voice/voice-activation.js";
 
 const runDesktopVoiceOpenAISmoke =
   env.PERSONAL_AI_RUN_DESKTOP_VOICE_OPENAI_SMOKE === "1";
@@ -18,6 +17,10 @@ const wakeFixturePath = join(audioFixtureDirectory, "hey-jarvis.wav");
 const commandFixturePath = join(
   audioFixtureDirectory,
   "list-my-alarms-24khz-mono-s16le.pcm",
+);
+const desktopVoiceOpenAIConfigPath = join(
+  "config",
+  "local-desktop-voice-openai.json",
 );
 
 describe.skipIf(!runDesktopVoiceOpenAISmoke)(
@@ -36,57 +39,20 @@ describe.skipIf(!runDesktopVoiceOpenAISmoke)(
       const progressOutput = createCapturedWriter();
       const fallbackOutput = createCapturedWriter();
       const stderr = createCapturedWriter();
+      const config = createFileFedDesktopVoiceOpenAISmokeConfig(
+        await loadConfig({ configPath: desktopVoiceOpenAIConfigPath }),
+        {
+          commandPcm: commandFixturePath,
+          wakeWav: wakeFixturePath,
+        },
+      );
 
       const fetch: typeof globalThis.fetch = () => {
-        signals.emit("SIGTERM");
-
         return Promise.resolve(new Response(Buffer.from("spoken audio")));
       };
 
       const result = await runDesktopVoiceServiceRuntime({
-        config: createDesktopVoiceConfig("", {
-          desktopVoice: {
-            openAIRealtimeTranscription: {
-              apiKeyEnv: openAIApiKeyEnv,
-              baseUrl: "wss://api.openai.com/v1/realtime",
-              model: "gpt-realtime-whisper",
-              timeoutMs: 30_000,
-            },
-            openAIStreamingSpeech: {
-              apiKeyEnv: openAIApiKeyEnv,
-              baseUrl: "https://api.openai.com/v1",
-              instructions: "Speak clearly and concisely.",
-              model: "gpt-4o-mini-tts",
-              responseFormat: "pcm",
-              voice: "coral",
-            },
-            streamingAudioInput: {
-              ...createDesktopVoiceCommand(`cat ${commandFixturePath}`),
-              timeoutMs: 45_000,
-            },
-            streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
-            wakeActivation: {
-              command: ".venv/bin/python",
-              args: [
-                "scripts/openwakeword-listener.py",
-                "--model",
-                "hey jarvis",
-                "--threshold",
-                "0.5",
-                "--rec-command",
-                `sox ${wakeFixturePath} -r 16000 -c 1 -b 16 -e signed-integer -t raw -`,
-              ],
-              timeoutMs: 30_000,
-            },
-          },
-          voice: {
-            streamingAudioInput: "sox-rec-stream",
-            streamingAudioOutput: "sox-play-stream",
-            streamingSpeechToText: "openai-realtime",
-            streamingTextToSpeech: "openai-streaming",
-            wakeActivation: "openwakeword-command",
-          },
-        }),
+        config,
         env: { [openAIApiKeyEnv]: env[openAIApiKeyEnv] },
         fetch,
         io: { fallbackOutput, progressOutput, stderr },
@@ -96,6 +62,12 @@ describe.skipIf(!runDesktopVoiceOpenAISmoke)(
           context.requestShutdown("smoke failure");
 
           return Promise.resolve();
+        },
+        runVoiceActivation: async (dependencies, io) => {
+          const activationResult = await runVoiceActivation(dependencies, io);
+          signals.emit("SIGTERM");
+
+          return activationResult;
         },
       });
 
