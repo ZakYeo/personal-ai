@@ -7,8 +7,13 @@ import type {
   CommandExecutionError,
   CommandSpawnError,
   CommandTimeoutError,
+  ProcessControl,
 } from "./process-runner.js";
-import { runCommand } from "./process-runner.js";
+import {
+  runCommand,
+  runCommandReadableStream,
+  runCommandUntilStdoutLine,
+} from "./process-runner.js";
 
 describe("runCommand", () => {
   it("captures stdout and stderr from a successful command", async () => {
@@ -62,5 +67,54 @@ describe("runCommand", () => {
       stderr: "",
       stdout: "",
     } satisfies Partial<CommandSpawnError>);
+  });
+});
+
+describe("runCommandUntilStdoutLine", () => {
+  it("terminates the selected process group through injected process control", async () => {
+    const killedProcessGroups: number[] = [];
+    const processControl: ProcessControl = {
+      kill: (pid) => {
+        killedProcessGroups.push(pid);
+      },
+      platform: "linux",
+    };
+    const result = await runCommandUntilStdoutLine(
+      {
+        args: ["-c", 'printf \'{"type":"ready"}\\n\'; sleep 1'],
+        command: "/bin/sh",
+        processControl,
+      },
+      (line) => {
+        const parsed = JSON.parse(line) as { type?: string };
+
+        return parsed.type === "ready" ? parsed : undefined;
+      },
+    );
+
+    expect(result.line).toEqual({ type: "ready" });
+    expect(killedProcessGroups).toHaveLength(1);
+    expect(killedProcessGroups[0]).toBeLessThan(0);
+  });
+});
+
+describe("runCommandReadableStream", () => {
+  it("captures stream stdout and stderr diagnostics for non-zero exits", async () => {
+    const stream = runCommandReadableStream({
+      args: ["-c", "printf 'first'; printf 'diagnostic' >&2; exit 9"],
+      command: "/bin/sh",
+    });
+    const chunks: string[] = [];
+
+    await expect(async () => {
+      for await (const chunk of stream.chunks) {
+        chunks.push(Buffer.from(chunk).toString("utf8"));
+      }
+    }).rejects.toMatchObject({
+      code: 9,
+      stderr: "diagnostic",
+      stdout: "first",
+    } satisfies Partial<CommandExecutionError>);
+    expect(chunks).toEqual(["first"]);
   });
 });

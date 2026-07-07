@@ -1,8 +1,14 @@
 import { spawn } from "node:child_process";
 
+export interface ProcessControl {
+  kill(pid: number, signal: NodeJS.Signals): void;
+  platform: string;
+}
+
 interface RunCommandRequest {
   args?: string[];
   command: string;
+  processControl?: ProcessControl;
   timeoutMs?: number;
 }
 
@@ -49,91 +55,21 @@ export class CommandSpawnError extends Error {
 
 const defaultTimeoutMs = 30_000;
 
-export function runCommand(
+const nodeProcessControl: ProcessControl = {
+  kill: (pid, signal) => process.kill(pid, signal),
+  platform: process.platform,
+};
+
+export async function runCommand(
   request: RunCommandRequest,
 ): Promise<RunCommandResult> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(request.command, request.args ?? [], {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const stdoutChunks: Buffer[] = [];
-    const stderrChunks: Buffer[] = [];
-    const timeoutMs = request.timeoutMs ?? defaultTimeoutMs;
-    let settled = false;
-
-    const timer = setTimeout(() => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      child.kill("SIGTERM");
-      const stdout = Buffer.concat(stdoutChunks).toString("utf8");
-      const stderr = Buffer.concat(stderrChunks).toString("utf8");
-      reject(
-        new CommandTimeoutError(
-          `Command "${request.command}" timed out after ${timeoutMs}ms.`,
-          timeoutMs,
-          stderr,
-          stdout,
-        ),
-      );
-    }, timeoutMs);
-
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdoutChunks.push(chunk);
-    });
-
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderrChunks.push(chunk);
-    });
-
-    child.on("error", (error) => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      clearTimeout(timer);
-      const stdout = Buffer.concat(stdoutChunks).toString("utf8");
-      const stderr = Buffer.concat(stderrChunks).toString("utf8");
-
-      reject(
-        new CommandSpawnError(
-          `Command "${request.command}" failed to start.`,
-          error,
-          stderr,
-          stdout,
-        ),
-      );
-    });
-
-    child.on("close", (code) => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      clearTimeout(timer);
-
-      const stdout = Buffer.concat(stdoutChunks).toString("utf8");
-      const stderr = Buffer.concat(stderrChunks).toString("utf8");
-
-      if (code !== 0) {
-        reject(
-          new CommandExecutionError(
-            `Command "${request.command}" exited with code ${code ?? "null"}.`,
-            code,
-            stderr,
-            stdout,
-          ),
-        );
-        return;
-      }
-
-      resolve({ stderr, stdout });
-    });
+  const commandProcess = startCommandProcess(request, {
+    captureStdout: true,
+    detached: false,
+    stdio: ["ignore", "pipe", "pipe"],
   });
+
+  return commandProcess.waitForSuccess();
 }
 
 export function runCommandUntilStdoutLine<TLine>(
@@ -141,50 +77,7 @@ export function runCommandUntilStdoutLine<TLine>(
   selectLine: (line: string) => TLine | undefined,
 ): Promise<RunCommandResult & { line: TLine }> {
   return new Promise((resolve, reject) => {
-    const child = spawn(request.command, request.args ?? [], {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const stdoutChunks: Buffer[] = [];
-    const stderrChunks: Buffer[] = [];
-    const timeoutMs = request.timeoutMs ?? defaultTimeoutMs;
-    let settled = false;
     let pendingStdout = "";
-
-    const collectOutput = (): RunCommandResult => ({
-      stderr: Buffer.concat(stderrChunks).toString("utf8"),
-      stdout: Buffer.concat(stdoutChunks).toString("utf8"),
-    });
-
-    const settle = (
-      callback: (output: RunCommandResult) => void,
-      kill = false,
-    ): void => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      clearTimeout(timer);
-
-      if (kill) {
-        child.kill("SIGTERM");
-      }
-
-      callback(collectOutput());
-    };
-
-    const timer = setTimeout(() => {
-      settle((output) => {
-        reject(
-          new CommandTimeoutError(
-            `Command "${request.command}" timed out after ${timeoutMs}ms.`,
-            timeoutMs,
-            output.stderr,
-            output.stdout,
-          ),
-        );
-      }, true);
-    }, timeoutMs);
 
     const handleStdoutLine = (line: string): void => {
       let selected: TLine | undefined;
@@ -192,68 +85,58 @@ export function runCommandUntilStdoutLine<TLine>(
       try {
         selected = selectLine(line);
       } catch (error) {
-        settle(() => reject(toError(error)), true);
+        commandProcess.terminate();
+        reject(toError(error));
 
         return;
       }
 
       if (selected !== undefined) {
-        settle((output) => resolve({ ...output, line: selected }), true);
+        commandProcess.terminate();
+        resolve({ ...commandProcess.output(), line: selected });
       }
     };
 
-    child.stdout.on("data", (chunk: Buffer) => {
-      stdoutChunks.push(chunk);
-      pendingStdout += chunk.toString("utf8");
+    const commandProcess = startCommandProcess(request, {
+      captureStdout: true,
+      detached: true,
+      onStdoutData: (chunk) => {
+        pendingStdout += chunk.toString("utf8");
 
-      let newlineIndex = pendingStdout.indexOf("\n");
-      while (newlineIndex >= 0) {
-        const line = pendingStdout.slice(0, newlineIndex).trim();
-        pendingStdout = pendingStdout.slice(newlineIndex + 1);
+        let newlineIndex = pendingStdout.indexOf("\n");
+        while (newlineIndex >= 0) {
+          const line = pendingStdout.slice(0, newlineIndex).trim();
+          pendingStdout = pendingStdout.slice(newlineIndex + 1);
 
-        if (line.length > 0) {
-          handleStdoutLine(line);
+          if (line.length > 0) {
+            handleStdoutLine(line);
+          }
+
+          newlineIndex = pendingStdout.indexOf("\n");
+        }
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    commandProcess.waitForSuccess().then(
+      () => {
+        if (pendingStdout.trim().length > 0) {
+          handleStdoutLine(pendingStdout.trim());
         }
 
-        newlineIndex = pendingStdout.indexOf("\n");
-      }
-    });
-
-    child.stderr.on("data", (chunk: Buffer) => {
-      stderrChunks.push(chunk);
-    });
-
-    child.on("error", (error) => {
-      settle((output) => {
-        reject(
-          new CommandSpawnError(
-            `Command "${request.command}" failed to start.`,
-            error,
-            output.stderr,
-            output.stdout,
-          ),
-        );
-      });
-    });
-
-    child.on("close", (code) => {
-      if (pendingStdout.trim().length > 0) {
-        handleStdoutLine(pendingStdout.trim());
-      }
-
-      settle((output) => {
         reject(
           new CommandExecutionError(
-            code === 0
-              ? `Command "${request.command}" exited without wake activation output.`
-              : `Command "${request.command}" exited with code ${code ?? "null"}.`,
-            code,
-            output.stderr,
-            output.stdout,
+            `Command "${request.command}" exited without wake activation output.`,
+            0,
+            commandProcess.output().stderr,
+            commandProcess.output().stdout,
           ),
         );
-      });
-    });
+      },
+      (error: unknown) => {
+        reject(toError(error));
+      },
+    );
   });
 }
 
@@ -280,46 +163,21 @@ function createCommandReadableIterable(
 function createCommandReadableIterator(
   request: RunCommandRequest,
 ): AsyncIterator<Uint8Array> {
-  const child = spawn(request.command, request.args ?? [], {
-    detached: canUseProcessGroups(),
+  const commandProcess = startCommandProcess(request, {
+    captureStdout: false,
+    detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  const stdoutChunks: Buffer[] = [];
-  const stderrChunks: Buffer[] = [];
-  const timeoutMs = request.timeoutMs ?? defaultTimeoutMs;
-  let spawnError: unknown;
-
-  const completion: ProcessCompletionRequest = {
-    child,
-    command: request.command,
-    getSpawnError: () => spawnError,
-    stderrChunks,
-    stdoutChunks,
-    timeoutMs,
-  };
-  const waitForClose = waitForProcessClose(completion);
-  waitForClose.catch(() => {});
-
-  child.stderr.on("data", (chunk: Buffer) => {
-    stderrChunks.push(chunk);
-  });
-  child.on("error", (error) => {
-    spawnError = error;
-  });
-
-  const stdoutIterator = readProcessStdout(completion, waitForClose)[
-    Symbol.asyncIterator
-  ]();
+  const stdoutIterator =
+    readProcessStdout(commandProcess)[Symbol.asyncIterator]();
 
   return {
     next: () => stdoutIterator.next(),
     return: async () => {
-      if (child.exitCode === null && child.signalCode === null) {
-        terminateProcess(child);
-      }
+      commandProcess.terminate();
 
       try {
-        await waitForClose;
+        await commandProcess.waitForSuccess();
       } catch {
         // Iterator cancellation is best-effort; callers keep the primary failure.
       }
@@ -335,131 +193,202 @@ export async function runCommandWritableStream(
   request: RunCommandRequest,
   chunks: AsyncIterable<Uint8Array>,
 ): Promise<void> {
-  const child = spawn(request.command, request.args ?? [], {
+  const commandProcess = startCommandProcess(request, {
+    captureStdout: false,
+    detached: false,
     stdio: ["pipe", "ignore", "pipe"],
   });
-  const stderrChunks: Buffer[] = [];
-  const timeoutMs = request.timeoutMs ?? defaultTimeoutMs;
-  let spawnError: unknown;
-
-  child.stderr.on("data", (chunk: Buffer) => {
-    stderrChunks.push(chunk);
-  });
-  child.on("error", (error) => {
-    spawnError = error;
-  });
-
-  const waitForClose = waitForProcessClose({
-    child,
-    command: request.command,
-    getSpawnError: () => spawnError,
-    stderrChunks,
-    stdoutChunks: [],
-    timeoutMs,
-  });
-  waitForClose.catch(() => {});
 
   for await (const chunk of chunks) {
-    child.stdin.write(chunk);
+    commandProcess.writeStdin(chunk);
   }
-  child.stdin.end();
+  commandProcess.endStdin();
 
-  await waitForClose;
+  await commandProcess.waitForSuccess();
 }
 
-interface ProcessCompletionRequest {
-  child: ReturnType<typeof spawn>;
-  command: string;
-  getSpawnError(): unknown;
-  stderrChunks: Buffer[];
-  stdoutChunks: Buffer[];
-  timeoutMs: number;
+type CommandStdio = "ignore" | "pipe";
+
+interface CommandProcessOptions {
+  captureStdout: boolean;
+  detached: boolean;
+  onStdoutData?: (chunk: Buffer) => void;
+  stdio: [CommandStdio, CommandStdio, CommandStdio];
+}
+
+function startCommandProcess(
+  request: RunCommandRequest,
+  options: CommandProcessOptions,
+): CommandProcess {
+  return new CommandProcess(request, options);
+}
+
+class CommandProcess {
+  private readonly child: ReturnType<typeof spawn>;
+  private readonly completion: Promise<RunCommandResult>;
+  private readonly processControl: ProcessControl;
+  private readonly stderrChunks: Buffer[] = [];
+  private readonly stdoutChunks: Buffer[] = [];
+
+  constructor(
+    private readonly request: RunCommandRequest,
+    options: CommandProcessOptions,
+  ) {
+    this.processControl = request.processControl ?? nodeProcessControl;
+    this.child = spawn(request.command, request.args ?? [], {
+      detached: options.detached && canUseProcessGroups(this.processControl),
+      stdio: options.stdio,
+    });
+
+    this.captureOutput(options);
+    this.completion = this.waitForClose();
+    this.completion.catch(() => {});
+  }
+
+  endStdin(): void {
+    this.child.stdin?.end();
+  }
+
+  output(): RunCommandResult {
+    return {
+      stderr: Buffer.concat(this.stderrChunks).toString("utf8"),
+      stdout: Buffer.concat(this.stdoutChunks).toString("utf8"),
+    };
+  }
+
+  captureStdoutChunk(chunk: Buffer): void {
+    this.stdoutChunks.push(chunk);
+  }
+
+  stdout(): NodeJS.ReadableStream {
+    if (!this.child.stdout) {
+      throw new Error("Command did not provide stdout.");
+    }
+
+    return this.child.stdout;
+  }
+
+  terminate(): void {
+    if (this.child.exitCode !== null || this.child.signalCode !== null) {
+      return;
+    }
+
+    terminateProcess(this.child, this.processControl);
+  }
+
+  waitForSuccess(): Promise<RunCommandResult> {
+    return this.completion;
+  }
+
+  writeStdin(chunk: Uint8Array): void {
+    if (!this.child.stdin) {
+      throw new Error("Command did not provide stdin.");
+    }
+
+    this.child.stdin.write(chunk);
+  }
+
+  private captureOutput(options: CommandProcessOptions): void {
+    if (options.captureStdout) {
+      this.child.stdout?.on("data", (chunk: Buffer) => {
+        this.stdoutChunks.push(chunk);
+        options.onStdoutData?.(chunk);
+      });
+    }
+
+    this.child.stderr?.on("data", (chunk: Buffer) => {
+      this.stderrChunks.push(chunk);
+    });
+  }
+
+  private waitForClose(): Promise<RunCommandResult> {
+    return new Promise((resolve, reject) => {
+      const timeoutMs = this.request.timeoutMs ?? defaultTimeoutMs;
+      let settled = false;
+
+      const settle = (callback: () => void): void => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        clearTimeout(timer);
+        callback();
+      };
+
+      const timer = setTimeout(() => {
+        settle(() => {
+          this.terminate();
+          const output = this.output();
+
+          reject(
+            new CommandTimeoutError(
+              `Command "${this.request.command}" timed out after ${timeoutMs}ms.`,
+              timeoutMs,
+              output.stderr,
+              output.stdout,
+            ),
+          );
+        });
+      }, timeoutMs);
+
+      this.child.on("error", (error) => {
+        settle(() => {
+          const output = this.output();
+
+          reject(
+            new CommandSpawnError(
+              `Command "${this.request.command}" failed to start.`,
+              error,
+              output.stderr,
+              output.stdout,
+            ),
+          );
+        });
+      });
+
+      this.child.on("close", (code) => {
+        settle(() => {
+          const output = this.output();
+
+          if (code !== 0) {
+            reject(
+              new CommandExecutionError(
+                `Command "${this.request.command}" exited with code ${code ?? "null"}.`,
+                code,
+                output.stderr,
+                output.stdout,
+              ),
+            );
+            return;
+          }
+
+          resolve(output);
+        });
+      });
+    });
+  }
 }
 
 async function* readProcessStdout(
-  request: ProcessCompletionRequest,
-  waitForClose = waitForProcessClose(request),
+  commandProcess: CommandProcess,
 ): AsyncIterable<Uint8Array> {
-  if (!request.child.stdout) {
-    throw new Error("Command did not provide stdout.");
-  }
-
-  waitForClose.catch(() => {});
-
-  for await (const chunk of request.child.stdout) {
+  for await (const chunk of commandProcess.stdout()) {
     const buffer = Buffer.from(chunk as Buffer);
-    request.stdoutChunks.push(buffer);
+    commandProcess.captureStdoutChunk(buffer);
     yield buffer;
   }
 
-  await waitForClose;
+  await commandProcess.waitForSuccess();
 }
 
-function waitForProcessClose(request: ProcessCompletionRequest): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let settled = false;
-
-    const timer = setTimeout(() => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      terminateProcess(request.child);
-      reject(
-        new CommandTimeoutError(
-          `Command "${request.command}" timed out after ${request.timeoutMs}ms.`,
-          request.timeoutMs,
-          Buffer.concat(request.stderrChunks).toString("utf8"),
-          Buffer.concat(request.stdoutChunks).toString("utf8"),
-        ),
-      );
-    }, request.timeoutMs);
-
-    request.child.on("close", (code) => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      clearTimeout(timer);
-      const stdout = Buffer.concat(request.stdoutChunks).toString("utf8");
-      const stderr = Buffer.concat(request.stderrChunks).toString("utf8");
-      const spawnError = request.getSpawnError();
-
-      if (spawnError) {
-        reject(
-          new CommandSpawnError(
-            `Command "${request.command}" failed to start.`,
-            spawnError,
-            stderr,
-            stdout,
-          ),
-        );
-        return;
-      }
-
-      if (code !== 0) {
-        reject(
-          new CommandExecutionError(
-            `Command "${request.command}" exited with code ${code ?? "null"}.`,
-            code,
-            stderr,
-            stdout,
-          ),
-        );
-        return;
-      }
-
-      resolve();
-    });
-  });
-}
-
-function terminateProcess(child: ReturnType<typeof spawn>): void {
-  if (canUseProcessGroups() && child.pid !== undefined) {
+function terminateProcess(
+  child: ReturnType<typeof spawn>,
+  processControl: ProcessControl,
+): void {
+  if (canUseProcessGroups(processControl) && child.pid !== undefined) {
     try {
-      process.kill(-child.pid, "SIGTERM");
+      processControl.kill(-child.pid, "SIGTERM");
       return;
     } catch (error) {
       if (!isMissingProcessError(error)) {
@@ -471,8 +400,8 @@ function terminateProcess(child: ReturnType<typeof spawn>): void {
   child.kill("SIGTERM");
 }
 
-function canUseProcessGroups(): boolean {
-  return process.platform !== "win32";
+function canUseProcessGroups(processControl: ProcessControl): boolean {
+  return processControl.platform !== "win32";
 }
 
 function isMissingProcessError(error: unknown): boolean {
