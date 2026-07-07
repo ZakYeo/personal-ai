@@ -31,88 +31,56 @@ export type ParsedVoiceServiceCommand =
   | ParsedPiServiceCommand;
 
 export function parseAskCommand(args: string[]): ParsedAskCommand | undefined {
-  const commandParts: string[] = [];
-  let configPath: string | undefined;
+  const parsed = parseCommandOptions(args, {
+    allowPositionals: true,
+    flags: ["config"],
+  });
 
-  for (let index = 1; index < args.length; index += 1) {
-    const arg = args[index];
-
-    if (arg === "--config") {
-      const nextArg = args[index + 1];
-
-      if (!nextArg) {
-        return undefined;
-      }
-
-      configPath = nextArg;
-      index += 1;
-    } else if (arg) {
-      commandParts.push(arg);
-    }
-  }
-
-  if (commandParts.length === 0) {
+  if (!parsed || parsed.positionals.length === 0) {
     return undefined;
   }
 
   return {
     kind: "ask",
-    commandText: commandParts.join(" "),
-    ...(configPath ? { configPath } : {}),
+    commandText: parsed.positionals.join(" "),
+    ...(parsed.configPath ? { configPath: parsed.configPath } : {}),
   };
 }
 
 export function parseVoiceCommand(
   args: string[],
 ): ParsedVoiceCommand | undefined {
-  let configPath: string | undefined;
-  let utterance: string | undefined;
+  const parsed = parseCommandOptions(args, {
+    allowPositionals: false,
+    flags: ["config", "utterance"],
+  });
 
-  for (let index = 1; index < args.length; index += 1) {
-    const arg = args[index];
-
-    if (arg === "--config") {
-      const nextArg = args[index + 1];
-
-      if (!nextArg) {
-        return undefined;
-      }
-
-      configPath = nextArg;
-      index += 1;
-    } else if (arg === "--utterance") {
-      const nextArg = args[index + 1];
-
-      if (!nextArg) {
-        return undefined;
-      }
-
-      utterance = nextArg;
-      index += 1;
-    } else {
-      return undefined;
-    }
+  if (!parsed) {
+    return undefined;
   }
 
   return {
     kind: "voice-once",
-    ...(configPath ? { configPath } : {}),
-    ...(utterance ? { utterance } : {}),
+    ...(parsed.configPath ? { configPath: parsed.configPath } : {}),
+    ...(parsed.utterance ? { utterance: parsed.utterance } : {}),
   };
 }
 
 export function parseDesktopVoiceCommand(
   args: string[],
 ): ParsedVoiceCommand | undefined {
-  const configPath = parseOptionalConfigPath(args);
+  const parsed = parseCommandOptions(args, {
+    allowPositionals: false,
+    flags: ["config"],
+  });
 
-  if (configPath === false) {
+  if (!parsed) {
     return undefined;
   }
 
   return {
     kind: "desktop-voice-once",
-    ...(configPath ? { configPath } : {}),
+    ...(parsed.configPath ? { configPath: parsed.configPath } : {}),
   };
 }
 
@@ -136,37 +104,77 @@ function parseRequiredConfigCommand<
   args: string[],
   kind: TKind,
 ): { configPath: string; kind: TKind } | undefined {
-  const configPath = parseOptionalConfigPath(args);
+  const parsed = parseCommandOptions(args, {
+    allowPositionals: false,
+    flags: ["config"],
+  });
 
-  if (!configPath) {
+  if (!parsed?.configPath) {
     return undefined;
   }
 
   return {
-    configPath,
+    configPath: parsed.configPath,
     kind,
   };
 }
 
-function parseOptionalConfigPath(args: string[]): string | false | undefined {
+type CommandFlag = "config" | "utterance";
+
+interface ParsedCommandOptions {
+  configPath?: string;
+  positionals: string[];
+  utterance?: string;
+}
+
+function parseCommandOptions(
+  args: string[],
+  options: {
+    allowPositionals: boolean;
+    flags: CommandFlag[];
+  },
+): ParsedCommandOptions | undefined {
   let configPath: string | undefined;
+  let utterance: string | undefined;
+  const positionals: string[] = [];
 
   for (let index = 1; index < args.length; index += 1) {
     const arg = args[index];
 
-    if (arg === "--config") {
+    if (arg === undefined) {
+      return undefined;
+    }
+
+    if (arg === "--config" && options.flags.includes("config")) {
       const nextArg = args[index + 1];
 
       if (!nextArg) {
-        return false;
+        return undefined;
       }
 
       configPath = nextArg;
       index += 1;
+    } else if (arg === "--utterance" && options.flags.includes("utterance")) {
+      const nextArg = args[index + 1];
+
+      if (!nextArg) {
+        return undefined;
+      }
+
+      utterance = nextArg;
+      index += 1;
+    } else if (options.allowPositionals && arg) {
+      positionals.push(arg);
+    } else if (options.allowPositionals) {
+      continue;
     } else {
-      return false;
+      return undefined;
     }
   }
 
-  return configPath;
+  return {
+    ...(configPath ? { configPath } : {}),
+    positionals,
+    ...(utterance ? { utterance } : {}),
+  };
 }
