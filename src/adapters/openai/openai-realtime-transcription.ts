@@ -52,40 +52,65 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
       await waitForSocketOpen(socket, this.options.config.timeoutMs);
       configureTranscriptionSession(socket, this.options.config);
 
-      let transcriptFailure: unknown;
       const transcriptPromise = waitForTranscript(
         socket,
         events,
         this.options.config.timeoutMs,
-      ).catch((error: unknown) => {
-        transcriptFailure = error;
-        return;
-      });
+      );
 
-      for await (const chunk of audio.chunks) {
-        socket.send(
-          JSON.stringify({
-            audio: Buffer.from(chunk).toString("base64"),
-            type: "input_audio_buffer.append",
-          }),
-        );
-      }
+      await streamAudioToSocket(socket, audio, transcriptPromise);
 
       socket.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
 
       const transcript = await transcriptPromise;
-      if (transcriptFailure !== undefined) {
-        throw toError(transcriptFailure);
-      }
-      if (!transcript) {
-        throw new Error("Realtime transcription did not return a transcript.");
-      }
 
       return transcript;
     } finally {
       await cleanupAudioStream(audio);
       socket.close();
     }
+  }
+}
+
+async function streamAudioToSocket(
+  socket: RealtimeSocket,
+  audio: CapturedAudioStream,
+  transcriptPromise: Promise<SpeechTranscript>,
+): Promise<void> {
+  const iterator = audio.chunks[Symbol.asyncIterator]();
+
+  while (true) {
+    const next = await Promise.race([
+      iterator.next().then(
+        (result) => ({ result, type: "chunk" }) as const,
+        (error: unknown) => ({ error, type: "failure" }) as const,
+      ),
+      transcriptPromise.then(
+        () => ({ type: "transcript" }) as const,
+        (error: unknown) => ({ error, type: "failure" }) as const,
+      ),
+    ]);
+
+    if (next.type === "failure") {
+      throw toError(next.error);
+    }
+
+    if (next.type === "transcript") {
+      throw new Error(
+        "Realtime transcription completed before audio stream finished.",
+      );
+    }
+
+    if (next.result.done) {
+      return;
+    }
+
+    socket.send(
+      JSON.stringify({
+        audio: Buffer.from(next.result.value).toString("base64"),
+        type: "input_audio_buffer.append",
+      }),
+    );
   }
 }
 

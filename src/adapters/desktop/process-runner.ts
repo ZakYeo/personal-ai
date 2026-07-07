@@ -266,6 +266,7 @@ export function runCommandReadableStream(request: RunCommandRequest): {
   cleanup(): Promise<void>;
 } {
   const child = spawn(request.command, request.args ?? [], {
+    detached: canUseProcessGroups(),
     stdio: ["ignore", "pipe", "pipe"],
   });
   const stdoutChunks: Buffer[] = [];
@@ -293,7 +294,7 @@ export function runCommandReadableStream(request: RunCommandRequest): {
   return {
     cleanup: async () => {
       if (child.exitCode === null && child.signalCode === null) {
-        child.kill("SIGTERM");
+        terminateProcess(child);
       }
 
       try {
@@ -389,7 +390,7 @@ function waitForProcessClose(request: ProcessCompletionRequest): Promise<void> {
       }
 
       settled = true;
-      request.child.kill("SIGTERM");
+      terminateProcess(request.child);
       reject(
         new CommandTimeoutError(
           `Command "${request.command}" timed out after ${request.timeoutMs}ms.`,
@@ -438,4 +439,32 @@ function waitForProcessClose(request: ProcessCompletionRequest): Promise<void> {
       resolve();
     });
   });
+}
+
+function terminateProcess(child: ReturnType<typeof spawn>): void {
+  if (canUseProcessGroups() && child.pid !== undefined) {
+    try {
+      process.kill(-child.pid, "SIGTERM");
+      return;
+    } catch (error) {
+      if (!isMissingProcessError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  child.kill("SIGTERM");
+}
+
+function canUseProcessGroups(): boolean {
+  return process.platform !== "win32";
+}
+
+function isMissingProcessError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "ESRCH"
+  );
 }

@@ -185,7 +185,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
       line(`Assistant: ${deterministicScenarios.alarmListEmpty.response.text}`),
     ]);
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
-      "session.update",
+      "transcription_session.update",
       "input_audio_buffer.append",
       "input_audio_buffer.commit",
     ]);
@@ -264,7 +264,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
       line("Wake word detected, now listening..."),
     ]);
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
-      "session.update",
+      "transcription_session.update",
       "input_audio_buffer.append",
       "input_audio_buffer.commit",
     ]);
@@ -273,6 +273,83 @@ describe("runDesktopVoiceServiceRuntime", () => {
     expect(fallbackOutput.writes).toEqual([]);
     expect(stderr.writes).toEqual([
       line("Runtime failure: Realtime transcription timed out after 1ms."),
+    ]);
+  });
+
+  it("cleans up streaming command audio when realtime transcription fails before audio is read", async () => {
+    const signals = createServiceSignalController();
+    const progressOutput = createCapturedWriter();
+    const fallbackOutput = createCapturedWriter();
+    const stderr = createCapturedWriter();
+    const socket = new FakeRealtimeSocket({
+      errorOnSessionUpdate: true,
+    });
+    const startedAt = Date.now();
+
+    await expect(
+      runDesktopVoiceServiceRuntime({
+        config: createDesktopVoiceConfig("", {
+          desktopVoice: {
+            openAIRealtimeTranscription: {
+              apiKeyEnv: "OPENAI_API_KEY",
+              baseUrl: "wss://api.openai.test/v1/realtime",
+              model: "gpt-realtime-whisper",
+              timeoutMs: 30_000,
+            },
+            openAIStreamingSpeech: {
+              apiKeyEnv: "OPENAI_API_KEY",
+              baseUrl: "https://api.openai.test/v1",
+              instructions: "Speak clearly.",
+              model: "gpt-4o-mini-tts",
+              responseFormat: "pcm",
+              voice: "coral",
+            },
+            streamingAudioInput: {
+              ...createDesktopVoiceCommand("sleep 10"),
+              timeoutMs: 30_000,
+            },
+            streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
+            wakeActivation: createDesktopVoiceCommand(
+              `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
+            ),
+          },
+          voice: {
+            streamingAudioInput: "sox-rec-stream",
+            streamingAudioOutput: "sox-play-stream",
+            streamingSpeechToText: "openai-realtime",
+            streamingTextToSpeech: "openai-streaming",
+            wakeActivation: "openwakeword-command",
+          },
+        }),
+        env: { OPENAI_API_KEY: "test-api-key" },
+        fetch: vi.fn(() =>
+          Promise.resolve(new Response(Buffer.from("spoken audio"))),
+        ),
+        io: { fallbackOutput, progressOutput, stderr },
+        processSignals: signals,
+        retryAfterFailure: (context) => {
+          context.requestShutdown("test complete");
+
+          return Promise.resolve();
+        },
+        webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
+      }),
+    ).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 0,
+    });
+
+    expect(Date.now() - startedAt).toBeLessThan(5_000);
+    expect(socket.sentMessages.map((message) => message.type)).toEqual([
+      "transcription_session.update",
+    ]);
+    expect(progressOutput.writes).toEqual([
+      line('Now listening for wake word "hey jarvis".'),
+      line("Wake word detected, now listening..."),
+    ]);
+    expect(fallbackOutput.writes).toEqual([]);
+    expect(stderr.writes).toEqual([
+      line("Runtime failure: Realtime transcription failed."),
     ]);
   });
 
@@ -659,7 +736,12 @@ class FakeRealtimeSocket implements RealtimeSocket {
   private readonly listeners: Record<string, Array<(event?: unknown) => void>> =
     {};
 
-  constructor(private readonly options: { transcript?: string }) {}
+  constructor(
+    private readonly options: {
+      errorOnSessionUpdate?: boolean;
+      transcript?: string;
+    },
+  ) {}
 
   addEventListener(type: string, listener: (event?: unknown) => void): void {
     this.listeners[type] = [...(this.listeners[type] ?? []), listener];
@@ -678,6 +760,26 @@ class FakeRealtimeSocket implements RealtimeSocket {
   send(message: string): void {
     const parsed = JSON.parse(message) as Record<string, unknown>;
     this.sentMessages.push(parsed);
+
+    if (
+      parsed.type === "transcription_session.update" &&
+      this.options.errorOnSessionUpdate
+    ) {
+      queueMicrotask(() => {
+        if (this.closed) {
+          return;
+        }
+
+        this.emitMessage({
+          error: {
+            code: "invalid_request_error",
+            message: "Bad transcription session.",
+            type: "invalid_request_error",
+          },
+          type: "error",
+        });
+      });
+    }
 
     if (parsed.type === "input_audio_buffer.commit") {
       queueMicrotask(() => {
