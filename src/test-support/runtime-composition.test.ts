@@ -63,7 +63,7 @@ describe("runtime composition test support", () => {
     });
   });
 
-  it("round-trips Google calendar provider config through runtime harness files", async () => {
+  it("round-trips Google calendar adapter selection through runtime harness files", async () => {
     const configPath = await writeRuntimeHarnessConfig(
       createRuntimeConfigWithGoogleCalendarAdapter(),
     );
@@ -73,13 +73,6 @@ describe("runtime composition test support", () => {
         calendar: {
           adapter: "google",
           enabled: true,
-          google: {
-            accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-            baseUrl: "https://calendar.example.test/v3",
-            calendarId: "primary",
-            maxResults: 10,
-            timeoutMs: 30_000,
-          },
         },
       },
     });

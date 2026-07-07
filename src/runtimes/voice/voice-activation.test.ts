@@ -8,6 +8,77 @@ import {
 } from "../../test-support/voice-runtime.js";
 import { runVoiceActivation } from "./voice-activation.js";
 
+type VoiceActivationTestDependencies = ReturnType<
+  typeof createVoiceActivationDependencies
+>;
+
+interface ActivationFailureScenario {
+  configure(
+    dependencies: VoiceActivationTestDependencies,
+  ): VoiceActivationTestDependencies;
+  message: string;
+  name: string;
+}
+
+const preWakeFailureScenarios: ActivationFailureScenario[] = [
+  {
+    name: "wake audio capture",
+    configure: (dependencies) => ({
+      ...dependencies,
+      wakeAudioInput: {
+        capture: () => Promise.reject(new Error("wake microphone unavailable")),
+      },
+    }),
+    message: "wake microphone unavailable",
+  },
+  {
+    name: "wake speech-to-text",
+    configure: (dependencies) => ({
+      ...dependencies,
+      speechToText: {
+        transcribe: () => Promise.reject(new Error("wake stt unavailable")),
+      },
+    }),
+    message: "wake stt unavailable",
+  },
+];
+
+const postWakeFailureScenarios: ActivationFailureScenario[] = [
+  {
+    name: "command audio capture",
+    configure: (dependencies) => ({
+      ...dependencies,
+      commandAudioInput: {
+        capture: () =>
+          Promise.reject(new Error("command microphone unavailable")),
+      },
+    }),
+    message: "command microphone unavailable",
+  },
+  {
+    name: "command speech-to-text",
+    configure: (dependencies) => {
+      let transcriptions = 0;
+
+      return {
+        ...dependencies,
+        speechToText: {
+          transcribe: (audio) => {
+            transcriptions += 1;
+
+            if (transcriptions === 2) {
+              return Promise.reject(new Error("command stt unavailable"));
+            }
+
+            return Promise.resolve({ text: audio.text });
+          },
+        },
+      };
+    },
+    message: "command stt unavailable",
+  },
+];
+
 describe("voice activation", () => {
   it("ignores wake audio without the wake phrase", async () => {
     const commandCaptures: string[] = [];
@@ -236,85 +307,53 @@ describe("voice activation", () => {
     expect(progressOutput.writes).toContain("alarms");
   });
 
-  it.each([
-    {
-      name: "wake audio capture",
-      configure: (
-        dependencies: ReturnType<typeof createVoiceActivationDependencies>,
-      ) => ({
-        ...dependencies,
-        wakeAudioInput: {
-          capture: () =>
-            Promise.reject(new Error("wake microphone unavailable")),
-        },
-      }),
-      message: "wake microphone unavailable",
-    },
-    {
-      name: "wake speech-to-text",
-      configure: (
-        dependencies: ReturnType<typeof createVoiceActivationDependencies>,
-      ) => ({
-        ...dependencies,
-        speechToText: {
-          transcribe: () => Promise.reject(new Error("wake stt unavailable")),
-        },
-      }),
-      message: "wake stt unavailable",
-    },
-    {
-      name: "command audio capture",
-      configure: (
-        dependencies: ReturnType<typeof createVoiceActivationDependencies>,
-      ) => ({
-        ...dependencies,
-        commandAudioInput: {
-          capture: () =>
-            Promise.reject(new Error("command microphone unavailable")),
-        },
-      }),
-      message: "command microphone unavailable",
-    },
-    {
-      name: "command speech-to-text",
-      configure: (
-        dependencies: ReturnType<typeof createVoiceActivationDependencies>,
-      ) => {
-        let transcriptions = 0;
+  it.each(preWakeFailureScenarios)(
+    "lets pre-wake $name failures reach the service boundary",
+    async (scenario) => {
+      const fallbackOutput = createCapturedWriter();
+      const stderr = createCapturedWriter();
+      const dependencies = scenario.configure(
+        createVoiceActivationDependencies({ wakeUtterance: "Hey Jarvis" }),
+      );
 
-        return {
-          ...dependencies,
-          speechToText: {
-            transcribe: (audio) => {
-              transcriptions += 1;
-
-              if (transcriptions === 2) {
-                return Promise.reject(new Error("command stt unavailable"));
-              }
-
-              return Promise.resolve({ text: audio.text });
-            },
-          },
-        };
-      },
-      message: "command stt unavailable",
+      await expect(
+        runVoiceActivation(dependencies, {
+          fallbackOutput,
+          stderr,
+        }),
+      ).rejects.toThrow(scenario.message);
+      expect(fallbackOutput.writes).toEqual([]);
+      expect(stderr.writes).toEqual([]);
     },
-  ])("lets $name failures reach the service boundary", async (scenario) => {
-    const fallbackOutput = createCapturedWriter();
-    const stderr = createCapturedWriter();
-    const dependencies = scenario.configure(
-      createVoiceActivationDependencies({ wakeUtterance: "Hey Jarvis" }),
-    );
+  );
 
-    await expect(
-      runVoiceActivation(dependencies, {
-        fallbackOutput,
-        stderr,
-      }),
-    ).rejects.toThrow(scenario.message);
-    expect(fallbackOutput.writes).toEqual([]);
-    expect(stderr.writes).toEqual([]);
-  });
+  it.each(postWakeFailureScenarios)(
+    "speaks a graceful fallback after post-wake $name failure",
+    async (scenario) => {
+      const fallbackOutput = createCapturedWriter();
+      const stderr = createCapturedWriter();
+      const dependencies = scenario.configure(
+        createVoiceActivationDependencies({ wakeUtterance: "Hey Jarvis" }),
+      );
+
+      await expect(
+        runVoiceActivation(dependencies, {
+          fallbackOutput,
+          stderr,
+        }),
+      ).resolves.toEqual({
+        response: runtimeFailureResponse,
+        spokenText: runtimeFailureResponse.text,
+        status: "spoken",
+        textOutputWritten: false,
+        wakePhrase: "hey jarvis",
+      });
+      expect(fallbackOutput.writes).toEqual([]);
+      expect(stderr.writes).toEqual([
+        line(`Runtime failure: ${scenario.message}`),
+      ]);
+    },
+  );
 });
 
 async function* chunksFromText(text: string): AsyncIterable<Uint8Array> {
