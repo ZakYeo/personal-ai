@@ -15,16 +15,23 @@ export interface FeatureAdapterDependencies {
   fetch: typeof fetch;
 }
 
-export interface FeatureAdapterContext<TAdapterConfig = unknown> {
+interface FeatureAdapterContext<TAdapterConfig> {
   adapterConfig: TAdapterConfig;
   dependencies: FeatureAdapterDependencies;
 }
 
-interface FeatureAdapterEntry<TAdapterConfig = unknown> {
+interface FeatureAdapterDefinition<TAdapterConfig> {
   create(context: FeatureAdapterContext<TAdapterConfig>): FeaturePlugin;
   resolveConfig(
     featureConfig: LoadedRuntimeConfig["features"][string],
   ): TAdapterConfig;
+}
+
+export interface FeatureAdapterEntry {
+  create(
+    featureConfig: LoadedRuntimeConfig["features"][string],
+    dependencies: FeatureAdapterDependencies,
+  ): FeaturePlugin;
 }
 
 export interface FeatureRegistryEntry {
@@ -43,9 +50,15 @@ interface CreateConfiguredFeaturesOptions {
 }
 
 export function defineFeatureAdapterEntry<TAdapterConfig>(
-  entry: FeatureAdapterEntry<TAdapterConfig>,
-): FeatureAdapterEntry<TAdapterConfig> {
-  return entry;
+  entry: FeatureAdapterDefinition<TAdapterConfig>,
+): FeatureAdapterEntry {
+  return {
+    create: (featureConfig, dependencies) =>
+      entry.create({
+        adapterConfig: entry.resolveConfig(featureConfig),
+        dependencies,
+      }),
+  };
 }
 
 export function createConfiguredFeatures(
@@ -153,12 +166,7 @@ function selectConfiguredFeatureAdapter(
       `Config feature "${featureId}" adapter "${adapterId}" is not registered.`,
   });
 
-  const adapterConfig = adapter.resolveConfig(featureConfig);
-
-  return adapter.create({
-    adapterConfig,
-    dependencies,
-  });
+  return adapter.create(featureConfig, dependencies);
 }
 
 interface CalendarGoogleAdapterConfig {

@@ -14,13 +14,18 @@ import {
   createConfiguredFeatureSelection,
   createConfiguredFeatures,
   defineFeatureAdapterEntry,
-  type FeatureAdapterContext,
+  type FeatureAdapterDependencies,
   type FeatureAdapterRegistry,
 } from "./feature-adapter-selection.js";
 
 describe("createConfiguredFeatures", () => {
   it("passes narrow adapter dependencies and selected adapter config to registered entries", () => {
-    let observedContext: FeatureAdapterContext | undefined;
+    let observedContext:
+      | {
+          adapterConfig: void;
+          dependencies: FeatureAdapterDependencies;
+        }
+      | undefined;
     const registry: FeatureAdapterRegistry = {
       calendar: {
         adapters: {
