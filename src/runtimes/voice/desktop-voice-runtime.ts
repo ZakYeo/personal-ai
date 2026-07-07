@@ -1,8 +1,10 @@
 import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
-import { resolveDesktopVoiceAdapterConfig } from "../config/desktop-voice-config.js";
 import type { VoiceRuntimeIo } from "./voice-turn.js";
-import { createDesktopVoiceAdapters } from "./desktop-voice-adapter-registry.js";
+import {
+  createDesktopVoiceAdapters,
+  resolveDesktopVoiceAdapterConfig,
+} from "./desktop-voice-adapter-registry.js";
 import {
   createVoiceRuntime,
   type VoiceRuntime,

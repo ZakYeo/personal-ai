@@ -274,14 +274,7 @@ describe("personal-ai ask CLI", () => {
     });
     const result = await runCliWithInjectedRuntime({
       args: ["ask", "fail safely"],
-      runtime: {
-        handleText: () =>
-          Promise.resolve({
-            status: "error",
-            text: "legacy path should not be used",
-          }),
-        handleTextWithDiagnostics: () => Promise.reject(providerError),
-      },
+      runtime: createRejectingDiagnosticRuntime(providerError),
     });
 
     expect(result).toMatchObject({
@@ -293,6 +286,27 @@ describe("personal-ai ask CLI", () => {
       "Runtime failure: OpenAI speech failed.\n",
       "Runtime failure status: 429\n",
       'Runtime failure response body: {"error":"provider token secret"}\n',
+    ]);
+  });
+
+  it("logs non-serializable runtime provider events without throwing", async () => {
+    const event: Record<string, unknown> = { type: "error" };
+    event.self = event;
+    const providerError = Object.assign(new Error("Realtime failed."), {
+      event,
+    });
+    const result = await runCliWithInjectedRuntime({
+      args: ["ask", "fail safely"],
+      runtime: createRejectingDiagnosticRuntime(providerError),
+    });
+
+    expect(result).toMatchObject({
+      exitCode: 1,
+      stdout: stdoutLine("I hit a problem and could not complete that."),
+    });
+    expect(result.stderr).toEqual([
+      "Runtime failure: Realtime failed.\n",
+      "Runtime failure event: [unserializable diagnostic]\n",
     ]);
   });
 
@@ -559,5 +573,16 @@ function createServiceOptionsAssertion(
     expect(options.io?.progressOutput).toBe(io.stdout);
     expect(options.io?.stderr).toBe(io.stderr);
     expect(options.processSignals).toBeDefined();
+  };
+}
+
+function createRejectingDiagnosticRuntime(error: Error) {
+  return {
+    handleText: () =>
+      Promise.resolve({
+        status: "error" as const,
+        text: "legacy path should not be used",
+      }),
+    handleTextWithDiagnostics: () => Promise.reject(error),
   };
 }

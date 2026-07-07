@@ -27,7 +27,7 @@ interface FeatureAdapterDefinition<TAdapterConfig> {
   ): TAdapterConfig;
 }
 
-export interface FeatureAdapterEntry {
+interface FeatureAdapterEntry {
   create(
     featureConfig: LoadedRuntimeConfig["features"][string],
     dependencies: FeatureAdapterDependencies,

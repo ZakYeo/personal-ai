@@ -1,6 +1,5 @@
 import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
-import { resolveDesktopVoiceServiceAdapterConfig } from "../config/desktop-voice-config.js";
 import { requireVoiceConfig } from "../config/voice-config.js";
 import { runConfiguredServiceRuntime } from "../service/configured-service-composition.js";
 import type {
@@ -12,6 +11,7 @@ import type {
 import { cleanupVoiceAdapters } from "./voice-cleanup.js";
 import {
   createDesktopVoiceServiceAdapters,
+  resolveDesktopVoiceServiceAdapterConfig,
   type DesktopVoiceAdapterRuntimeDependencies,
   type DesktopVoiceServiceAdapters,
 } from "./desktop-voice-adapter-registry.js";

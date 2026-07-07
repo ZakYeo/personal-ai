@@ -6,6 +6,7 @@ import {
 } from "../human-boundary.js";
 import { runPiServiceRuntime } from "../pi/pi-service-runtime.js";
 import type { ServiceProcessSignals } from "../service/service-runtime.js";
+import type { ConfiguredVoiceServiceRuntimeOptions } from "../voice/configured-voice-service-runtime.js";
 import { runDesktopVoiceServiceRuntime } from "../voice/desktop-voice-service-runtime.js";
 import { createDesktopVoiceRuntime } from "../voice/desktop-voice-runtime.js";
 import { createMockVoiceRuntime } from "../voice/mock-voice-runtime.js";
@@ -44,8 +45,6 @@ type ParsedCliCommand =
 type ParsedVoiceServiceCommand =
   | ParsedDesktopVoiceServiceCommand
   | ParsedPiServiceCommand;
-
-type VoiceServiceRuntimeOptions = Parameters<typeof runPiServiceRuntime>[0];
 
 interface CliCommandDefinition<TCommand extends ParsedCliCommand> {
   name: TCommand["kind"];
@@ -222,7 +221,7 @@ function buildVoiceServiceRuntimeOptions(
   env: NodeJS.ProcessEnv,
   io: CliIo,
   dependencies: CliDependencies,
-): VoiceServiceRuntimeOptions {
+): ConfiguredVoiceServiceRuntimeOptions {
   const fixedNow = env.PERSONAL_AI_FIXED_NOW;
 
   return {

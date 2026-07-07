@@ -2,12 +2,10 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig, parseAssistantConfig } from "./config.js";
-import {
-  requireDesktopVoiceConfig,
-  resolveDesktopVoiceAdapterConfig,
-} from "./desktop-voice-config.js";
+import { requireDesktopVoiceConfig } from "./desktop-voice-config.js";
 import { requireIntentConfig } from "./intent-config.js";
 import { requireVoiceConfig } from "./voice-config.js";
+import { resolveDesktopVoiceAdapterConfig } from "../voice/desktop-voice-adapter-registry.js";
 
 describe("loadConfig", () => {
   it("loads the default checked-in config", async () => {
@@ -422,6 +420,60 @@ describe("parseAssistantConfig", () => {
     ).toThrow(
       "Config desktopVoice.openAIRealtimeTranscription must be configured.",
     );
+  });
+
+  it("rejects unknown selected desktop streaming adapters before provider config requirements", () => {
+    const config = parseAssistantConfig(
+      createMinimalConfig({
+        desktopVoice: {
+          audioInput: { command: "fake-rec" },
+          audioOutput: { command: "fake-play" },
+          speechToText: { command: "fake-stt" },
+          streamingAudioInput: { command: "fake-stream-rec" },
+          textToSpeech: { command: "fake-tts" },
+        },
+        voice: {
+          audioOutput: "sox-play",
+          input: "sox-rec",
+          speechToText: "command",
+          streamingAudioInput: "sox-rec-stream",
+          streamingSpeechToText: "unknown",
+          textToSpeech: "command",
+          wakeWord: "text-prefix",
+        },
+      }),
+    );
+
+    expect(() =>
+      resolveDesktopVoiceAdapterConfig(requireVoiceConfig(config), config),
+    ).toThrow(
+      'Config voice.streamingSpeechToText "unknown" is not registered.',
+    );
+  });
+
+  it("rejects unknown selected desktop wake activation adapters before wake command config requirements", () => {
+    const config = parseAssistantConfig(
+      createMinimalConfig({
+        desktopVoice: {
+          audioInput: { command: "fake-rec" },
+          audioOutput: { command: "fake-play" },
+          speechToText: { command: "fake-stt" },
+          textToSpeech: { command: "fake-tts" },
+        },
+        voice: {
+          audioOutput: "sox-play",
+          input: "sox-rec",
+          speechToText: "command",
+          textToSpeech: "command",
+          wakeActivation: "unknown",
+          wakeWord: "text-prefix",
+        },
+      }),
+    );
+
+    expect(() =>
+      resolveDesktopVoiceAdapterConfig(requireVoiceConfig(config), config),
+    ).toThrow('Config voice.wakeActivation "unknown" is not registered.');
   });
 
   it("rejects invalid desktop voice command config", () => {

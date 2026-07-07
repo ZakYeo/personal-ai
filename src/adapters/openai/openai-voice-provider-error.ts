@@ -6,7 +6,7 @@ interface OpenAIVoiceProviderErrorOptions {
   status?: number;
 }
 
-export class OpenAIVoiceProviderError extends Error {
+class OpenAIVoiceProviderError extends Error {
   readonly event?: unknown;
   readonly responseBody?: string;
   readonly status?: number;

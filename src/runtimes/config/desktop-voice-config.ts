@@ -1,5 +1,4 @@
 import type { VoiceCommandConfig } from "../../ports/assistant.js";
-import type { ResolvedVoiceConfig } from "./voice-config.js";
 import { isRecord } from "./config-parse-utils.js";
 
 export interface OpenAIRealtimeTranscriptionConfig {
@@ -31,7 +30,7 @@ export interface ParsedDesktopVoiceConfig {
   wakeAudioInput?: VoiceCommandConfig;
 }
 
-export interface ResolvedDesktopVoiceConfig {
+interface ResolvedDesktopVoiceConfig {
   audioInput: VoiceCommandConfig;
   audioOutput: VoiceCommandConfig;
   openAIRealtimeTranscription?: OpenAIRealtimeTranscriptionConfig;
@@ -42,10 +41,6 @@ export interface ResolvedDesktopVoiceConfig {
   textToSpeech: VoiceCommandConfig;
   wakeActivation?: VoiceCommandConfig;
   wakeAudioInput?: VoiceCommandConfig;
-}
-
-export interface ResolvedDesktopVoiceServiceConfig extends ResolvedDesktopVoiceConfig {
-  wakeAudioInput: VoiceCommandConfig;
 }
 
 export interface ResolvedDesktopStreamingSpeechToTextConfig {
@@ -143,67 +138,6 @@ export function requireDesktopVoiceConfig(config: {
   };
 }
 
-export function requireDesktopVoiceServiceConfig(config: {
-  desktopVoice?: ParsedDesktopVoiceConfig;
-}): ResolvedDesktopVoiceServiceConfig {
-  return {
-    ...requireDesktopVoiceConfig(config),
-    wakeAudioInput: requireDesktopVoiceCommand(config, "wakeAudioInput"),
-  };
-}
-
-export function resolveDesktopVoiceAdapterConfig(
-  voice: ResolvedVoiceConfig,
-  config: { desktopVoice?: ParsedDesktopVoiceConfig },
-): ResolvedDesktopVoiceAdapterConfig {
-  const desktopVoice = requireDesktopVoiceConfig(config);
-
-  requireStreamingPair(
-    voice.streamingAudioInput,
-    voice.streamingSpeechToText,
-    "streamingAudioInput",
-    "streamingSpeechToText",
-  );
-  requireStreamingPair(
-    voice.streamingTextToSpeech,
-    voice.streamingAudioOutput,
-    "streamingTextToSpeech",
-    "streamingAudioOutput",
-  );
-
-  return {
-    audioInput: desktopVoice.audioInput,
-    audioOutput: desktopVoice.audioOutput,
-    speechToText: desktopVoice.speechToText,
-    ...(voice.streamingAudioInput
-      ? {
-          streamingSpeechToText:
-            resolveDesktopStreamingSpeechToTextConfig(desktopVoice),
-        }
-      : {}),
-    ...(voice.streamingTextToSpeech
-      ? {
-          streamingTextToSpeech:
-            resolveDesktopStreamingTextToSpeechConfig(desktopVoice),
-        }
-      : {}),
-    textToSpeech: desktopVoice.textToSpeech,
-    ...(voice.wakeActivation
-      ? { wakeActivation: requireDesktopWakeActivationConfig(desktopVoice) }
-      : {}),
-  };
-}
-
-export function resolveDesktopVoiceServiceAdapterConfig(
-  voice: ResolvedVoiceConfig,
-  config: { desktopVoice?: ParsedDesktopVoiceConfig },
-): ResolvedDesktopVoiceServiceAdapterConfig {
-  return {
-    ...resolveDesktopVoiceAdapterConfig(voice, config),
-    wakeAudioInput: requireDesktopVoiceCommand(config, "wakeAudioInput"),
-  };
-}
-
 function requireDesktopVoiceCommand(
   config: { desktopVoice?: ParsedDesktopVoiceConfig },
   key: ParsedDesktopVoiceCommandKey,
@@ -217,95 +151,39 @@ function requireDesktopVoiceCommand(
   return command;
 }
 
-function requireDesktopWakeActivationConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
+export function requireDesktopVoiceCommandConfig(
+  config: { desktopVoice?: ParsedDesktopVoiceConfig },
+  key: ParsedDesktopVoiceCommandKey,
 ): VoiceCommandConfig {
-  if (!desktopVoice.wakeActivation) {
-    throw new Error("Config desktopVoice.wakeActivation must be configured.");
-  }
-
-  return desktopVoice.wakeActivation;
+  return requireDesktopVoiceCommand(config, key);
 }
 
-function requireStreamingPair(
-  firstAdapterId: string | undefined,
-  secondAdapterId: string | undefined,
-  firstKey: string,
-  secondKey: string,
-): void {
-  if (Boolean(firstAdapterId) === Boolean(secondAdapterId)) {
-    return;
-  }
+export function requireDesktopOpenAIRealtimeTranscriptionConfig(config: {
+  desktopVoice?: ParsedDesktopVoiceConfig;
+}): OpenAIRealtimeTranscriptionConfig {
+  const providerConfig = config.desktopVoice?.openAIRealtimeTranscription;
 
-  throw new Error(
-    `Config voice.${firstKey} and voice.${secondKey} must be configured together.`,
-  );
-}
-
-function resolveDesktopStreamingSpeechToTextConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): ResolvedDesktopStreamingSpeechToTextConfig {
-  return {
-    audioInput: requireDesktopStreamingAudioInputConfig(desktopVoice),
-    transcription: requireDesktopRealtimeTranscriptionConfig(desktopVoice),
-  };
-}
-
-function resolveDesktopStreamingTextToSpeechConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): ResolvedDesktopStreamingTextToSpeechConfig {
-  return {
-    audioOutput: requireDesktopStreamingAudioOutputConfig(desktopVoice),
-    speech: requireDesktopStreamingSpeechConfig(desktopVoice),
-  };
-}
-
-function requireDesktopStreamingAudioInputConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): VoiceCommandConfig {
-  if (!desktopVoice.streamingAudioInput) {
-    throw new Error(
-      "Config desktopVoice.streamingAudioInput must be configured.",
-    );
-  }
-
-  return desktopVoice.streamingAudioInput;
-}
-
-function requireDesktopStreamingAudioOutputConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): VoiceCommandConfig {
-  if (!desktopVoice.streamingAudioOutput) {
-    throw new Error(
-      "Config desktopVoice.streamingAudioOutput must be configured.",
-    );
-  }
-
-  return desktopVoice.streamingAudioOutput;
-}
-
-function requireDesktopRealtimeTranscriptionConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): OpenAIRealtimeTranscriptionConfig {
-  if (!desktopVoice.openAIRealtimeTranscription) {
+  if (!providerConfig) {
     throw new Error(
       "Config desktopVoice.openAIRealtimeTranscription must be configured.",
     );
   }
 
-  return desktopVoice.openAIRealtimeTranscription;
+  return providerConfig;
 }
 
-function requireDesktopStreamingSpeechConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): OpenAIStreamingSpeechConfig {
-  if (!desktopVoice.openAIStreamingSpeech) {
+export function requireDesktopOpenAIStreamingSpeechConfig(config: {
+  desktopVoice?: ParsedDesktopVoiceConfig;
+}): OpenAIStreamingSpeechConfig {
+  const providerConfig = config.desktopVoice?.openAIStreamingSpeech;
+
+  if (!providerConfig) {
     throw new Error(
       "Config desktopVoice.openAIStreamingSpeech must be configured.",
     );
   }
 
-  return desktopVoice.openAIStreamingSpeech;
+  return providerConfig;
 }
 
 function parseVoiceCommand<TKey extends ParsedDesktopVoiceCommandKey>(

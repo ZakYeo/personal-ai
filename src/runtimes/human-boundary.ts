@@ -85,8 +85,16 @@ function formatRuntimeDiagnosticJsonField(
   }
 
   return [
-    `Runtime failure ${label}: ${truncateDiagnostic(JSON.stringify(value))}\n`,
+    `Runtime failure ${label}: ${truncateDiagnostic(formatDiagnosticJson(value))}\n`,
   ];
+}
+
+function formatDiagnosticJson(value: unknown): string {
+  try {
+    return JSON.stringify(value) ?? String(value);
+  } catch {
+    return "[unserializable diagnostic]";
+  }
 }
 
 function formatRuntimeDiagnosticField(

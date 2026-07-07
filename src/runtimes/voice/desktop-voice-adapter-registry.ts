@@ -31,12 +31,19 @@ import type {
   WakeWordPort,
 } from "../../ports/voice.js";
 import type {
+  ParsedDesktopVoiceConfig,
   ResolvedDesktopVoiceAdapterConfig,
   ResolvedDesktopVoiceServiceAdapterConfig,
   OpenAIRealtimeTranscriptionConfig,
   OpenAIStreamingSpeechConfig,
 } from "../config/desktop-voice-config.js";
+import {
+  requireDesktopOpenAIRealtimeTranscriptionConfig,
+  requireDesktopOpenAIStreamingSpeechConfig,
+  requireDesktopVoiceCommandConfig,
+} from "../config/desktop-voice-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
+import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
 import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
 import { createNodeVoiceTempFiles } from "./voice-temp-files.js";
 
@@ -56,6 +63,98 @@ interface DesktopVoiceAdapters {
 
 export interface DesktopVoiceServiceAdapters extends DesktopVoiceAdapters {
   wakeAudioInput: AudioInputPort;
+}
+
+export function resolveDesktopVoiceAdapterConfig(
+  voice: ResolvedVoiceConfig,
+  config: { desktopVoice?: ParsedDesktopVoiceConfig },
+): ResolvedDesktopVoiceAdapterConfig {
+  requireStreamingPair(
+    voice.streamingAudioInput,
+    voice.streamingSpeechToText,
+    "streamingAudioInput",
+    "streamingSpeechToText",
+  );
+  requireStreamingPair(
+    voice.streamingTextToSpeech,
+    voice.streamingAudioOutput,
+    "streamingTextToSpeech",
+    "streamingAudioOutput",
+  );
+
+  return {
+    audioInput: selectConfiguredDesktopVoiceAdapterConfig(
+      voice,
+      "input",
+      desktopVoiceAdapterConfigResolvers.input,
+    )(config),
+    audioOutput: selectConfiguredDesktopVoiceAdapterConfig(
+      voice,
+      "audioOutput",
+      desktopVoiceAdapterConfigResolvers.audioOutput,
+    )(config),
+    speechToText: selectConfiguredDesktopVoiceAdapterConfig(
+      voice,
+      "speechToText",
+      desktopVoiceAdapterConfigResolvers.speechToText,
+    )(config),
+    ...(voice.streamingAudioInput
+      ? {
+          streamingSpeechToText: {
+            audioInput: selectConfiguredDesktopVoiceAdapterConfig(
+              voice,
+              "streamingAudioInput",
+              desktopVoiceAdapterConfigResolvers.streamingAudioInput,
+            )(config),
+            transcription: selectConfiguredDesktopVoiceAdapterConfig(
+              voice,
+              "streamingSpeechToText",
+              desktopVoiceAdapterConfigResolvers.streamingSpeechToText,
+            )(config),
+          },
+        }
+      : {}),
+    ...(voice.streamingTextToSpeech
+      ? {
+          streamingTextToSpeech: {
+            audioOutput: selectConfiguredDesktopVoiceAdapterConfig(
+              voice,
+              "streamingAudioOutput",
+              desktopVoiceAdapterConfigResolvers.streamingAudioOutput,
+            )(config),
+            speech: selectConfiguredDesktopVoiceAdapterConfig(
+              voice,
+              "streamingTextToSpeech",
+              desktopVoiceAdapterConfigResolvers.streamingTextToSpeech,
+            )(config),
+          },
+        }
+      : {}),
+    textToSpeech: selectConfiguredDesktopVoiceAdapterConfig(
+      voice,
+      "textToSpeech",
+      desktopVoiceAdapterConfigResolvers.textToSpeech,
+    )(config),
+    ...(voice.wakeActivation
+      ? {
+          wakeActivation: selectConfiguredDesktopVoiceAdapterConfig(
+            voice,
+            "wakeActivation",
+            desktopVoiceAdapterConfigResolvers.wakeActivation,
+          )(config),
+        }
+      : {}),
+  };
+}
+
+export function resolveDesktopVoiceServiceAdapterConfig(
+  voice: ResolvedVoiceConfig,
+  config: { desktopVoice?: ParsedDesktopVoiceConfig },
+): ResolvedDesktopVoiceServiceAdapterConfig {
+  return {
+    ...resolveDesktopVoiceAdapterConfig(voice, config),
+    wakeAudioInput: requireDesktopVoiceCommandConfig(config, "wakeAudioInput"),
+  };
 }
 
 export function createDesktopVoiceAdapters(
@@ -269,8 +368,81 @@ const desktopVoiceAdapterRegistry = {
   audioOutput: Record<string, (command: VoiceCommandConfig) => AudioOutputPort>;
 };
 
+const desktopVoiceAdapterConfigResolvers = {
+  input: {
+    "sox-rec": (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
+      requireDesktopVoiceCommandConfig(config, "audioInput"),
+  },
+  wakeWord: {
+    "text-prefix": () => {},
+  },
+  wakeActivation: {
+    "openwakeword-command": (config: {
+      desktopVoice?: ParsedDesktopVoiceConfig;
+    }) => requireDesktopVoiceCommandConfig(config, "wakeActivation"),
+  },
+  streamingAudioInput: {
+    "sox-rec-stream": (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
+      requireDesktopVoiceCommandConfig(config, "streamingAudioInput"),
+  },
+  streamingAudioOutput: {
+    "sox-play-stream": (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
+      requireDesktopVoiceCommandConfig(config, "streamingAudioOutput"),
+  },
+  streamingSpeechToText: {
+    "openai-realtime": requireDesktopOpenAIRealtimeTranscriptionConfig,
+  },
+  streamingTextToSpeech: {
+    "openai-streaming": requireDesktopOpenAIStreamingSpeechConfig,
+  },
+  speechToText: {
+    command: (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
+      requireDesktopVoiceCommandConfig(config, "speechToText"),
+  },
+  textToSpeech: {
+    command: (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
+      requireDesktopVoiceCommandConfig(config, "textToSpeech"),
+  },
+  audioOutput: {
+    "sox-play": (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
+      requireDesktopVoiceCommandConfig(config, "audioOutput"),
+  },
+};
+
 export interface DesktopVoiceAdapterRuntimeDependencies {
   env?: Record<string, string | undefined>;
   fetch?: typeof globalThis.fetch;
   webSocketFactory?: RealtimeSocketFactory;
+}
+
+function selectConfiguredDesktopVoiceAdapterConfig<TConfig>(
+  voice: ResolvedVoiceConfig,
+  key: keyof ResolvedVoiceConfig,
+  registry: Record<
+    string,
+    (config: { desktopVoice?: ParsedDesktopVoiceConfig }) => TConfig
+  >,
+): (config: { desktopVoice?: ParsedDesktopVoiceConfig }) => TConfig {
+  return selectConfiguredRuntimeEntry({
+    configuredId: voice[key],
+    missingMessage: `Config voice.${key} must be configured.`,
+    registry,
+    unknownMessage: (configuredId) =>
+      `Config voice.${key} "${configuredId}" is not registered.`,
+  });
+}
+
+function requireStreamingPair(
+  firstAdapterId: string | undefined,
+  secondAdapterId: string | undefined,
+  firstKey: string,
+  secondKey: string,
+): void {
+  if (Boolean(firstAdapterId) === Boolean(secondAdapterId)) {
+    return;
+  }
+
+  throw new Error(
+    `Config voice.${firstKey} and voice.${secondKey} must be configured together.`,
+  );
 }
