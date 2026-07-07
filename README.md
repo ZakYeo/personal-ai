@@ -69,8 +69,9 @@ configuration and should keep machine-specific commands in a local config file.
 OpenAI intent experiments need a local config file that selects
 `intent.provider: "openai"` and an API key in the configured environment
 variable. Do not store API keys in repository config files.
-The opt-in OpenAI E2E test loads `.env` with Node's `--env-file` support and
-uses the `OPENAI_API_KEY` variable name.
+The development CLI loads `.env` when present with Node's
+`--env-file-if-exists` support. The opt-in OpenAI E2E test also loads `.env`;
+both use the `OPENAI_API_KEY` variable name.
 
 Google Calendar experiments need a local config file that selects
 `features.calendar.adapter: "google"` and an OAuth access token in the
@@ -163,7 +164,7 @@ operator-provided Raspberry Pi OS artifacts, and is not part of `npm run check`.
 Run the CLI with a local OpenAI intent config:
 
 ```bash
-OPENAI_API_KEY=... npm run cli -- ask --config path/to/openai-config.json "Hey Jarvis, list my alarms"
+npm run cli -- ask --config path/to/openai-config.json "Hey Jarvis, list my alarms"
 ```
 
 Run the live OpenAI intent routing E2E test:
@@ -189,6 +190,7 @@ Common development commands:
 
 - `npm test` - run Vitest in watch mode.
 - `npm run test:run` - run Vitest once.
+- `npm run test:file -- path/to/file.test.ts` - run one focused Vitest file.
 - `npm run test:e2e:openai` - run the opt-in live OpenAI intent routing E2E test.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run lint` - run ESLint.

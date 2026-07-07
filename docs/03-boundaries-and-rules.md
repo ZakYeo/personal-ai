@@ -353,6 +353,7 @@ Expected scripts:
     "spellcheck": "cspell .",
     "test": "vitest",
     "test:coverage": "vitest --run --coverage",
+    "test:file": "vitest --run",
     "test:run": "vitest --run"
   }
 }

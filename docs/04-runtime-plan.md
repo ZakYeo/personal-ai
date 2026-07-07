@@ -237,6 +237,9 @@ The `openai` intent provider is opt-in and selected with
 `https://api.openai.com/v1`, and `30000`. API keys must stay in environment
 variables and out of repository config files. The checked-in default config
 remains deterministic and uses mock/local adapters.
+Development CLI runs load `.env` when present through Node's
+`--env-file-if-exists` support, so local provider credentials can be supplied
+without prefixing each `npm run cli` invocation.
 The OpenAI adapter keeps request construction, Responses API transport,
 provider-output text extraction, and assistant intent-output parsing in separate
 adapter-local modules, with the interpreter class only orchestrating those

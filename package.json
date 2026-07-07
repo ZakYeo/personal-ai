@@ -18,7 +18,7 @@
     "bin:check": "npm run build && node scripts/check-bin.mjs",
     "build": "tsc -p tsconfig.build.json",
     "check": "npm run lint && npm run format:check && npm run package:sort:check && npm run docs:lint && npm run spellcheck && npm run secrets:check && npm run knip && npm run duplicates && npm run architecture:check && npm run bin:check && npm run test:run && npm run typecheck",
-    "cli": "tsx src/runtimes/cli/main.ts",
+    "cli": "node --env-file-if-exists=.env --import tsx src/runtimes/cli/main.ts",
     "docs:lint": "markdownlint-cli2 \"**/*.md\"",
     "duplicates": "jscpd src test",
     "format": "prettier . --write",
@@ -33,6 +33,7 @@
     "test": "vitest",
     "test:coverage": "vitest --run --coverage",
     "test:e2e:openai": "PERSONAL_AI_RUN_OPENAI_E2E=1 node --env-file=.env ./node_modules/vitest/vitest.mjs --run src/runtimes/openai-intent-routing.e2e.test.ts",
+    "test:file": "vitest --run",
     "test:run": "vitest --run",
     "typecheck": "tsc --noEmit"
   },

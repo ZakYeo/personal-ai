@@ -1,0 +1,21 @@
+import { readFile } from "node:fs/promises";
+
+describe("package scripts", () => {
+  it("loads local .env values for development CLI runs when present", async () => {
+    const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.cli).toBe(
+      "node --env-file-if-exists=.env --import tsx src/runtimes/cli/main.ts",
+    );
+  });
+
+  it("provides a focused file test command", async () => {
+    const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.["test:file"]).toBe("vitest --run");
+  });
+});
