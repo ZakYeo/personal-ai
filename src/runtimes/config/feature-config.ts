@@ -1,7 +1,8 @@
 import type { AssistantPolicyConfig } from "../../ports/assistant.js";
 import type { GoogleCalendarConfig } from "../../ports/calendar.js";
-import { parseCalendarFeatureConfig } from "./calendar-feature-config.js";
 import { isRecord } from "./config-parse-utils.js";
+
+const rawFeatureConfig = Symbol("rawFeatureConfig");
 
 export type ParsedFeatureConfig =
   | ParsedCommonFeatureConfig
@@ -10,6 +11,7 @@ export type ParsedFeatureConfig =
 export type ParsedCommonFeatureConfig =
   AssistantPolicyConfig["features"][string] & {
     adapter?: string;
+    readonly [rawFeatureConfig]?: Record<string, unknown>;
   };
 
 export type ParsedGoogleCalendarFeatureConfig = ParsedCommonFeatureConfig & {
@@ -17,11 +19,13 @@ export type ParsedGoogleCalendarFeatureConfig = ParsedCommonFeatureConfig & {
   google: GoogleCalendarConfig;
 };
 
-type ParsedFeatureProviderConfig = {
-  google?: GoogleCalendarConfig;
-};
-
 export type ParsedFeaturesConfig = Record<string, ParsedFeatureConfig>;
+
+export function getRawFeatureConfig(
+  featureConfig: ParsedFeatureConfig,
+): Record<string, unknown> {
+  return featureConfig[rawFeatureConfig] ?? featureConfig;
+}
 
 export function parseFeaturesConfig(
   value: Record<string, unknown>,
@@ -39,39 +43,21 @@ export function parseFeaturesConfig(
       );
     }
 
-    const baseFeatureConfig = {
+    const parsed = {
       enabled: featureConfig.enabled,
       ...parseFeatureAdapter(featureId, featureConfig),
       ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
     };
 
-    features[featureId] = {
-      ...baseFeatureConfig,
-      ...parseSelectedFeatureProviderConfig(
-        featureId,
-        featureConfig,
-        baseFeatureConfig,
-      ),
-    };
+    Object.defineProperty(parsed, rawFeatureConfig, {
+      enumerable: false,
+      value: featureConfig,
+    });
+
+    features[featureId] = parsed;
   }
 
   return features;
-}
-
-function parseSelectedFeatureProviderConfig(
-  featureId: string,
-  featureConfig: Record<string, unknown>,
-  parsed: Pick<ParsedFeatureConfig, "adapter" | "enabled">,
-): ParsedFeatureProviderConfig {
-  if (
-    featureId === "calendar" &&
-    parsed.enabled &&
-    parsed.adapter === "google"
-  ) {
-    return parseCalendarFeatureConfig(featureConfig);
-  }
-
-  return {};
 }
 
 function parseFeatureAdapter(

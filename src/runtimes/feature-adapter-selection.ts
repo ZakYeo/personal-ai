@@ -11,6 +11,8 @@ import type {
   ParsedFeatureConfig,
   ParsedGoogleCalendarFeatureConfig,
 } from "./config/feature-config.js";
+import { getRawFeatureConfig } from "./config/feature-config.js";
+import { parseCalendarFeatureConfig } from "./config/calendar-feature-config.js";
 import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
 
 export interface FeatureAdapterDependencies {
@@ -25,6 +27,7 @@ interface FeatureAdapterContext<TAdapterConfig> {
 
 interface FeatureAdapterDefinition<TFeatureConfig, TAdapterConfig> {
   create(context: FeatureAdapterContext<TAdapterConfig>): FeaturePlugin;
+  parseFeatureConfig?(featureConfig: ParsedFeatureConfig): TFeatureConfig;
   resolveConfig(featureConfig: TFeatureConfig): TAdapterConfig;
   resolveFeatureConfig?(featureConfig: ParsedFeatureConfig): TFeatureConfig;
 }
@@ -59,9 +62,11 @@ export function defineFeatureAdapterEntry<
 ): FeatureAdapterEntry {
   return {
     create: (featureConfig, dependencies) => {
-      const resolvedFeatureConfig = entry.resolveFeatureConfig
-        ? entry.resolveFeatureConfig(featureConfig)
-        : (featureConfig as TFeatureConfig);
+      const resolvedFeatureConfig =
+        entry.parseFeatureConfig?.(featureConfig) ??
+        (entry.resolveFeatureConfig
+          ? entry.resolveFeatureConfig(featureConfig)
+          : (featureConfig as TFeatureConfig));
 
       return entry.create({
         adapterConfig: entry.resolveConfig(resolvedFeatureConfig),
@@ -137,7 +142,7 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
               }),
             );
           },
-          resolveFeatureConfig: requireCalendarGoogleFeatureConfig,
+          parseFeatureConfig: parseCalendarGoogleFeatureConfig,
           resolveConfig: requireCalendarGoogleAdapterConfig,
         }),
         mock: defineFeatureAdapterEntry({
@@ -200,4 +205,13 @@ function requireCalendarGoogleFeatureConfig(
   }
 
   return featureConfig;
+}
+
+function parseCalendarGoogleFeatureConfig(
+  featureConfig: ParsedFeatureConfig,
+): ParsedGoogleCalendarFeatureConfig {
+  return requireCalendarGoogleFeatureConfig({
+    ...featureConfig,
+    ...parseCalendarFeatureConfig(getRawFeatureConfig(featureConfig)),
+  });
 }

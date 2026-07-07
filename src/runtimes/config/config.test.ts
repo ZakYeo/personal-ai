@@ -725,7 +725,7 @@ describe("parseAssistantConfig", () => {
     ).toThrow('Config feature "calendar".adapter must be a non-empty string.');
   });
 
-  it("parses selected feature adapter provider config on the feature shape", () => {
+  it("keeps selected feature adapter provider config out of the common feature shape", () => {
     const feature = parseAssistantConfig(
       createMinimalConfig({
         features: {
@@ -741,18 +741,11 @@ describe("parseAssistantConfig", () => {
     expect(feature).toEqual({
       enabled: true,
       adapter: "google",
-      google: {
-        accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-        baseUrl: "https://www.googleapis.com/calendar/v3",
-        calendarId: "primary",
-        maxResults: 10,
-        timeoutMs: 30_000,
-      },
     });
   });
 
-  it("rejects invalid selected feature adapter provider config", () => {
-    expect(() =>
+  it("defers selected feature adapter provider config validation", () => {
+    expect(
       parseAssistantConfig(
         createMinimalConfig({
           features: {
@@ -766,9 +759,21 @@ describe("parseAssistantConfig", () => {
           },
         }),
       ),
-    ).toThrow(
-      'Config feature "calendar".google.timeoutMs must be a positive integer.',
-    );
+    ).toEqual({
+      assistant: {
+        name: "Jarvis",
+        wakePhrases: ["hey jarvis"],
+      },
+      features: {
+        calendar: {
+          adapter: "google",
+          enabled: true,
+        },
+      },
+      intent: {
+        provider: "deterministic",
+      },
+    });
   });
 
   it("ignores unselected feature adapter provider config", () => {

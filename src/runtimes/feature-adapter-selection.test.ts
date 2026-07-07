@@ -7,6 +7,7 @@ import type {
   ParsedFeatureConfig,
   ParsedGoogleCalendarFeatureConfig,
 } from "./config/feature-config.js";
+import { getRawFeatureConfig } from "./config/feature-config.js";
 import { defineCapability, defineFeature } from "../ports/feature.js";
 import {
   disabledCalendarConfig,
@@ -128,15 +129,32 @@ describe("createConfiguredFeatures", () => {
   });
 
   it("rejects invalid Google calendar adapter config only when selected", () => {
-    expect(() =>
-      onlyGoogleCalendarConfig({
-        google: {
-          timeoutMs: 0,
-        },
-      }),
-    ).toThrow(
+    const config = onlyGoogleCalendarConfig({
+      google: {
+        timeoutMs: 0,
+      },
+    });
+
+    expect(() => createConfiguredFeatures(config)).toThrow(
       'Config feature "calendar".google.timeoutMs must be a positive integer.',
     );
+  });
+
+  it("does not parse unselected adapter config", () => {
+    expect(() =>
+      parseAssistantConfig({
+        ...enabledDeterministicConfig,
+        features: {
+          calendar: {
+            adapter: "mock",
+            enabled: true,
+            google: {
+              timeoutMs: 0,
+            },
+          },
+        },
+      }),
+    ).not.toThrow();
   });
 
   it("lets registered entries resolve their selected adapter config", () => {
@@ -161,6 +179,7 @@ describe("createConfiguredFeatures", () => {
         calendar: {
           adapters: {
             google: defineFeatureAdapterEntry({
+              parseFeatureConfig: parseTestGoogleFeatureConfig,
               resolveFeatureConfig: requireTestGoogleFeatureConfig,
               resolveConfig: (featureConfig) =>
                 requireTestGoogleConfig(featureConfig),
@@ -254,4 +273,25 @@ function requireTestGoogleFeatureConfig(
   }
 
   return featureConfig;
+}
+
+function parseTestGoogleFeatureConfig(
+  featureConfig: ParsedFeatureConfig,
+): ParsedGoogleCalendarFeatureConfig {
+  const raw = getRawFeatureConfig(featureConfig);
+
+  if (!("google" in raw) || typeof raw.google !== "object") {
+    throw new Error('Config feature "calendar".google must be configured.');
+  }
+
+  return requireTestGoogleFeatureConfig({
+    ...featureConfig,
+    google: {
+      accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
+      baseUrl: "https://calendar.example.test/v3",
+      calendarId: "primary",
+      maxResults: 10,
+      timeoutMs: 30_000,
+    },
+  });
 }
