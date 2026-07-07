@@ -5,6 +5,7 @@ import type {
   ResolvedDesktopVoiceServiceAdapterConfig,
 } from "../config/desktop-voice-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
+import type { VoiceTempFilePort } from "../../ports/voice.js";
 import {
   createDesktopVoiceSlotAdapter,
   desktopVoiceSlotTopology,
@@ -120,6 +121,21 @@ export function createDesktopVoiceAdapters(
   dependencies: DesktopVoiceAdapterRuntimeDependencies,
 ): DesktopVoiceAdapters {
   const tempFiles = createNodeVoiceTempFiles();
+
+  return createDesktopVoiceAdaptersWithTempFiles(
+    voice,
+    desktopVoice,
+    dependencies,
+    tempFiles,
+  );
+}
+
+function createDesktopVoiceAdaptersWithTempFiles(
+  voice: ResolvedVoiceConfig,
+  desktopVoice: ResolvedDesktopVoiceAdapterConfig,
+  dependencies: DesktopVoiceAdapterRuntimeDependencies,
+  tempFiles: VoiceTempFilePort,
+): DesktopVoiceAdapters {
   const context = { dependencies, tempFiles };
 
   return {
@@ -204,12 +220,13 @@ export function createDesktopVoiceServiceAdapters(
   desktopVoice: ResolvedDesktopVoiceServiceAdapterConfig,
   dependencies: DesktopVoiceAdapterRuntimeDependencies,
 ): DesktopVoiceServiceAdapters {
-  const adapters = createDesktopVoiceAdapters(
+  const tempFiles = createNodeVoiceTempFiles();
+  const adapters = createDesktopVoiceAdaptersWithTempFiles(
     voice,
     desktopVoice,
     dependencies,
+    tempFiles,
   );
-  const tempFiles = createNodeVoiceTempFiles();
   const context = { dependencies, tempFiles };
 
   return {
@@ -221,7 +238,7 @@ export function createDesktopVoiceServiceAdapters(
       context,
     ),
     cleanup: async () => {
-      await Promise.all([adapters.cleanup?.(), tempFiles.cleanup()]);
+      await adapters.cleanup?.();
     },
   };
 }
