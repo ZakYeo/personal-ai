@@ -95,21 +95,14 @@ function configureTranscriptionSession(
   socket.send(
     JSON.stringify({
       session: {
-        audio: {
-          input: {
-            format: {
-              rate: 24000,
-              type: "audio/pcm",
-            },
-            transcription: {
-              model: config.model,
-            },
-            turn_detection: null,
-          },
+        input_audio_format: "pcm16",
+        input_audio_transcription: {
+          model: config.model,
         },
+        turn_detection: null,
         type: "transcription",
       },
-      type: "session.update",
+      type: "transcription_session.update",
     }),
   );
 }
@@ -159,6 +152,12 @@ function waitForTranscript(
     socket.addEventListener("message", (messageEvent) => {
       try {
         const event = parseRealtimeEvent(messageEvent);
+
+        if (event.type === "error") {
+          clearTimeout(timer);
+          reject(new Error("Realtime transcription failed."));
+          return;
+        }
 
         if (
           event.type === "conversation.item.input_audio_transcription.delta"

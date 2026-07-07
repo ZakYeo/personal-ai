@@ -39,7 +39,7 @@ describe("OpenAIRealtimeTranscription", () => {
     await expect(transcriptPromise).resolves.toEqual({ text: "list alarms" });
     expect(deltas).toEqual(["list ", "alarms"]);
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
-      "session.update",
+      "transcription_session.update",
       "input_audio_buffer.append",
       "input_audio_buffer.commit",
     ]);
@@ -72,22 +72,49 @@ describe("OpenAIRealtimeTranscription", () => {
     await expect(transcriptPromise).resolves.toEqual({ text: "list alarms" });
     expect(socket.sentMessages[0]).toEqual({
       session: {
-        audio: {
-          input: {
-            format: {
-              rate: 24000,
-              type: "audio/pcm",
-            },
-            transcription: {
-              model: "gpt-realtime-whisper",
-            },
-            turn_detection: null,
-          },
+        input_audio_format: "pcm16",
+        input_audio_transcription: {
+          model: "gpt-realtime-whisper",
         },
+        turn_detection: null,
         type: "transcription",
       },
-      type: "session.update",
+      type: "transcription_session.update",
     });
+  });
+
+  it("rejects with a safe realtime error when the provider sends an error event", async () => {
+    const socket = new FakeRealtimeSocket();
+    const adapter = new OpenAIRealtimeTranscription({
+      config: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "wss://api.openai.test/v1/realtime",
+        model: "gpt-realtime-whisper",
+        timeoutMs: 30_000,
+      },
+      env: { OPENAI_API_KEY: "test-key" },
+      webSocketFactory: () => socket,
+    });
+
+    const transcriptPromise = adapter.transcribeStream({
+      chunks: chunksFromText("audio"),
+    });
+
+    socket.emitOpen();
+    await socket.waitForSentType("input_audio_buffer.commit");
+    socket.emitMessage({
+      error: {
+        code: "invalid_value",
+        message: "Unsupported session shape.",
+        type: "invalid_request_error",
+      },
+      type: "error",
+    });
+
+    await expect(transcriptPromise).rejects.toThrow(
+      "Realtime transcription failed.",
+    );
+    expect(socket.closed).toBe(true);
   });
 
   it("rejects without an API key", async () => {
