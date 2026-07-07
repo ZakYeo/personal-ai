@@ -109,6 +109,19 @@ npm start
 ```
 
 That script runs the service with `config/local-desktop-voice-openai.json`.
+The default config expects OpenWakeWord to be installed in the repository
+`.venv` and runs wake activation with `.venv/bin/python`. Create or update that
+venv before starting the service:
+
+```bash
+npm run setup:openwakeword
+```
+
+If the venv should remain active in the current shell, source the setup script:
+
+```bash
+source scripts/setup-openwakeword-venv.sh
+```
 
 This command runs the desktop voice stack in a long-lived service loop. When
 `voice.wakeActivation` is configured, the service waits on a local wake

@@ -28,6 +28,7 @@
     "package:sort": "sort-package-json",
     "package:sort:check": "sort-package-json --check",
     "secrets:check": "secretlint \"**/*\"",
+    "setup:openwakeword": "bash scripts/setup-openwakeword-venv.sh",
     "smoke:pi:qemu": "tsx src/runtimes/pi/pi-qemu-smoke.ts",
     "spellcheck": "cspell .",
     "start": "npm run cli -- desktop-voice-service --config config/local-desktop-voice-openai.json",

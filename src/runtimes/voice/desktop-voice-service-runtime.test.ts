@@ -272,6 +272,44 @@ describe("runDesktopVoiceServiceRuntime", () => {
     );
   });
 
+  it("fails startup once with OpenWakeWord setup guidance when the local Python listener dependency is missing", async () => {
+    const stderr = createCapturedWriter();
+    const runVoiceActivation = vi.fn();
+
+    await expect(
+      runDesktopVoiceServiceRuntime({
+        config: createDesktopVoiceConfig(
+          deterministicScenarios.alarmListEmpty.text,
+          {
+            desktopVoice: {
+              wakeActivation: {
+                args: ["scripts/openwakeword-listener.py"],
+                command: "/bin/false",
+              },
+            },
+            voice: {
+              wakeActivation: "openwakeword-command",
+            },
+          },
+        ),
+        io: { stderr },
+        retryAfterFailure: () => Promise.resolve(),
+        runVoiceActivation,
+      }),
+    ).resolves.toEqual({
+      response: safeRuntimeFallbackResponse,
+      status: "startup_failed",
+      turnsCompleted: 0,
+    });
+
+    expect(runVoiceActivation).not.toHaveBeenCalled();
+    expect(stderr.writes).toEqual([
+      line(
+        'Runtime failure: OpenWakeWord startup check failed for desktopVoice.wakeActivation command "/bin/false". Create a Python virtual environment, install openwakeword, and configure desktopVoice.wakeActivation.command to the venv Python interpreter, for example ".venv/bin/python".',
+      ),
+    ]);
+  });
+
   it("cleans up temporary voice files after each activation attempt", async () => {
     const signals = createServiceSignalController();
     let wakeAudio: CapturedAudio | undefined;

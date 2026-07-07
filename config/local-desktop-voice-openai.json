@@ -37,7 +37,7 @@
       "timeoutMs": 7000
     },
     "wakeActivation": {
-      "command": "python3",
+      "command": ".venv/bin/python",
       "args": [
         "scripts/openwakeword-listener.py",
         "--model",

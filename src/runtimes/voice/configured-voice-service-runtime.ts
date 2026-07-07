@@ -22,6 +22,7 @@ import {
   type VoiceActivationResult,
 } from "./voice-activation.js";
 import type { VoiceRuntimeIo } from "./voice-turn.js";
+import { validateOpenWakeWordStartup } from "./openwakeword-startup-check.js";
 
 export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -97,9 +98,12 @@ export function runConfiguredVoiceServiceRuntime(
   });
 }
 
-function validateVoiceServiceConfig(config: LoadedRuntimeConfig): void {
+async function validateVoiceServiceConfig(
+  config: LoadedRuntimeConfig,
+): Promise<void> {
   const voiceConfig = requireVoiceConfig(config);
   const desktopVoiceConfig = requireDesktopVoiceServiceConfig(config);
 
   validateDesktopVoiceAdapterConfig(voiceConfig, desktopVoiceConfig);
+  await validateOpenWakeWordStartup(voiceConfig, desktopVoiceConfig);
 }

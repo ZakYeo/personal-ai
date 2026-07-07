@@ -65,7 +65,9 @@ Desktop voice experiments also need local audio commands configured in a local
 config file. The default OpenAI desktop voice config uses openWakeWord for local
 `"hey jarvis"` activation and streams only post-wake command audio to OpenAI
 realtime transcription. See the [runtime plan](docs/04-runtime-plan.md) for the
-desktop voice config shape.
+desktop voice config shape. The checked-in default config expects the
+OpenWakeWord Python dependency in `.venv`; run `npm run setup:openwakeword` or
+source `scripts/setup-openwakeword-venv.sh` before `npm start`.
 Raspberry Pi service experiments use the same explicit command-based voice
 configuration and can start from `config/pi-voice-openai.example.json`.
 
@@ -93,6 +95,19 @@ Configure the repository Git hooks:
 
 ```bash
 git config core.hooksPath .githooks
+```
+
+Set up the local OpenWakeWord Python environment for the default desktop voice
+service:
+
+```bash
+npm run setup:openwakeword
+```
+
+To leave the venv active in your current shell, source the setup script instead:
+
+```bash
+source scripts/setup-openwakeword-venv.sh
 ```
 
 Run the default deterministic CLI:
@@ -210,6 +225,8 @@ Common development commands:
 - `npm run format:check` - check Prettier formatting.
 - `npm run typecheck` - run TypeScript without emitting files.
 - `npm run build` - compile production JavaScript.
+- `npm run setup:openwakeword` - create or update `.venv` with the Python
+  `openwakeword` dependency used by the default desktop voice service.
 - `npm start` - run the default desktop OpenAI voice service with
   `config/local-desktop-voice-openai.json`; progress logs are written to
   stdout.

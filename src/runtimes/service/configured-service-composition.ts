@@ -36,7 +36,7 @@ interface ConfiguredServiceTurnContext extends ServiceTurnContext {
 
 interface ConfiguredServiceRuntimeCallbacks {
   runTurn(context: ConfiguredServiceTurnContext): Promise<void>;
-  validateConfig(config: LoadedRuntimeConfig): void;
+  validateConfig(config: LoadedRuntimeConfig): Promise<void> | void;
 }
 
 export async function runConfiguredServiceRuntime(
@@ -46,9 +46,9 @@ export async function runConfiguredServiceRuntime(
   let startup: { assistant: Assistant; config: LoadedRuntimeConfig };
 
   try {
-    startup = await createConfiguredServiceStartup(options, (config) => {
-      callbacks.validateConfig(config);
-    });
+    startup = await createConfiguredServiceStartup(options, (config) =>
+      callbacks.validateConfig(config),
+    );
   } catch (error) {
     logRuntimeFailure(error, options.io ?? {});
 
@@ -84,10 +84,10 @@ export async function runConfiguredServiceRuntime(
 
 async function createConfiguredServiceStartup(
   options: ConfiguredServiceCompositionOptions,
-  validateConfig: (config: LoadedRuntimeConfig) => void,
+  validateConfig: (config: LoadedRuntimeConfig) => Promise<void> | void,
 ): Promise<{ assistant: Assistant; config: LoadedRuntimeConfig }> {
   const config = await loadServiceConfig(options);
-  validateConfig(config);
+  await validateConfig(config);
 
   const assistant = await createConfiguredTextRuntime({
     config,
