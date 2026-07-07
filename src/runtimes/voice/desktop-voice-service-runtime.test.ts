@@ -1,8 +1,13 @@
 import { chmod, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type {
+  RealtimeSocket,
+  RealtimeSocketFactory,
+} from "../../adapters/openai/openai-realtime-transcription.js";
 import type { CapturedAudio } from "../../ports/voice.js";
 import {
+  createDesktopVoiceCommand,
   createDesktopVoiceConfig,
   withoutDesktopWakeAudioInput,
 } from "../../test-support/desktop-voice-runtime.js";
@@ -110,6 +115,86 @@ describe("runDesktopVoiceServiceRuntime", () => {
     });
 
     expect(wakeEvents).toEqual(["hey jarvis"]);
+  });
+
+  it("runs wake activation through streaming command transcription and speech output", async () => {
+    const signals = createServiceSignalController();
+    const progressOutput = createCapturedWriter();
+    const fallbackOutput = createCapturedWriter();
+    const stderr = createCapturedWriter();
+    const socket = new FakeRealtimeSocket({
+      transcript: deterministicScenarios.alarmListEmpty.text,
+    });
+    const fetch = vi.fn(() => {
+      signals.emit("SIGTERM");
+
+      return Promise.resolve(new Response(Buffer.from("spoken audio")));
+    });
+
+    await expect(
+      runDesktopVoiceServiceRuntime({
+        config: createDesktopVoiceConfig("", {
+          desktopVoice: {
+            openAIRealtimeTranscription: {
+              apiKeyEnv: "OPENAI_API_KEY",
+              baseUrl: "wss://api.openai.test/v1/realtime",
+              model: "gpt-4o-transcribe",
+            },
+            openAIStreamingSpeech: {
+              apiKeyEnv: "OPENAI_API_KEY",
+              baseUrl: "https://api.openai.test/v1",
+              instructions: "Speak clearly.",
+              model: "gpt-4o-mini-tts",
+              responseFormat: "pcm",
+              voice: "coral",
+            },
+            streamingAudioInput: createDesktopVoiceCommand(
+              "printf command-audio",
+            ),
+            streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
+            wakeActivation: createDesktopVoiceCommand(
+              `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
+            ),
+          },
+          voice: {
+            streamingAudioInput: "sox-rec-stream",
+            streamingAudioOutput: "sox-play-stream",
+            streamingSpeechToText: "openai-realtime",
+            streamingTextToSpeech: "openai-streaming",
+            wakeActivation: "openwakeword-command",
+          },
+        }),
+        env: { OPENAI_API_KEY: "test-api-key" },
+        fetch,
+        io: { fallbackOutput, progressOutput, stderr },
+        processSignals: signals,
+        retryAfterFailure: () => Promise.resolve(),
+        webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
+      }),
+    ).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 1,
+    });
+
+    expect(progressOutput.writes).toEqual([
+      line('Now listening for wake word "hey jarvis".'),
+      line("Wake word detected, now listening..."),
+      deterministicScenarios.alarmListEmpty.text,
+      line(`Heard: ${deterministicScenarios.alarmListEmpty.text}`),
+      line(`Assistant: ${deterministicScenarios.alarmListEmpty.response.text}`),
+    ]);
+    expect(socket.sentMessages.map((message) => message.type)).toEqual([
+      "input_audio_buffer.append",
+      "input_audio_buffer.commit",
+    ]);
+    expect(fetch).toHaveBeenCalledWith(
+      "https://api.openai.test/v1/audio/speech",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
+    expect(fallbackOutput.writes).toEqual([]);
+    expect(stderr.writes).toEqual([]);
   });
 
   it("keeps running after a recoverable activation failure", async () => {
@@ -487,4 +572,59 @@ function createSuccessfulActivationAdapters(
         }),
     },
   };
+}
+
+class FakeRealtimeSocket implements RealtimeSocket {
+  readonly sentMessages: Array<Record<string, unknown>> = [];
+  private closed = false;
+  private readonly listeners: Record<string, Array<(event?: unknown) => void>> =
+    {};
+
+  constructor(private readonly options: { transcript: string }) {}
+
+  addEventListener(type: string, listener: (event?: unknown) => void): void {
+    this.listeners[type] = [...(this.listeners[type] ?? []), listener];
+
+    if (type === "open") {
+      queueMicrotask(() => {
+        this.emit("open");
+      });
+    }
+  }
+
+  close(): void {
+    this.closed = true;
+  }
+
+  send(message: string): void {
+    const parsed = JSON.parse(message) as Record<string, unknown>;
+    this.sentMessages.push(parsed);
+
+    if (parsed.type === "input_audio_buffer.commit") {
+      queueMicrotask(() => {
+        if (this.closed) {
+          return;
+        }
+
+        this.emitMessage({
+          delta: this.options.transcript,
+          type: "conversation.item.input_audio_transcription.delta",
+        });
+        this.emitMessage({
+          transcript: this.options.transcript,
+          type: "conversation.item.input_audio_transcription.completed",
+        });
+      });
+    }
+  }
+
+  private emitMessage(message: Record<string, unknown>): void {
+    this.emit("message", { data: JSON.stringify(message) });
+  }
+
+  private emit(type: string, event?: unknown): void {
+    for (const listener of this.listeners[type] ?? []) {
+      listener(event);
+    }
+  }
 }

@@ -16,6 +16,7 @@ import {
   type DesktopVoiceServiceAdapters,
   validateDesktopVoiceAdapterConfig,
 } from "./desktop-voice-adapter-registry.js";
+import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
 import {
   runVoiceActivation,
   type VoiceActivationDependencies,
@@ -43,6 +44,7 @@ export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
     io?: VoiceRuntimeIo,
   ) => Promise<VoiceActivationResult>;
   shutdownHooks?: Array<(context: ServiceShutdownContext) => Promise<void>>;
+  webSocketFactory?: RealtimeSocketFactory;
 }
 
 export function runConfiguredVoiceServiceRuntime(
@@ -58,6 +60,9 @@ export function runConfiguredVoiceServiceRuntime(
       )(voiceConfig, desktopVoiceConfig, {
         ...(options.env ? { env: options.env } : {}),
         ...(options.fetch ? { fetch: options.fetch } : {}),
+        ...(options.webSocketFactory
+          ? { webSocketFactory: options.webSocketFactory }
+          : {}),
       });
 
       try {
