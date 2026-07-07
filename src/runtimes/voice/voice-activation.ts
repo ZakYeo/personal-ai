@@ -7,6 +7,7 @@ import type {
 } from "../../ports/voice.js";
 import type { Assistant } from "../../core/assistant/index.js";
 import { runDetectedVoiceCommand } from "./voice-command.js";
+import { formatWakePhraseList, logVoiceProgress } from "./voice-progress.js";
 import type { VoiceRuntimeIo, VoiceTurnConfig } from "./voice-turn.js";
 import type { VoiceTurnResult } from "./voice-turn-result.js";
 
@@ -27,6 +28,13 @@ export async function runVoiceActivation(
   dependencies: VoiceActivationDependencies,
   io: VoiceRuntimeIo = {},
 ): Promise<VoiceActivationResult> {
+  logVoiceProgress(
+    io,
+    `Now listening for wake word ${formatWakePhraseList(
+      dependencies.turnConfig.wakePhrases,
+    )}.`,
+  );
+
   const wakeAudio = await dependencies.wakeAudioInput.capture();
   const wakeTranscript = await dependencies.speechToText.transcribe(wakeAudio);
   const detection = await dependencies.wakeWord.detect({
@@ -48,6 +56,8 @@ export async function runVoiceActivation(
       transcript: wakeTranscript.text,
     };
   }
+
+  logVoiceProgress(io, "Wake word detected, now listening...");
 
   const commandAudio = await dependencies.commandAudioInput.capture();
   const commandTranscript =

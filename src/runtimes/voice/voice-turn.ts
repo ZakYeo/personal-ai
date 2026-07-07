@@ -11,6 +11,7 @@ import {
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
 import { runDetectedVoiceCommand } from "./voice-command.js";
+import { formatWakePhraseList, logVoiceProgress } from "./voice-progress.js";
 import { speakResponse } from "./voice-response.js";
 import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
 import type { VoiceTurnResult } from "./voice-turn-result.js";
@@ -37,6 +38,13 @@ export async function runVoiceTurn(
   io: VoiceRuntimeIo = {},
 ): Promise<VoiceTurnResult> {
   try {
+    logVoiceProgress(
+      io,
+      `Now listening for wake word ${formatWakePhraseList(
+        dependencies.turnConfig.wakePhrases,
+      )}.`,
+    );
+
     const audio = await dependencies.audioInput.capture();
     const transcript = await dependencies.speechToText.transcribe(audio);
     const detection = await dependencies.wakeWord.detect({
@@ -57,6 +65,8 @@ export async function runVoiceTurn(
         textOutputWritten: false,
       };
     }
+
+    logVoiceProgress(io, "Wake word detected, now listening...");
 
     return await runDetectedVoiceCommand(
       dependencies,

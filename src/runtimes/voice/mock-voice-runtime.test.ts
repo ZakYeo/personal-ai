@@ -17,6 +17,7 @@ import {
   createRuntimeConfigWithOpenAIIntentProvider,
   withVoiceAdapterId,
 } from "../../test-support/runtime-composition.js";
+import { line } from "../../test-support/primitives.js";
 
 describe("mock voice runtime", () => {
   it("runs a simulated voice command through the assistant core", async () => {
@@ -87,16 +88,25 @@ describe("mock voice runtime", () => {
   });
 
   it("uses narrow voice turn wake phrase config", async () => {
+    const progressOutput = createCapturedWriter();
     const dependencies = createVoiceRuntimeDependencies({
       utterance: "Computer, list my alarms",
       wakePhrases: ["computer"],
     });
 
-    await expect(runVoiceTurn(dependencies)).resolves.toMatchObject({
+    await expect(
+      runVoiceTurn(dependencies, { progressOutput }),
+    ).resolves.toMatchObject({
       response: deterministicScenarios.alarmListEmpty.response,
       transcript: "Computer, list my alarms",
       wakePhrase: "computer",
     });
+    expect(progressOutput.writes).toEqual([
+      line('Now listening for wake word "computer".'),
+      line("Wake word detected, now listening..."),
+      line("Heard: Computer, list my alarms"),
+      line(`Assistant: ${deterministicScenarios.alarmListEmpty.response.text}`),
+    ]);
   });
 
   it("speaks a graceful fallback if assistant handling rejects", async () => {
