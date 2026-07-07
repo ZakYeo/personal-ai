@@ -3,6 +3,7 @@ import { OpenAIRealtimeTranscription } from "./openai-realtime-transcription.js"
 describe("OpenAIRealtimeTranscription", () => {
   it("streams audio chunks and emits transcript deltas", async () => {
     const socket = new FakeRealtimeSocket();
+    let requestUrl = "";
     const deltas: string[] = [];
     const adapter = new OpenAIRealtimeTranscription({
       config: {
@@ -12,7 +13,11 @@ describe("OpenAIRealtimeTranscription", () => {
         timeoutMs: 30_000,
       },
       env: { OPENAI_API_KEY: "test-key" },
-      webSocketFactory: () => socket,
+      webSocketFactory: (request) => {
+        requestUrl = request.url;
+
+        return socket;
+      },
     });
     const transcriptPromise = adapter.transcribeStream(
       { chunks: chunksFromText("audio") },
@@ -37,9 +42,12 @@ describe("OpenAIRealtimeTranscription", () => {
     });
 
     await expect(transcriptPromise).resolves.toEqual({ text: "list alarms" });
+    expect(requestUrl).toBe(
+      "wss://api.openai.test/v1/realtime?intent=transcription",
+    );
     expect(deltas).toEqual(["list ", "alarms"]);
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
-      "transcription_session.update",
+      "session.update",
       "input_audio_buffer.append",
       "input_audio_buffer.commit",
     ]);
@@ -72,14 +80,21 @@ describe("OpenAIRealtimeTranscription", () => {
     await expect(transcriptPromise).resolves.toEqual({ text: "list alarms" });
     expect(socket.sentMessages[0]).toEqual({
       session: {
-        input_audio_format: "pcm16",
-        input_audio_transcription: {
-          model: "gpt-realtime-whisper",
+        audio: {
+          input: {
+            format: {
+              rate: 24000,
+              type: "audio/pcm",
+            },
+            transcription: {
+              model: "gpt-realtime-whisper",
+            },
+            turn_detection: null,
+          },
         },
-        turn_detection: null,
         type: "transcription",
       },
-      type: "transcription_session.update",
+      type: "session.update",
     });
   });
 

@@ -1,3 +1,5 @@
+import WebSocket, { type RawData } from "ws";
+
 import {
   CommandSpeechToText,
   CommandTextToSpeech,
@@ -392,30 +394,50 @@ function requireDesktopStreamingSpeechConfig(
   return desktopVoice.openAIStreamingSpeech;
 }
 
-function createDefaultWebSocketFactory({
+export function createDefaultWebSocketFactory({
   apiKey,
   url,
 }: {
   apiKey: string;
   url: string;
 }): ReturnType<RealtimeSocketFactory> {
-  const WebSocketConstructor = (
-    globalThis as {
-      WebSocket?: new (
-        url: string,
-        protocols?: string[],
-        options?: { headers?: Record<string, string> },
-      ) => ReturnType<RealtimeSocketFactory>;
-    }
-  ).WebSocket;
-
-  if (!WebSocketConstructor) {
-    throw new Error("Runtime WebSocket support is not available.");
-  }
-
-  return new WebSocketConstructor(url, [], {
+  const socket = new WebSocket(url, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
     },
   });
+
+  return {
+    addEventListener: (type, listener) => {
+      if (type === "message") {
+        socket.on("message", (data: RawData) => {
+          listener({ data: rawWebSocketDataToString(data) });
+        });
+
+        return;
+      }
+
+      socket.on(type, (event: unknown) => {
+        listener(event);
+      });
+    },
+    close: () => {
+      socket.close();
+    },
+    send: (message) => {
+      socket.send(message);
+    },
+  };
+}
+
+function rawWebSocketDataToString(data: RawData): string {
+  if (Array.isArray(data)) {
+    return Buffer.concat(data).toString("utf8");
+  }
+
+  if (Buffer.isBuffer(data)) {
+    return data.toString("utf8");
+  }
+
+  return Buffer.from(data).toString("utf8");
 }

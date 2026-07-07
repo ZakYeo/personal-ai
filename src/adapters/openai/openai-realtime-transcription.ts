@@ -129,14 +129,21 @@ function configureTranscriptionSession(
   socket.send(
     JSON.stringify({
       session: {
-        input_audio_format: "pcm16",
-        input_audio_transcription: {
-          model: config.model,
+        audio: {
+          input: {
+            format: {
+              rate: 24000,
+              type: "audio/pcm",
+            },
+            transcription: {
+              model: config.model,
+            },
+            turn_detection: null,
+          },
         },
-        turn_detection: null,
         type: "transcription",
       },
-      type: "transcription_session.update",
+      type: "session.update",
     }),
   );
 }
@@ -146,7 +153,6 @@ function createRealtimeTranscriptionUrl(
 ): string {
   const url = new URL(config.baseUrl);
   url.searchParams.set("intent", "transcription");
-  url.searchParams.set("model", config.model);
 
   return url.toString();
 }

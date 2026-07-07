@@ -18,6 +18,17 @@ describe("desktop streaming voice adapters", () => {
     await expect(readChunksAsText(audio.chunks)).resolves.toBe("audio");
   });
 
+  it("starts streaming audio commands when chunks are consumed", async () => {
+    const adapter = new CommandStreamingAudioInput(
+      createShellCommand("printf lazy"),
+    );
+
+    const audio = await adapter.captureStream();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    await expect(readChunksAsText(audio.chunks)).resolves.toBe("lazy");
+  });
+
   it("plays streaming audio chunks through a configured command", async () => {
     const directory = await mkdtemp(join(tmpdir(), "personal-ai-stream-play-"));
     const outputPath = join(directory, "played.raw");

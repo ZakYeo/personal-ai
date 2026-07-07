@@ -185,7 +185,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
       line(`Assistant: ${deterministicScenarios.alarmListEmpty.response.text}`),
     ]);
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
-      "transcription_session.update",
+      "session.update",
       "input_audio_buffer.append",
       "input_audio_buffer.commit",
     ]);
@@ -217,7 +217,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
               apiKeyEnv: "OPENAI_API_KEY",
               baseUrl: "wss://api.openai.test/v1/realtime",
               model: "gpt-realtime-whisper",
-              timeoutMs: 1,
+              timeoutMs: 100,
             },
             openAIStreamingSpeech: {
               apiKeyEnv: "OPENAI_API_KEY",
@@ -264,7 +264,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
       line("Wake word detected, now listening..."),
     ]);
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
-      "transcription_session.update",
+      "session.update",
       "input_audio_buffer.append",
       "input_audio_buffer.commit",
     ]);
@@ -272,7 +272,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
     expect(fetch).not.toHaveBeenCalled();
     expect(fallbackOutput.writes).toEqual([]);
     expect(stderr.writes).toEqual([
-      line("Runtime failure: Realtime transcription timed out after 1ms."),
+      line("Runtime failure: Realtime transcription timed out after 100ms."),
     ]);
   });
 
@@ -341,7 +341,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
 
     expect(Date.now() - startedAt).toBeLessThan(5_000);
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
-      "transcription_session.update",
+      "session.update",
     ]);
     expect(progressOutput.writes).toEqual([
       line('Now listening for wake word "hey jarvis".'),
@@ -761,10 +761,7 @@ class FakeRealtimeSocket implements RealtimeSocket {
     const parsed = JSON.parse(message) as Record<string, unknown>;
     this.sentMessages.push(parsed);
 
-    if (
-      parsed.type === "transcription_session.update" &&
-      this.options.errorOnSessionUpdate
-    ) {
+    if (parsed.type === "session.update" && this.options.errorOnSessionUpdate) {
       queueMicrotask(() => {
         if (this.closed) {
           return;

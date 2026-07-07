@@ -44,12 +44,16 @@
     "*.{js,cjs,mjs,ts,tsx,json,jsonc,md,yml,yaml,css,scss}": "prettier --write",
     "*.{js,cjs,mjs,ts,tsx}": "eslint --fix"
   },
+  "dependencies": {
+    "ws": "^8.21.0"
+  },
   "devDependencies": {
     "@commitlint/cli": "^21.1.0",
     "@commitlint/config-conventional": "^21.1.0",
     "@eslint/js": "^10.0.1",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
     "@types/node": "^22.10.5",
+    "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^4.1.9",
     "@vitest/eslint-plugin": "^1.6.20",
     "cspell": "^9.8.0",

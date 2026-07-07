@@ -265,6 +265,28 @@ export function runCommandReadableStream(request: RunCommandRequest): {
   chunks: AsyncIterable<Uint8Array>;
   cleanup(): Promise<void>;
 } {
+  let activeProcess: ReadableStreamProcess | undefined;
+
+  return {
+    cleanup: async () => {
+      await activeProcess?.cleanup();
+    },
+    chunks: (async function* () {
+      activeProcess = startReadableStreamProcess(request);
+
+      yield* readProcessStdout(activeProcess.completion);
+    })(),
+  };
+}
+
+interface ReadableStreamProcess {
+  cleanup(): Promise<void>;
+  completion: ProcessCompletionRequest;
+}
+
+function startReadableStreamProcess(
+  request: RunCommandRequest,
+): ReadableStreamProcess {
   const child = spawn(request.command, request.args ?? [], {
     detached: canUseProcessGroups(),
     stdio: ["ignore", "pipe", "pipe"],
@@ -274,6 +296,18 @@ export function runCommandReadableStream(request: RunCommandRequest): {
   const timeoutMs = request.timeoutMs ?? defaultTimeoutMs;
   let spawnError: unknown;
 
+  const completion: ProcessCompletionRequest = {
+    child,
+    command: request.command,
+    getSpawnError: () => spawnError,
+    stderrChunks,
+    stdoutChunks,
+    timeoutMs,
+  };
+  const waitForClose = waitForProcessClose(completion);
+  completion.waitForClose = waitForClose;
+  waitForClose.catch(() => {});
+
   child.stderr.on("data", (chunk: Buffer) => {
     stderrChunks.push(chunk);
   });
@@ -281,17 +315,8 @@ export function runCommandReadableStream(request: RunCommandRequest): {
     spawnError = error;
   });
 
-  const waitForClose = waitForProcessClose({
-    child,
-    command: request.command,
-    getSpawnError: () => spawnError,
-    stderrChunks,
-    stdoutChunks,
-    timeoutMs,
-  });
-  waitForClose.catch(() => {});
-
   return {
+    completion,
     cleanup: async () => {
       if (child.exitCode === null && child.signalCode === null) {
         terminateProcess(child);
@@ -303,15 +328,6 @@ export function runCommandReadableStream(request: RunCommandRequest): {
         // Stream cleanup is best-effort; callers keep the primary failure.
       }
     },
-    chunks: readProcessStdout({
-      child,
-      command: request.command,
-      getSpawnError: () => spawnError,
-      waitForClose,
-      stderrChunks,
-      stdoutChunks,
-      timeoutMs,
-    }),
   };
 }
 
