@@ -75,6 +75,11 @@ interface DesktopVoiceAdapterEntry<TConfig, TAdapter> {
   resolveConfig(config: { desktopVoice?: ParsedDesktopVoiceConfig }): TConfig;
 }
 
+interface DesktopVoiceSlotDescriptor<TConfig, TAdapter> {
+  registry: Record<string, DesktopVoiceAdapterEntry<TConfig, TAdapter>>;
+  voiceKey: keyof ResolvedVoiceConfig;
+}
+
 export interface DesktopVoiceAdapterRuntimeDependencies {
   env: Record<string, string | undefined>;
   fetch: typeof globalThis.fetch;
@@ -100,37 +105,32 @@ export function resolveDesktopVoiceAdapterConfig(
   );
 
   return {
-    audioInput: resolveSelectedDesktopVoiceAdapterConfig(
+    audioInput: resolveDesktopVoiceSlotConfig(
       voice,
-      "input",
-      desktopVoiceAdapterRegistry.input,
+      desktopVoiceSlotTopology.audioInput,
       config,
     ),
-    audioOutput: resolveSelectedDesktopVoiceAdapterConfig(
+    audioOutput: resolveDesktopVoiceSlotConfig(
       voice,
-      "audioOutput",
-      desktopVoiceAdapterRegistry.audioOutput,
+      desktopVoiceSlotTopology.audioOutput,
       config,
     ),
-    speechToText: resolveSelectedDesktopVoiceAdapterConfig(
+    speechToText: resolveDesktopVoiceSlotConfig(
       voice,
-      "speechToText",
-      desktopVoiceAdapterRegistry.speechToText,
+      desktopVoiceSlotTopology.speechToText,
       config,
     ),
     ...(voice.streamingAudioInput
       ? {
           streamingSpeechToText: {
-            audioInput: resolveSelectedDesktopVoiceAdapterConfig(
+            audioInput: resolveDesktopVoiceSlotConfig(
               voice,
-              "streamingAudioInput",
-              desktopVoiceAdapterRegistry.streamingAudioInput,
+              desktopVoiceSlotTopology.streamingAudioInput,
               config,
             ),
-            transcription: resolveSelectedDesktopVoiceAdapterConfig(
+            transcription: resolveDesktopVoiceSlotConfig(
               voice,
-              "streamingSpeechToText",
-              desktopVoiceAdapterRegistry.streamingSpeechToText,
+              desktopVoiceSlotTopology.streamingSpeechToText,
               config,
             ),
           },
@@ -139,33 +139,29 @@ export function resolveDesktopVoiceAdapterConfig(
     ...(voice.streamingTextToSpeech
       ? {
           streamingTextToSpeech: {
-            audioOutput: resolveSelectedDesktopVoiceAdapterConfig(
+            audioOutput: resolveDesktopVoiceSlotConfig(
               voice,
-              "streamingAudioOutput",
-              desktopVoiceAdapterRegistry.streamingAudioOutput,
+              desktopVoiceSlotTopology.streamingAudioOutput,
               config,
             ),
-            speech: resolveSelectedDesktopVoiceAdapterConfig(
+            speech: resolveDesktopVoiceSlotConfig(
               voice,
-              "streamingTextToSpeech",
-              desktopVoiceAdapterRegistry.streamingTextToSpeech,
+              desktopVoiceSlotTopology.streamingTextToSpeech,
               config,
             ),
           },
         }
       : {}),
-    textToSpeech: resolveSelectedDesktopVoiceAdapterConfig(
+    textToSpeech: resolveDesktopVoiceSlotConfig(
       voice,
-      "textToSpeech",
-      desktopVoiceAdapterRegistry.textToSpeech,
+      desktopVoiceSlotTopology.textToSpeech,
       config,
     ),
     ...(voice.wakeActivation
       ? {
-          wakeActivation: resolveSelectedDesktopVoiceAdapterConfig(
+          wakeActivation: resolveDesktopVoiceSlotConfig(
             voice,
-            "wakeActivation",
-            desktopVoiceAdapterRegistry.wakeActivation,
+            desktopVoiceSlotTopology.wakeActivation,
             config,
           ),
         }
@@ -192,40 +188,35 @@ export function createDesktopVoiceAdapters(
   const context = { dependencies, tempFiles };
 
   return {
-    audioInput: createSelectedDesktopVoiceAdapter(
+    audioInput: createDesktopVoiceSlotAdapter(
       voice,
-      "input",
-      desktopVoiceAdapterRegistry.input,
+      desktopVoiceSlotTopology.audioInput,
       desktopVoice.audioInput,
       context,
     ),
-    audioOutput: createSelectedDesktopVoiceAdapter(
+    audioOutput: createDesktopVoiceSlotAdapter(
       voice,
-      "audioOutput",
-      desktopVoiceAdapterRegistry.audioOutput,
+      desktopVoiceSlotTopology.audioOutput,
       desktopVoice.audioOutput,
       context,
     ),
-    speechToText: createSelectedDesktopVoiceAdapter(
+    speechToText: createDesktopVoiceSlotAdapter(
       voice,
-      "speechToText",
-      desktopVoiceAdapterRegistry.speechToText,
+      desktopVoiceSlotTopology.speechToText,
       desktopVoice.speechToText,
       context,
     ),
     ...(desktopVoice.streamingSpeechToText
       ? {
-          streamingAudioInput: createSelectedDesktopVoiceAdapter(
+          streamingAudioInput: createDesktopVoiceSlotAdapter(
             voice,
-            "streamingAudioInput",
-            desktopVoiceAdapterRegistry.streamingAudioInput,
+            desktopVoiceSlotTopology.streamingAudioInput,
             desktopVoice.streamingSpeechToText.audioInput,
             context,
           ),
-          streamingSpeechToText: createSelectedDesktopVoiceAdapter(
+          streamingSpeechToText: createDesktopVoiceSlotAdapter(
             voice,
-            "streamingSpeechToText",
-            desktopVoiceAdapterRegistry.streamingSpeechToText,
+            desktopVoiceSlotTopology.streamingSpeechToText,
             desktopVoice.streamingSpeechToText.transcription,
             context,
           ),
@@ -233,44 +224,39 @@ export function createDesktopVoiceAdapters(
       : {}),
     ...(desktopVoice.streamingTextToSpeech
       ? {
-          streamingAudioOutput: createSelectedDesktopVoiceAdapter(
+          streamingAudioOutput: createDesktopVoiceSlotAdapter(
             voice,
-            "streamingAudioOutput",
-            desktopVoiceAdapterRegistry.streamingAudioOutput,
+            desktopVoiceSlotTopology.streamingAudioOutput,
             desktopVoice.streamingTextToSpeech.audioOutput,
             context,
           ),
-          streamingTextToSpeech: createSelectedDesktopVoiceAdapter(
+          streamingTextToSpeech: createDesktopVoiceSlotAdapter(
             voice,
-            "streamingTextToSpeech",
-            desktopVoiceAdapterRegistry.streamingTextToSpeech,
+            desktopVoiceSlotTopology.streamingTextToSpeech,
             desktopVoice.streamingTextToSpeech.speech,
             context,
           ),
         }
       : {}),
-    textToSpeech: createSelectedDesktopVoiceAdapter(
+    textToSpeech: createDesktopVoiceSlotAdapter(
       voice,
-      "textToSpeech",
-      desktopVoiceAdapterRegistry.textToSpeech,
+      desktopVoiceSlotTopology.textToSpeech,
       desktopVoice.textToSpeech,
       context,
     ),
     ...(desktopVoice.wakeActivation
       ? {
-          wakeActivation: createSelectedDesktopVoiceAdapter(
+          wakeActivation: createDesktopVoiceSlotAdapter(
             voice,
-            "wakeActivation",
-            desktopVoiceAdapterRegistry.wakeActivation,
+            desktopVoiceSlotTopology.wakeActivation,
             desktopVoice.wakeActivation,
             context,
           ),
         }
       : {}),
-    wakeWord: createSelectedDesktopVoiceAdapter(
+    wakeWord: createDesktopVoiceSlotAdapter(
       voice,
-      "wakeWord",
-      desktopVoiceAdapterRegistry.wakeWord,
+      desktopVoiceSlotTopology.wakeWord,
       undefined,
       context,
     ),
@@ -293,10 +279,9 @@ export function createDesktopVoiceServiceAdapters(
 
   return {
     ...adapters,
-    wakeAudioInput: createSelectedDesktopVoiceAdapter(
+    wakeAudioInput: createDesktopVoiceSlotAdapter(
       voice,
-      "input",
-      desktopVoiceAdapterRegistry.input,
+      desktopVoiceSlotTopology.audioInput,
       desktopVoice.wakeAudioInput,
       context,
     ),
@@ -459,27 +444,66 @@ const desktopVoiceAdapterRegistry = {
   >;
 };
 
-function resolveSelectedDesktopVoiceAdapterConfig<TConfig, TAdapter>(
+const desktopVoiceSlotTopology = {
+  audioInput: {
+    registry: desktopVoiceAdapterRegistry.input,
+    voiceKey: "input",
+  },
+  audioOutput: {
+    registry: desktopVoiceAdapterRegistry.audioOutput,
+    voiceKey: "audioOutput",
+  },
+  speechToText: {
+    registry: desktopVoiceAdapterRegistry.speechToText,
+    voiceKey: "speechToText",
+  },
+  streamingAudioInput: {
+    registry: desktopVoiceAdapterRegistry.streamingAudioInput,
+    voiceKey: "streamingAudioInput",
+  },
+  streamingAudioOutput: {
+    registry: desktopVoiceAdapterRegistry.streamingAudioOutput,
+    voiceKey: "streamingAudioOutput",
+  },
+  streamingSpeechToText: {
+    registry: desktopVoiceAdapterRegistry.streamingSpeechToText,
+    voiceKey: "streamingSpeechToText",
+  },
+  streamingTextToSpeech: {
+    registry: desktopVoiceAdapterRegistry.streamingTextToSpeech,
+    voiceKey: "streamingTextToSpeech",
+  },
+  textToSpeech: {
+    registry: desktopVoiceAdapterRegistry.textToSpeech,
+    voiceKey: "textToSpeech",
+  },
+  wakeActivation: {
+    registry: desktopVoiceAdapterRegistry.wakeActivation,
+    voiceKey: "wakeActivation",
+  },
+  wakeWord: {
+    registry: desktopVoiceAdapterRegistry.wakeWord,
+    voiceKey: "wakeWord",
+  },
+} satisfies Record<string, DesktopVoiceSlotDescriptor<unknown, unknown>>;
+
+function resolveDesktopVoiceSlotConfig<TConfig, TAdapter>(
   voice: ResolvedVoiceConfig,
-  key: keyof ResolvedVoiceConfig,
-  registry: Record<string, DesktopVoiceAdapterEntry<TConfig, TAdapter>>,
+  descriptor: DesktopVoiceSlotDescriptor<TConfig, TAdapter>,
   config: { desktopVoice?: ParsedDesktopVoiceConfig },
 ): TConfig {
-  return selectConfiguredDesktopVoiceAdapter(
-    voice,
-    key,
-    registry,
-  ).resolveConfig(config);
+  return selectConfiguredDesktopVoiceAdapter(voice, descriptor).resolveConfig(
+    config,
+  );
 }
 
-function createSelectedDesktopVoiceAdapter<TConfig, TAdapter>(
+function createDesktopVoiceSlotAdapter<TConfig, TAdapter>(
   voice: ResolvedVoiceConfig,
-  key: keyof ResolvedVoiceConfig,
-  registry: Record<string, DesktopVoiceAdapterEntry<TConfig, TAdapter>>,
+  descriptor: DesktopVoiceSlotDescriptor<TConfig, TAdapter>,
   config: TConfig,
   context: DesktopVoiceAdapterContext,
 ): TAdapter {
-  return selectConfiguredDesktopVoiceAdapter(voice, key, registry).create(
+  return selectConfiguredDesktopVoiceAdapter(voice, descriptor).create(
     config,
     context,
   );
@@ -487,15 +511,14 @@ function createSelectedDesktopVoiceAdapter<TConfig, TAdapter>(
 
 function selectConfiguredDesktopVoiceAdapter<TConfig, TAdapter>(
   voice: ResolvedVoiceConfig,
-  key: keyof ResolvedVoiceConfig,
-  registry: Record<string, DesktopVoiceAdapterEntry<TConfig, TAdapter>>,
+  descriptor: DesktopVoiceSlotDescriptor<TConfig, TAdapter>,
 ): DesktopVoiceAdapterEntry<TConfig, TAdapter> {
   return selectConfiguredRuntimeEntry({
-    configuredId: voice[key],
-    missingMessage: `Config voice.${key} must be configured.`,
-    registry,
+    configuredId: voice[descriptor.voiceKey],
+    missingMessage: `Config voice.${descriptor.voiceKey} must be configured.`,
+    registry: descriptor.registry,
     unknownMessage: (configuredId) =>
-      `Config voice.${key} "${configuredId}" is not registered.`,
+      `Config voice.${descriptor.voiceKey} "${configuredId}" is not registered.`,
   });
 }
 
