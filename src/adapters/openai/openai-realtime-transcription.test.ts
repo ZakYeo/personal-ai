@@ -183,16 +183,70 @@ describe("OpenAIRealtimeTranscription", () => {
 
     socket.emitOpen();
     await new Promise<void>((resolve) => queueMicrotask(resolve));
-    socket.emitError();
+    socket.emitError({ code: "ECONNRESET" });
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     audio.finish();
 
     await observedRejection;
     expect(rejection).toEqual(
       expect.objectContaining({
+        event: { code: "ECONNRESET" },
         message: "Realtime transcription socket failed.",
       }),
     );
+  });
+
+  it("preserves socket error payloads before the socket opens", async () => {
+    const socket = new FakeRealtimeSocket();
+    const adapter = new OpenAIRealtimeTranscription({
+      config: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "wss://api.openai.test/v1/realtime",
+        model: "gpt-realtime-whisper",
+        timeoutMs: 30_000,
+      },
+      env: { OPENAI_API_KEY: "test-key" },
+      webSocketFactory: () => socket,
+    });
+
+    const transcriptPromise = adapter.transcribeStream({
+      chunks: chunksFromText("audio"),
+    });
+
+    socket.emitError({ code: "ECONNREFUSED" });
+
+    await expect(transcriptPromise).rejects.toMatchObject({
+      event: { code: "ECONNREFUSED" },
+      message: "Realtime transcription socket failed.",
+    });
+    expect(socket.closed).toBe(true);
+  });
+
+  it("settles malformed message payload failures without waiting for timeout", async () => {
+    const socket = new FakeRealtimeSocket();
+    const adapter = new OpenAIRealtimeTranscription({
+      config: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "wss://api.openai.test/v1/realtime",
+        model: "gpt-realtime-whisper",
+        timeoutMs: 30_000,
+      },
+      env: { OPENAI_API_KEY: "test-key" },
+      webSocketFactory: () => socket,
+    });
+
+    const transcriptPromise = adapter.transcribeStream({
+      chunks: chunksFromText("audio"),
+    });
+
+    socket.emitOpen();
+    await socket.waitForSentType("input_audio_buffer.commit");
+    socket.emitRawMessage({ data: "not-json" });
+
+    await expect(transcriptPromise).rejects.toMatchObject({
+      message: "Realtime transcription message was invalid.",
+    });
+    expect(socket.closed).toBe(true);
   });
 
   it("rejects and closes the socket when the completed transcript never arrives", async () => {
@@ -268,8 +322,12 @@ class FakeRealtimeSocket {
     this.emit("message", { data: JSON.stringify(message) });
   }
 
-  emitError(): void {
-    this.emit("error");
+  emitRawMessage(message: unknown): void {
+    this.emit("message", message);
+  }
+
+  emitError(error?: unknown): void {
+    this.emit("error", error);
   }
 
   async waitForSentType(type: string): Promise<void> {

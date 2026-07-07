@@ -171,17 +171,17 @@ function waitForSocketOpen(
   timeoutMs: number,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(createRealtimeTimeoutError(timeoutMs));
-    }, timeoutMs);
+    const settle = createRealtimeSettlement({
+      reject,
+      resolve,
+      timeoutMs,
+    });
 
     socket.addEventListener("open", () => {
-      clearTimeout(timer);
-      resolve();
+      settle.resolve();
     });
-    socket.addEventListener("error", () => {
-      clearTimeout(timer);
-      reject(new Error("Realtime transcription socket failed."));
+    socket.addEventListener("error", (event) => {
+      settle.reject(createRealtimeSocketError(event));
     });
   });
 }
@@ -194,17 +194,18 @@ function waitForTranscript(
   let text = "";
 
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(createRealtimeTimeoutError(timeoutMs));
-    }, timeoutMs);
+    const settle = createRealtimeSettlement({
+      reject,
+      resolve,
+      timeoutMs,
+    });
 
     socket.addEventListener("message", (messageEvent) => {
       try {
         const event = parseRealtimeEvent(messageEvent);
 
         if (event.type === "error") {
-          clearTimeout(timer);
-          reject(
+          settle.reject(
             createOpenAIVoiceProviderError({
               event,
               message: "Realtime transcription failed.",
@@ -225,19 +226,64 @@ function waitForTranscript(
         if (
           event.type === "conversation.item.input_audio_transcription.completed"
         ) {
-          clearTimeout(timer);
-          resolve({
+          settle.resolve({
             text: parseOptionalStringField(event, "transcript") ?? text,
           });
         }
       } catch (error) {
-        reject(error instanceof Error ? error : new Error(String(error)));
+        settle.reject(
+          createOpenAIVoiceProviderError({
+            cause: error,
+            event: messageEvent,
+            message: "Realtime transcription message was invalid.",
+          }),
+        );
       }
     });
-    socket.addEventListener("error", () => {
-      clearTimeout(timer);
-      reject(new Error("Realtime transcription socket failed."));
+    socket.addEventListener("error", (event) => {
+      settle.reject(createRealtimeSocketError(event));
     });
+  });
+}
+
+function createRealtimeSettlement<T>(options: {
+  reject(error: Error): void;
+  resolve(value: T): void;
+  timeoutMs: number;
+}): {
+  reject(error: Error): void;
+  resolve(value: T): void;
+} {
+  let settled = false;
+
+  const settle = (complete: () => void): void => {
+    if (settled) {
+      return;
+    }
+
+    settled = true;
+    clearTimeout(timer);
+    complete();
+  };
+
+  const timer = setTimeout(() => {
+    settle(() => options.reject(createRealtimeTimeoutError(options.timeoutMs)));
+  }, options.timeoutMs);
+
+  return {
+    reject: (error) => {
+      settle(() => options.reject(error));
+    },
+    resolve: (value) => {
+      settle(() => options.resolve(value));
+    },
+  };
+}
+
+function createRealtimeSocketError(event: unknown): Error {
+  return createOpenAIVoiceProviderError({
+    event,
+    message: "Realtime transcription socket failed.",
   });
 }
 
