@@ -325,6 +325,7 @@ describe("parseAssistantConfig", () => {
             apiKeyEnv: "OPENAI_API_KEY",
             baseUrl: "wss://api.openai.com/v1/realtime",
             model: "gpt-4o-transcribe",
+            timeoutMs: 30_000,
           },
           openAIStreamingSpeech: {
             apiKeyEnv: "OPENAI_API_KEY",
@@ -380,6 +381,29 @@ describe("parseAssistantConfig", () => {
         features: {},
       }),
     ).toThrow("Config desktopVoice.textToSpeech.args must be a string array.");
+  });
+
+  it("rejects invalid OpenAI realtime transcription timeout", () => {
+    expect(() =>
+      parseAssistantConfig({
+        assistant: {
+          name: "Jarvis",
+          wakePhrases: ["hey jarvis"],
+        },
+        desktopVoice: {
+          openAIRealtimeTranscription: {
+            model: "gpt-4o-transcribe",
+            timeoutMs: 0,
+          },
+        },
+        intent: {
+          provider: "deterministic",
+        },
+        features: {},
+      }),
+    ).toThrow(
+      "Config desktopVoice.openAIRealtimeTranscription.timeoutMs must be a positive integer.",
+    );
   });
 
   it("rejects invalid voice adapter IDs", () => {

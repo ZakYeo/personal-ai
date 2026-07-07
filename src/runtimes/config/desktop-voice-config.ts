@@ -5,6 +5,7 @@ export interface OpenAIRealtimeTranscriptionConfig {
   apiKeyEnv: string;
   baseUrl: string;
   model: string;
+  timeoutMs: number;
 }
 
 export interface OpenAIStreamingSpeechConfig {
@@ -216,6 +217,11 @@ function parseOpenAIRealtimeTranscriptionConfig(value: unknown): {
         value.model,
         "desktopVoice.openAIRealtimeTranscription.model",
       ),
+      timeoutMs: parseOptionalPositiveInteger(
+        value.timeoutMs,
+        "desktopVoice.openAIRealtimeTranscription.timeoutMs",
+        30_000,
+      ),
     },
   };
 }
@@ -270,6 +276,22 @@ function parseOpenAIStreamingSpeechConfig(value: unknown): {
 function parseRequiredString(value: unknown, key: string): string {
   if (typeof value !== "string" || value.length === 0) {
     throw new Error(`Config ${key} must be a non-empty string.`);
+  }
+
+  return value;
+}
+
+function parseOptionalPositiveInteger(
+  value: unknown,
+  key: string,
+  fallback: number,
+): number {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
+    throw new Error(`Config ${key} must be a positive integer.`);
   }
 
   return value;

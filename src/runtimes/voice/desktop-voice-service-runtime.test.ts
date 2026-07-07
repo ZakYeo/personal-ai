@@ -139,6 +139,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
               apiKeyEnv: "OPENAI_API_KEY",
               baseUrl: "wss://api.openai.test/v1/realtime",
               model: "gpt-4o-transcribe",
+              timeoutMs: 30_000,
             },
             openAIStreamingSpeech: {
               apiKeyEnv: "OPENAI_API_KEY",
@@ -195,6 +196,82 @@ describe("runDesktopVoiceServiceRuntime", () => {
     );
     expect(fallbackOutput.writes).toEqual([]);
     expect(stderr.writes).toEqual([]);
+  });
+
+  it("fails the activation cleanly when realtime transcription never completes", async () => {
+    const signals = createServiceSignalController();
+    const progressOutput = createCapturedWriter();
+    const fallbackOutput = createCapturedWriter();
+    const stderr = createCapturedWriter();
+    const socket = new FakeRealtimeSocket({});
+    const fetch = vi.fn(() =>
+      Promise.resolve(new Response(Buffer.from("spoken audio"))),
+    );
+
+    await expect(
+      runDesktopVoiceServiceRuntime({
+        config: createDesktopVoiceConfig("", {
+          desktopVoice: {
+            openAIRealtimeTranscription: {
+              apiKeyEnv: "OPENAI_API_KEY",
+              baseUrl: "wss://api.openai.test/v1/realtime",
+              model: "gpt-4o-transcribe",
+              timeoutMs: 1,
+            },
+            openAIStreamingSpeech: {
+              apiKeyEnv: "OPENAI_API_KEY",
+              baseUrl: "https://api.openai.test/v1",
+              instructions: "Speak clearly.",
+              model: "gpt-4o-mini-tts",
+              responseFormat: "pcm",
+              voice: "coral",
+            },
+            streamingAudioInput: createDesktopVoiceCommand(
+              "printf command-audio",
+            ),
+            streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
+            wakeActivation: createDesktopVoiceCommand(
+              `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
+            ),
+          },
+          voice: {
+            streamingAudioInput: "sox-rec-stream",
+            streamingAudioOutput: "sox-play-stream",
+            streamingSpeechToText: "openai-realtime",
+            streamingTextToSpeech: "openai-streaming",
+            wakeActivation: "openwakeword-command",
+          },
+        }),
+        env: { OPENAI_API_KEY: "test-api-key" },
+        fetch,
+        io: { fallbackOutput, progressOutput, stderr },
+        processSignals: signals,
+        retryAfterFailure: (context) => {
+          context.requestShutdown("test complete");
+
+          return Promise.resolve();
+        },
+        webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
+      }),
+    ).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 0,
+    });
+
+    expect(progressOutput.writes).toEqual([
+      line('Now listening for wake word "hey jarvis".'),
+      line("Wake word detected, now listening..."),
+    ]);
+    expect(socket.sentMessages.map((message) => message.type)).toEqual([
+      "input_audio_buffer.append",
+      "input_audio_buffer.commit",
+    ]);
+    expect(socket.closed).toBe(true);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(fallbackOutput.writes).toEqual([]);
+    expect(stderr.writes).toEqual([
+      line("Runtime failure: Realtime transcription timed out after 1ms."),
+    ]);
   });
 
   it("keeps running after a recoverable activation failure", async () => {
@@ -575,12 +652,12 @@ function createSuccessfulActivationAdapters(
 }
 
 class FakeRealtimeSocket implements RealtimeSocket {
+  closed = false;
   readonly sentMessages: Array<Record<string, unknown>> = [];
-  private closed = false;
   private readonly listeners: Record<string, Array<(event?: unknown) => void>> =
     {};
 
-  constructor(private readonly options: { transcript: string }) {}
+  constructor(private readonly options: { transcript?: string }) {}
 
   addEventListener(type: string, listener: (event?: unknown) => void): void {
     this.listeners[type] = [...(this.listeners[type] ?? []), listener];
@@ -602,7 +679,7 @@ class FakeRealtimeSocket implements RealtimeSocket {
 
     if (parsed.type === "input_audio_buffer.commit") {
       queueMicrotask(() => {
-        if (this.closed) {
+        if (this.closed || this.options.transcript === undefined) {
           return;
         }
 

@@ -10,6 +10,7 @@ interface OpenAIRealtimeTranscriptionConfig {
   apiKeyEnv: string;
   baseUrl: string;
   model: string;
+  timeoutMs: number;
 }
 
 export interface RealtimeSocket {
@@ -47,16 +48,19 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
       url: createRealtimeTranscriptionUrl(this.options.config),
     });
 
-    await waitForSocketOpen(socket);
+    try {
+      await waitForSocketOpen(socket, this.options.config.timeoutMs);
 
-    let transcriptFailure: unknown;
-    const transcriptPromise = waitForTranscript(socket, events).catch(
-      (error: unknown) => {
+      let transcriptFailure: unknown;
+      const transcriptPromise = waitForTranscript(
+        socket,
+        events,
+        this.options.config.timeoutMs,
+      ).catch((error: unknown) => {
         transcriptFailure = error;
         return;
-      },
-    );
-    try {
+      });
+
       for await (const chunk of audio.chunks) {
         socket.send(
           JSON.stringify({
@@ -93,22 +97,38 @@ function createRealtimeTranscriptionUrl(
   return url.toString();
 }
 
-function waitForSocketOpen(socket: RealtimeSocket): Promise<void> {
+function waitForSocketOpen(
+  socket: RealtimeSocket,
+  timeoutMs: number,
+): Promise<void> {
   return new Promise((resolve, reject) => {
-    socket.addEventListener("open", () => resolve());
-    socket.addEventListener("error", () =>
-      reject(new Error("Realtime transcription socket failed.")),
-    );
+    const timer = setTimeout(() => {
+      reject(createRealtimeTimeoutError(timeoutMs));
+    }, timeoutMs);
+
+    socket.addEventListener("open", () => {
+      clearTimeout(timer);
+      resolve();
+    });
+    socket.addEventListener("error", () => {
+      clearTimeout(timer);
+      reject(new Error("Realtime transcription socket failed."));
+    });
   });
 }
 
 function waitForTranscript(
   socket: RealtimeSocket,
   events: StreamingSpeechToTextEvents,
+  timeoutMs: number,
 ): Promise<SpeechTranscript> {
   let text = "";
 
   return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(createRealtimeTimeoutError(timeoutMs));
+    }, timeoutMs);
+
     socket.addEventListener("message", (messageEvent) => {
       try {
         const event = parseRealtimeEvent(messageEvent);
@@ -125,6 +145,7 @@ function waitForTranscript(
         if (
           event.type === "conversation.item.input_audio_transcription.completed"
         ) {
+          clearTimeout(timer);
           resolve({
             text: parseOptionalStringField(event, "transcript") ?? text,
           });
@@ -133,10 +154,15 @@ function waitForTranscript(
         reject(error instanceof Error ? error : new Error(String(error)));
       }
     });
-    socket.addEventListener("error", () =>
-      reject(new Error("Realtime transcription socket failed.")),
-    );
+    socket.addEventListener("error", () => {
+      clearTimeout(timer);
+      reject(new Error("Realtime transcription socket failed."));
+    });
   });
+}
+
+function createRealtimeTimeoutError(timeoutMs: number): Error {
+  return new Error(`Realtime transcription timed out after ${timeoutMs}ms.`);
 }
 
 function parseRealtimeEvent(messageEvent: unknown): Record<string, unknown> {

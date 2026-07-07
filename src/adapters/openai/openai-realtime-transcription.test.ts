@@ -9,6 +9,7 @@ describe("OpenAIRealtimeTranscription", () => {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "wss://api.openai.test/v1/realtime",
         model: "gpt-4o-transcribe",
+        timeoutMs: 30_000,
       },
       env: { OPENAI_API_KEY: "test-key" },
       webSocketFactory: () => socket,
@@ -49,6 +50,7 @@ describe("OpenAIRealtimeTranscription", () => {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "wss://api.openai.test/v1/realtime",
         model: "gpt-4o-transcribe",
+        timeoutMs: 30_000,
       },
       env: {},
       webSocketFactory: () => new FakeRealtimeSocket(),
@@ -69,6 +71,7 @@ describe("OpenAIRealtimeTranscription", () => {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "wss://api.openai.test/v1/realtime",
         model: "gpt-4o-transcribe",
+        timeoutMs: 30_000,
       },
       env: { OPENAI_API_KEY: "test-key" },
       webSocketFactory: () => socket,
@@ -95,9 +98,56 @@ describe("OpenAIRealtimeTranscription", () => {
       }),
     );
   });
+
+  it("rejects and closes the socket when the completed transcript never arrives", async () => {
+    const socket = new FakeRealtimeSocket();
+    const adapter = new OpenAIRealtimeTranscription({
+      config: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "wss://api.openai.test/v1/realtime",
+        model: "gpt-4o-transcribe",
+        timeoutMs: 1,
+      },
+      env: { OPENAI_API_KEY: "test-key" },
+      webSocketFactory: () => socket,
+    });
+
+    const transcriptPromise = adapter.transcribeStream({
+      chunks: chunksFromText("audio"),
+    });
+
+    socket.emitOpen();
+    await socket.waitForSentType("input_audio_buffer.commit");
+
+    await expect(transcriptPromise).rejects.toThrow(
+      "Realtime transcription timed out after 1ms.",
+    );
+    expect(socket.closed).toBe(true);
+  });
+
+  it("rejects and closes the socket when the realtime socket never opens", async () => {
+    const socket = new FakeRealtimeSocket();
+    const adapter = new OpenAIRealtimeTranscription({
+      config: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "wss://api.openai.test/v1/realtime",
+        model: "gpt-4o-transcribe",
+        timeoutMs: 1,
+      },
+      env: { OPENAI_API_KEY: "test-key" },
+      webSocketFactory: () => socket,
+    });
+
+    await expect(
+      adapter.transcribeStream({ chunks: chunksFromText("audio") }),
+    ).rejects.toThrow("Realtime transcription timed out after 1ms.");
+    expect(socket.closed).toBe(true);
+    expect(socket.sentMessages).toEqual([]);
+  });
 });
 
 class FakeRealtimeSocket {
+  closed = false;
   readonly sentMessages: Array<Record<string, unknown>> = [];
   private readonly listeners: Record<string, Array<(event?: unknown) => void>> =
     {};
@@ -106,7 +156,9 @@ class FakeRealtimeSocket {
     this.listeners[type] = [...(this.listeners[type] ?? []), listener];
   }
 
-  close(): void {}
+  close(): void {
+    this.closed = true;
+  }
 
   send(message: string): void {
     this.sentMessages.push(JSON.parse(message) as Record<string, unknown>);
