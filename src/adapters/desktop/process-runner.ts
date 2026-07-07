@@ -181,16 +181,22 @@ export async function runCommandWritableStream(
 ): Promise<void> {
   const commandProcess = startCommandProcess(request, {
     captureStdout: false,
-    detached: false,
+    detached: true,
     stdio: ["pipe", "ignore", "pipe"],
   });
 
-  for await (const chunk of chunks) {
-    commandProcess.writeStdin(chunk);
-  }
-  commandProcess.endStdin();
+  try {
+    for await (const chunk of chunks) {
+      commandProcess.writeStdin(chunk);
+    }
+    commandProcess.endStdin();
 
-  await commandProcess.waitForSuccess();
+    await commandProcess.waitForSuccess();
+  } catch (error) {
+    commandProcess.endStdinBestEffort();
+    await commandProcess.terminateAndWait();
+    throw toError(error);
+  }
 }
 
 type CommandStdio = "ignore" | "pipe";
@@ -233,6 +239,14 @@ class CommandProcess {
 
   endStdin(): void {
     this.child.stdin?.end();
+  }
+
+  endStdinBestEffort(): void {
+    try {
+      this.endStdin();
+    } catch {
+      // Cleanup keeps the primary stream or process failure.
+    }
   }
 
   output(): RunCommandResult {

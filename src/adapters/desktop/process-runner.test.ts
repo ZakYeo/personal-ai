@@ -13,6 +13,7 @@ import {
   runCommand,
   runCommandReadableStream,
   runCommandUntilStdoutLine,
+  runCommandWritableStream,
 } from "./process-runner.js";
 
 describe("runCommand", () => {
@@ -118,3 +119,37 @@ describe("runCommandReadableStream", () => {
     expect(chunks).toEqual(["first"]);
   });
 });
+
+describe("runCommandWritableStream", () => {
+  it("terminates the command when the input stream fails", async () => {
+    const killedProcessGroups: number[] = [];
+    const processControl: ProcessControl = {
+      kill: (pid, signal) => {
+        killedProcessGroups.push(pid);
+        process.kill(pid, signal);
+      },
+      platform: "linux",
+    };
+
+    await expect(
+      runCommandWritableStream(
+        {
+          args: ["-c", "cat >/dev/null"],
+          command: "/bin/sh",
+          processControl,
+          timeoutMs: 1_000,
+        },
+        createFailingInputChunks(),
+      ),
+    ).rejects.toThrow("input stream failed");
+
+    expect(killedProcessGroups).toHaveLength(1);
+    expect(killedProcessGroups[0]).toBeLessThan(0);
+  });
+});
+
+async function* createFailingInputChunks(): AsyncIterable<Uint8Array> {
+  await Promise.resolve();
+  yield Buffer.from("partial audio", "utf8");
+  throw new Error("input stream failed");
+}
