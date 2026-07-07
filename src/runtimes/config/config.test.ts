@@ -2,7 +2,10 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig, parseAssistantConfig } from "./config.js";
-import { requireDesktopVoiceConfig } from "./desktop-voice-config.js";
+import {
+  requireDesktopVoiceConfig,
+  resolveDesktopVoiceAdapterConfig,
+} from "./desktop-voice-config.js";
 import { requireIntentConfig } from "./intent-config.js";
 import { requireVoiceConfig } from "./voice-config.js";
 
@@ -335,6 +338,89 @@ describe("parseAssistantConfig", () => {
           },
         },
       }),
+    );
+  });
+
+  it("resolves selected desktop streaming adapter config into required bundles", () => {
+    const config = parseAssistantConfig(
+      createMinimalConfig({
+        desktopVoice: {
+          audioInput: { command: "fake-rec" },
+          audioOutput: { command: "fake-play" },
+          openAIRealtimeTranscription: {
+            model: "gpt-realtime-whisper",
+          },
+          openAIStreamingSpeech: {
+            model: "gpt-4o-mini-tts",
+            voice: "coral",
+          },
+          speechToText: { command: "fake-stt" },
+          streamingAudioInput: { command: "fake-stream-rec" },
+          streamingAudioOutput: { command: "fake-stream-play" },
+          textToSpeech: { command: "fake-tts" },
+          wakeActivation: { command: "fake-wake" },
+        },
+        voice: {
+          audioOutput: "sox-play",
+          input: "sox-rec",
+          speechToText: "command",
+          streamingAudioInput: "sox-rec-stream",
+          streamingAudioOutput: "sox-play-stream",
+          streamingSpeechToText: "openai-realtime",
+          streamingTextToSpeech: "openai-streaming",
+          textToSpeech: "command",
+          wakeActivation: "openwakeword-command",
+          wakeWord: "text-prefix",
+        },
+      }),
+    );
+
+    expect(
+      resolveDesktopVoiceAdapterConfig(requireVoiceConfig(config), config),
+    ).toMatchObject({
+      streamingSpeechToText: {
+        audioInput: { command: "fake-stream-rec" },
+        transcription: {
+          model: "gpt-realtime-whisper",
+        },
+      },
+      streamingTextToSpeech: {
+        audioOutput: { command: "fake-stream-play" },
+        speech: {
+          model: "gpt-4o-mini-tts",
+          voice: "coral",
+        },
+      },
+      wakeActivation: { command: "fake-wake" },
+    });
+  });
+
+  it("rejects missing selected desktop streaming provider config at the config boundary", () => {
+    const config = parseAssistantConfig(
+      createMinimalConfig({
+        desktopVoice: {
+          audioInput: { command: "fake-rec" },
+          audioOutput: { command: "fake-play" },
+          speechToText: { command: "fake-stt" },
+          streamingAudioInput: { command: "fake-stream-rec" },
+          textToSpeech: { command: "fake-tts" },
+        },
+        voice: {
+          audioOutput: "sox-play",
+          input: "sox-rec",
+          speechToText: "command",
+          streamingAudioInput: "sox-rec-stream",
+          streamingSpeechToText: "openai-realtime",
+          textToSpeech: "command",
+          wakeWord: "text-prefix",
+        },
+      }),
+    );
+
+    expect(() =>
+      resolveDesktopVoiceAdapterConfig(requireVoiceConfig(config), config),
+    ).toThrow(
+      "Config desktopVoice.openAIRealtimeTranscription must be configured.",
     );
   });
 

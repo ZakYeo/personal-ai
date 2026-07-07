@@ -1,6 +1,6 @@
 import type { VoiceCommandConfig } from "../../ports/assistant.js";
 import { runCommand } from "../../adapters/desktop/process-runner.js";
-import type { ResolvedDesktopVoiceServiceConfig } from "../config/desktop-voice-config.js";
+import type { ResolvedDesktopVoiceServiceAdapterConfig } from "../config/desktop-voice-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 
 const localOpenWakeWordListener = "scripts/openwakeword-listener.py";
@@ -8,7 +8,7 @@ const startupCheckTimeoutMs = 5000;
 
 export async function validateOpenWakeWordStartup(
   voiceConfig: ResolvedVoiceConfig,
-  desktopVoiceConfig: ResolvedDesktopVoiceServiceConfig,
+  desktopVoiceConfig: ResolvedDesktopVoiceServiceAdapterConfig,
 ): Promise<void> {
   if (voiceConfig.wakeActivation !== "openwakeword-command") {
     return;

@@ -31,8 +31,8 @@ import type {
   WakeWordPort,
 } from "../../ports/voice.js";
 import type {
-  ResolvedDesktopVoiceConfig,
-  ResolvedDesktopVoiceServiceConfig,
+  ResolvedDesktopVoiceAdapterConfig,
+  ResolvedDesktopVoiceServiceAdapterConfig,
   OpenAIRealtimeTranscriptionConfig,
   OpenAIStreamingSpeechConfig,
 } from "../config/desktop-voice-config.js";
@@ -60,11 +60,9 @@ export interface DesktopVoiceServiceAdapters extends DesktopVoiceAdapters {
 
 export function createDesktopVoiceAdapters(
   voice: ResolvedVoiceConfig,
-  desktopVoice: ResolvedDesktopVoiceConfig,
+  desktopVoice: ResolvedDesktopVoiceAdapterConfig,
   dependencies: DesktopVoiceAdapterRuntimeDependencies = {},
 ): DesktopVoiceAdapters {
-  validateDesktopVoiceAdapterConfig(voice, desktopVoice);
-
   const tempFiles = createNodeVoiceTempFiles();
   const env = dependencies.env ?? process.env;
   const fetch = dependencies.fetch ?? globalThis.fetch;
@@ -85,45 +83,37 @@ export function createDesktopVoiceAdapters(
       "speechToText",
       desktopVoiceAdapterRegistry.speechToText,
     )(desktopVoice.speechToText),
-    ...(voice.streamingAudioInput
+    ...(desktopVoice.streamingSpeechToText
       ? {
           streamingAudioInput: selectConfiguredVoiceAdapter(
             voice,
             "streamingAudioInput",
             desktopVoiceAdapterRegistry.streamingAudioInput,
-          )(desktopVoice.streamingAudioInput),
-        }
-      : {}),
-    ...(voice.streamingAudioOutput
-      ? {
-          streamingAudioOutput: selectConfiguredVoiceAdapter(
-            voice,
-            "streamingAudioOutput",
-            desktopVoiceAdapterRegistry.streamingAudioOutput,
-          )(desktopVoice.streamingAudioOutput),
-        }
-      : {}),
-    ...(voice.streamingSpeechToText
-      ? {
+          )(desktopVoice.streamingSpeechToText.audioInput),
           streamingSpeechToText: selectConfiguredVoiceAdapter(
             voice,
             "streamingSpeechToText",
             desktopVoiceAdapterRegistry.streamingSpeechToText,
           )(
-            desktopVoice.openAIRealtimeTranscription,
+            desktopVoice.streamingSpeechToText.transcription,
             env,
             dependencies.webSocketFactory ??
               createOpenAIRealtimeWebSocketFactory,
           ),
         }
       : {}),
-    ...(voice.streamingTextToSpeech
+    ...(desktopVoice.streamingTextToSpeech
       ? {
+          streamingAudioOutput: selectConfiguredVoiceAdapter(
+            voice,
+            "streamingAudioOutput",
+            desktopVoiceAdapterRegistry.streamingAudioOutput,
+          )(desktopVoice.streamingTextToSpeech.audioOutput),
           streamingTextToSpeech: selectConfiguredVoiceAdapter(
             voice,
             "streamingTextToSpeech",
             desktopVoiceAdapterRegistry.streamingTextToSpeech,
-          )(desktopVoice.openAIStreamingSpeech, env, fetch),
+          )(desktopVoice.streamingTextToSpeech.speech, env, fetch),
         }
       : {}),
     textToSpeech: selectConfiguredVoiceAdapter(
@@ -131,7 +121,7 @@ export function createDesktopVoiceAdapters(
       "textToSpeech",
       desktopVoiceAdapterRegistry.textToSpeech,
     )(desktopVoice.textToSpeech, tempFiles),
-    ...(voice.wakeActivation
+    ...(desktopVoice.wakeActivation
       ? {
           wakeActivation: selectConfiguredVoiceAdapter(
             voice,
@@ -149,45 +139,9 @@ export function createDesktopVoiceAdapters(
   };
 }
 
-export function validateDesktopVoiceAdapterConfig(
-  voice: ResolvedVoiceConfig,
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): asserts desktopVoice is ResolvedDesktopVoiceConfig & {
-  openAIRealtimeTranscription: OpenAIRealtimeTranscriptionConfig;
-  openAIStreamingSpeech: OpenAIStreamingSpeechConfig;
-  streamingAudioInput: VoiceCommandConfig;
-  streamingAudioOutput: VoiceCommandConfig;
-  wakeActivation: VoiceCommandConfig;
-} {
-  requireStreamingPair(
-    voice.streamingAudioInput,
-    voice.streamingSpeechToText,
-    "streamingAudioInput",
-    "streamingSpeechToText",
-  );
-  requireStreamingPair(
-    voice.streamingTextToSpeech,
-    voice.streamingAudioOutput,
-    "streamingTextToSpeech",
-    "streamingAudioOutput",
-  );
-
-  if (voice.wakeActivation) {
-    requireDesktopWakeActivationConfig(desktopVoice);
-  }
-  if (voice.streamingAudioInput) {
-    requireDesktopStreamingAudioInputConfig(desktopVoice);
-    requireDesktopRealtimeTranscriptionConfig(desktopVoice);
-  }
-  if (voice.streamingTextToSpeech) {
-    requireDesktopStreamingAudioOutputConfig(desktopVoice);
-    requireDesktopStreamingSpeechConfig(desktopVoice);
-  }
-}
-
 export function createDesktopVoiceServiceAdapters(
   voice: ResolvedVoiceConfig,
-  desktopVoice: ResolvedDesktopVoiceServiceConfig,
+  desktopVoice: ResolvedDesktopVoiceServiceAdapterConfig,
   dependencies: DesktopVoiceAdapterRuntimeDependencies = {},
 ): DesktopVoiceServiceAdapters {
   const adapters = createDesktopVoiceAdapters(
@@ -319,77 +273,4 @@ export interface DesktopVoiceAdapterRuntimeDependencies {
   env?: Record<string, string | undefined>;
   fetch?: typeof globalThis.fetch;
   webSocketFactory?: RealtimeSocketFactory;
-}
-
-function requireDesktopWakeActivationConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): VoiceCommandConfig {
-  if (!desktopVoice.wakeActivation) {
-    throw new Error("Config desktopVoice.wakeActivation must be configured.");
-  }
-
-  return desktopVoice.wakeActivation;
-}
-
-function requireStreamingPair(
-  firstAdapterId: string | undefined,
-  secondAdapterId: string | undefined,
-  firstKey: string,
-  secondKey: string,
-): void {
-  if (Boolean(firstAdapterId) === Boolean(secondAdapterId)) {
-    return;
-  }
-
-  throw new Error(
-    `Config voice.${firstKey} and voice.${secondKey} must be configured together.`,
-  );
-}
-
-function requireDesktopStreamingAudioInputConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): VoiceCommandConfig {
-  if (!desktopVoice.streamingAudioInput) {
-    throw new Error(
-      "Config desktopVoice.streamingAudioInput must be configured.",
-    );
-  }
-
-  return desktopVoice.streamingAudioInput;
-}
-
-function requireDesktopStreamingAudioOutputConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): VoiceCommandConfig {
-  if (!desktopVoice.streamingAudioOutput) {
-    throw new Error(
-      "Config desktopVoice.streamingAudioOutput must be configured.",
-    );
-  }
-
-  return desktopVoice.streamingAudioOutput;
-}
-
-function requireDesktopRealtimeTranscriptionConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): OpenAIRealtimeTranscriptionConfig {
-  if (!desktopVoice.openAIRealtimeTranscription) {
-    throw new Error(
-      "Config desktopVoice.openAIRealtimeTranscription must be configured.",
-    );
-  }
-
-  return desktopVoice.openAIRealtimeTranscription;
-}
-
-function requireDesktopStreamingSpeechConfig(
-  desktopVoice: ResolvedDesktopVoiceConfig,
-): OpenAIStreamingSpeechConfig {
-  if (!desktopVoice.openAIStreamingSpeech) {
-    throw new Error(
-      "Config desktopVoice.openAIStreamingSpeech must be configured.",
-    );
-  }
-
-  return desktopVoice.openAIStreamingSpeech;
 }

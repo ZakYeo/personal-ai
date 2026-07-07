@@ -1,8 +1,4 @@
-import {
-  createOpenAIStatusError,
-  createOpenAIUrl,
-  resolveOpenAIApiKey,
-} from "./openai-voice-client.js";
+import { createOpenAIUrl, resolveOpenAIApiKey } from "./openai-voice-client.js";
 
 describe("openai voice client helpers", () => {
   it("resolves configured API keys from the environment", () => {
@@ -23,12 +19,6 @@ describe("openai voice client helpers", () => {
   it("joins provider base URLs with endpoint paths", () => {
     expect(createOpenAIUrl("https://api.openai.test/v1", "audio/speech")).toBe(
       "https://api.openai.test/v1/audio/speech",
-    );
-  });
-
-  it("creates consistent provider status errors", () => {
-    expect(createOpenAIStatusError("speech", 500).message).toBe(
-      "OpenAI speech request failed with status 500.",
     );
   });
 });

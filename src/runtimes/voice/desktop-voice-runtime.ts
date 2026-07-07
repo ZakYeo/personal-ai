@@ -1,6 +1,6 @@
 import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
-import { requireDesktopVoiceConfig } from "../config/desktop-voice-config.js";
+import { resolveDesktopVoiceAdapterConfig } from "../config/desktop-voice-config.js";
 import type { VoiceRuntimeIo } from "./voice-turn.js";
 import { createDesktopVoiceAdapters } from "./desktop-voice-adapter-registry.js";
 import {
@@ -30,7 +30,7 @@ export async function createDesktopVoiceRuntime(
     resolveAdapters: (config, voiceConfig) =>
       createDesktopVoiceAdapters(
         voiceConfig,
-        requireDesktopVoiceConfig(config),
+        resolveDesktopVoiceAdapterConfig(voiceConfig, config),
         {
           ...(options.env ? { env: options.env } : {}),
           ...(options.fetch ? { fetch: options.fetch } : {}),

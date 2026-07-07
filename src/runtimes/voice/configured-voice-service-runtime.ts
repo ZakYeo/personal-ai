@@ -1,6 +1,6 @@
 import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
-import { requireDesktopVoiceServiceConfig } from "../config/desktop-voice-config.js";
+import { resolveDesktopVoiceServiceAdapterConfig } from "../config/desktop-voice-config.js";
 import { requireVoiceConfig } from "../config/voice-config.js";
 import { runConfiguredServiceRuntime } from "../service/configured-service-composition.js";
 import type {
@@ -14,7 +14,6 @@ import {
   createDesktopVoiceServiceAdapters,
   type DesktopVoiceAdapterRuntimeDependencies,
   type DesktopVoiceServiceAdapters,
-  validateDesktopVoiceAdapterConfig,
 } from "./desktop-voice-adapter-registry.js";
 import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
 import {
@@ -33,7 +32,9 @@ export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   configPath?: string;
   createVoiceAdapters?: (
     voiceConfig: ReturnType<typeof requireVoiceConfig>,
-    desktopVoiceConfig: ReturnType<typeof requireDesktopVoiceServiceConfig>,
+    desktopVoiceConfig: ReturnType<
+      typeof resolveDesktopVoiceServiceAdapterConfig
+    >,
     dependencies: DesktopVoiceAdapterRuntimeDependencies,
   ) => DesktopVoiceServiceAdapters;
   io?: VoiceRuntimeIo;
@@ -54,7 +55,10 @@ export function runConfiguredVoiceServiceRuntime(
     validateConfig: validateVoiceServiceConfig,
     runTurn: async ({ assistant, config }) => {
       const voiceConfig = requireVoiceConfig(config);
-      const desktopVoiceConfig = requireDesktopVoiceServiceConfig(config);
+      const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
+        voiceConfig,
+        config,
+      );
       const adapters = (
         options.createVoiceAdapters ?? createDesktopVoiceServiceAdapters
       )(voiceConfig, desktopVoiceConfig, {
@@ -107,8 +111,10 @@ async function validateVoiceServiceConfig(
   config: LoadedRuntimeConfig,
 ): Promise<void> {
   const voiceConfig = requireVoiceConfig(config);
-  const desktopVoiceConfig = requireDesktopVoiceServiceConfig(config);
+  const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
+    voiceConfig,
+    config,
+  );
 
-  validateDesktopVoiceAdapterConfig(voiceConfig, desktopVoiceConfig);
   await validateOpenWakeWordStartup(voiceConfig, desktopVoiceConfig);
 }

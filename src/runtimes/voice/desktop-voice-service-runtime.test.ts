@@ -348,6 +348,9 @@ describe("runDesktopVoiceServiceRuntime", () => {
     expect(fallbackOutput.writes).toEqual([]);
     expect(stderr.writes).toEqual([
       line("Runtime failure: Realtime transcription failed."),
+      line(
+        'Runtime failure event: {"error":{"code":"invalid_request_error","message":"Bad transcription session.","type":"invalid_request_error"},"type":"error"}',
+      ),
     ]);
   });
 

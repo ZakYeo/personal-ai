@@ -15,8 +15,12 @@ export class OpenAIVoiceProviderError extends Error {
     super(options.message, { cause: options.cause });
     this.name = "OpenAIVoiceProviderError";
     this.event = options.event;
-    this.responseBody = options.responseBody;
-    this.status = options.status;
+    if (options.responseBody !== undefined) {
+      this.responseBody = options.responseBody;
+    }
+    if (options.status !== undefined) {
+      this.status = options.status;
+    }
   }
 }
 
