@@ -10,6 +10,7 @@ import {
   CommandStreamingAudioInput,
   CommandStreamingAudioOutput,
 } from "../../adapters/desktop/desktop-streaming-voice-adapters.js";
+import type { ProcessControl } from "../../adapters/desktop/process-runner.js";
 import {
   OpenAIRealtimeTranscription,
   type RealtimeSocketFactory,
@@ -31,11 +32,11 @@ import type {
   WakeWordPort,
 } from "../../ports/voice.js";
 import type {
+  OpenAIRealtimeTranscriptionConfig,
+  OpenAIStreamingSpeechConfig,
   ParsedDesktopVoiceConfig,
   ResolvedDesktopVoiceAdapterConfig,
   ResolvedDesktopVoiceServiceAdapterConfig,
-  OpenAIRealtimeTranscriptionConfig,
-  OpenAIStreamingSpeechConfig,
 } from "../config/desktop-voice-config.js";
 import {
   requireDesktopOpenAIRealtimeTranscriptionConfig,
@@ -44,7 +45,6 @@ import {
 } from "../config/desktop-voice-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
-import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
 import { createNodeVoiceTempFiles } from "./voice-temp-files.js";
 
 interface DesktopVoiceAdapters {
@@ -65,6 +65,23 @@ export interface DesktopVoiceServiceAdapters extends DesktopVoiceAdapters {
   wakeAudioInput: AudioInputPort;
 }
 
+interface DesktopVoiceAdapterContext {
+  dependencies: DesktopVoiceAdapterRuntimeDependencies;
+  tempFiles: VoiceTempFilePort;
+}
+
+interface DesktopVoiceAdapterEntry<TConfig, TAdapter> {
+  create(config: TConfig, context: DesktopVoiceAdapterContext): TAdapter;
+  resolveConfig(config: { desktopVoice?: ParsedDesktopVoiceConfig }): TConfig;
+}
+
+export interface DesktopVoiceAdapterRuntimeDependencies {
+  env: Record<string, string | undefined>;
+  fetch: typeof globalThis.fetch;
+  processControl: ProcessControl;
+  webSocketFactory?: RealtimeSocketFactory;
+}
+
 export function resolveDesktopVoiceAdapterConfig(
   voice: ResolvedVoiceConfig,
   config: { desktopVoice?: ParsedDesktopVoiceConfig },
@@ -83,65 +100,74 @@ export function resolveDesktopVoiceAdapterConfig(
   );
 
   return {
-    audioInput: selectConfiguredDesktopVoiceAdapterConfig(
+    audioInput: resolveSelectedDesktopVoiceAdapterConfig(
       voice,
       "input",
-      desktopVoiceAdapterConfigResolvers.input,
-    )(config),
-    audioOutput: selectConfiguredDesktopVoiceAdapterConfig(
+      desktopVoiceAdapterRegistry.input,
+      config,
+    ),
+    audioOutput: resolveSelectedDesktopVoiceAdapterConfig(
       voice,
       "audioOutput",
-      desktopVoiceAdapterConfigResolvers.audioOutput,
-    )(config),
-    speechToText: selectConfiguredDesktopVoiceAdapterConfig(
+      desktopVoiceAdapterRegistry.audioOutput,
+      config,
+    ),
+    speechToText: resolveSelectedDesktopVoiceAdapterConfig(
       voice,
       "speechToText",
-      desktopVoiceAdapterConfigResolvers.speechToText,
-    )(config),
+      desktopVoiceAdapterRegistry.speechToText,
+      config,
+    ),
     ...(voice.streamingAudioInput
       ? {
           streamingSpeechToText: {
-            audioInput: selectConfiguredDesktopVoiceAdapterConfig(
+            audioInput: resolveSelectedDesktopVoiceAdapterConfig(
               voice,
               "streamingAudioInput",
-              desktopVoiceAdapterConfigResolvers.streamingAudioInput,
-            )(config),
-            transcription: selectConfiguredDesktopVoiceAdapterConfig(
+              desktopVoiceAdapterRegistry.streamingAudioInput,
+              config,
+            ),
+            transcription: resolveSelectedDesktopVoiceAdapterConfig(
               voice,
               "streamingSpeechToText",
-              desktopVoiceAdapterConfigResolvers.streamingSpeechToText,
-            )(config),
+              desktopVoiceAdapterRegistry.streamingSpeechToText,
+              config,
+            ),
           },
         }
       : {}),
     ...(voice.streamingTextToSpeech
       ? {
           streamingTextToSpeech: {
-            audioOutput: selectConfiguredDesktopVoiceAdapterConfig(
+            audioOutput: resolveSelectedDesktopVoiceAdapterConfig(
               voice,
               "streamingAudioOutput",
-              desktopVoiceAdapterConfigResolvers.streamingAudioOutput,
-            )(config),
-            speech: selectConfiguredDesktopVoiceAdapterConfig(
+              desktopVoiceAdapterRegistry.streamingAudioOutput,
+              config,
+            ),
+            speech: resolveSelectedDesktopVoiceAdapterConfig(
               voice,
               "streamingTextToSpeech",
-              desktopVoiceAdapterConfigResolvers.streamingTextToSpeech,
-            )(config),
+              desktopVoiceAdapterRegistry.streamingTextToSpeech,
+              config,
+            ),
           },
         }
       : {}),
-    textToSpeech: selectConfiguredDesktopVoiceAdapterConfig(
+    textToSpeech: resolveSelectedDesktopVoiceAdapterConfig(
       voice,
       "textToSpeech",
-      desktopVoiceAdapterConfigResolvers.textToSpeech,
-    )(config),
+      desktopVoiceAdapterRegistry.textToSpeech,
+      config,
+    ),
     ...(voice.wakeActivation
       ? {
-          wakeActivation: selectConfiguredDesktopVoiceAdapterConfig(
+          wakeActivation: resolveSelectedDesktopVoiceAdapterConfig(
             voice,
             "wakeActivation",
-            desktopVoiceAdapterConfigResolvers.wakeActivation,
-          )(config),
+            desktopVoiceAdapterRegistry.wakeActivation,
+            config,
+          ),
         }
       : {}),
   };
@@ -160,80 +186,94 @@ export function resolveDesktopVoiceServiceAdapterConfig(
 export function createDesktopVoiceAdapters(
   voice: ResolvedVoiceConfig,
   desktopVoice: ResolvedDesktopVoiceAdapterConfig,
-  dependencies: DesktopVoiceAdapterRuntimeDependencies = {},
+  dependencies: DesktopVoiceAdapterRuntimeDependencies,
 ): DesktopVoiceAdapters {
   const tempFiles = createNodeVoiceTempFiles();
-  const env = dependencies.env ?? process.env;
-  const fetch = dependencies.fetch ?? globalThis.fetch;
+  const context = { dependencies, tempFiles };
 
   return {
-    audioInput: selectConfiguredVoiceAdapter(
+    audioInput: createSelectedDesktopVoiceAdapter(
       voice,
       "input",
       desktopVoiceAdapterRegistry.input,
-    )(desktopVoice.audioInput, tempFiles),
-    audioOutput: selectConfiguredVoiceAdapter(
+      desktopVoice.audioInput,
+      context,
+    ),
+    audioOutput: createSelectedDesktopVoiceAdapter(
       voice,
       "audioOutput",
       desktopVoiceAdapterRegistry.audioOutput,
-    )(desktopVoice.audioOutput),
-    speechToText: selectConfiguredVoiceAdapter(
+      desktopVoice.audioOutput,
+      context,
+    ),
+    speechToText: createSelectedDesktopVoiceAdapter(
       voice,
       "speechToText",
       desktopVoiceAdapterRegistry.speechToText,
-    )(desktopVoice.speechToText),
+      desktopVoice.speechToText,
+      context,
+    ),
     ...(desktopVoice.streamingSpeechToText
       ? {
-          streamingAudioInput: selectConfiguredVoiceAdapter(
+          streamingAudioInput: createSelectedDesktopVoiceAdapter(
             voice,
             "streamingAudioInput",
             desktopVoiceAdapterRegistry.streamingAudioInput,
-          )(desktopVoice.streamingSpeechToText.audioInput),
-          streamingSpeechToText: selectConfiguredVoiceAdapter(
+            desktopVoice.streamingSpeechToText.audioInput,
+            context,
+          ),
+          streamingSpeechToText: createSelectedDesktopVoiceAdapter(
             voice,
             "streamingSpeechToText",
             desktopVoiceAdapterRegistry.streamingSpeechToText,
-          )(
             desktopVoice.streamingSpeechToText.transcription,
-            env,
-            dependencies.webSocketFactory ??
-              createOpenAIRealtimeWebSocketFactory,
+            context,
           ),
         }
       : {}),
     ...(desktopVoice.streamingTextToSpeech
       ? {
-          streamingAudioOutput: selectConfiguredVoiceAdapter(
+          streamingAudioOutput: createSelectedDesktopVoiceAdapter(
             voice,
             "streamingAudioOutput",
             desktopVoiceAdapterRegistry.streamingAudioOutput,
-          )(desktopVoice.streamingTextToSpeech.audioOutput),
-          streamingTextToSpeech: selectConfiguredVoiceAdapter(
+            desktopVoice.streamingTextToSpeech.audioOutput,
+            context,
+          ),
+          streamingTextToSpeech: createSelectedDesktopVoiceAdapter(
             voice,
             "streamingTextToSpeech",
             desktopVoiceAdapterRegistry.streamingTextToSpeech,
-          )(desktopVoice.streamingTextToSpeech.speech, env, fetch),
+            desktopVoice.streamingTextToSpeech.speech,
+            context,
+          ),
         }
       : {}),
-    textToSpeech: selectConfiguredVoiceAdapter(
+    textToSpeech: createSelectedDesktopVoiceAdapter(
       voice,
       "textToSpeech",
       desktopVoiceAdapterRegistry.textToSpeech,
-    )(desktopVoice.textToSpeech, tempFiles),
+      desktopVoice.textToSpeech,
+      context,
+    ),
     ...(desktopVoice.wakeActivation
       ? {
-          wakeActivation: selectConfiguredVoiceAdapter(
+          wakeActivation: createSelectedDesktopVoiceAdapter(
             voice,
             "wakeActivation",
             desktopVoiceAdapterRegistry.wakeActivation,
-          )(desktopVoice.wakeActivation),
+            desktopVoice.wakeActivation,
+            context,
+          ),
         }
       : {}),
-    wakeWord: selectConfiguredVoiceAdapter(
+    wakeWord: createSelectedDesktopVoiceAdapter(
       voice,
       "wakeWord",
       desktopVoiceAdapterRegistry.wakeWord,
-    )(),
+      undefined,
+      context,
+    ),
     cleanup: () => tempFiles.cleanup(),
   };
 }
@@ -241,7 +281,7 @@ export function createDesktopVoiceAdapters(
 export function createDesktopVoiceServiceAdapters(
   voice: ResolvedVoiceConfig,
   desktopVoice: ResolvedDesktopVoiceServiceAdapterConfig,
-  dependencies: DesktopVoiceAdapterRuntimeDependencies = {},
+  dependencies: DesktopVoiceAdapterRuntimeDependencies,
 ): DesktopVoiceServiceAdapters {
   const adapters = createDesktopVoiceAdapters(
     voice,
@@ -249,180 +289,207 @@ export function createDesktopVoiceServiceAdapters(
     dependencies,
   );
   const tempFiles = createNodeVoiceTempFiles();
+  const context = { dependencies, tempFiles };
 
   return {
     ...adapters,
-    wakeAudioInput: selectConfiguredVoiceAdapter(
+    wakeAudioInput: createSelectedDesktopVoiceAdapter(
       voice,
       "input",
       desktopVoiceAdapterRegistry.input,
-    )(desktopVoice.wakeAudioInput, tempFiles),
+      desktopVoice.wakeAudioInput,
+      context,
+    ),
     cleanup: async () => {
       await Promise.all([adapters.cleanup?.(), tempFiles.cleanup()]);
     },
   };
 }
 
+function defineDesktopVoiceAdapter<TConfig, TAdapter>(
+  entry: DesktopVoiceAdapterEntry<TConfig, TAdapter>,
+): DesktopVoiceAdapterEntry<TConfig, TAdapter> {
+  return entry;
+}
+
 const desktopVoiceAdapterRegistry = {
   input: {
-    "sox-rec": (command: VoiceCommandConfig, tempFiles: VoiceTempFilePort) =>
-      new SoxAudioInput(command, tempFiles),
+    "sox-rec": defineDesktopVoiceAdapter({
+      create: (command: VoiceCommandConfig, context) =>
+        new SoxAudioInput(
+          command,
+          context.tempFiles,
+          context.dependencies.processControl,
+        ),
+      resolveConfig: (config) =>
+        requireDesktopVoiceCommandConfig(config, "audioInput"),
+    }),
   },
   wakeWord: {
-    "text-prefix": () => new TextPrefixWakeWordDetector(),
+    "text-prefix": defineDesktopVoiceAdapter({
+      create: () => new TextPrefixWakeWordDetector(),
+      resolveConfig: () => {},
+    }),
   },
   wakeActivation: {
-    "openwakeword-command": (command: VoiceCommandConfig) =>
-      new CommandWakeActivation(command),
+    "openwakeword-command": defineDesktopVoiceAdapter({
+      create: (command: VoiceCommandConfig, context) =>
+        new CommandWakeActivation(command, context.dependencies.processControl),
+      resolveConfig: (config) =>
+        requireDesktopVoiceCommandConfig(config, "wakeActivation"),
+    }),
   },
   streamingAudioInput: {
-    "sox-rec-stream": (command: VoiceCommandConfig) =>
-      new CommandStreamingAudioInput(command),
+    "sox-rec-stream": defineDesktopVoiceAdapter({
+      create: (command: VoiceCommandConfig, context) =>
+        new CommandStreamingAudioInput(
+          command,
+          context.dependencies.processControl,
+        ),
+      resolveConfig: (config) =>
+        requireDesktopVoiceCommandConfig(config, "streamingAudioInput"),
+    }),
   },
   streamingAudioOutput: {
-    "sox-play-stream": (command: VoiceCommandConfig) =>
-      new CommandStreamingAudioOutput(command),
+    "sox-play-stream": defineDesktopVoiceAdapter({
+      create: (command: VoiceCommandConfig, context) =>
+        new CommandStreamingAudioOutput(
+          command,
+          context.dependencies.processControl,
+        ),
+      resolveConfig: (config) =>
+        requireDesktopVoiceCommandConfig(config, "streamingAudioOutput"),
+    }),
   },
   streamingSpeechToText: {
-    "openai-realtime": (
-      config: OpenAIRealtimeTranscriptionConfig,
-      env: Record<string, string | undefined>,
-      webSocketFactory: RealtimeSocketFactory,
-    ) =>
-      new OpenAIRealtimeTranscription({
-        config,
-        env,
-        webSocketFactory,
-      }),
+    "openai-realtime": defineDesktopVoiceAdapter({
+      create: (config: OpenAIRealtimeTranscriptionConfig, { dependencies }) =>
+        new OpenAIRealtimeTranscription({
+          config,
+          env: dependencies.env,
+          webSocketFactory:
+            dependencies.webSocketFactory ??
+            createOpenAIRealtimeWebSocketFactory,
+        }),
+      resolveConfig: requireDesktopOpenAIRealtimeTranscriptionConfig,
+    }),
   },
   streamingTextToSpeech: {
-    "openai-streaming": (
-      config: OpenAIStreamingSpeechConfig,
-      env: Record<string, string | undefined>,
-      fetch: typeof globalThis.fetch,
-    ) =>
-      new OpenAIStreamingSpeech({
-        config,
-        env,
-        fetch,
-      }),
+    "openai-streaming": defineDesktopVoiceAdapter({
+      create: (config: OpenAIStreamingSpeechConfig, { dependencies }) =>
+        new OpenAIStreamingSpeech({
+          config,
+          env: dependencies.env,
+          fetch: dependencies.fetch,
+        }),
+      resolveConfig: requireDesktopOpenAIStreamingSpeechConfig,
+    }),
   },
   speechToText: {
-    command: (command: VoiceCommandConfig) => new CommandSpeechToText(command),
+    command: defineDesktopVoiceAdapter({
+      create: (command: VoiceCommandConfig, context) =>
+        new CommandSpeechToText(command, context.dependencies.processControl),
+      resolveConfig: (config) =>
+        requireDesktopVoiceCommandConfig(config, "speechToText"),
+    }),
   },
   textToSpeech: {
-    command: (command: VoiceCommandConfig, tempFiles: VoiceTempFilePort) =>
-      new CommandTextToSpeech(command, tempFiles),
+    command: defineDesktopVoiceAdapter({
+      create: (command: VoiceCommandConfig, context) =>
+        new CommandTextToSpeech(
+          command,
+          context.tempFiles,
+          context.dependencies.processControl,
+        ),
+      resolveConfig: (config) =>
+        requireDesktopVoiceCommandConfig(config, "textToSpeech"),
+    }),
   },
   audioOutput: {
-    "sox-play": (command: VoiceCommandConfig) => new SoxAudioOutput(command),
+    "sox-play": defineDesktopVoiceAdapter({
+      create: (command: VoiceCommandConfig, context) =>
+        new SoxAudioOutput(command, context.dependencies.processControl),
+      resolveConfig: (config) =>
+        requireDesktopVoiceCommandConfig(config, "audioOutput"),
+    }),
   },
 } satisfies {
   input: Record<
     string,
-    (
-      command: VoiceCommandConfig,
-      tempFiles: VoiceTempFilePort,
-    ) => AudioInputPort
+    DesktopVoiceAdapterEntry<VoiceCommandConfig, AudioInputPort>
   >;
-  wakeWord: Record<string, () => WakeWordPort>;
+  wakeWord: Record<string, DesktopVoiceAdapterEntry<void, WakeWordPort>>;
   wakeActivation: Record<
     string,
-    (command: VoiceCommandConfig) => WakeActivationPort
+    DesktopVoiceAdapterEntry<VoiceCommandConfig, WakeActivationPort>
   >;
   streamingAudioInput: Record<
     string,
-    (command: VoiceCommandConfig) => StreamingAudioInputPort
+    DesktopVoiceAdapterEntry<VoiceCommandConfig, StreamingAudioInputPort>
   >;
   streamingAudioOutput: Record<
     string,
-    (command: VoiceCommandConfig) => StreamingAudioOutputPort
+    DesktopVoiceAdapterEntry<VoiceCommandConfig, StreamingAudioOutputPort>
   >;
   streamingSpeechToText: Record<
     string,
-    (
-      config: OpenAIRealtimeTranscriptionConfig,
-      env: Record<string, string | undefined>,
-      webSocketFactory: RealtimeSocketFactory,
-    ) => StreamingSpeechToTextPort
+    DesktopVoiceAdapterEntry<
+      OpenAIRealtimeTranscriptionConfig,
+      StreamingSpeechToTextPort
+    >
   >;
   streamingTextToSpeech: Record<
     string,
-    (
-      config: OpenAIStreamingSpeechConfig,
-      env: Record<string, string | undefined>,
-      fetch: typeof globalThis.fetch,
-    ) => StreamingTextToSpeechPort
+    DesktopVoiceAdapterEntry<
+      OpenAIStreamingSpeechConfig,
+      StreamingTextToSpeechPort
+    >
   >;
   speechToText: Record<
     string,
-    (command: VoiceCommandConfig) => SpeechToTextPort
+    DesktopVoiceAdapterEntry<VoiceCommandConfig, SpeechToTextPort>
   >;
   textToSpeech: Record<
     string,
-    (
-      command: VoiceCommandConfig,
-      tempFiles: VoiceTempFilePort,
-    ) => TextToSpeechPort
+    DesktopVoiceAdapterEntry<VoiceCommandConfig, TextToSpeechPort>
   >;
-  audioOutput: Record<string, (command: VoiceCommandConfig) => AudioOutputPort>;
+  audioOutput: Record<
+    string,
+    DesktopVoiceAdapterEntry<VoiceCommandConfig, AudioOutputPort>
+  >;
 };
 
-const desktopVoiceAdapterConfigResolvers = {
-  input: {
-    "sox-rec": (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
-      requireDesktopVoiceCommandConfig(config, "audioInput"),
-  },
-  wakeWord: {
-    "text-prefix": () => {},
-  },
-  wakeActivation: {
-    "openwakeword-command": (config: {
-      desktopVoice?: ParsedDesktopVoiceConfig;
-    }) => requireDesktopVoiceCommandConfig(config, "wakeActivation"),
-  },
-  streamingAudioInput: {
-    "sox-rec-stream": (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
-      requireDesktopVoiceCommandConfig(config, "streamingAudioInput"),
-  },
-  streamingAudioOutput: {
-    "sox-play-stream": (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
-      requireDesktopVoiceCommandConfig(config, "streamingAudioOutput"),
-  },
-  streamingSpeechToText: {
-    "openai-realtime": requireDesktopOpenAIRealtimeTranscriptionConfig,
-  },
-  streamingTextToSpeech: {
-    "openai-streaming": requireDesktopOpenAIStreamingSpeechConfig,
-  },
-  speechToText: {
-    command: (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
-      requireDesktopVoiceCommandConfig(config, "speechToText"),
-  },
-  textToSpeech: {
-    command: (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
-      requireDesktopVoiceCommandConfig(config, "textToSpeech"),
-  },
-  audioOutput: {
-    "sox-play": (config: { desktopVoice?: ParsedDesktopVoiceConfig }) =>
-      requireDesktopVoiceCommandConfig(config, "audioOutput"),
-  },
-};
-
-export interface DesktopVoiceAdapterRuntimeDependencies {
-  env?: Record<string, string | undefined>;
-  fetch?: typeof globalThis.fetch;
-  webSocketFactory?: RealtimeSocketFactory;
-}
-
-function selectConfiguredDesktopVoiceAdapterConfig<TConfig>(
+function resolveSelectedDesktopVoiceAdapterConfig<TConfig, TAdapter>(
   voice: ResolvedVoiceConfig,
   key: keyof ResolvedVoiceConfig,
-  registry: Record<
-    string,
-    (config: { desktopVoice?: ParsedDesktopVoiceConfig }) => TConfig
-  >,
-): (config: { desktopVoice?: ParsedDesktopVoiceConfig }) => TConfig {
+  registry: Record<string, DesktopVoiceAdapterEntry<TConfig, TAdapter>>,
+  config: { desktopVoice?: ParsedDesktopVoiceConfig },
+): TConfig {
+  return selectConfiguredDesktopVoiceAdapter(
+    voice,
+    key,
+    registry,
+  ).resolveConfig(config);
+}
+
+function createSelectedDesktopVoiceAdapter<TConfig, TAdapter>(
+  voice: ResolvedVoiceConfig,
+  key: keyof ResolvedVoiceConfig,
+  registry: Record<string, DesktopVoiceAdapterEntry<TConfig, TAdapter>>,
+  config: TConfig,
+  context: DesktopVoiceAdapterContext,
+): TAdapter {
+  return selectConfiguredDesktopVoiceAdapter(voice, key, registry).create(
+    config,
+    context,
+  );
+}
+
+function selectConfiguredDesktopVoiceAdapter<TConfig, TAdapter>(
+  voice: ResolvedVoiceConfig,
+  key: keyof ResolvedVoiceConfig,
+  registry: Record<string, DesktopVoiceAdapterEntry<TConfig, TAdapter>>,
+): DesktopVoiceAdapterEntry<TConfig, TAdapter> {
   return selectConfiguredRuntimeEntry({
     configuredId: voice[key],
     missingMessage: `Config voice.${key} must be configured.`,

@@ -7,20 +7,38 @@ import type {
 import {
   runCommandReadableStream,
   runCommandWritableStream,
+  type ProcessControl,
 } from "./process-runner.js";
 
 export class CommandStreamingAudioInput implements StreamingAudioInputPort {
-  constructor(private readonly commandConfig: VoiceCommandConfig) {}
+  constructor(
+    private readonly commandConfig: VoiceCommandConfig,
+    private readonly processControl?: ProcessControl,
+  ) {}
 
   captureStream(): Promise<CapturedAudioStream> {
-    return Promise.resolve(runCommandReadableStream(this.commandConfig));
+    return Promise.resolve(
+      runCommandReadableStream({
+        ...this.commandConfig,
+        ...(this.processControl ? { processControl: this.processControl } : {}),
+      }),
+    );
   }
 }
 
 export class CommandStreamingAudioOutput implements StreamingAudioOutputPort {
-  constructor(private readonly commandConfig: VoiceCommandConfig) {}
+  constructor(
+    private readonly commandConfig: VoiceCommandConfig,
+    private readonly processControl?: ProcessControl,
+  ) {}
 
   playStream(chunks: AsyncIterable<Uint8Array>): Promise<void> {
-    return runCommandWritableStream(this.commandConfig, chunks);
+    return runCommandWritableStream(
+      {
+        ...this.commandConfig,
+        ...(this.processControl ? { processControl: this.processControl } : {}),
+      },
+      chunks,
+    );
   }
 }

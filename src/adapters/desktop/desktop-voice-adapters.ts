@@ -13,20 +13,29 @@ import type {
   WakeWordRequest,
 } from "../../ports/voice.js";
 import { detectTextWakePhrase } from "../text-wake-phrase.js";
-import { runCommand, runCommandUntilStdoutLine } from "./process-runner.js";
+import {
+  runCommand,
+  runCommandUntilStdoutLine,
+  type ProcessControl,
+} from "./process-runner.js";
 
 export class SoxAudioInput implements AudioInputPort {
   constructor(
     private readonly commandConfig: VoiceCommandConfig,
     private readonly tempFiles: VoiceTempFilePort,
+    private readonly processControl?: ProcessControl,
   ) {}
 
   async capture(): Promise<CapturedAudio> {
     const filePath = await this.tempFiles.createFile("capture.wav");
 
-    await runConfiguredCommand(this.commandConfig, {
-      output: filePath,
-    });
+    await runConfiguredCommand(
+      this.commandConfig,
+      {
+        output: filePath,
+      },
+      this.processControl,
+    );
 
     return {
       filePath,
@@ -36,13 +45,20 @@ export class SoxAudioInput implements AudioInputPort {
 }
 
 export class CommandSpeechToText implements SpeechToTextPort {
-  constructor(private readonly commandConfig: VoiceCommandConfig) {}
+  constructor(
+    private readonly commandConfig: VoiceCommandConfig,
+    private readonly processControl?: ProcessControl,
+  ) {}
 
   async transcribe(audio: CapturedAudio): Promise<{ text: string }> {
-    const result = await runConfiguredCommand(this.commandConfig, {
-      input: audio.filePath ?? "",
-      text: audio.text,
-    });
+    const result = await runConfiguredCommand(
+      this.commandConfig,
+      {
+        input: audio.filePath ?? "",
+        text: audio.text,
+      },
+      this.processControl,
+    );
 
     return {
       text: result.stdout.trim(),
@@ -57,13 +73,20 @@ export class TextPrefixWakeWordDetector implements WakeWordPort {
 }
 
 export class CommandWakeActivation implements WakeActivationPort {
-  constructor(private readonly commandConfig: VoiceCommandConfig) {}
+  constructor(
+    private readonly commandConfig: VoiceCommandConfig,
+    private readonly processControl?: ProcessControl,
+  ) {}
 
   async waitForWake(request: { wakePhrases: string[] }): Promise<{
     phrase?: string;
   }> {
-    const result = await runCommandUntilStdoutLine(this.commandConfig, (line) =>
-      parseWakeActivationLine(line, request.wakePhrases),
+    const result = await runCommandUntilStdoutLine(
+      {
+        ...this.commandConfig,
+        ...(this.processControl ? { processControl: this.processControl } : {}),
+      },
+      (line) => parseWakeActivationLine(line, request.wakePhrases),
     );
 
     return result.line.phrase ? { phrase: result.line.phrase } : {};
@@ -74,15 +97,20 @@ export class CommandTextToSpeech implements TextToSpeechPort {
   constructor(
     private readonly commandConfig: VoiceCommandConfig,
     private readonly tempFiles: VoiceTempFilePort,
+    private readonly processControl?: ProcessControl,
   ) {}
 
   async synthesize(text: string): Promise<SynthesizedSpeech> {
     const filePath = await this.tempFiles.createFile("speech.wav");
 
-    await runConfiguredCommand(this.commandConfig, {
-      output: filePath,
-      text,
-    });
+    await runConfiguredCommand(
+      this.commandConfig,
+      {
+        output: filePath,
+        text,
+      },
+      this.processControl,
+    );
 
     return {
       filePath,
@@ -136,25 +164,34 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export class SoxAudioOutput implements AudioOutputPort {
-  constructor(private readonly commandConfig: VoiceCommandConfig) {}
+  constructor(
+    private readonly commandConfig: VoiceCommandConfig,
+    private readonly processControl?: ProcessControl,
+  ) {}
 
   async play(speech: SynthesizedSpeech): Promise<void> {
-    await runConfiguredCommand(this.commandConfig, {
-      input: speech.filePath ?? "",
-      text: speech.text,
-    });
+    await runConfiguredCommand(
+      this.commandConfig,
+      {
+        input: speech.filePath ?? "",
+        text: speech.text,
+      },
+      this.processControl,
+    );
   }
 }
 
 async function runConfiguredCommand(
   config: VoiceCommandConfig,
   replacements: Record<string, string>,
+  processControl?: ProcessControl,
 ): ReturnType<typeof runCommand> {
   return runCommand({
     args: (config.args ?? []).map((argument) =>
       replaceCommandPlaceholders(argument, replacements),
     ),
     command: config.command,
+    ...(processControl ? { processControl } : {}),
     ...(config.timeoutMs ? { timeoutMs: config.timeoutMs } : {}),
   });
 }

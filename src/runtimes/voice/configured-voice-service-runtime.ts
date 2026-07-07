@@ -1,5 +1,6 @@
 import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
+import { createNodeProcessControl } from "../process-control.js";
 import { requireVoiceConfig } from "../config/voice-config.js";
 import { runConfiguredServiceRuntime } from "../service/configured-service-composition.js";
 import type {
@@ -16,6 +17,7 @@ import {
   type DesktopVoiceServiceAdapters,
 } from "./desktop-voice-adapter-registry.js";
 import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
+import type { ProcessControl } from "../../adapters/desktop/process-runner.js";
 import {
   runVoiceActivation,
   type VoiceActivationDependencies,
@@ -38,6 +40,7 @@ export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
     dependencies: DesktopVoiceAdapterRuntimeDependencies,
   ) => DesktopVoiceServiceAdapters;
   io?: VoiceRuntimeIo;
+  processControl?: ProcessControl;
   processSignals?: ServiceProcessSignals;
   retryAfterFailure?: (context: ServiceTurnFailureContext) => Promise<void>;
   runVoiceActivation?: (
@@ -51,6 +54,11 @@ export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
 export function runConfiguredVoiceServiceRuntime(
   options: ConfiguredVoiceServiceRuntimeOptions = {},
 ): Promise<ServiceRuntimeResult> {
+  const env = options.env ?? process.env;
+  const fetch = options.fetch ?? globalThis.fetch;
+  const processControl =
+    options.processControl ?? createNodeProcessControl(process);
+
   return runConfiguredServiceRuntime(options, {
     validateConfig: validateVoiceServiceConfig,
     runTurn: async ({ assistant, config }) => {
@@ -62,8 +70,9 @@ export function runConfiguredVoiceServiceRuntime(
       const adapters = (
         options.createVoiceAdapters ?? createDesktopVoiceServiceAdapters
       )(voiceConfig, desktopVoiceConfig, {
-        ...(options.env ? { env: options.env } : {}),
-        ...(options.fetch ? { fetch: options.fetch } : {}),
+        env,
+        fetch,
+        processControl,
         ...(options.webSocketFactory
           ? { webSocketFactory: options.webSocketFactory }
           : {}),
