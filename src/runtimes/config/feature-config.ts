@@ -1,10 +1,12 @@
 import type { AssistantPolicyConfig } from "../../ports/assistant.js";
+import type { GoogleCalendarConfig } from "../../ports/calendar.js";
+import { parseCalendarFeatureConfig } from "./calendar-feature-config.js";
 import { isRecord } from "./config-parse-utils.js";
 
-export type ParsedFeatureConfig = Record<string, unknown> &
-  AssistantPolicyConfig["features"][string] & {
-    adapter?: string;
-  };
+export type ParsedFeatureConfig = AssistantPolicyConfig["features"][string] & {
+  adapter?: string;
+  google?: GoogleCalendarConfig;
+};
 
 export type ParsedFeaturesConfig = Record<string, ParsedFeatureConfig>;
 
@@ -24,15 +26,39 @@ export function parseFeaturesConfig(
       );
     }
 
-    features[featureId] = {
-      ...featureConfig,
+    const baseFeatureConfig = {
       enabled: featureConfig.enabled,
       ...parseFeatureAdapter(featureId, featureConfig),
       ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
     };
+
+    features[featureId] = {
+      ...baseFeatureConfig,
+      ...parseSelectedFeatureProviderConfig(
+        featureId,
+        featureConfig,
+        baseFeatureConfig,
+      ),
+    };
   }
 
   return features;
+}
+
+function parseSelectedFeatureProviderConfig(
+  featureId: string,
+  featureConfig: Record<string, unknown>,
+  parsed: Pick<ParsedFeatureConfig, "adapter" | "enabled">,
+): Pick<ParsedFeatureConfig, "google"> {
+  if (
+    featureId === "calendar" &&
+    parsed.enabled &&
+    parsed.adapter === "google"
+  ) {
+    return parseCalendarFeatureConfig(featureConfig);
+  }
+
+  return {};
 }
 
 function parseFeatureAdapter(

@@ -1,5 +1,8 @@
 import type { FeaturePlugin } from "../ports/feature.js";
-import type { LoadedRuntimeConfig } from "./config/config.js";
+import {
+  parseAssistantConfig,
+  type LoadedRuntimeConfig,
+} from "./config/config.js";
 import { defineCapability, defineFeature } from "../ports/feature.js";
 import {
   disabledCalendarConfig,
@@ -121,13 +124,13 @@ describe("createConfiguredFeatures", () => {
   });
 
   it("rejects invalid Google calendar adapter config only when selected", () => {
-    const config = onlyGoogleCalendarConfig({
-      google: {
-        timeoutMs: 0,
-      },
-    });
-
-    expect(() => createConfiguredFeatures(config)).toThrow(
+    expect(() =>
+      onlyGoogleCalendarConfig({
+        google: {
+          timeoutMs: 0,
+        },
+      }),
+    ).toThrow(
       'Config feature "calendar".google.timeoutMs must be a positive integer.',
     );
   });
@@ -207,7 +210,7 @@ function onlyGoogleCalendarConfig(
     ),
   );
 
-  return {
+  return parseAssistantConfig({
     ...config,
     features: {
       ...config.features,
@@ -219,7 +222,7 @@ function onlyGoogleCalendarConfig(
         ...calendarOverrides,
       },
     },
-  };
+  });
 }
 
 interface TestGoogleConfig {
@@ -233,12 +236,7 @@ function requireTestGoogleConfig(
 ): TestGoogleConfig {
   const googleConfig = featureConfig.google;
 
-  if (
-    typeof googleConfig !== "object" ||
-    googleConfig === null ||
-    !("accessTokenEnv" in googleConfig) ||
-    typeof googleConfig.accessTokenEnv !== "string"
-  ) {
+  if (!googleConfig) {
     throw new Error('Config feature "calendar".google must be configured.');
   }
 
