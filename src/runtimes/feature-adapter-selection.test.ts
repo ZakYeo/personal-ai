@@ -3,6 +3,10 @@ import {
   parseAssistantConfig,
   type LoadedRuntimeConfig,
 } from "./config/config.js";
+import type {
+  ParsedFeatureConfig,
+  ParsedGoogleCalendarFeatureConfig,
+} from "./config/feature-config.js";
 import { defineCapability, defineFeature } from "../ports/feature.js";
 import {
   disabledCalendarConfig,
@@ -157,6 +161,7 @@ describe("createConfiguredFeatures", () => {
         calendar: {
           adapters: {
             google: defineFeatureAdapterEntry({
+              resolveFeatureConfig: requireTestGoogleFeatureConfig,
               resolveConfig: (featureConfig) =>
                 requireTestGoogleConfig(featureConfig),
               create: (context) => {
@@ -232,17 +237,21 @@ interface TestGoogleConfig {
 }
 
 function requireTestGoogleConfig(
-  featureConfig: LoadedRuntimeConfig["features"][string],
+  featureConfig: ParsedGoogleCalendarFeatureConfig,
 ): TestGoogleConfig {
-  const googleConfig = featureConfig.google;
+  return {
+    google: {
+      accessTokenEnv: featureConfig.google.accessTokenEnv,
+    },
+  };
+}
 
-  if (!googleConfig) {
+function requireTestGoogleFeatureConfig(
+  featureConfig: ParsedFeatureConfig,
+): ParsedGoogleCalendarFeatureConfig {
+  if (!("google" in featureConfig)) {
     throw new Error('Config feature "calendar".google must be configured.');
   }
 
-  return {
-    google: {
-      accessTokenEnv: googleConfig.accessTokenEnv,
-    },
-  };
+  return featureConfig;
 }

@@ -3,8 +3,21 @@ import type { GoogleCalendarConfig } from "../../ports/calendar.js";
 import { parseCalendarFeatureConfig } from "./calendar-feature-config.js";
 import { isRecord } from "./config-parse-utils.js";
 
-export type ParsedFeatureConfig = AssistantPolicyConfig["features"][string] & {
-  adapter?: string;
+export type ParsedFeatureConfig =
+  | ParsedCommonFeatureConfig
+  | ParsedGoogleCalendarFeatureConfig;
+
+export type ParsedCommonFeatureConfig =
+  AssistantPolicyConfig["features"][string] & {
+    adapter?: string;
+  };
+
+export type ParsedGoogleCalendarFeatureConfig = ParsedCommonFeatureConfig & {
+  adapter: "google";
+  google: GoogleCalendarConfig;
+};
+
+type ParsedFeatureProviderConfig = {
   google?: GoogleCalendarConfig;
 };
 
@@ -49,7 +62,7 @@ function parseSelectedFeatureProviderConfig(
   featureId: string,
   featureConfig: Record<string, unknown>,
   parsed: Pick<ParsedFeatureConfig, "adapter" | "enabled">,
-): Pick<ParsedFeatureConfig, "google"> {
+): ParsedFeatureProviderConfig {
   if (
     featureId === "calendar" &&
     parsed.enabled &&

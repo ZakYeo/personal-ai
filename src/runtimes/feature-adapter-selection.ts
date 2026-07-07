@@ -7,6 +7,10 @@ import { createMessagingFeature } from "../features/messaging/messaging-feature.
 import type { GoogleCalendarConfig } from "../ports/calendar.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
+import type {
+  ParsedFeatureConfig,
+  ParsedGoogleCalendarFeatureConfig,
+} from "./config/feature-config.js";
 import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
 
 export interface FeatureAdapterDependencies {
@@ -19,16 +23,15 @@ interface FeatureAdapterContext<TAdapterConfig> {
   dependencies: FeatureAdapterDependencies;
 }
 
-interface FeatureAdapterDefinition<TAdapterConfig> {
+interface FeatureAdapterDefinition<TFeatureConfig, TAdapterConfig> {
   create(context: FeatureAdapterContext<TAdapterConfig>): FeaturePlugin;
-  resolveConfig(
-    featureConfig: LoadedRuntimeConfig["features"][string],
-  ): TAdapterConfig;
+  resolveConfig(featureConfig: TFeatureConfig): TAdapterConfig;
+  resolveFeatureConfig?(featureConfig: ParsedFeatureConfig): TFeatureConfig;
 }
 
 interface FeatureAdapterEntry {
   create(
-    featureConfig: LoadedRuntimeConfig["features"][string],
+    featureConfig: ParsedFeatureConfig,
     dependencies: FeatureAdapterDependencies,
   ): FeaturePlugin;
 }
@@ -48,15 +51,23 @@ interface CreateConfiguredFeaturesOptions {
   registry?: FeatureAdapterRegistry;
 }
 
-export function defineFeatureAdapterEntry<TAdapterConfig>(
-  entry: FeatureAdapterDefinition<TAdapterConfig>,
+export function defineFeatureAdapterEntry<
+  TFeatureConfig extends ParsedFeatureConfig,
+  TAdapterConfig,
+>(
+  entry: FeatureAdapterDefinition<TFeatureConfig, TAdapterConfig>,
 ): FeatureAdapterEntry {
   return {
-    create: (featureConfig, dependencies) =>
-      entry.create({
-        adapterConfig: entry.resolveConfig(featureConfig),
+    create: (featureConfig, dependencies) => {
+      const resolvedFeatureConfig = entry.resolveFeatureConfig
+        ? entry.resolveFeatureConfig(featureConfig)
+        : (featureConfig as TFeatureConfig);
+
+      return entry.create({
+        adapterConfig: entry.resolveConfig(resolvedFeatureConfig),
         dependencies,
-      }),
+      });
+    },
   };
 }
 
@@ -126,6 +137,7 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
               }),
             );
           },
+          resolveFeatureConfig: requireCalendarGoogleFeatureConfig,
           resolveConfig: requireCalendarGoogleAdapterConfig,
         }),
         mock: defineFeatureAdapterEntry({
@@ -147,7 +159,7 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
 
 function selectConfiguredFeatureAdapter(
   featureId: string,
-  featureConfig: LoadedRuntimeConfig["features"][string],
+  featureConfig: ParsedFeatureConfig,
   registry: FeatureAdapterRegistry,
   dependencies: FeatureAdapterDependencies,
 ): FeaturePlugin {
@@ -173,13 +185,19 @@ interface CalendarGoogleAdapterConfig {
 }
 
 function requireCalendarGoogleAdapterConfig(
-  featureConfig: LoadedRuntimeConfig["features"][string],
+  featureConfig: ParsedGoogleCalendarFeatureConfig,
 ): CalendarGoogleAdapterConfig {
-  if (!featureConfig.google) {
-    throw new Error('Config feature "calendar".google must be configured.');
-  }
-
   return {
     google: featureConfig.google,
   };
+}
+
+function requireCalendarGoogleFeatureConfig(
+  featureConfig: ParsedFeatureConfig,
+): ParsedGoogleCalendarFeatureConfig {
+  if (!("google" in featureConfig)) {
+    throw new Error('Config feature "calendar".google must be configured.');
+  }
+
+  return featureConfig;
 }
