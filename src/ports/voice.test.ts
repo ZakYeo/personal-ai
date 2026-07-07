@@ -2,6 +2,8 @@ import type {
   AudioInputPort,
   AudioOutputPort,
   SpeechToTextPort,
+  StreamingAudioInputPort,
+  StreamingAudioOutputPort,
   TextToSpeechPort,
   WakeWordPort,
 } from "./voice.js";
@@ -47,4 +49,41 @@ describe("voice ports", () => {
     expect(detection).toEqual({ detected: true, phrase: "hey jarvis" });
     expect(spoken).toEqual(["Hey Jarvis, list my alarms"]);
   });
+
+  it("supports streaming audio adapter implementations", async () => {
+    const streamingInput: StreamingAudioInputPort = {
+      captureStream: () =>
+        Promise.resolve({
+          chunks: chunksFromText("audio"),
+        }),
+    };
+    const played: string[] = [];
+    const streamingOutput: StreamingAudioOutputPort = {
+      playStream: async (chunks) => {
+        played.push(await readChunksAsText(chunks));
+      },
+    };
+
+    const audio = await streamingInput.captureStream();
+    await streamingOutput.playStream(audio.chunks);
+
+    expect(played).toEqual(["audio"]);
+  });
 });
+
+async function* chunksFromText(text: string): AsyncIterable<Uint8Array> {
+  await Promise.resolve();
+  yield Buffer.from(text, "utf8");
+}
+
+async function readChunksAsText(
+  chunks: AsyncIterable<Uint8Array>,
+): Promise<string> {
+  const buffers: Buffer[] = [];
+
+  for await (const chunk of chunks) {
+    buffers.push(Buffer.from(chunk));
+  }
+
+  return Buffer.concat(buffers).toString("utf8");
+}

@@ -3,6 +3,10 @@ export interface CapturedAudio {
   text: string;
 }
 
+export interface CapturedAudioStream {
+  chunks: AsyncIterable<Uint8Array>;
+}
+
 export interface WakeWordDetection {
   detected: boolean;
   phrase?: string;
@@ -30,6 +34,10 @@ export interface AudioInputPort {
   capture(): Promise<CapturedAudio>;
 }
 
+export interface StreamingAudioInputPort {
+  captureStream(): Promise<CapturedAudioStream>;
+}
+
 export interface WakeWordPort {
   detect(request: WakeWordRequest): Promise<WakeWordDetection>;
 }
@@ -53,4 +61,8 @@ export interface TextToSpeechPort {
 
 export interface AudioOutputPort {
   play(speech: SynthesizedSpeech): Promise<void>;
+}
+
+export interface StreamingAudioOutputPort {
+  playStream(chunks: AsyncIterable<Uint8Array>): Promise<void>;
 }
