@@ -1,5 +1,10 @@
 import type { Assistant } from "../../core/assistant/index.js";
-import type { AudioOutputPort, TextToSpeechPort } from "../../ports/voice.js";
+import type {
+  AudioOutputPort,
+  StreamingAudioOutputPort,
+  StreamingTextToSpeechPort,
+  TextToSpeechPort,
+} from "../../ports/voice.js";
 import {
   logAssistantResponse,
   logCommandTranscript,
@@ -11,6 +16,8 @@ import type { VoiceTurnResult } from "./voice-turn-result.js";
 interface VoiceCommandDependencies {
   assistant: Assistant;
   audioOutput: AudioOutputPort;
+  streamingAudioOutput?: StreamingAudioOutputPort;
+  streamingTextToSpeech?: StreamingTextToSpeechPort;
   textToSpeech: TextToSpeechPort;
 }
 

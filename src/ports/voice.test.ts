@@ -5,6 +5,7 @@ import type {
   StreamingAudioInputPort,
   StreamingAudioOutputPort,
   StreamingSpeechToTextPort,
+  StreamingTextToSpeechPort,
   TextToSpeechPort,
   WakeWordPort,
 } from "./voice.js";
@@ -72,12 +73,22 @@ describe("voice ports", () => {
         played.push(await readChunksAsText(chunks));
       },
     };
+    const streamingTextToSpeech: StreamingTextToSpeechPort = {
+      synthesizeStream: (text) =>
+        Promise.resolve({
+          chunks: chunksFromText(text),
+          text,
+        }),
+    };
 
     const audio = await streamingInput.captureStream();
     const transcript = await streamingSpeechToText.transcribeStream(audio, {
       onTranscriptDelta: (delta) => played.push(`delta:${delta}`),
     });
-    await streamingOutput.playStream(chunksFromText(transcript.text));
+    const speech = await streamingTextToSpeech.synthesizeStream(
+      transcript.text,
+    );
+    await streamingOutput.playStream(speech.chunks);
 
     expect(played).toEqual(["delta:audio", "audio"]);
   });

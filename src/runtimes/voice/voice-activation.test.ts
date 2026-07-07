@@ -150,6 +150,48 @@ describe("voice activation", () => {
     expect(stderr.writes).toEqual(["Runtime failure: speaker unavailable\n"]);
   });
 
+  it("streams speech output when streaming adapters are available", async () => {
+    const streamedAudio: string[] = [];
+    const batchSpeechTexts: string[] = [];
+    const dependencies = createVoiceActivationDependencies({
+      wakeUtterance: "Hey Jarvis",
+    });
+
+    await expect(
+      runVoiceActivation({
+        ...dependencies,
+        streamingAudioOutput: {
+          playStream: async (chunks) => {
+            streamedAudio.push(await readChunksAsText(chunks));
+          },
+        },
+        streamingTextToSpeech: {
+          synthesizeStream: (text) =>
+            Promise.resolve({
+              chunks: chunksFromText(`stream:${text}`),
+              text,
+            }),
+        },
+        textToSpeech: {
+          synthesize: (text) => {
+            batchSpeechTexts.push(text);
+
+            return Promise.resolve({ text });
+          },
+        },
+      }),
+    ).resolves.toMatchObject({
+      response: deterministicScenarios.alarmListEmpty.response,
+      spokenText: deterministicScenarios.alarmListEmpty.response.text,
+      status: "spoken",
+    });
+
+    expect(streamedAudio).toEqual([
+      `stream:${deterministicScenarios.alarmListEmpty.response.text}`,
+    ]);
+    expect(batchSpeechTexts).toEqual([]);
+  });
+
   it.each([
     {
       name: "wake audio capture",
@@ -230,3 +272,20 @@ describe("voice activation", () => {
     expect(stderr.writes).toEqual([]);
   });
 });
+
+async function* chunksFromText(text: string): AsyncIterable<Uint8Array> {
+  await Promise.resolve();
+  yield Buffer.from(text, "utf8");
+}
+
+async function readChunksAsText(
+  chunks: AsyncIterable<Uint8Array>,
+): Promise<string> {
+  const buffers: Buffer[] = [];
+
+  for await (const chunk of chunks) {
+    buffers.push(Buffer.from(chunk));
+  }
+
+  return Buffer.concat(buffers).toString("utf8");
+}

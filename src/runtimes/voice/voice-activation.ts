@@ -2,6 +2,8 @@ import type {
   AudioInputPort,
   AudioOutputPort,
   SpeechToTextPort,
+  StreamingAudioOutputPort,
+  StreamingTextToSpeechPort,
   TextToSpeechPort,
   WakeActivationPort,
   WakeWordPort,
@@ -17,6 +19,8 @@ export interface VoiceActivationDependencies {
   audioOutput: AudioOutputPort;
   commandAudioInput: AudioInputPort;
   speechToText: SpeechToTextPort;
+  streamingAudioOutput?: StreamingAudioOutputPort;
+  streamingTextToSpeech?: StreamingTextToSpeechPort;
   textToSpeech: TextToSpeechPort;
   turnConfig: VoiceTurnConfig;
   wakeActivation?: WakeActivationPort;

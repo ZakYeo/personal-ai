@@ -21,6 +21,11 @@ export interface SynthesizedSpeech {
   text: string;
 }
 
+export interface SynthesizedSpeechStream {
+  chunks: AsyncIterable<Uint8Array>;
+  text: string;
+}
+
 export interface WakeWordRequest {
   audio: CapturedAudio;
   wakePhrases: string[];
@@ -68,6 +73,10 @@ export interface StreamingSpeechToTextPort {
 
 export interface TextToSpeechPort {
   synthesize(text: string): Promise<SynthesizedSpeech>;
+}
+
+export interface StreamingTextToSpeechPort {
+  synthesizeStream(text: string): Promise<SynthesizedSpeechStream>;
 }
 
 export interface AudioOutputPort {
