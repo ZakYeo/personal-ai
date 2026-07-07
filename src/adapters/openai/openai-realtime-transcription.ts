@@ -5,7 +5,7 @@ import type {
   StreamingSpeechToTextPort,
 } from "../../ports/voice.js";
 
-export interface OpenAIRealtimeTranscriptionConfig {
+interface OpenAIRealtimeTranscriptionConfig {
   apiKeyEnv: string;
   baseUrl: string;
   model: string;

@@ -39,7 +39,7 @@ import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
 import { createNodeVoiceTempFiles } from "./voice-temp-files.js";
 
-export interface DesktopVoiceAdapters {
+interface DesktopVoiceAdapters {
   audioInput: AudioInputPort;
   audioOutput: AudioOutputPort;
   speechToText: SpeechToTextPort;

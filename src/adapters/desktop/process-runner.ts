@@ -1,12 +1,12 @@
 import { spawn } from "node:child_process";
 
-export interface RunCommandRequest {
+interface RunCommandRequest {
   args?: string[];
   command: string;
   timeoutMs?: number;
 }
 
-export interface RunCommandResult {
+interface RunCommandResult {
   stderr: string;
   stdout: string;
 }
