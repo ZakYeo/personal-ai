@@ -55,6 +55,17 @@ export interface SpeechToTextPort {
   transcribe(audio: CapturedAudio): Promise<SpeechTranscript>;
 }
 
+export interface StreamingSpeechToTextEvents {
+  onTranscriptDelta?(delta: string): void;
+}
+
+export interface StreamingSpeechToTextPort {
+  transcribeStream(
+    audio: CapturedAudioStream,
+    events?: StreamingSpeechToTextEvents,
+  ): Promise<SpeechTranscript>;
+}
+
 export interface TextToSpeechPort {
   synthesize(text: string): Promise<SynthesizedSpeech>;
 }
