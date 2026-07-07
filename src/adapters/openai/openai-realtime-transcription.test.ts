@@ -60,6 +60,41 @@ describe("OpenAIRealtimeTranscription", () => {
       "OpenAI API key environment variable OPENAI_API_KEY is not set.",
     );
   });
+
+  it("rejects through the adapter when the socket fails before audio capture finishes", async () => {
+    const socket = new FakeRealtimeSocket();
+    const audio = createControlledAudioStream();
+    const adapter = new OpenAIRealtimeTranscription({
+      config: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "wss://api.openai.test/v1/realtime",
+        model: "gpt-4o-transcribe",
+      },
+      env: { OPENAI_API_KEY: "test-key" },
+      webSocketFactory: () => socket,
+    });
+
+    const transcriptPromise = adapter.transcribeStream({
+      chunks: audio.chunks,
+    });
+    let rejection: unknown;
+    const observedRejection = transcriptPromise.catch((error: unknown) => {
+      rejection = error;
+    });
+
+    socket.emitOpen();
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    socket.emitError();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    audio.finish();
+
+    await observedRejection;
+    expect(rejection).toEqual(
+      expect.objectContaining({
+        message: "Realtime transcription socket failed.",
+      }),
+    );
+  });
 });
 
 class FakeRealtimeSocket {
@@ -85,6 +120,10 @@ class FakeRealtimeSocket {
     this.emit("message", { data: JSON.stringify(message) });
   }
 
+  emitError(): void {
+    this.emit("error");
+  }
+
   async waitForSentType(type: string): Promise<void> {
     for (let attempt = 0; attempt < 20; attempt += 1) {
       if (this.sentMessages.some((message) => message.type === type)) {
@@ -107,4 +146,22 @@ class FakeRealtimeSocket {
 async function* chunksFromText(text: string): AsyncIterable<Uint8Array> {
   await Promise.resolve();
   yield Buffer.from(text, "utf8");
+}
+
+function createControlledAudioStream(): {
+  chunks: AsyncIterable<Uint8Array>;
+  finish(): void;
+} {
+  let finish: () => void = () => {};
+  const finished = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+
+  return {
+    chunks: (async function* () {
+      await finished;
+      yield Buffer.from("", "utf8");
+    })(),
+    finish,
+  };
 }

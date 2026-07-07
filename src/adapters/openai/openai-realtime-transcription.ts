@@ -49,21 +49,34 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
 
     await waitForSocketOpen(socket);
 
-    const transcriptPromise = waitForTranscript(socket, events);
-
-    for await (const chunk of audio.chunks) {
-      socket.send(
-        JSON.stringify({
-          audio: Buffer.from(chunk).toString("base64"),
-          type: "input_audio_buffer.append",
-        }),
-      );
-    }
-
-    socket.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
-
+    let transcriptFailure: unknown;
+    const transcriptPromise = waitForTranscript(socket, events).catch(
+      (error: unknown) => {
+        transcriptFailure = error;
+        return;
+      },
+    );
     try {
-      return await transcriptPromise;
+      for await (const chunk of audio.chunks) {
+        socket.send(
+          JSON.stringify({
+            audio: Buffer.from(chunk).toString("base64"),
+            type: "input_audio_buffer.append",
+          }),
+        );
+      }
+
+      socket.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
+
+      const transcript = await transcriptPromise;
+      if (transcriptFailure !== undefined) {
+        throw toError(transcriptFailure);
+      }
+      if (!transcript) {
+        throw new Error("Realtime transcription did not return a transcript.");
+      }
+
+      return transcript;
     } finally {
       socket.close();
     }
@@ -169,4 +182,8 @@ function parseOptionalStringField(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
 }
