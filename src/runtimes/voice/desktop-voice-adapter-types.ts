@@ -13,11 +13,11 @@ import type {
   WakeActivationPort,
   WakeWordPort,
 } from "../../ports/voice.js";
+import type { ParsedDesktopVoiceConfig } from "../config/desktop-voice-config.js";
 import type {
   OpenAIRealtimeTranscriptionConfig,
   OpenAIStreamingSpeechConfig,
-  ParsedDesktopVoiceConfig,
-} from "../config/desktop-voice-config.js";
+} from "../config/desktop-voice-openai-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
 

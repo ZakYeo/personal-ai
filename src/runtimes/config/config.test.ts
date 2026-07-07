@@ -79,9 +79,9 @@ describe("loadConfig", () => {
     });
 
     for (const config of [desktopConfig, piConfig]) {
-      expect(config.desktopVoice?.openAIRealtimeTranscription?.model).toBe(
-        "gpt-realtime-whisper",
-      );
+      expect(config.desktopVoice?.openAIRealtimeTranscription).toMatchObject({
+        model: "gpt-realtime-whisper",
+      });
       expect(config.desktopVoice?.streamingAudioInput?.args).toContain("24000");
       expect(config.voice?.streamingSpeechToText).toBe("openai-realtime");
       expect(config.voice?.wakeActivation).toBe("openwakeword-command");
@@ -318,23 +318,7 @@ describe("parseAssistantConfig", () => {
 
     expect(parseAssistantConfig(createMinimalConfig({ desktopVoice }))).toEqual(
       createMinimalConfig({
-        desktopVoice: {
-          ...desktopVoice,
-          openAIRealtimeTranscription: {
-            apiKeyEnv: "OPENAI_API_KEY",
-            baseUrl: "wss://api.openai.com/v1/realtime",
-            model: "gpt-realtime-whisper",
-            timeoutMs: 30_000,
-          },
-          openAIStreamingSpeech: {
-            apiKeyEnv: "OPENAI_API_KEY",
-            baseUrl: "https://api.openai.com/v1",
-            instructions: "Speak clearly and concisely.",
-            model: "gpt-4o-mini-tts",
-            responseFormat: "pcm",
-            voice: "coral",
-          },
-        },
+        desktopVoice,
       }),
     );
   });
@@ -519,46 +503,66 @@ describe("parseAssistantConfig", () => {
     ).toThrow("Config desktopVoice.textToSpeech.args must be a string array.");
   });
 
-  it("rejects invalid OpenAI realtime transcription timeout", () => {
-    expect(() =>
-      parseAssistantConfig({
-        assistant: {
-          name: "Jarvis",
-          wakePhrases: ["hey jarvis"],
-        },
+  it("rejects invalid selected OpenAI realtime transcription timeout at the adapter resolver boundary", () => {
+    const config = parseAssistantConfig(
+      createMinimalConfig({
         desktopVoice: {
+          audioInput: { command: "fake-rec" },
+          audioOutput: { command: "fake-play" },
           openAIRealtimeTranscription: {
             model: "gpt-realtime-whisper",
             timeoutMs: 0,
           },
+          speechToText: { command: "fake-stt" },
+          streamingAudioInput: { command: "fake-stream-rec" },
+          textToSpeech: { command: "fake-tts" },
         },
-        intent: {
-          provider: "deterministic",
+        voice: {
+          audioOutput: "sox-play",
+          input: "sox-rec",
+          speechToText: "command",
+          streamingAudioInput: "sox-rec-stream",
+          streamingSpeechToText: "openai-realtime",
+          textToSpeech: "command",
+          wakeWord: "text-prefix",
         },
-        features: {},
       }),
+    );
+
+    expect(() =>
+      resolveDesktopVoiceAdapterConfig(requireVoiceConfig(config), config),
     ).toThrow(
       "Config desktopVoice.openAIRealtimeTranscription.timeoutMs must be a positive integer.",
     );
   });
 
-  it("rejects non-realtime models for OpenAI realtime transcription", () => {
-    expect(() =>
-      parseAssistantConfig({
-        assistant: {
-          name: "Jarvis",
-          wakePhrases: ["hey jarvis"],
-        },
+  it("rejects non-realtime selected models for OpenAI realtime transcription at the adapter resolver boundary", () => {
+    const config = parseAssistantConfig(
+      createMinimalConfig({
         desktopVoice: {
+          audioInput: { command: "fake-rec" },
+          audioOutput: { command: "fake-play" },
           openAIRealtimeTranscription: {
             model: "gpt-4o-transcribe",
           },
+          speechToText: { command: "fake-stt" },
+          streamingAudioInput: { command: "fake-stream-rec" },
+          textToSpeech: { command: "fake-tts" },
         },
-        intent: {
-          provider: "deterministic",
+        voice: {
+          audioOutput: "sox-play",
+          input: "sox-rec",
+          speechToText: "command",
+          streamingAudioInput: "sox-rec-stream",
+          streamingSpeechToText: "openai-realtime",
+          textToSpeech: "command",
+          wakeWord: "text-prefix",
         },
-        features: {},
       }),
+    );
+
+    expect(() =>
+      resolveDesktopVoiceAdapterConfig(requireVoiceConfig(config), config),
     ).toThrow(
       "Config desktopVoice.openAIRealtimeTranscription.model must be gpt-realtime-whisper.",
     );

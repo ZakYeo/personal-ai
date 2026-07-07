@@ -8,11 +8,11 @@ import type {
 import type {
   OpenAIRealtimeTranscriptionConfig,
   OpenAIStreamingSpeechConfig,
-} from "../config/desktop-voice-config.js";
+} from "../config/desktop-voice-openai-config.js";
 import {
   requireDesktopOpenAIRealtimeTranscriptionConfig,
   requireDesktopOpenAIStreamingSpeechConfig,
-} from "../config/desktop-voice-config.js";
+} from "../config/desktop-voice-openai-config.js";
 import {
   defineDesktopVoiceAdapter,
   type DesktopVoiceAdapterEntry,
