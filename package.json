@@ -29,6 +29,7 @@
     "package:sort:check": "sort-package-json --check",
     "secrets:check": "secretlint \"**/*\"",
     "setup:openwakeword": "bash scripts/setup-openwakeword-venv.sh",
+    "smoke:desktop-voice:openai": "PERSONAL_AI_RUN_DESKTOP_VOICE_OPENAI_SMOKE=1 node --env-file-if-exists=.env ./node_modules/vitest/vitest.mjs --run src/runtimes/desktop-voice-openai-smoke.e2e.test.ts",
     "smoke:pi:qemu": "tsx src/runtimes/pi/pi-qemu-smoke.ts",
     "spellcheck": "cspell .",
     "start": "npm run cli -- desktop-voice-service --config config/local-desktop-voice-openai.json",
