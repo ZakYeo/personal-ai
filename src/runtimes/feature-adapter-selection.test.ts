@@ -284,8 +284,15 @@ function parseTestGoogleFeatureConfig(
     throw new Error('Config feature "calendar".google must be configured.');
   }
 
-  return requireTestGoogleFeatureConfig({
-    ...featureConfig,
+  return {
+    enabled: featureConfig.enabled,
+    adapter: "google",
+    ...(featureConfig.confirmationRequiredCapabilities
+      ? {
+          confirmationRequiredCapabilities:
+            featureConfig.confirmationRequiredCapabilities,
+        }
+      : {}),
     google: {
       accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
       baseUrl: "https://calendar.example.test/v3",
@@ -293,5 +300,5 @@ function parseTestGoogleFeatureConfig(
       maxResults: 10,
       timeoutMs: 30_000,
     },
-  });
+  };
 }
