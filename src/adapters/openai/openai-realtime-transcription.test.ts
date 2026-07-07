@@ -5,14 +5,8 @@ describe("OpenAIRealtimeTranscription", () => {
     const socket = new FakeRealtimeSocket();
     let requestUrl = "";
     const deltas: string[] = [];
-    const adapter = new OpenAIRealtimeTranscription({
-      config: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-realtime-whisper",
-        timeoutMs: 30_000,
-      },
-      env: { OPENAI_API_KEY: "test-key" },
+    const adapter = createRealtimeTranscriptionAdapter({
+      socket,
       webSocketFactory: (request) => {
         requestUrl = request.url;
 
@@ -55,16 +49,7 @@ describe("OpenAIRealtimeTranscription", () => {
 
   it("configures a transcription session before sending audio", async () => {
     const socket = new FakeRealtimeSocket();
-    const adapter = new OpenAIRealtimeTranscription({
-      config: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-realtime-whisper",
-        timeoutMs: 30_000,
-      },
-      env: { OPENAI_API_KEY: "test-key" },
-      webSocketFactory: () => socket,
-    });
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
 
     const transcriptPromise = adapter.transcribeStream({
       chunks: chunksFromText("audio"),
@@ -100,16 +85,7 @@ describe("OpenAIRealtimeTranscription", () => {
 
   it("rejects with a safe realtime error when the provider sends an error event", async () => {
     const socket = new FakeRealtimeSocket();
-    const adapter = new OpenAIRealtimeTranscription({
-      config: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-realtime-whisper",
-        timeoutMs: 30_000,
-      },
-      env: { OPENAI_API_KEY: "test-key" },
-      webSocketFactory: () => socket,
-    });
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
 
     const transcriptPromise = adapter.transcribeStream({
       chunks: chunksFromText("audio"),
@@ -141,15 +117,8 @@ describe("OpenAIRealtimeTranscription", () => {
   });
 
   it("rejects without an API key", async () => {
-    const adapter = new OpenAIRealtimeTranscription({
-      config: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-realtime-whisper",
-        timeoutMs: 30_000,
-      },
+    const adapter = createRealtimeTranscriptionAdapter({
       env: {},
-      webSocketFactory: () => new FakeRealtimeSocket(),
     });
 
     await expect(
@@ -162,16 +131,7 @@ describe("OpenAIRealtimeTranscription", () => {
   it("rejects through the adapter when the socket fails before audio capture finishes", async () => {
     const socket = new FakeRealtimeSocket();
     const audio = createControlledAudioStream();
-    const adapter = new OpenAIRealtimeTranscription({
-      config: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-realtime-whisper",
-        timeoutMs: 30_000,
-      },
-      env: { OPENAI_API_KEY: "test-key" },
-      webSocketFactory: () => socket,
-    });
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
 
     const transcriptPromise = adapter.transcribeStream({
       chunks: audio.chunks,
@@ -198,16 +158,7 @@ describe("OpenAIRealtimeTranscription", () => {
 
   it("preserves socket error payloads before the socket opens", async () => {
     const socket = new FakeRealtimeSocket();
-    const adapter = new OpenAIRealtimeTranscription({
-      config: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-realtime-whisper",
-        timeoutMs: 30_000,
-      },
-      env: { OPENAI_API_KEY: "test-key" },
-      webSocketFactory: () => socket,
-    });
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
 
     const transcriptPromise = adapter.transcribeStream({
       chunks: chunksFromText("audio"),
@@ -224,16 +175,7 @@ describe("OpenAIRealtimeTranscription", () => {
 
   it("settles malformed message payload failures without waiting for timeout", async () => {
     const socket = new FakeRealtimeSocket();
-    const adapter = new OpenAIRealtimeTranscription({
-      config: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-realtime-whisper",
-        timeoutMs: 30_000,
-      },
-      env: { OPENAI_API_KEY: "test-key" },
-      webSocketFactory: () => socket,
-    });
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
 
     const transcriptPromise = adapter.transcribeStream({
       chunks: chunksFromText("audio"),
@@ -251,15 +193,9 @@ describe("OpenAIRealtimeTranscription", () => {
 
   it("rejects and closes the socket when the completed transcript never arrives", async () => {
     const socket = new FakeRealtimeSocket();
-    const adapter = new OpenAIRealtimeTranscription({
-      config: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-realtime-whisper",
-        timeoutMs: 1,
-      },
-      env: { OPENAI_API_KEY: "test-key" },
-      webSocketFactory: () => socket,
+    const adapter = createRealtimeTranscriptionAdapter({
+      socket,
+      timeoutMs: 1,
     });
 
     const transcriptPromise = adapter.transcribeStream({
@@ -277,15 +213,9 @@ describe("OpenAIRealtimeTranscription", () => {
 
   it("rejects and closes the socket when the realtime socket never opens", async () => {
     const socket = new FakeRealtimeSocket();
-    const adapter = new OpenAIRealtimeTranscription({
-      config: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-realtime-whisper",
-        timeoutMs: 1,
-      },
-      env: { OPENAI_API_KEY: "test-key" },
-      webSocketFactory: () => socket,
+    const adapter = createRealtimeTranscriptionAdapter({
+      socket,
+      timeoutMs: 1,
     });
 
     await expect(
@@ -295,6 +225,28 @@ describe("OpenAIRealtimeTranscription", () => {
     expect(socket.sentMessages).toEqual([]);
   });
 });
+
+function createRealtimeTranscriptionAdapter(options: {
+  env?: Record<string, string | undefined>;
+  socket?: FakeRealtimeSocket;
+  timeoutMs?: number;
+  webSocketFactory?: ConstructorParameters<
+    typeof OpenAIRealtimeTranscription
+  >[0]["webSocketFactory"];
+}): OpenAIRealtimeTranscription {
+  const socket = options.socket ?? new FakeRealtimeSocket();
+
+  return new OpenAIRealtimeTranscription({
+    config: {
+      apiKeyEnv: "OPENAI_API_KEY",
+      baseUrl: "wss://api.openai.test/v1/realtime",
+      model: "gpt-realtime-whisper",
+      timeoutMs: options.timeoutMs ?? 30_000,
+    },
+    env: options.env ?? { OPENAI_API_KEY: "test-key" },
+    webSocketFactory: options.webSocketFactory ?? (() => socket),
+  });
+}
 
 class FakeRealtimeSocket {
   closed = false;

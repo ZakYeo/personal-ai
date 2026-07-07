@@ -9,6 +9,10 @@ import type {
   TextToSpeechPort,
   WakeWordPort,
 } from "./voice.js";
+import {
+  chunksFromText,
+  readChunksAsText,
+} from "../test-support/voice-streams.js";
 
 describe("voice ports", () => {
   it("supports deterministic voice adapter implementations", async () => {
@@ -93,20 +97,3 @@ describe("voice ports", () => {
     expect(played).toEqual(["delta:audio", "audio"]);
   });
 });
-
-async function* chunksFromText(text: string): AsyncIterable<Uint8Array> {
-  await Promise.resolve();
-  yield Buffer.from(text, "utf8");
-}
-
-async function readChunksAsText(
-  chunks: AsyncIterable<Uint8Array>,
-): Promise<string> {
-  const buffers: Buffer[] = [];
-
-  for await (const chunk of chunks) {
-    buffers.push(Buffer.from(chunk));
-  }
-
-  return Buffer.concat(buffers).toString("utf8");
-}

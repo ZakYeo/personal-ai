@@ -15,6 +15,7 @@ import { deterministicScenarios } from "../../test-support/deterministic-scenari
 import { createCapturedWriter, line } from "../../test-support/primitives.js";
 import { createServiceSignalController } from "../../test-support/service-runtime.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
+import type { ServiceTurnFailureContext } from "../service/service-runtime.js";
 import type {
   VoiceActivationDependencies,
   VoiceActivationResult,
@@ -133,38 +134,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
 
     await expect(
       runDesktopVoiceServiceRuntime({
-        config: createDesktopVoiceConfig("", {
-          desktopVoice: {
-            openAIRealtimeTranscription: {
-              apiKeyEnv: "OPENAI_API_KEY",
-              baseUrl: "wss://api.openai.test/v1/realtime",
-              model: "gpt-realtime-whisper",
-              timeoutMs: 30_000,
-            },
-            openAIStreamingSpeech: {
-              apiKeyEnv: "OPENAI_API_KEY",
-              baseUrl: "https://api.openai.test/v1",
-              instructions: "Speak clearly.",
-              model: "gpt-4o-mini-tts",
-              responseFormat: "pcm",
-              voice: "coral",
-            },
-            streamingAudioInput: createDesktopVoiceCommand(
-              "printf command-audio",
-            ),
-            streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
-            wakeActivation: createDesktopVoiceCommand(
-              `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
-            ),
-          },
-          voice: {
-            streamingAudioInput: "sox-rec-stream",
-            streamingAudioOutput: "sox-play-stream",
-            streamingSpeechToText: "openai-realtime",
-            streamingTextToSpeech: "openai-streaming",
-            wakeActivation: "openwakeword-command",
-          },
-        }),
+        config: createOpenAIStreamingServiceConfig(),
         env: { OPENAI_API_KEY: "test-api-key" },
         fetch,
         io: { fallbackOutput, progressOutput, stderr },
@@ -213,38 +183,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
 
     await expect(
       runDesktopVoiceServiceRuntime({
-        config: createDesktopVoiceConfig("", {
-          desktopVoice: {
-            openAIRealtimeTranscription: {
-              apiKeyEnv: "OPENAI_API_KEY",
-              baseUrl: "wss://api.openai.test/v1/realtime",
-              model: "gpt-realtime-whisper",
-              timeoutMs: 100,
-            },
-            openAIStreamingSpeech: {
-              apiKeyEnv: "OPENAI_API_KEY",
-              baseUrl: "https://api.openai.test/v1",
-              instructions: "Speak clearly.",
-              model: "gpt-4o-mini-tts",
-              responseFormat: "pcm",
-              voice: "coral",
-            },
-            streamingAudioInput: createDesktopVoiceCommand(
-              "printf command-audio",
-            ),
-            streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
-            wakeActivation: createDesktopVoiceCommand(
-              `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
-            ),
-          },
-          voice: {
-            streamingAudioInput: "sox-rec-stream",
-            streamingAudioOutput: "sox-play-stream",
-            streamingSpeechToText: "openai-realtime",
-            streamingTextToSpeech: "openai-streaming",
-            wakeActivation: "openwakeword-command",
-          },
-        }),
+        config: createOpenAIStreamingServiceConfig({ timeoutMs: 100 }),
         env: { OPENAI_API_KEY: "test-api-key" },
         fetch,
         io: { fallbackOutput, progressOutput, stderr },
@@ -367,47 +306,50 @@ describe("runDesktopVoiceServiceRuntime", () => {
     const signals = createServiceSignalController();
     const stderr = createCapturedWriter();
     const retryAfterFailure = vi.fn().mockResolvedValue(undefined);
-    const runVoiceActivation = vi
-      .fn<
-        (
-          dependencies: VoiceActivationDependencies,
-          io?: VoiceRuntimeIo,
-        ) => Promise<VoiceActivationResult>
-      >()
-      .mockRejectedValueOnce(new Error("raw desktop voice failure"))
-      .mockImplementationOnce(() => {
-        signals.emit("SIGTERM");
+    const runVoiceActivation = createRecoveringVoiceActivation(
+      signals,
+      "raw desktop voice failure",
+    );
 
-        return Promise.resolve({
-          response: deterministicScenarios.alarmListEmpty.response,
-          status: "spoken",
-          textOutputWritten: false,
-        });
-      });
+    await expect(
+      runRecoverableDesktopActivationFailure({
+        retryAfterFailure,
+        runVoiceActivation,
+        signals,
+        stderr,
+      }),
+    ).resolves.toBeUndefined();
+  });
 
+  async function runRecoverableDesktopActivationFailure(options: {
+    retryAfterFailure: (context: ServiceTurnFailureContext) => Promise<void>;
+    runVoiceActivation: ReturnType<typeof createRecoveringVoiceActivation>;
+    signals: ReturnType<typeof createServiceSignalController>;
+    stderr: ReturnType<typeof createCapturedWriter>;
+  }): Promise<void> {
     await expect(
       runDesktopVoiceServiceRuntime({
         config: createDesktopVoiceConfig(
           deterministicScenarios.alarmListEmpty.text,
         ),
-        io: { stderr },
-        processSignals: signals,
-        retryAfterFailure,
-        runVoiceActivation,
+        io: { stderr: options.stderr },
+        processSignals: options.signals,
+        retryAfterFailure: options.retryAfterFailure,
+        runVoiceActivation: options.runVoiceActivation,
       }),
     ).resolves.toEqual({
       status: "stopped",
       turnsCompleted: 1,
     });
 
-    expect(runVoiceActivation).toHaveBeenCalledTimes(2);
-    expect(retryAfterFailure).toHaveBeenCalledWith(
+    expect(options.runVoiceActivation).toHaveBeenCalledTimes(2);
+    expect(options.retryAfterFailure).toHaveBeenCalledWith(
       expect.objectContaining({ failures: 1 }),
     );
-    expect(stderr.writes).toContain(
+    expect(options.stderr.writes).toContain(
       line("Runtime failure: raw desktop voice failure"),
     );
-  });
+  }
 
   it.each([
     { failure: "wake microphone unavailable", mode: "wake-audio" as const },
@@ -518,20 +460,9 @@ describe("runDesktopVoiceServiceRuntime", () => {
 
     await expect(
       runDesktopVoiceServiceRuntime({
-        config: createDesktopVoiceConfig(
-          deterministicScenarios.alarmListEmpty.text,
-          {
-            desktopVoice: {
-              wakeActivation: {
-                args: ["scripts/openwakeword-listener.py"],
-                command: "/bin/false",
-              },
-            },
-            voice: {
-              wakeActivation: "openwakeword-command",
-            },
-          },
-        ),
+        config: createOpenWakeWordServiceConfig("/bin/false", [
+          "scripts/openwakeword-listener.py",
+        ]),
         io: { stderr },
         retryAfterFailure: () => Promise.resolve(),
         runVoiceActivation,
@@ -576,24 +507,11 @@ describe("runDesktopVoiceServiceRuntime", () => {
 
     await expect(
       runDesktopVoiceServiceRuntime({
-        config: createDesktopVoiceConfig(
-          deterministicScenarios.alarmListEmpty.text,
-          {
-            desktopVoice: {
-              wakeActivation: {
-                args: [
-                  "scripts/openwakeword-listener.py",
-                  "--model",
-                  "hey jarvis",
-                ],
-                command,
-              },
-            },
-            voice: {
-              wakeActivation: "openwakeword-command",
-            },
-          },
-        ),
+        config: createOpenWakeWordServiceConfig(command, [
+          "scripts/openwakeword-listener.py",
+          "--model",
+          "hey jarvis",
+        ]),
         io: { stderr },
         retryAfterFailure: () => Promise.resolve(),
         runVoiceActivation,
@@ -691,6 +609,29 @@ function createInfrastructureFailureAdapters(
   };
 }
 
+function createRecoveringVoiceActivation(
+  signals: ReturnType<typeof createServiceSignalController>,
+  message: string,
+) {
+  return vi
+    .fn<
+      (
+        dependencies: VoiceActivationDependencies,
+        io?: VoiceRuntimeIo,
+      ) => Promise<VoiceActivationResult>
+    >()
+    .mockRejectedValueOnce(new Error(message))
+    .mockImplementationOnce(() => {
+      signals.emit("SIGTERM");
+
+      return Promise.resolve({
+        response: deterministicScenarios.alarmListEmpty.response,
+        status: "spoken",
+        textOutputWritten: false,
+      });
+    });
+}
+
 function createSuccessfulActivationAdapters(
   onPlay?: () => void,
 ): DesktopVoiceServiceAdapters {
@@ -724,6 +665,58 @@ function createSuccessfulActivationAdapters(
         }),
     },
   };
+}
+
+function createOpenAIStreamingServiceConfig(
+  options: { timeoutMs?: number } = {},
+): ReturnType<typeof createDesktopVoiceConfig> {
+  return createDesktopVoiceConfig("", {
+    desktopVoice: {
+      openAIRealtimeTranscription: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "wss://api.openai.test/v1/realtime",
+        model: "gpt-realtime-whisper",
+        timeoutMs: options.timeoutMs ?? 30_000,
+      },
+      openAIStreamingSpeech: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "https://api.openai.test/v1",
+        instructions: "Speak clearly.",
+        model: "gpt-4o-mini-tts",
+        responseFormat: "pcm",
+        voice: "coral",
+      },
+      streamingAudioInput: createDesktopVoiceCommand("printf command-audio"),
+      streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
+      wakeActivation: createDesktopVoiceCommand(
+        `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
+      ),
+    },
+    voice: {
+      streamingAudioInput: "sox-rec-stream",
+      streamingAudioOutput: "sox-play-stream",
+      streamingSpeechToText: "openai-realtime",
+      streamingTextToSpeech: "openai-streaming",
+      wakeActivation: "openwakeword-command",
+    },
+  });
+}
+
+function createOpenWakeWordServiceConfig(
+  command: string,
+  args: string[],
+): ReturnType<typeof createDesktopVoiceConfig> {
+  return createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text, {
+    desktopVoice: {
+      wakeActivation: {
+        args,
+        command,
+      },
+    },
+    voice: {
+      wakeActivation: "openwakeword-command",
+    },
+  });
 }
 
 class FakeRealtimeSocket implements RealtimeSocket {
