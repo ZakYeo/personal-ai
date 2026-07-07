@@ -26,7 +26,12 @@ const context = {
 } satisfies AssistantContext;
 
 const capabilityCatalog = createProviderCapabilityCatalog(
-  createConfiguredFeatures(enabledDeterministicConfig),
+  createConfiguredFeatures(enabledDeterministicConfig, {
+    dependencies: {
+      env,
+      fetch: globalThis.fetch,
+    },
+  }),
 );
 
 const liveRoutingScenarios = [

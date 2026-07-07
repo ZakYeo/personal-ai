@@ -1,18 +1,14 @@
 import type { AssistantPolicyConfig } from "../../ports/assistant.js";
 import type { GoogleCalendarConfig } from "../../ports/calendar.js";
+import { parseCalendarFeatureConfig } from "./calendar-feature-config.js";
 import { isRecord } from "./config-parse-utils.js";
-
-const rawFeatureConfig = Symbol("rawFeatureConfig");
 
 export type ParsedFeatureConfig =
   | ParsedCommonFeatureConfig
   | ParsedGoogleCalendarFeatureConfig;
 
 export type ParsedCommonFeatureConfig =
-  AssistantPolicyConfig["features"][string] & {
-    adapter?: string;
-    readonly [rawFeatureConfig]?: Record<string, unknown>;
-  };
+  AssistantPolicyConfig["features"][string] & { adapter?: string };
 
 export type ParsedGoogleCalendarFeatureConfig = ParsedCommonFeatureConfig & {
   adapter: "google";
@@ -20,12 +16,6 @@ export type ParsedGoogleCalendarFeatureConfig = ParsedCommonFeatureConfig & {
 };
 
 export type ParsedFeaturesConfig = Record<string, ParsedFeatureConfig>;
-
-export function getRawFeatureConfig(
-  featureConfig: ParsedFeatureConfig,
-): Record<string, unknown> {
-  return featureConfig[rawFeatureConfig] ?? featureConfig;
-}
 
 export function parseFeaturesConfig(
   value: Record<string, unknown>,
@@ -49,12 +39,11 @@ export function parseFeaturesConfig(
       ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
     };
 
-    Object.defineProperty(parsed, rawFeatureConfig, {
-      enumerable: false,
-      value: featureConfig,
-    });
-
-    features[featureId] = parsed;
+    features[featureId] = parseSelectedFeatureAdapterConfig(
+      featureId,
+      featureConfig,
+      parsed,
+    );
   }
 
   return features;
@@ -103,4 +92,20 @@ function parseConfirmationRequiredCapabilities(
   return {
     confirmationRequiredCapabilities: value,
   };
+}
+
+function parseSelectedFeatureAdapterConfig(
+  featureId: string,
+  rawFeatureConfig: Record<string, unknown>,
+  parsedFeatureConfig: ParsedCommonFeatureConfig,
+): ParsedFeatureConfig {
+  if (featureId === "calendar" && parsedFeatureConfig.adapter === "google") {
+    return {
+      ...parsedFeatureConfig,
+      adapter: "google",
+      ...parseCalendarFeatureConfig(rawFeatureConfig),
+    };
+  }
+
+  return parsedFeatureConfig;
 }

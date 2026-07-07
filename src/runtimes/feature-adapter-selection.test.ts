@@ -7,7 +7,6 @@ import type {
   ParsedFeatureConfig,
   ParsedGoogleCalendarFeatureConfig,
 } from "./config/feature-config.js";
-import { getRawFeatureConfig } from "./config/feature-config.js";
 import { defineCapability, defineFeature } from "../ports/feature.js";
 import {
   disabledCalendarConfig,
@@ -25,6 +24,11 @@ import {
   type FeatureAdapterDependencies,
   type FeatureAdapterRegistry,
 } from "./feature-adapter-selection.js";
+
+const featureAdapterDependencies: FeatureAdapterDependencies = {
+  env: {},
+  fetch: vi.fn() as typeof fetch,
+};
 
 describe("createConfiguredFeatures", () => {
   it("passes narrow adapter dependencies and selected adapter config to registered entries", () => {
@@ -54,6 +58,7 @@ describe("createConfiguredFeatures", () => {
     );
 
     const features = createConfiguredFeatures(config, {
+      dependencies: featureAdapterDependencies,
       registry,
     });
 
@@ -63,10 +68,7 @@ describe("createConfiguredFeatures", () => {
       "fetch",
     ]);
     expect(observedContext).toMatchObject({
-      dependencies: {
-        env: expect.any(Object) as Record<string, string | undefined>,
-        fetch: expect.any(Function) as typeof fetch,
-      },
+      dependencies: featureAdapterDependencies,
       adapterConfig: undefined,
     });
   });
@@ -78,12 +80,15 @@ describe("createConfiguredFeatures", () => {
           "notes",
           withFeatureEnabled("notes", false, enabledDeterministicConfig),
         ),
+        { dependencies: featureAdapterDependencies },
       ),
     ).not.toThrow();
   });
 
   it("does not expose registry-level deterministic rules", () => {
-    const selection = createConfiguredFeatureSelection(disabledCalendarConfig);
+    const selection = createConfiguredFeatureSelection(disabledCalendarConfig, {
+      dependencies: featureAdapterDependencies,
+    });
 
     expect(selection.features.map((feature) => feature.id)).toEqual([
       "messaging",
@@ -94,19 +99,25 @@ describe("createConfiguredFeatures", () => {
 
   it("rejects enabled features without registered feature adapters", () => {
     expect(() =>
-      createConfiguredFeatures(withFeatureAdapterId("notes", "mock")),
+      createConfiguredFeatures(withFeatureAdapterId("notes", "mock"), {
+        dependencies: featureAdapterDependencies,
+      }),
     ).toThrow('Config feature "notes" is not registered.');
   });
 
   it("rejects enabled features without registered adapter IDs", () => {
     expect(() =>
-      createConfiguredFeatures(withFeatureAdapterId("calendar", "unknown")),
+      createConfiguredFeatures(withFeatureAdapterId("calendar", "unknown"), {
+        dependencies: featureAdapterDependencies,
+      }),
     ).toThrow('Config feature "calendar" adapter "unknown" is not registered.');
   });
 
   it("rejects enabled features without adapter IDs", () => {
     expect(() =>
-      createConfiguredFeatures(withoutFeatureAdapterId("calendar")),
+      createConfiguredFeatures(withoutFeatureAdapterId("calendar"), {
+        dependencies: featureAdapterDependencies,
+      }),
     ).toThrow(
       'Config feature "calendar".adapter must be set for enabled features.',
     );
@@ -114,7 +125,9 @@ describe("createConfiguredFeatures", () => {
 
   it("rejects Google calendar adapters without provider config", () => {
     expect(() =>
-      createConfiguredFeatures(withFeatureAdapterId("calendar", "google")),
+      createConfiguredFeatures(withFeatureAdapterId("calendar", "google"), {
+        dependencies: featureAdapterDependencies,
+      }),
     ).toThrow('Config feature "calendar".google must be configured.');
   });
 
@@ -123,19 +136,21 @@ describe("createConfiguredFeatures", () => {
       google: {},
     });
 
-    const features = createConfiguredFeatures(config);
+    const features = createConfiguredFeatures(config, {
+      dependencies: featureAdapterDependencies,
+    });
 
     expect(features.map((feature) => feature.id)).toEqual(["calendar"]);
   });
 
   it("rejects invalid Google calendar adapter config only when selected", () => {
-    const config = onlyGoogleCalendarConfig({
-      google: {
-        timeoutMs: 0,
-      },
-    });
-
-    expect(() => createConfiguredFeatures(config)).toThrow(
+    expect(() =>
+      onlyGoogleCalendarConfig({
+        google: {
+          timeoutMs: 0,
+        },
+      }),
+    ).toThrow(
       'Config feature "calendar".google.timeoutMs must be a positive integer.',
     );
   });
@@ -175,11 +190,11 @@ describe("createConfiguredFeatures", () => {
     });
 
     createConfiguredFeatures(config, {
+      dependencies: featureAdapterDependencies,
       registry: {
         calendar: {
           adapters: {
             google: defineFeatureAdapterEntry({
-              parseFeatureConfig: parseTestGoogleFeatureConfig,
               resolveFeatureConfig: requireTestGoogleFeatureConfig,
               resolveConfig: (featureConfig) =>
                 requireTestGoogleConfig(featureConfig),
@@ -273,32 +288,4 @@ function requireTestGoogleFeatureConfig(
   }
 
   return featureConfig;
-}
-
-function parseTestGoogleFeatureConfig(
-  featureConfig: ParsedFeatureConfig,
-): ParsedGoogleCalendarFeatureConfig {
-  const raw = getRawFeatureConfig(featureConfig);
-
-  if (!("google" in raw) || typeof raw.google !== "object") {
-    throw new Error('Config feature "calendar".google must be configured.');
-  }
-
-  return {
-    enabled: featureConfig.enabled,
-    adapter: "google",
-    ...(featureConfig.confirmationRequiredCapabilities
-      ? {
-          confirmationRequiredCapabilities:
-            featureConfig.confirmationRequiredCapabilities,
-        }
-      : {}),
-    google: {
-      accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-      baseUrl: "https://calendar.example.test/v3",
-      calendarId: "primary",
-      maxResults: 10,
-      timeoutMs: 30_000,
-    },
-  };
 }
