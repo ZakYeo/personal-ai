@@ -48,6 +48,30 @@ def audio_frames(rec_command: str, frame_ms: int) -> Iterable[bytes]:
         process.terminate()
 
 
+def pcm16_samples(frame: bytes):
+    if len(frame) % 2 != 0:
+        raise ValueError("Audio frame must contain whole 16-bit PCM samples")
+
+    import numpy as np
+
+    return np.frombuffer(frame, dtype=np.int16)
+
+
+def prediction_score(predictions: dict[str, float], model_key: str) -> float:
+    if model_key in predictions:
+        return float(predictions[model_key])
+
+    if len(predictions) == 1:
+        return float(next(iter(predictions.values())))
+
+    versioned_model_key = f"{model_key}_"
+    for key, score in predictions.items():
+        if key.startswith(versioned_model_key):
+            return float(score)
+
+    return 0.0
+
+
 def main() -> int:
     args = parse_args()
 
@@ -71,8 +95,8 @@ def main() -> int:
     last_activation = 0.0
 
     for frame in audio_frames(args.rec_command, args.frame_ms):
-        predictions = model.predict(frame)
-        score = float(predictions.get(model_key, 0.0))
+        predictions = model.predict(pcm16_samples(frame))
+        score = prediction_score(predictions, model_key)
         now = time.monotonic()
 
         if score >= args.threshold and now - last_activation >= cooldown_seconds:

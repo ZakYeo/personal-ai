@@ -26,13 +26,26 @@ openwakeword.models = {
 
 model_module = types.ModuleType("openwakeword.model")
 created_model_paths = []
+converted_frames = []
+
+numpy = types.ModuleType("numpy")
+numpy.int16 = "int16"
+
+def frombuffer(frame, dtype):
+    converted = {"frame": frame, "dtype": dtype}
+    converted_frames.append(converted)
+    return converted
+
+numpy.frombuffer = frombuffer
+sys.modules["numpy"] = numpy
 
 class Model:
     def __init__(self, wakeword_model_paths=[]):
         created_model_paths.extend(wakeword_model_paths)
 
     def predict(self, frame):
-        return {"hey_jarvis": 0.9}
+        assert frame == {"frame": b"\1\0\2\0", "dtype": "int16"}
+        return {"hey_jarvis_v0.1": 0.9}
 
 model_module.Model = Model
 sys.modules["openwakeword"] = openwakeword
@@ -43,7 +56,7 @@ listener = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(listener)
 
 def fake_audio_frames(rec_command, frame_ms):
-    yield b"\0" * 2560
+    yield b"\1\0\2\0"
 
 listener.audio_frames = fake_audio_frames
 sys.argv = ["openwakeword-listener.py", "--model", "hey jarvis"]
@@ -54,6 +67,7 @@ with contextlib.redirect_stdout(stdout):
 
 assert status == 0
 assert created_model_paths == ["/models/hey_jarvis_v0.1.onnx"]
+assert converted_frames == [{"frame": b"\1\0\2\0", "dtype": "int16"}]
 event = json.loads(stdout.getvalue())
 assert event == {"type": "wake", "phrase": "hey jarvis", "score": 0.9}
 `;
