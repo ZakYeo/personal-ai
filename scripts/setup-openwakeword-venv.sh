@@ -14,7 +14,7 @@ fi
 "$python_command" -m venv "$venv_path"
 "$venv_path/bin/python" -m pip install --upgrade pip
 "$venv_path/bin/python" -m pip install openwakeword
-"$venv_path/bin/python" -c "import openwakeword.model"
+"$venv_path/bin/python" "$repo_root/scripts/openwakeword-listener.py" --startup-check
 
 echo "OpenWakeWord venv is ready at $venv_path"
 

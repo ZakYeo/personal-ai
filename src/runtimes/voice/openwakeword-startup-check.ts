@@ -21,7 +21,7 @@ export async function validateOpenWakeWordStartup(
 
   try {
     await runCommand({
-      args: ["-c", "import openwakeword.model"],
+      args: [...(wakeActivation.args ?? []), "--startup-check"],
       command: wakeActivation.command,
       timeoutMs: startupCheckTimeoutMs,
     });

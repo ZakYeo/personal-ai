@@ -22,6 +22,7 @@ def parse_args() -> argparse.Namespace:
         "--rec-command",
         default="rec -q -r 16000 -c 1 -b 16 -e signed-integer -t raw -",
     )
+    parser.add_argument("--startup-check", action="store_true")
     return parser.parse_args()
 
 
@@ -50,15 +51,28 @@ def audio_frames(rec_command: str, frame_ms: int) -> Iterable[bytes]:
 def main() -> int:
     args = parse_args()
 
+    import openwakeword
     from openwakeword.model import Model
 
-    model = Model(wakeword_models=[args.model])
+    model_key = args.model.replace(" ", "_")
+    model_config = openwakeword.models.get(model_key)
+    if not model_config:
+        supported_models = ", ".join(sorted(openwakeword.models.keys()))
+        raise ValueError(
+            f'Unknown openWakeWord model "{args.model}". '
+            f"Supported models: {supported_models}"
+        )
+
+    model = Model(wakeword_model_paths=[model_config["model_path"]])
+    if args.startup_check:
+        return 0
+
     cooldown_seconds = args.cooldown_ms / 1000
     last_activation = 0.0
 
     for frame in audio_frames(args.rec_command, args.frame_ms):
         predictions = model.predict(frame)
-        score = float(predictions.get(args.model, 0.0))
+        score = float(predictions.get(model_key, 0.0))
         now = time.monotonic()
 
         if score >= args.threshold and now - last_activation >= cooldown_seconds:
@@ -67,7 +81,7 @@ def main() -> int:
                 json.dumps(
                     {
                         "type": "wake",
-                        "phrase": "hey jarvis",
+                        "phrase": args.model,
                         "score": score,
                     }
                 ),

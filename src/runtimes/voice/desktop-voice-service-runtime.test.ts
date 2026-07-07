@@ -1,3 +1,6 @@
+import { chmod, mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { CapturedAudio } from "../../ports/voice.js";
 import {
   createDesktopVoiceConfig,
@@ -306,6 +309,68 @@ describe("runDesktopVoiceServiceRuntime", () => {
     expect(stderr.writes).toEqual([
       line(
         'Runtime failure: OpenWakeWord startup check failed for desktopVoice.wakeActivation command "/bin/false". Create a Python virtual environment, install openwakeword, and configure desktopVoice.wakeActivation.command to the venv Python interpreter, for example ".venv/bin/python".',
+      ),
+    ]);
+  });
+
+  it("fails startup once when the local OpenWakeWord listener startup check fails", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-oww-"));
+    const command = join(directory, "python");
+    await writeFile(
+      command,
+      [
+        "#!/usr/bin/env sh",
+        'if [ "$1" = "-c" ]; then',
+        "  exit 0",
+        "fi",
+        'for arg in "$@"; do',
+        '  if [ "$arg" = "--startup-check" ]; then',
+        "    echo 'listener constructor failed' >&2",
+        "    exit 1",
+        "  fi",
+        "done",
+        'printf \'%s\\n\' \'{"type":"wake","phrase":"hey jarvis"}\'',
+      ].join("\n"),
+    );
+    await chmod(command, 0o755);
+
+    const stderr = createCapturedWriter();
+    const runVoiceActivation = vi.fn();
+
+    await expect(
+      runDesktopVoiceServiceRuntime({
+        config: createDesktopVoiceConfig(
+          deterministicScenarios.alarmListEmpty.text,
+          {
+            desktopVoice: {
+              wakeActivation: {
+                args: [
+                  "scripts/openwakeword-listener.py",
+                  "--model",
+                  "hey jarvis",
+                ],
+                command,
+              },
+            },
+            voice: {
+              wakeActivation: "openwakeword-command",
+            },
+          },
+        ),
+        io: { stderr },
+        retryAfterFailure: () => Promise.resolve(),
+        runVoiceActivation,
+      }),
+    ).resolves.toEqual({
+      response: safeRuntimeFallbackResponse,
+      status: "startup_failed",
+      turnsCompleted: 0,
+    });
+
+    expect(runVoiceActivation).not.toHaveBeenCalled();
+    expect(stderr.writes).toEqual([
+      line(
+        `Runtime failure: OpenWakeWord startup check failed for desktopVoice.wakeActivation command "${command}". Create a Python virtual environment, install openwakeword, and configure desktopVoice.wakeActivation.command to the venv Python interpreter, for example ".venv/bin/python".`,
       ),
     ]);
   });
