@@ -260,3 +260,158 @@ export function runCommandUntilStdoutLine<TLine>(
 function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
+
+export function runCommandReadableStream(request: RunCommandRequest): {
+  chunks: AsyncIterable<Uint8Array>;
+} {
+  const child = spawn(request.command, request.args ?? [], {
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const stdoutChunks: Buffer[] = [];
+  const stderrChunks: Buffer[] = [];
+  const timeoutMs = request.timeoutMs ?? defaultTimeoutMs;
+  let spawnError: unknown;
+
+  child.stderr.on("data", (chunk: Buffer) => {
+    stderrChunks.push(chunk);
+  });
+  child.on("error", (error) => {
+    spawnError = error;
+  });
+
+  return {
+    chunks: readProcessStdout({
+      child,
+      command: request.command,
+      getSpawnError: () => spawnError,
+      stderrChunks,
+      stdoutChunks,
+      timeoutMs,
+    }),
+  };
+}
+
+export async function runCommandWritableStream(
+  request: RunCommandRequest,
+  chunks: AsyncIterable<Uint8Array>,
+): Promise<void> {
+  const child = spawn(request.command, request.args ?? [], {
+    stdio: ["pipe", "ignore", "pipe"],
+  });
+  const stderrChunks: Buffer[] = [];
+  const timeoutMs = request.timeoutMs ?? defaultTimeoutMs;
+  let spawnError: unknown;
+
+  child.stderr.on("data", (chunk: Buffer) => {
+    stderrChunks.push(chunk);
+  });
+  child.on("error", (error) => {
+    spawnError = error;
+  });
+
+  const waitForClose = waitForProcessClose({
+    child,
+    command: request.command,
+    getSpawnError: () => spawnError,
+    stderrChunks,
+    stdoutChunks: [],
+    timeoutMs,
+  });
+  waitForClose.catch(() => {});
+
+  for await (const chunk of chunks) {
+    child.stdin.write(chunk);
+  }
+  child.stdin.end();
+
+  await waitForClose;
+}
+
+interface ProcessCompletionRequest {
+  child: ReturnType<typeof spawn>;
+  command: string;
+  getSpawnError(): unknown;
+  stderrChunks: Buffer[];
+  stdoutChunks: Buffer[];
+  timeoutMs: number;
+}
+
+async function* readProcessStdout(
+  request: ProcessCompletionRequest,
+): AsyncIterable<Uint8Array> {
+  if (!request.child.stdout) {
+    throw new Error("Command did not provide stdout.");
+  }
+
+  const waitForClose = waitForProcessClose(request);
+  waitForClose.catch(() => {});
+
+  for await (const chunk of request.child.stdout) {
+    const buffer = Buffer.from(chunk as Buffer);
+    request.stdoutChunks.push(buffer);
+    yield buffer;
+  }
+
+  await waitForClose;
+}
+
+function waitForProcessClose(request: ProcessCompletionRequest): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      request.child.kill("SIGTERM");
+      reject(
+        new CommandTimeoutError(
+          `Command "${request.command}" timed out after ${request.timeoutMs}ms.`,
+          request.timeoutMs,
+          Buffer.concat(request.stderrChunks).toString("utf8"),
+          Buffer.concat(request.stdoutChunks).toString("utf8"),
+        ),
+      );
+    }, request.timeoutMs);
+
+    request.child.on("close", (code) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      clearTimeout(timer);
+      const stdout = Buffer.concat(request.stdoutChunks).toString("utf8");
+      const stderr = Buffer.concat(request.stderrChunks).toString("utf8");
+      const spawnError = request.getSpawnError();
+
+      if (spawnError) {
+        reject(
+          new CommandSpawnError(
+            `Command "${request.command}" failed to start.`,
+            spawnError,
+            stderr,
+            stdout,
+          ),
+        );
+        return;
+      }
+
+      if (code !== 0) {
+        reject(
+          new CommandExecutionError(
+            `Command "${request.command}" exited with code ${code ?? "null"}.`,
+            code,
+            stderr,
+            stdout,
+          ),
+        );
+        return;
+      }
+
+      resolve();
+    });
+  });
+}

@@ -62,6 +62,8 @@ export function createDesktopVoiceAdapters(
   desktopVoice: ResolvedDesktopVoiceConfig,
   dependencies: DesktopVoiceAdapterRuntimeDependencies = {},
 ): DesktopVoiceAdapters {
+  validateDesktopVoiceAdapterConfig(voice, desktopVoice);
+
   const tempFiles = createNodeVoiceTempFiles();
   const env = dependencies.env ?? process.env;
   const fetch = dependencies.fetch ?? globalThis.fetch;
@@ -88,7 +90,7 @@ export function createDesktopVoiceAdapters(
             voice,
             "streamingAudioInput",
             desktopVoiceAdapterRegistry.streamingAudioInput,
-          )(requireDesktopStreamingAudioInputConfig(desktopVoice)),
+          )(desktopVoice.streamingAudioInput),
         }
       : {}),
     ...(voice.streamingAudioOutput
@@ -97,7 +99,7 @@ export function createDesktopVoiceAdapters(
             voice,
             "streamingAudioOutput",
             desktopVoiceAdapterRegistry.streamingAudioOutput,
-          )(requireDesktopStreamingAudioOutputConfig(desktopVoice)),
+          )(desktopVoice.streamingAudioOutput),
         }
       : {}),
     ...(voice.streamingSpeechToText
@@ -107,7 +109,7 @@ export function createDesktopVoiceAdapters(
             "streamingSpeechToText",
             desktopVoiceAdapterRegistry.streamingSpeechToText,
           )(
-            requireDesktopRealtimeTranscriptionConfig(desktopVoice),
+            desktopVoice.openAIRealtimeTranscription,
             env,
             dependencies.webSocketFactory ?? createDefaultWebSocketFactory,
           ),
@@ -119,7 +121,7 @@ export function createDesktopVoiceAdapters(
             voice,
             "streamingTextToSpeech",
             desktopVoiceAdapterRegistry.streamingTextToSpeech,
-          )(requireDesktopStreamingSpeechConfig(desktopVoice), env, fetch),
+          )(desktopVoice.openAIStreamingSpeech, env, fetch),
         }
       : {}),
     textToSpeech: selectConfiguredVoiceAdapter(
@@ -133,7 +135,7 @@ export function createDesktopVoiceAdapters(
             voice,
             "wakeActivation",
             desktopVoiceAdapterRegistry.wakeActivation,
-          )(requireDesktopWakeActivationConfig(desktopVoice)),
+          )(desktopVoice.wakeActivation),
         }
       : {}),
     wakeWord: selectConfiguredVoiceAdapter(
@@ -143,6 +145,42 @@ export function createDesktopVoiceAdapters(
     )(),
     cleanup: () => tempFiles.cleanup(),
   };
+}
+
+export function validateDesktopVoiceAdapterConfig(
+  voice: ResolvedVoiceConfig,
+  desktopVoice: ResolvedDesktopVoiceConfig,
+): asserts desktopVoice is ResolvedDesktopVoiceConfig & {
+  openAIRealtimeTranscription: OpenAIRealtimeTranscriptionConfig;
+  openAIStreamingSpeech: OpenAIStreamingSpeechConfig;
+  streamingAudioInput: VoiceCommandConfig;
+  streamingAudioOutput: VoiceCommandConfig;
+  wakeActivation: VoiceCommandConfig;
+} {
+  requireStreamingPair(
+    voice.streamingAudioInput,
+    voice.streamingSpeechToText,
+    "streamingAudioInput",
+    "streamingSpeechToText",
+  );
+  requireStreamingPair(
+    voice.streamingTextToSpeech,
+    voice.streamingAudioOutput,
+    "streamingTextToSpeech",
+    "streamingAudioOutput",
+  );
+
+  if (voice.wakeActivation) {
+    requireDesktopWakeActivationConfig(desktopVoice);
+  }
+  if (voice.streamingAudioInput) {
+    requireDesktopStreamingAudioInputConfig(desktopVoice);
+    requireDesktopRealtimeTranscriptionConfig(desktopVoice);
+  }
+  if (voice.streamingTextToSpeech) {
+    requireDesktopStreamingAudioOutputConfig(desktopVoice);
+    requireDesktopStreamingSpeechConfig(desktopVoice);
+  }
 }
 
 export function createDesktopVoiceServiceAdapters(
@@ -289,6 +327,21 @@ function requireDesktopWakeActivationConfig(
   }
 
   return desktopVoice.wakeActivation;
+}
+
+function requireStreamingPair(
+  firstAdapterId: string | undefined,
+  secondAdapterId: string | undefined,
+  firstKey: string,
+  secondKey: string,
+): void {
+  if (Boolean(firstAdapterId) === Boolean(secondAdapterId)) {
+    return;
+  }
+
+  throw new Error(
+    `Config voice.${firstKey} and voice.${secondKey} must be configured together.`,
+  );
 }
 
 function requireDesktopStreamingAudioInputConfig(

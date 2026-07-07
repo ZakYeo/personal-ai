@@ -240,6 +240,38 @@ describe("runDesktopVoiceServiceRuntime", () => {
     );
   });
 
+  it("returns a safe startup failure outcome when streaming transcription config is partial", async () => {
+    const stderr = createCapturedWriter();
+
+    await expect(
+      runDesktopVoiceServiceRuntime({
+        config: createDesktopVoiceConfig(
+          deterministicScenarios.alarmListEmpty.text,
+          {
+            voice: {
+              streamingAudioInput: "sox-rec-stream",
+            },
+          },
+        ),
+        io: { stderr },
+        retryAfterFailure: () => Promise.resolve(),
+        runVoiceActivation: () => {
+          throw new Error("should not run");
+        },
+      }),
+    ).resolves.toEqual({
+      response: safeRuntimeFallbackResponse,
+      status: "startup_failed",
+      turnsCompleted: 0,
+    });
+
+    expect(stderr.writes).toContain(
+      line(
+        "Runtime failure: Config voice.streamingAudioInput and voice.streamingSpeechToText must be configured together.",
+      ),
+    );
+  });
+
   it("cleans up temporary voice files after each activation attempt", async () => {
     const signals = createServiceSignalController();
     let wakeAudio: CapturedAudio | undefined;

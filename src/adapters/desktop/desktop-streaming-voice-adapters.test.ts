@@ -29,6 +29,18 @@ describe("desktop streaming voice adapters", () => {
 
     await expect(readFile(outputPath, "utf8")).resolves.toBe("streamed audio");
   });
+
+  it("applies configured timeouts to streaming commands", async () => {
+    const adapter = new CommandStreamingAudioInput({
+      ...createShellCommand("sleep 1"),
+      timeoutMs: 1,
+    });
+    const audio = await adapter.captureStream();
+
+    await expect(readChunksAsText(audio.chunks)).rejects.toThrow(
+      'Command "/bin/sh" timed out after 1ms.',
+    );
+  });
 });
 
 async function readChunksAsText(

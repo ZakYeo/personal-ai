@@ -4,6 +4,7 @@ import type {
   StreamingSpeechToTextEvents,
   StreamingSpeechToTextPort,
 } from "../../ports/voice.js";
+import { resolveOpenAIApiKey } from "./openai-voice-client.js";
 
 interface OpenAIRealtimeTranscriptionConfig {
   apiKeyEnv: string;
@@ -39,13 +40,7 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
     audio: CapturedAudioStream,
     events: StreamingSpeechToTextEvents = {},
   ): Promise<SpeechTranscript> {
-    const apiKey = this.options.env[this.options.config.apiKeyEnv];
-
-    if (!apiKey) {
-      throw new Error(
-        `OpenAI API key environment variable ${this.options.config.apiKeyEnv} is not set.`,
-      );
-    }
+    const apiKey = resolveOpenAIApiKey(this.options.config, this.options.env);
 
     const socket = this.options.webSocketFactory({
       apiKey,

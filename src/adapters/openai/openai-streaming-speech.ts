@@ -2,6 +2,11 @@ import type {
   StreamingTextToSpeechPort,
   SynthesizedSpeechStream,
 } from "../../ports/voice.js";
+import {
+  createOpenAIStatusError,
+  createOpenAIUrl,
+  resolveOpenAIApiKey,
+} from "./openai-voice-client.js";
 
 interface OpenAIStreamingSpeechConfig {
   apiKeyEnv: string;
@@ -22,16 +27,10 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
   constructor(private readonly options: OpenAIStreamingSpeechOptions) {}
 
   async synthesizeStream(text: string): Promise<SynthesizedSpeechStream> {
-    const apiKey = this.options.env[this.options.config.apiKeyEnv];
-
-    if (!apiKey) {
-      throw new Error(
-        `OpenAI API key environment variable ${this.options.config.apiKeyEnv} is not set.`,
-      );
-    }
+    const apiKey = resolveOpenAIApiKey(this.options.config, this.options.env);
 
     const response = await this.options.fetch(
-      `${this.options.config.baseUrl}/audio/speech`,
+      createOpenAIUrl(this.options.config.baseUrl, "audio/speech"),
       {
         body: JSON.stringify({
           input: text,
@@ -49,9 +48,7 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
     );
 
     if (!response.ok) {
-      throw new Error(
-        `OpenAI speech request failed with status ${response.status}.`,
-      );
+      throw createOpenAIStatusError("speech", response.status);
     }
 
     if (!response.body) {
