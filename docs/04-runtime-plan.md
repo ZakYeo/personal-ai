@@ -123,6 +123,13 @@ always-listening implementation remains command-based and STT-backed; native
 low-power wake engines or provider-event wake adapters can be added later behind
 the same runtime boundary.
 
+Voice service commands write human-visible progress logs to stdout when the
+runtime boundary provides a progress writer. These logs announce the configured
+wake phrase, successful wake detection, the recognized command transcript, and
+the assistant's safe response. Wake-window transcripts, raw provider output,
+adapter command output, credentials, stack traces, and diagnostic causes remain
+out of progress logs; diagnostics stay on stderr.
+
 ### Raspberry Pi Runtime
 
 The Raspberry Pi runtime runs the assistant as a long-lived service process.
@@ -337,8 +344,9 @@ graceful shutdown before unregistering.
 
 The Raspberry Pi service command builds on this service boundary. It validates
 the required voice and desktop command config during startup, runs configured
-voice turns until a shutdown signal is received, logs diagnostics to stderr, and
-cleans up temporary capture and speech files after each service turn.
+voice turns until a shutdown signal is received, writes voice progress logs to
+stdout, logs diagnostics to stderr, and cleans up temporary capture and speech
+files after each service turn.
 Cleanup is best-effort runtime resource release unless a runtime explicitly
 documents and tests a stricter lifecycle guarantee. Voice and service runtimes
 should keep cleanup failure policy aligned with the shared runtime helper:

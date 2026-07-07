@@ -43,6 +43,7 @@
 - Runtime clock injection should remain a live clock (`now: () => Date` or `ClockPort`) for long-running composition; use fixed `Date` values only for intentionally frozen deterministic tests.
 - Command-based adapters should execute `command` plus `args[]`, not shell-concatenated command strings, and should enforce timeouts while preserving captured stdout/stderr diagnostics internally for spawn failures, non-zero exits, and timeout failures.
 - Keep simulated spoken output separate from fallback text output; CLI boundaries should use explicit voice result metadata rather than inferring stdout writes from voice status.
+- Voice service progress logs are human-facing stdout output; keep internal diagnostics, adapter command output, provider details, credentials, and stack traces on stderr only.
 - Keep deterministic intent fixtures from becoming a central feature-specific branch list; when deterministic routing grows, move matching into data-backed rules or feature-local fixtures that still route through declared capabilities.
 - Author feature capabilities with `defineCapability`/`defineFeature` so decoded handler arguments stay structurally tied to declared parameter metadata.
 - Avoid hand-written feature `execute` switches in normal features; use dispatch maps and decoded `request.args` unless a test intentionally covers a lower-level malformed contract.

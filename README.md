@@ -17,7 +17,7 @@ Implemented today:
 - Mock voice loop for one simulated voice turn.
 - Desktop voice runtime for one configured local voice turn.
 - Desktop voice service command for always-listening wake activation with
-  separate wake-window and command captures.
+  separate wake-window and command captures plus stdout progress logs.
 - Neutral service runtime boundary baseline implemented in preparation for
   Milestone 5.1.
 - Raspberry Pi service command that runs configured command-based voice turns in
@@ -103,6 +103,10 @@ Start the default desktop OpenAI voice service:
 ```bash
 npm start
 ```
+
+Voice service commands write progress logs to stdout, including wake listening,
+wake detection, recognized command text, and the assistant response. Internal
+diagnostics and adapter failures stay on stderr.
 
 Run one simulated voice turn:
 
@@ -204,7 +208,8 @@ Common development commands:
 - `npm run typecheck` - run TypeScript without emitting files.
 - `npm run build` - compile production JavaScript.
 - `npm start` - run the default desktop OpenAI voice service with
-  `config/local-desktop-voice-openai.json`.
+  `config/local-desktop-voice-openai.json`; progress logs are written to
+  stdout.
 - `npm run cli -- desktop-voice-once --config config/desktop-voice-demo.json` -
   run the committed command-based desktop voice demo.
 - `npm run cli -- desktop-voice-service --config path/to/desktop-config.json` -
