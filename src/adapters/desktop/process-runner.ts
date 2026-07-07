@@ -68,72 +68,63 @@ export async function runCommand(
   return commandProcess.waitForSuccess();
 }
 
-export function runCommandUntilStdoutLine<TLine>(
+export async function runCommandUntilStdoutLine<TLine>(
   request: RunCommandRequest,
   selectLine: (line: string) => TLine | undefined,
 ): Promise<RunCommandResult & { line: TLine }> {
-  return new Promise((resolve, reject) => {
-    let pendingStdout = "";
+  const commandProcess = startCommandProcess(request, {
+    captureStdout: false,
+    detached: true,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let pendingStdout = "";
 
-    const handleStdoutLine = (line: string): void => {
-      let selected: TLine | undefined;
+  try {
+    for await (const chunk of commandProcess.readStdout()) {
+      pendingStdout += Buffer.from(chunk).toString("utf8");
 
-      try {
-        selected = selectLine(line);
-      } catch (error) {
-        commandProcess.terminate();
-        reject(toError(error));
+      let newlineIndex = pendingStdout.indexOf("\n");
+      while (newlineIndex >= 0) {
+        const line = pendingStdout.slice(0, newlineIndex).trim();
+        pendingStdout = pendingStdout.slice(newlineIndex + 1);
 
-        return;
+        if (line.length > 0) {
+          const selected = selectLine(line);
+
+          if (selected !== undefined) {
+            await commandProcess.terminateAndWait();
+
+            return { ...commandProcess.output(), line: selected };
+          }
+        }
+
+        newlineIndex = pendingStdout.indexOf("\n");
       }
+    }
+
+    const finalLine = pendingStdout.trim();
+    if (finalLine.length > 0) {
+      const selected = selectLine(finalLine);
 
       if (selected !== undefined) {
-        commandProcess.terminate();
-        resolve({ ...commandProcess.output(), line: selected });
+        await commandProcess.terminateAndWait();
+
+        return { ...commandProcess.output(), line: selected };
       }
-    };
+    }
 
-    const commandProcess = startCommandProcess(request, {
-      captureStdout: true,
-      detached: true,
-      onStdoutData: (chunk) => {
-        pendingStdout += chunk.toString("utf8");
+    const output = await commandProcess.waitForSuccess();
 
-        let newlineIndex = pendingStdout.indexOf("\n");
-        while (newlineIndex >= 0) {
-          const line = pendingStdout.slice(0, newlineIndex).trim();
-          pendingStdout = pendingStdout.slice(newlineIndex + 1);
-
-          if (line.length > 0) {
-            handleStdoutLine(line);
-          }
-
-          newlineIndex = pendingStdout.indexOf("\n");
-        }
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    commandProcess.waitForSuccess().then(
-      () => {
-        if (pendingStdout.trim().length > 0) {
-          handleStdoutLine(pendingStdout.trim());
-        }
-
-        reject(
-          new CommandExecutionError(
-            `Command "${request.command}" exited without wake activation output.`,
-            0,
-            commandProcess.output().stderr,
-            commandProcess.output().stdout,
-          ),
-        );
-      },
-      (error: unknown) => {
-        reject(toError(error));
-      },
+    throw new CommandExecutionError(
+      `Command "${request.command}" exited without wake activation output.`,
+      0,
+      output.stderr,
+      output.stdout,
     );
-  });
+  } catch (error) {
+    await commandProcess.terminateAndWait();
+    throw toError(error);
+  }
 }
 
 function toError(error: unknown): Error {
@@ -164,8 +155,7 @@ function createCommandReadableIterator(
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  const stdoutIterator =
-    readProcessStdout(commandProcess)[Symbol.asyncIterator]();
+  const stdoutIterator = commandProcess.readStdout()[Symbol.asyncIterator]();
 
   return {
     next: () => stdoutIterator.next(),
@@ -272,6 +262,16 @@ class CommandProcess {
     terminateProcess(this.child, this.processControl);
   }
 
+  async terminateAndWait(): Promise<void> {
+    this.terminate();
+
+    try {
+      await this.waitForSuccess();
+    } catch {
+      // Expected termination is best-effort cleanup; callers keep the primary result.
+    }
+  }
+
   waitForSuccess(): Promise<RunCommandResult> {
     return this.completion;
   }
@@ -282,6 +282,16 @@ class CommandProcess {
     }
 
     this.child.stdin.write(chunk);
+  }
+
+  async *readStdout(): AsyncIterable<Uint8Array> {
+    for await (const chunk of this.stdout()) {
+      const buffer = Buffer.from(chunk as Buffer);
+      this.captureStdoutChunk(buffer);
+      yield buffer;
+    }
+
+    await this.waitForSuccess();
   }
 
   private captureOutput(options: CommandProcessOptions): void {
@@ -364,18 +374,6 @@ class CommandProcess {
       });
     });
   }
-}
-
-async function* readProcessStdout(
-  commandProcess: CommandProcess,
-): AsyncIterable<Uint8Array> {
-  for await (const chunk of commandProcess.stdout()) {
-    const buffer = Buffer.from(chunk as Buffer);
-    commandProcess.captureStdoutChunk(buffer);
-    yield buffer;
-  }
-
-  await commandProcess.waitForSuccess();
 }
 
 function terminateProcess(
