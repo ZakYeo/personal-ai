@@ -1,21 +1,30 @@
 import type { AssistantPolicyConfig } from "../../ports/assistant.js";
-import type { GoogleCalendarConfig } from "../../ports/calendar.js";
-import { parseCalendarFeatureConfig } from "./calendar-feature-config.js";
 import { isRecord } from "./config-parse-utils.js";
-
-export type ParsedFeatureConfig =
-  | ParsedCommonFeatureConfig
-  | ParsedGoogleCalendarFeatureConfig;
 
 export type ParsedCommonFeatureConfig =
   AssistantPolicyConfig["features"][string] & { adapter?: string };
 
-export type ParsedGoogleCalendarFeatureConfig = ParsedCommonFeatureConfig & {
-  adapter: "google";
-  google: GoogleCalendarConfig;
-};
+export type ParsedFeatureConfig = ParsedCommonFeatureConfig;
 
-export type ParsedFeaturesConfig = Record<string, ParsedFeatureConfig>;
+export type ParsedFeaturesConfig = Record<string, ParsedCommonFeatureConfig>;
+
+export type RawFeaturesConfig = Record<string, Record<string, unknown>>;
+
+export function parseRawFeaturesConfig(
+  value: Record<string, unknown>,
+): RawFeaturesConfig {
+  const features: RawFeaturesConfig = {};
+
+  for (const [featureId, featureConfig] of Object.entries(value)) {
+    if (!isRecord(featureConfig)) {
+      throw new Error(`Config feature "${featureId}" must be a JSON object.`);
+    }
+
+    features[featureId] = featureConfig;
+  }
+
+  return features;
+}
 
 export function parseFeaturesConfig(
   value: Record<string, unknown>,
@@ -39,11 +48,7 @@ export function parseFeaturesConfig(
       ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
     };
 
-    features[featureId] = parseSelectedFeatureAdapterConfig(
-      featureId,
-      featureConfig,
-      parsed,
-    );
+    features[featureId] = parsed;
   }
 
   return features;
@@ -52,7 +57,7 @@ export function parseFeaturesConfig(
 function parseFeatureAdapter(
   featureId: string,
   featureConfig: Record<string, unknown>,
-): Pick<ParsedFeatureConfig, "adapter"> {
+): Pick<ParsedCommonFeatureConfig, "adapter"> {
   const value = featureConfig.adapter;
 
   if (value === undefined) {
@@ -73,7 +78,7 @@ function parseFeatureAdapter(
 function parseConfirmationRequiredCapabilities(
   featureId: string,
   featureConfig: Record<string, unknown>,
-): Pick<ParsedFeatureConfig, "confirmationRequiredCapabilities"> {
+): Pick<ParsedCommonFeatureConfig, "confirmationRequiredCapabilities"> {
   const value = featureConfig.confirmationRequiredCapabilities;
 
   if (value === undefined) {
@@ -92,20 +97,4 @@ function parseConfirmationRequiredCapabilities(
   return {
     confirmationRequiredCapabilities: value,
   };
-}
-
-function parseSelectedFeatureAdapterConfig(
-  featureId: string,
-  rawFeatureConfig: Record<string, unknown>,
-  parsedFeatureConfig: ParsedCommonFeatureConfig,
-): ParsedFeatureConfig {
-  if (featureId === "calendar" && parsedFeatureConfig.adapter === "google") {
-    return {
-      ...parsedFeatureConfig,
-      adapter: "google",
-      ...parseCalendarFeatureConfig(rawFeatureConfig),
-    };
-  }
-
-  return parsedFeatureConfig;
 }

@@ -31,6 +31,15 @@ describe("loadConfig", () => {
           confirmationRequiredCapabilities: ["alarm.create"],
         },
       },
+      rawFeatures: {
+        calendar: { enabled: true, adapter: "mock" },
+        messaging: { enabled: true, adapter: "mock" },
+        alarms: {
+          enabled: true,
+          adapter: "local",
+          confirmationRequiredCapabilities: ["alarm.create"],
+        },
+      },
     });
   });
 
@@ -63,6 +72,9 @@ describe("loadConfig", () => {
         provider: "deterministic",
       },
       features: {
+        calendar: { enabled: false },
+      },
+      rawFeatures: {
         calendar: { enabled: false },
       },
     });
@@ -147,6 +159,13 @@ describe("parseAssistantConfig", () => {
         provider: "deterministic",
       },
       features: {
+        alarms: {
+          enabled: true,
+          adapter: "local",
+          confirmationRequiredCapabilities: ["alarm.create"],
+        },
+      },
+      rawFeatures: {
         alarms: {
           enabled: true,
           adapter: "local",
@@ -440,8 +459,8 @@ describe("parseAssistantConfig", () => {
     ).toThrow('Config feature "calendar".adapter must be a non-empty string.');
   });
 
-  it("parses selected feature adapter provider config into the typed feature shape", () => {
-    const feature = parseAssistantConfig(
+  it("keeps selected feature adapter provider config out of the common feature shape", () => {
+    const config = parseAssistantConfig(
       createMinimalConfig({
         features: {
           calendar: {
@@ -451,22 +470,20 @@ describe("parseAssistantConfig", () => {
           },
         },
       }),
-    ).features.calendar;
+    );
 
-    expect(feature).toEqual({
+    expect(config.features.calendar).toEqual({
       enabled: true,
       adapter: "google",
-      google: {
-        accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-        baseUrl: "https://www.googleapis.com/calendar/v3",
-        calendarId: "primary",
-        maxResults: 10,
-        timeoutMs: 30_000,
-      },
+    });
+    expect(config.rawFeatures?.calendar).toEqual({
+      enabled: true,
+      adapter: "google",
+      google: {},
     });
   });
 
-  it("validates selected feature adapter provider config while parsing", () => {
+  it("defers selected feature adapter provider config validation", () => {
     expect(() =>
       parseAssistantConfig(
         createMinimalConfig({
@@ -481,9 +498,7 @@ describe("parseAssistantConfig", () => {
           },
         }),
       ),
-    ).toThrow(
-      'Config feature "calendar".google.timeoutMs must be a positive integer.',
-    );
+    ).not.toThrow();
   });
 
   it("ignores unselected feature adapter provider config", () => {

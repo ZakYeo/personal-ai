@@ -6,11 +6,9 @@ import { createCalendarFeature } from "../features/calendar/calendar-feature.js"
 import { createMessagingFeature } from "../features/messaging/messaging-feature.js";
 import type { GoogleCalendarConfig } from "../ports/calendar.js";
 import type { FeaturePlugin } from "../ports/feature.js";
+import { parseCalendarFeatureConfig } from "./config/calendar-feature-config.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
-import type {
-  ParsedFeatureConfig,
-  ParsedGoogleCalendarFeatureConfig,
-} from "./config/feature-config.js";
+import type { ParsedFeatureConfig } from "./config/feature-config.js";
 import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
 
 export interface FeatureAdapterDependencies {
@@ -23,15 +21,18 @@ interface FeatureAdapterContext<TAdapterConfig> {
   dependencies: FeatureAdapterDependencies;
 }
 
-interface FeatureAdapterDefinition<TFeatureConfig, TAdapterConfig> {
+interface FeatureAdapterDefinition<TAdapterConfig> {
   create(context: FeatureAdapterContext<TAdapterConfig>): FeaturePlugin;
-  resolveConfig(featureConfig: TFeatureConfig): TAdapterConfig;
-  resolveFeatureConfig?(featureConfig: ParsedFeatureConfig): TFeatureConfig;
+  resolveConfig(context: {
+    featureConfig: ParsedFeatureConfig;
+    rawFeatureConfig: Record<string, unknown>;
+  }): TAdapterConfig;
 }
 
 interface FeatureAdapterEntry {
   create(
     featureConfig: ParsedFeatureConfig,
+    rawFeatureConfig: Record<string, unknown>,
     dependencies: FeatureAdapterDependencies,
   ): FeaturePlugin;
 }
@@ -51,20 +52,16 @@ interface CreateConfiguredFeaturesOptions {
   registry?: FeatureAdapterRegistry;
 }
 
-export function defineFeatureAdapterEntry<
-  TFeatureConfig extends ParsedFeatureConfig,
-  TAdapterConfig,
->(
-  entry: FeatureAdapterDefinition<TFeatureConfig, TAdapterConfig>,
+export function defineFeatureAdapterEntry<TAdapterConfig>(
+  entry: FeatureAdapterDefinition<TAdapterConfig>,
 ): FeatureAdapterEntry {
   return {
-    create: (featureConfig, dependencies) => {
-      const resolvedFeatureConfig = entry.resolveFeatureConfig
-        ? entry.resolveFeatureConfig(featureConfig)
-        : (featureConfig as TFeatureConfig);
-
+    create: (featureConfig, rawFeatureConfig, dependencies) => {
       return entry.create({
-        adapterConfig: entry.resolveConfig(resolvedFeatureConfig),
+        adapterConfig: entry.resolveConfig({
+          featureConfig,
+          rawFeatureConfig,
+        }),
         dependencies,
       });
     },
@@ -91,6 +88,7 @@ export function createConfiguredFeatureSelection(
         selectConfiguredFeatureAdapter(
           featureId,
           featureConfig,
+          config.rawFeatures?.[featureId] ?? {},
           registry,
           options.dependencies,
         ),
@@ -121,7 +119,6 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
             );
           },
           resolveConfig: requireCalendarGoogleAdapterConfig,
-          resolveFeatureConfig: requireCalendarGoogleFeatureConfig,
         }),
         mock: defineFeatureAdapterEntry({
           create: () => createCalendarFeature(createMockCalendar()),
@@ -143,6 +140,7 @@ function createDefaultFeatureAdapterRegistry(): FeatureAdapterRegistry {
 function selectConfiguredFeatureAdapter(
   featureId: string,
   featureConfig: ParsedFeatureConfig,
+  rawFeatureConfig: Record<string, unknown>,
   registry: FeatureAdapterRegistry,
   dependencies: FeatureAdapterDependencies,
 ): FeaturePlugin {
@@ -160,27 +158,23 @@ function selectConfiguredFeatureAdapter(
       `Config feature "${featureId}" adapter "${adapterId}" is not registered.`,
   });
 
-  return adapter.create(featureConfig, dependencies);
+  return adapter.create(featureConfig, rawFeatureConfig, dependencies);
 }
 
 interface CalendarGoogleAdapterConfig {
   google: GoogleCalendarConfig;
 }
 
-function requireCalendarGoogleAdapterConfig(
-  featureConfig: ParsedGoogleCalendarFeatureConfig,
-): CalendarGoogleAdapterConfig {
-  return {
-    google: featureConfig.google,
-  };
-}
+function requireCalendarGoogleAdapterConfig(context: {
+  rawFeatureConfig: Record<string, unknown>;
+}): CalendarGoogleAdapterConfig {
+  const featureConfig = parseCalendarFeatureConfig(context.rawFeatureConfig);
 
-function requireCalendarGoogleFeatureConfig(
-  featureConfig: ParsedFeatureConfig,
-): ParsedGoogleCalendarFeatureConfig {
-  if (!("google" in featureConfig)) {
+  if (!featureConfig.google) {
     throw new Error('Config feature "calendar".google must be configured.');
   }
 
-  return featureConfig;
+  return {
+    google: featureConfig.google,
+  };
 }

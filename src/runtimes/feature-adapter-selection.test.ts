@@ -3,10 +3,6 @@ import {
   parseAssistantConfig,
   type LoadedRuntimeConfig,
 } from "./config/config.js";
-import type {
-  ParsedFeatureConfig,
-  ParsedGoogleCalendarFeatureConfig,
-} from "./config/feature-config.js";
 import { defineCapability, defineFeature } from "../ports/feature.js";
 import {
   disabledCalendarConfig,
@@ -145,11 +141,16 @@ describe("createConfiguredFeatures", () => {
 
   it("rejects invalid Google calendar adapter config only when selected", () => {
     expect(() =>
-      onlyGoogleCalendarConfig({
-        google: {
-          timeoutMs: 0,
+      createConfiguredFeatures(
+        onlyGoogleCalendarConfig({
+          google: {
+            timeoutMs: 0,
+          },
+        }),
+        {
+          dependencies: featureAdapterDependencies,
         },
-      }),
+      ),
     ).toThrow(
       'Config feature "calendar".google.timeoutMs must be a positive integer.',
     );
@@ -195,9 +196,8 @@ describe("createConfiguredFeatures", () => {
         calendar: {
           adapters: {
             google: defineFeatureAdapterEntry({
-              resolveFeatureConfig: requireTestGoogleFeatureConfig,
-              resolveConfig: (featureConfig) =>
-                requireTestGoogleConfig(featureConfig),
+              resolveConfig: ({ rawFeatureConfig }) =>
+                requireTestGoogleConfig(rawFeatureConfig),
               create: (context) => {
                 return factory(context.adapterConfig);
               },
@@ -271,21 +271,22 @@ interface TestGoogleConfig {
 }
 
 function requireTestGoogleConfig(
-  featureConfig: ParsedGoogleCalendarFeatureConfig,
+  rawFeatureConfig: Record<string, unknown>,
 ): TestGoogleConfig {
-  return {
-    google: {
-      accessTokenEnv: featureConfig.google.accessTokenEnv,
-    },
-  };
-}
+  const google = rawFeatureConfig.google;
 
-function requireTestGoogleFeatureConfig(
-  featureConfig: ParsedFeatureConfig,
-): ParsedGoogleCalendarFeatureConfig {
-  if (!("google" in featureConfig)) {
+  if (
+    typeof google !== "object" ||
+    google === null ||
+    !("accessTokenEnv" in google) ||
+    typeof google.accessTokenEnv !== "string"
+  ) {
     throw new Error('Config feature "calendar".google must be configured.');
   }
 
-  return featureConfig;
+  return {
+    google: {
+      accessTokenEnv: google.accessTokenEnv,
+    },
+  };
 }
