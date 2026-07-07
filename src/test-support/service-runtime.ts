@@ -8,9 +8,7 @@ import type {
 import { deterministicScenarios } from "./deterministic-scenarios.js";
 import { createCapturedWriter } from "./primitives.js";
 
-interface ServiceRuntimeHarnessOptions extends Partial<ServiceRuntimeOptions> {
-  useConfiguredAssistant?: boolean;
-}
+type ServiceRuntimeHarnessOptions = Partial<ServiceRuntimeOptions>;
 
 export function createServiceRuntimeHarness(
   options: ServiceRuntimeHarnessOptions = {},
@@ -24,16 +22,8 @@ export function createServiceRuntimeHarness(
         await import("../runtimes/service/service-runtime.js");
 
       return runServiceRuntime({
-        ...(options.config ? { config: options.config } : {}),
         ...(options.configPath ? { configPath: options.configPath } : {}),
-        ...(options.createAssistant || !options.useConfiguredAssistant
-          ? {
-              createAssistant:
-                options.createAssistant ?? createServiceAssistant,
-            }
-          : {}),
-        ...(options.env ? { env: options.env } : {}),
-        ...(options.fetch ? { fetch: options.fetch } : {}),
+        createAssistant: options.createAssistant ?? createServiceAssistant,
         io: options.io ?? { stderr },
         now: options.now ?? (() => new Date("2026-06-26T09:00:00.000Z")),
         ...(options.processSignals

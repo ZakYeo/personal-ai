@@ -1,7 +1,5 @@
 import type { Assistant } from "../../core/assistant/index.js";
 import type { AssistantResponse } from "../../ports/assistant.js";
-import { createConfiguredTextRuntime } from "../configured-text-runtime.js";
-import type { LoadedRuntimeConfig } from "../config/config.js";
 import {
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
@@ -37,11 +35,8 @@ export interface ServiceTurnFailureContext {
 }
 
 export interface ServiceRuntimeOptions {
-  config?: LoadedRuntimeConfig;
   configPath?: string;
-  createAssistant?: () => Promise<Assistant>;
-  env?: Record<string, string | undefined>;
-  fetch?: typeof fetch;
+  createAssistant: () => Promise<Assistant>;
   io?: ServiceRuntimeIo;
   now?: () => Date;
   processSignals?: ServiceProcessSignals;
@@ -83,7 +78,7 @@ export async function runServiceRuntime(
       },
     );
 
-    const assistant = await createServiceAssistant(options);
+    const assistant = await options.createAssistant();
     started = true;
     let turnFailures = 0;
 
@@ -144,22 +139,6 @@ export async function runServiceRuntime(
       unregister();
     }
   }
-}
-
-function createServiceAssistant(
-  options: ServiceRuntimeOptions,
-): Promise<Assistant> {
-  if (options.createAssistant) {
-    return options.createAssistant();
-  }
-
-  return createConfiguredTextRuntime({
-    ...(options.config ? { config: options.config } : {}),
-    ...(options.configPath ? { configPath: options.configPath } : {}),
-    ...(options.env ? { env: options.env } : {}),
-    ...(options.fetch ? { fetch: options.fetch } : {}),
-    ...(options.now ? { now: options.now } : {}),
-  });
 }
 
 function createServiceState() {

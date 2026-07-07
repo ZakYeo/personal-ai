@@ -60,11 +60,8 @@ export async function runConfiguredServiceRuntime(
   }
 
   return runServiceRuntime({
-    ...(options.config ? { config: options.config } : {}),
     ...(options.configPath ? { configPath: options.configPath } : {}),
     createAssistant: () => Promise.resolve(startup.assistant),
-    ...(options.env ? { env: options.env } : {}),
-    ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(options.io ? { io: options.io } : {}),
     ...(options.now ? { now: options.now } : {}),
     ...(options.processSignals

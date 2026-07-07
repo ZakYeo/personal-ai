@@ -1,7 +1,5 @@
 import { line } from "../../test-support/primitives.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
-import { enabledDeterministicConfig } from "../../test-support/deterministic-runtime-fixtures.js";
-import { writeRuntimeHarnessConfig } from "../../test-support/runtime-composition.js";
 import {
   createServiceRuntimeHarness,
   createServiceSignalController,
@@ -15,33 +13,6 @@ import type {
 import { runServiceRuntime } from "./service-runtime.js";
 
 describe("runServiceRuntime", () => {
-  it("can compose the configured text assistant from an injected config path", async () => {
-    const configPath = await writeRuntimeHarnessConfig(
-      enabledDeterministicConfig,
-    );
-    const harness = createServiceRuntimeHarness({
-      configPath,
-      useConfiguredAssistant: true,
-      runTurn: vi
-        .fn()
-        .mockImplementation(async (context: ServiceTurnContext) => {
-          await expect(
-            context.assistant.handleText(
-              deterministicScenarios.alarmListEmpty.text,
-            ),
-          ).resolves.toEqual(deterministicScenarios.alarmListEmpty.response);
-          expect(context.configPath).toBe(configPath);
-
-          context.requestShutdown("test complete");
-        }),
-    });
-
-    await expect(harness.run()).resolves.toEqual({
-      status: "stopped",
-      turnsCompleted: 1,
-    });
-  });
-
   it("returns a safe startup failure outcome when assistant composition fails", async () => {
     const harness = createServiceRuntimeHarness({
       createAssistant: () => Promise.reject(new Error("raw startup failure")),
