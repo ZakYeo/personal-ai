@@ -41,6 +41,12 @@ type ParsedCliCommand =
   | ParsedPiServiceCommand
   | ParsedVoiceCommand;
 
+type ParsedVoiceServiceCommand =
+  | ParsedDesktopVoiceServiceCommand
+  | ParsedPiServiceCommand;
+
+type VoiceServiceRuntimeOptions = Parameters<typeof runPiServiceRuntime>[0];
+
 interface CliCommandDefinition<TCommand extends ParsedCliCommand> {
   name: TCommand["kind"];
   parse(args: string[]): TCommand | undefined;
@@ -211,34 +217,12 @@ function buildVoiceRuntimeOptions(
   };
 }
 
-function buildPiServiceRuntimeOptions(
-  parsed: ParsedPiServiceCommand,
+function buildVoiceServiceRuntimeOptions(
+  parsed: ParsedVoiceServiceCommand,
   env: NodeJS.ProcessEnv,
   io: CliIo,
   dependencies: CliDependencies,
-): Parameters<typeof runPiServiceRuntime>[0] {
-  const fixedNow = env.PERSONAL_AI_FIXED_NOW;
-
-  return {
-    configPath: parsed.configPath,
-    env,
-    io: {
-      fallbackOutput: io.stdout,
-      progressOutput: io.stdout,
-      stderr: io.stderr,
-    },
-    ...(fixedNow ? { now: () => new Date(fixedNow) } : {}),
-    processSignals:
-      dependencies.processSignals ?? createNodeProcessSignals(process),
-  };
-}
-
-function buildDesktopVoiceServiceRuntimeOptions(
-  parsed: ParsedDesktopVoiceServiceCommand,
-  env: NodeJS.ProcessEnv,
-  io: CliIo,
-  dependencies: CliDependencies,
-): Parameters<typeof runDesktopVoiceServiceRuntime>[0] {
+): VoiceServiceRuntimeOptions {
   const fixedNow = env.PERSONAL_AI_FIXED_NOW;
 
   return {
@@ -315,7 +299,7 @@ async function handlePiServiceCommand(
       dependencies.createPiServiceRuntime ?? runPiServiceRuntime;
 
     return await createPiServiceRuntime(
-      buildPiServiceRuntimeOptions(parsed, io.env, io, dependencies),
+      buildVoiceServiceRuntimeOptions(parsed, io.env, io, dependencies),
     );
   } catch (error) {
     logRuntimeFailure(error, io);
@@ -339,7 +323,7 @@ async function handleDesktopVoiceServiceCommand(
       runDesktopVoiceServiceRuntime;
 
     return await createDesktopVoiceServiceRuntime(
-      buildDesktopVoiceServiceRuntimeOptions(parsed, io.env, io, dependencies),
+      buildVoiceServiceRuntimeOptions(parsed, io.env, io, dependencies),
     );
   } catch (error) {
     logRuntimeFailure(error, io);
