@@ -5,6 +5,7 @@ export interface CapturedAudio {
 
 export interface CapturedAudioStream {
   chunks: AsyncIterable<Uint8Array>;
+  cleanup?(): Promise<void>;
 }
 
 export interface WakeWordDetection {

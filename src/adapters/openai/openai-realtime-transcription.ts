@@ -83,8 +83,17 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
 
       return transcript;
     } finally {
+      await cleanupAudioStream(audio);
       socket.close();
     }
+  }
+}
+
+async function cleanupAudioStream(audio: CapturedAudioStream): Promise<void> {
+  try {
+    await audio.cleanup?.();
+  } catch {
+    // Audio stream cleanup is best-effort and must not mask transcription errors.
   }
 }
 

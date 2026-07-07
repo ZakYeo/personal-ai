@@ -263,6 +263,7 @@ function toError(error: unknown): Error {
 
 export function runCommandReadableStream(request: RunCommandRequest): {
   chunks: AsyncIterable<Uint8Array>;
+  cleanup(): Promise<void>;
 } {
   const child = spawn(request.command, request.args ?? [], {
     stdio: ["ignore", "pipe", "pipe"],
@@ -279,11 +280,33 @@ export function runCommandReadableStream(request: RunCommandRequest): {
     spawnError = error;
   });
 
+  const waitForClose = waitForProcessClose({
+    child,
+    command: request.command,
+    getSpawnError: () => spawnError,
+    stderrChunks,
+    stdoutChunks,
+    timeoutMs,
+  });
+  waitForClose.catch(() => {});
+
   return {
+    cleanup: async () => {
+      if (child.exitCode === null && child.signalCode === null) {
+        child.kill("SIGTERM");
+      }
+
+      try {
+        await waitForClose;
+      } catch {
+        // Stream cleanup is best-effort; callers keep the primary failure.
+      }
+    },
     chunks: readProcessStdout({
       child,
       command: request.command,
       getSpawnError: () => spawnError,
+      waitForClose,
       stderrChunks,
       stdoutChunks,
       timeoutMs,
@@ -334,6 +357,7 @@ interface ProcessCompletionRequest {
   stderrChunks: Buffer[];
   stdoutChunks: Buffer[];
   timeoutMs: number;
+  waitForClose?: Promise<void>;
 }
 
 async function* readProcessStdout(
@@ -343,7 +367,7 @@ async function* readProcessStdout(
     throw new Error("Command did not provide stdout.");
   }
 
-  const waitForClose = waitForProcessClose(request);
+  const waitForClose = request.waitForClose ?? waitForProcessClose(request);
   waitForClose.catch(() => {});
 
   for await (const chunk of request.child.stdout) {

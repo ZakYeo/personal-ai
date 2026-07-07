@@ -85,6 +85,7 @@ describe("OpenAIRealtimeTranscription", () => {
 
   it("rejects with a safe realtime error when the provider sends an error event", async () => {
     const socket = new FakeRealtimeSocket();
+    const cleanup = vi.fn<() => Promise<void>>(() => Promise.resolve());
     const adapter = new OpenAIRealtimeTranscription({
       config: {
         apiKeyEnv: "OPENAI_API_KEY",
@@ -98,6 +99,7 @@ describe("OpenAIRealtimeTranscription", () => {
 
     const transcriptPromise = adapter.transcribeStream({
       chunks: chunksFromText("audio"),
+      cleanup,
     });
 
     socket.emitOpen();
@@ -115,6 +117,7 @@ describe("OpenAIRealtimeTranscription", () => {
       "Realtime transcription failed.",
     );
     expect(socket.closed).toBe(true);
+    expect(cleanup).toHaveBeenCalledTimes(1);
   });
 
   it("rejects without an API key", async () => {
@@ -200,6 +203,7 @@ describe("OpenAIRealtimeTranscription", () => {
 
   it("rejects and closes the socket when the realtime socket never opens", async () => {
     const socket = new FakeRealtimeSocket();
+    const cleanup = vi.fn<() => Promise<void>>(() => Promise.resolve());
     const adapter = new OpenAIRealtimeTranscription({
       config: {
         apiKeyEnv: "OPENAI_API_KEY",
@@ -212,10 +216,11 @@ describe("OpenAIRealtimeTranscription", () => {
     });
 
     await expect(
-      adapter.transcribeStream({ chunks: chunksFromText("audio") }),
+      adapter.transcribeStream({ chunks: chunksFromText("audio"), cleanup }),
     ).rejects.toThrow("Realtime transcription timed out after 1ms.");
     expect(socket.closed).toBe(true);
     expect(socket.sentMessages).toEqual([]);
+    expect(cleanup).toHaveBeenCalledTimes(1);
   });
 });
 

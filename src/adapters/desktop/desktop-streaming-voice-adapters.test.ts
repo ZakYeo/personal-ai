@@ -41,6 +41,16 @@ describe("desktop streaming voice adapters", () => {
       'Command "/bin/sh" timed out after 1ms.',
     );
   });
+
+  it("can clean up a running streaming audio command before it times out", async () => {
+    const adapter = new CommandStreamingAudioInput({
+      ...createShellCommand("sleep 10"),
+      timeoutMs: 30_000,
+    });
+    const audio = await adapter.captureStream();
+
+    await expect(audio.cleanup?.()).resolves.toBeUndefined();
+  });
 });
 
 async function readChunksAsText(
