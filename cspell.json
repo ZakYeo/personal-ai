@@ -27,6 +27,7 @@
     "Vitest",
     "Vosk",
     "binfmt",
+    "cooldown",
     "depcruise",
     "dtb",
     "githooks",
@@ -35,7 +36,9 @@
     "markdownlint",
     "mmcblk",
     "netdev",
+    "openwakeword",
     "personal-ai",
+    "pretrained",
     "qemu",
     "raspi",
     "raspios",
@@ -46,6 +49,7 @@
     "tsx",
     "tonistiigi",
     "userland",
+    "wakeword",
     "wakePhrases"
   ]
 }
