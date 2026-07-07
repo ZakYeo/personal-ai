@@ -17,7 +17,7 @@ import type { ParsedDesktopVoiceConfig } from "../config/desktop-voice-config.js
 import type {
   OpenAIRealtimeTranscriptionConfig,
   OpenAIStreamingSpeechConfig,
-} from "../config/desktop-voice-openai-config.js";
+} from "../config/desktop-voice-openai-types.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
 

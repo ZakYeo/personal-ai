@@ -4,22 +4,10 @@ import {
   parseOptionalPositiveInteger,
 } from "./config-parse-utils.js";
 import type { ParsedDesktopVoiceConfig } from "./desktop-voice-config.js";
-
-export interface OpenAIRealtimeTranscriptionConfig {
-  apiKeyEnv: string;
-  baseUrl: string;
-  model: string;
-  timeoutMs: number;
-}
-
-export interface OpenAIStreamingSpeechConfig {
-  apiKeyEnv: string;
-  baseUrl: string;
-  instructions: string;
-  model: string;
-  responseFormat: string;
-  voice: string;
-}
+import type {
+  OpenAIRealtimeTranscriptionConfig,
+  OpenAIStreamingSpeechConfig,
+} from "./desktop-voice-openai-types.js";
 
 export function requireDesktopOpenAIRealtimeTranscriptionConfig(config: {
   desktopVoice?: ParsedDesktopVoiceConfig;

@@ -3,7 +3,7 @@ import { isRecord } from "./config-parse-utils.js";
 import type {
   OpenAIRealtimeTranscriptionConfig,
   OpenAIStreamingSpeechConfig,
-} from "./desktop-voice-openai-config.js";
+} from "./desktop-voice-openai-types.js";
 
 export interface ParsedDesktopVoiceConfig {
   audioInput?: VoiceCommandConfig;
