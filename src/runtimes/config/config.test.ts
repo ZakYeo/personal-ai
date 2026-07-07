@@ -89,9 +89,11 @@ describe("loadConfig", () => {
     });
 
     for (const config of [desktopConfig, piConfig]) {
-      expect(config.desktopVoice?.openAIRealtimeTranscription).toMatchObject({
-        model: "gpt-realtime-whisper",
-      });
+      expect(config.rawDesktopVoice?.openAIRealtimeTranscription).toMatchObject(
+        {
+          model: "gpt-realtime-whisper",
+        },
+      );
       expect(config.desktopVoice?.streamingAudioInput?.args).toContain("24000");
       expect(config.voice?.streamingSpeechToText).toBe("openai-realtime");
       expect(config.voice?.wakeActivation).toBe("openwakeword-command");

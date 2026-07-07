@@ -1,8 +1,7 @@
 import { requireDesktopVoiceCommandConfig } from "../config/desktop-voice-config.js";
 import type {
   ParsedDesktopVoiceConfig,
-  ResolvedDesktopVoiceAdapterConfig,
-  ResolvedDesktopVoiceServiceAdapterConfig,
+  RawDesktopVoiceConfig,
 } from "../config/desktop-voice-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import type { VoiceTempFilePort } from "../../ports/voice.js";
@@ -10,12 +9,15 @@ import {
   createDesktopVoiceSlotAdapter,
   desktopVoiceSlotTopology,
   resolveDesktopVoiceSlotConfig,
+  resolveDesktopVoiceSlotProvider,
 } from "./desktop-voice-slot-topology.js";
 import { createNodeVoiceTempFiles } from "./voice-temp-files.js";
 import type {
   DesktopVoiceAdapters,
   DesktopVoiceAdapterRuntimeDependencies,
   DesktopVoiceServiceAdapters,
+  ResolvedDesktopVoiceAdapterConfig,
+  ResolvedDesktopVoiceServiceAdapterConfig,
 } from "./desktop-voice-adapter-types.js";
 
 export type {
@@ -25,7 +27,10 @@ export type {
 
 export function resolveDesktopVoiceAdapterConfig(
   voice: ResolvedVoiceConfig,
-  config: { desktopVoice?: ParsedDesktopVoiceConfig },
+  config: {
+    desktopVoice?: ParsedDesktopVoiceConfig;
+    rawDesktopVoice?: RawDesktopVoiceConfig;
+  },
 ): ResolvedDesktopVoiceAdapterConfig {
   requireStreamingPair(
     voice.streamingAudioInput,
@@ -64,7 +69,7 @@ export function resolveDesktopVoiceAdapterConfig(
               desktopVoiceSlotTopology.streamingAudioInput,
               config,
             ),
-            transcription: resolveDesktopVoiceSlotConfig(
+            transcription: resolveDesktopVoiceSlotProvider(
               voice,
               desktopVoiceSlotTopology.streamingSpeechToText,
               config,
@@ -80,7 +85,7 @@ export function resolveDesktopVoiceAdapterConfig(
               desktopVoiceSlotTopology.streamingAudioOutput,
               config,
             ),
-            speech: resolveDesktopVoiceSlotConfig(
+            speech: resolveDesktopVoiceSlotProvider(
               voice,
               desktopVoiceSlotTopology.streamingTextToSpeech,
               config,
@@ -107,7 +112,10 @@ export function resolveDesktopVoiceAdapterConfig(
 
 export function resolveDesktopVoiceServiceAdapterConfig(
   voice: ResolvedVoiceConfig,
-  config: { desktopVoice?: ParsedDesktopVoiceConfig },
+  config: {
+    desktopVoice?: ParsedDesktopVoiceConfig;
+    rawDesktopVoice?: RawDesktopVoiceConfig;
+  },
 ): ResolvedDesktopVoiceServiceAdapterConfig {
   return {
     ...resolveDesktopVoiceAdapterConfig(voice, config),
@@ -165,12 +173,8 @@ function createDesktopVoiceAdaptersWithTempFiles(
             desktopVoice.streamingSpeechToText.audioInput,
             context,
           ),
-          streamingSpeechToText: createDesktopVoiceSlotAdapter(
-            voice,
-            desktopVoiceSlotTopology.streamingSpeechToText,
-            desktopVoice.streamingSpeechToText.transcription,
-            context,
-          ),
+          streamingSpeechToText:
+            desktopVoice.streamingSpeechToText.transcription.create(context),
         }
       : {}),
     ...(desktopVoice.streamingTextToSpeech
@@ -181,12 +185,8 @@ function createDesktopVoiceAdaptersWithTempFiles(
             desktopVoice.streamingTextToSpeech.audioOutput,
             context,
           ),
-          streamingTextToSpeech: createDesktopVoiceSlotAdapter(
-            voice,
-            desktopVoiceSlotTopology.streamingTextToSpeech,
-            desktopVoice.streamingTextToSpeech.speech,
-            context,
-          ),
+          streamingTextToSpeech:
+            desktopVoice.streamingTextToSpeech.speech.create(context),
         }
       : {}),
     textToSpeech: createDesktopVoiceSlotAdapter(

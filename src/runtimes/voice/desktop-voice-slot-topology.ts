@@ -1,4 +1,7 @@
-import type { ParsedDesktopVoiceConfig } from "../config/desktop-voice-config.js";
+import type {
+  ParsedDesktopVoiceConfig,
+  RawDesktopVoiceConfig,
+} from "../config/desktop-voice-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
 import { desktopVoiceCommandAdapterEntries } from "./desktop-voice-command-adapter-entries.js";
@@ -6,6 +9,7 @@ import { desktopVoiceProviderAdapterEntries } from "./desktop-voice-provider-ada
 import type {
   DesktopVoiceAdapterContext,
   DesktopVoiceAdapterEntry,
+  ResolvedDesktopProviderAdapter,
   DesktopVoiceSlotDescriptor,
   DesktopVoiceSlotTopology,
 } from "./desktop-voice-adapter-types.js";
@@ -56,7 +60,10 @@ export const desktopVoiceSlotTopology = {
 export function resolveDesktopVoiceSlotConfig<TConfig, TAdapter>(
   voice: ResolvedVoiceConfig,
   descriptor: DesktopVoiceSlotDescriptor<TConfig, TAdapter>,
-  config: { desktopVoice?: ParsedDesktopVoiceConfig },
+  config: {
+    desktopVoice?: ParsedDesktopVoiceConfig;
+    rawDesktopVoice?: RawDesktopVoiceConfig;
+  },
 ): TConfig {
   return selectConfiguredDesktopVoiceAdapter(voice, descriptor).resolveConfig(
     config,
@@ -73,6 +80,22 @@ export function createDesktopVoiceSlotAdapter<TConfig, TAdapter>(
     config,
     context,
   );
+}
+
+export function resolveDesktopVoiceSlotProvider<TConfig, TAdapter>(
+  voice: ResolvedVoiceConfig,
+  descriptor: DesktopVoiceSlotDescriptor<TConfig, TAdapter>,
+  config: {
+    desktopVoice?: ParsedDesktopVoiceConfig;
+    rawDesktopVoice?: RawDesktopVoiceConfig;
+  },
+): ResolvedDesktopProviderAdapter<TAdapter> {
+  const entry = selectConfiguredDesktopVoiceAdapter(voice, descriptor);
+  const adapterConfig = entry.resolveConfig(config);
+
+  return {
+    create: (context) => entry.create(adapterConfig, context),
+  };
 }
 
 function selectConfiguredDesktopVoiceAdapter<TConfig, TAdapter>(

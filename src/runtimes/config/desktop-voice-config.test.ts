@@ -40,9 +40,19 @@ describe("desktop voice config parsing", () => {
     };
 
     expect(parseAssistantConfig(createMinimalConfig({ desktopVoice }))).toEqual(
-      createMinimalConfig({
-        desktopVoice,
-      }),
+      {
+        ...createMinimalConfig({
+          desktopVoice: {
+            wakeAudioInput: desktopVoice.wakeAudioInput,
+            wakeActivation: desktopVoice.wakeActivation,
+            streamingAudioInput: desktopVoice.streamingAudioInput,
+            streamingAudioOutput: desktopVoice.streamingAudioOutput,
+            speechToText: desktopVoice.speechToText,
+            textToSpeech: desktopVoice.textToSpeech,
+          },
+        }),
+        rawDesktopVoice: desktopVoice,
+      },
     );
   });
 
@@ -105,14 +115,13 @@ describe("desktop voice config resolvers", () => {
       streamingSpeechToText: {
         audioInput: { command: "fake-stream-rec" },
         transcription: {
-          model: "gpt-realtime-whisper",
+          create: expect.any(Function) as unknown,
         },
       },
       streamingTextToSpeech: {
         audioOutput: { command: "fake-stream-play" },
         speech: {
-          model: "gpt-4o-mini-tts",
-          voice: "coral",
+          create: expect.any(Function) as unknown,
         },
       },
       wakeActivation: { command: "fake-wake" },

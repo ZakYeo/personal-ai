@@ -1,15 +1,9 @@
 import type { VoiceCommandConfig } from "../../ports/assistant.js";
 import { isRecord } from "./config-parse-utils.js";
-import type {
-  OpenAIRealtimeTranscriptionConfig,
-  OpenAIStreamingSpeechConfig,
-} from "./desktop-voice-openai-types.js";
 
 export interface ParsedDesktopVoiceConfig {
   audioInput?: VoiceCommandConfig;
   audioOutput?: VoiceCommandConfig;
-  openAIRealtimeTranscription?: unknown;
-  openAIStreamingSpeech?: unknown;
   speechToText?: VoiceCommandConfig;
   streamingAudioInput?: VoiceCommandConfig;
   streamingAudioOutput?: VoiceCommandConfig;
@@ -17,6 +11,8 @@ export interface ParsedDesktopVoiceConfig {
   wakeActivation?: VoiceCommandConfig;
   wakeAudioInput?: VoiceCommandConfig;
 }
+
+export type RawDesktopVoiceConfig = Record<string, unknown>;
 
 interface ResolvedDesktopVoiceConfig {
   audioInput: VoiceCommandConfig;
@@ -27,30 +23,6 @@ interface ResolvedDesktopVoiceConfig {
   textToSpeech: VoiceCommandConfig;
   wakeActivation?: VoiceCommandConfig;
   wakeAudioInput?: VoiceCommandConfig;
-}
-
-export interface ResolvedDesktopStreamingSpeechToTextConfig {
-  audioInput: VoiceCommandConfig;
-  transcription: OpenAIRealtimeTranscriptionConfig;
-}
-
-export interface ResolvedDesktopStreamingTextToSpeechConfig {
-  audioOutput: VoiceCommandConfig;
-  speech: OpenAIStreamingSpeechConfig;
-}
-
-export interface ResolvedDesktopVoiceAdapterConfig {
-  audioInput: VoiceCommandConfig;
-  audioOutput: VoiceCommandConfig;
-  speechToText: VoiceCommandConfig;
-  streamingSpeechToText?: ResolvedDesktopStreamingSpeechToTextConfig;
-  streamingTextToSpeech?: ResolvedDesktopStreamingTextToSpeechConfig;
-  textToSpeech: VoiceCommandConfig;
-  wakeActivation?: VoiceCommandConfig;
-}
-
-export interface ResolvedDesktopVoiceServiceAdapterConfig extends ResolvedDesktopVoiceAdapterConfig {
-  wakeAudioInput: VoiceCommandConfig;
 }
 
 type ParsedDesktopVoiceCommandKey =
@@ -65,6 +37,7 @@ type ParsedDesktopVoiceCommandKey =
 
 export function parseDesktopVoiceConfig(value: unknown): {
   desktopVoice?: ParsedDesktopVoiceConfig;
+  rawDesktopVoice?: RawDesktopVoiceConfig;
 } {
   if (value === undefined) {
     return {};
@@ -78,14 +51,6 @@ export function parseDesktopVoiceConfig(value: unknown): {
     desktopVoice: {
       ...parseVoiceCommand("audioInput", value.audioInput),
       ...parseVoiceCommand("audioOutput", value.audioOutput),
-      ...parseRawProviderConfig(
-        "openAIRealtimeTranscription",
-        value.openAIRealtimeTranscription,
-      ),
-      ...parseRawProviderConfig(
-        "openAIStreamingSpeech",
-        value.openAIStreamingSpeech,
-      ),
       ...parseVoiceCommand("speechToText", value.speechToText),
       ...parseVoiceCommand("streamingAudioInput", value.streamingAudioInput),
       ...parseVoiceCommand("streamingAudioOutput", value.streamingAudioOutput),
@@ -93,6 +58,7 @@ export function parseDesktopVoiceConfig(value: unknown): {
       ...parseVoiceCommand("wakeActivation", value.wakeActivation),
       ...parseVoiceCommand("wakeAudioInput", value.wakeAudioInput),
     },
+    rawDesktopVoice: value,
   };
 }
 
@@ -184,20 +150,5 @@ function parseVoiceCommand<TKey extends ParsedDesktopVoiceCommandKey>(
       ...(value.args ? { args: value.args } : {}),
       ...(timeoutMs ? { timeoutMs } : {}),
     },
-  } as Pick<ParsedDesktopVoiceConfig, TKey>;
-}
-
-function parseRawProviderConfig<
-  TKey extends keyof Pick<
-    ParsedDesktopVoiceConfig,
-    "openAIRealtimeTranscription" | "openAIStreamingSpeech"
-  >,
->(key: TKey, value: unknown): Partial<Pick<ParsedDesktopVoiceConfig, TKey>> {
-  if (value === undefined) {
-    return {};
-  }
-
-  return {
-    [key]: value,
   } as Pick<ParsedDesktopVoiceConfig, TKey>;
 }

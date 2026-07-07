@@ -1,6 +1,6 @@
 import type { VoiceCommandConfig } from "../../ports/assistant.js";
 import { runCommand } from "../../adapters/desktop/process-runner.js";
-import type { ResolvedDesktopVoiceServiceAdapterConfig } from "../config/desktop-voice-config.js";
+import type { ResolvedDesktopVoiceServiceAdapterConfig } from "./desktop-voice-adapter-types.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 
 const localOpenWakeWordListener = "scripts/openwakeword-listener.py";

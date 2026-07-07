@@ -3,16 +3,16 @@ import {
   parseOptionalNonEmptyString,
   parseOptionalPositiveInteger,
 } from "./config-parse-utils.js";
-import type { ParsedDesktopVoiceConfig } from "./desktop-voice-config.js";
+import type { RawDesktopVoiceConfig } from "./desktop-voice-config.js";
 import type {
   OpenAIRealtimeTranscriptionConfig,
   OpenAIStreamingSpeechConfig,
 } from "./desktop-voice-openai-types.js";
 
 export function requireDesktopOpenAIRealtimeTranscriptionConfig(config: {
-  desktopVoice?: ParsedDesktopVoiceConfig;
+  rawDesktopVoice?: RawDesktopVoiceConfig;
 }): OpenAIRealtimeTranscriptionConfig {
-  const value = config.desktopVoice?.openAIRealtimeTranscription;
+  const value = config.rawDesktopVoice?.openAIRealtimeTranscription;
 
   if (value === undefined) {
     throw new Error(
@@ -47,9 +47,9 @@ export function requireDesktopOpenAIRealtimeTranscriptionConfig(config: {
 }
 
 export function requireDesktopOpenAIStreamingSpeechConfig(config: {
-  desktopVoice?: ParsedDesktopVoiceConfig;
+  rawDesktopVoice?: RawDesktopVoiceConfig;
 }): OpenAIStreamingSpeechConfig {
-  const value = config.desktopVoice?.openAIStreamingSpeech;
+  const value = config.rawDesktopVoice?.openAIStreamingSpeech;
 
   if (value === undefined) {
     throw new Error(

@@ -235,6 +235,16 @@ describe("runDesktopVoiceServiceRuntime", () => {
       runDesktopVoiceServiceRuntime({
         config: createDesktopVoiceConfig("", {
           desktopVoice: {
+            streamingAudioInput: {
+              ...createDesktopVoiceCommand("sleep 10"),
+              timeoutMs: 30_000,
+            },
+            streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
+            wakeActivation: createDesktopVoiceCommand(
+              `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
+            ),
+          },
+          rawDesktopVoice: {
             openAIRealtimeTranscription: {
               apiKeyEnv: "OPENAI_API_KEY",
               baseUrl: "wss://api.openai.test/v1/realtime",
@@ -249,14 +259,6 @@ describe("runDesktopVoiceServiceRuntime", () => {
               responseFormat: "pcm",
               voice: "coral",
             },
-            streamingAudioInput: {
-              ...createDesktopVoiceCommand("sleep 10"),
-              timeoutMs: 30_000,
-            },
-            streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
-            wakeActivation: createDesktopVoiceCommand(
-              `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
-            ),
           },
           voice: {
             streamingAudioInput: "sox-rec-stream",
@@ -672,6 +674,13 @@ function createOpenAIStreamingServiceConfig(
 ): ReturnType<typeof createDesktopVoiceConfig> {
   return createDesktopVoiceConfig("", {
     desktopVoice: {
+      streamingAudioInput: createDesktopVoiceCommand("printf command-audio"),
+      streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
+      wakeActivation: createDesktopVoiceCommand(
+        `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
+      ),
+    },
+    rawDesktopVoice: {
       openAIRealtimeTranscription: {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "wss://api.openai.test/v1/realtime",
@@ -686,11 +695,6 @@ function createOpenAIStreamingServiceConfig(
         responseFormat: "pcm",
         voice: "coral",
       },
-      streamingAudioInput: createDesktopVoiceCommand("printf command-audio"),
-      streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
-      wakeActivation: createDesktopVoiceCommand(
-        `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
-      ),
     },
     voice: {
       streamingAudioInput: "sox-rec-stream",

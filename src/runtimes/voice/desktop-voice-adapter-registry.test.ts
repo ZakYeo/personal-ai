@@ -1,7 +1,7 @@
 import type { VoiceCommandConfig } from "../../ports/assistant.js";
 import type { ProcessControl } from "../../ports/process-control.js";
-import type { ResolvedDesktopVoiceServiceAdapterConfig } from "../config/desktop-voice-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
+import type { ResolvedDesktopVoiceServiceAdapterConfig } from "./desktop-voice-adapter-types.js";
 
 const tempFileMocks = vi.hoisted(() => ({
   cleanup: vi.fn(),
