@@ -12,6 +12,7 @@ import type {
   SpeechToTextPort,
   TextToSpeechPort,
   VoiceTempFilePort,
+  WakeActivationPort,
   WakeWordPort,
 } from "../../ports/voice.js";
 import type {
@@ -27,6 +28,7 @@ export interface DesktopVoiceAdapters {
   audioOutput: AudioOutputPort;
   speechToText: SpeechToTextPort;
   textToSpeech: TextToSpeechPort;
+  wakeActivation?: WakeActivationPort;
   wakeWord: WakeWordPort;
   cleanup?(): Promise<void>;
 }

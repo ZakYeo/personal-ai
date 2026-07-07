@@ -1,6 +1,6 @@
 import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
-import { requireDesktopVoiceConfig } from "../config/desktop-voice-config.js";
+import { requireDesktopVoiceServiceConfig } from "../config/desktop-voice-config.js";
 import { requireVoiceConfig } from "../config/voice-config.js";
 import { runConfiguredServiceRuntime } from "../service/configured-service-composition.js";
 import {
@@ -10,14 +10,14 @@ import {
   type ServiceTurnFailureContext,
 } from "../service/service-runtime.js";
 import {
-  runVoiceTurn,
-  type VoiceRuntimeDependencies,
-  type VoiceRuntimeIo,
-  type VoiceTurnResult,
-} from "../voice/voice-turn.js";
+  runVoiceActivation,
+  type VoiceActivationDependencies,
+  type VoiceActivationResult,
+} from "../voice/voice-activation.js";
+import { type VoiceRuntimeIo } from "../voice/voice-turn.js";
 import {
-  createDesktopVoiceAdapters,
-  type DesktopVoiceAdapters,
+  createDesktopVoiceServiceAdapters,
+  type DesktopVoiceServiceAdapters,
 } from "../voice/desktop-voice-adapter-registry.js";
 import { cleanupVoiceAdapters } from "../voice/voice-cleanup.js";
 
@@ -31,16 +31,16 @@ interface PiServiceRuntimeOptions extends Pick<
   configPath?: string;
   createVoiceAdapters?: (
     voiceConfig: ReturnType<typeof requireVoiceConfig>,
-    desktopVoiceConfig: ReturnType<typeof requireDesktopVoiceConfig>,
-  ) => DesktopVoiceAdapters;
+    desktopVoiceConfig: ReturnType<typeof requireDesktopVoiceServiceConfig>,
+  ) => DesktopVoiceServiceAdapters;
   io?: PiServiceRuntimeIo;
   now?: () => Date;
   processSignals?: ServiceProcessSignals;
   retryAfterFailure?: (context: ServiceTurnFailureContext) => Promise<void>;
-  runVoiceTurn?: (
-    dependencies: VoiceRuntimeDependencies,
+  runVoiceActivation?: (
+    dependencies: VoiceActivationDependencies,
     io?: VoiceRuntimeIo,
-  ) => Promise<VoiceTurnResult>;
+  ) => Promise<VoiceActivationResult>;
   shutdownHooks?: Array<(context: ServiceShutdownContext) => Promise<void>>;
 }
 
@@ -51,22 +51,26 @@ export async function runPiServiceRuntime(
     validateConfig: validatePiServiceConfig,
     runTurn: async ({ assistant, config }) => {
       const voiceConfig = requireVoiceConfig(config);
-      const desktopVoiceConfig = requireDesktopVoiceConfig(config);
+      const desktopVoiceConfig = requireDesktopVoiceServiceConfig(config);
       const adapters = (
-        options.createVoiceAdapters ?? createDesktopVoiceAdapters
+        options.createVoiceAdapters ?? createDesktopVoiceServiceAdapters
       )(voiceConfig, desktopVoiceConfig);
 
       try {
-        await (options.runVoiceTurn ?? runVoiceTurn)(
+        await (options.runVoiceActivation ?? runVoiceActivation)(
           {
             assistant,
-            audioInput: adapters.audioInput,
             audioOutput: adapters.audioOutput,
+            commandAudioInput: adapters.audioInput,
             speechToText: adapters.speechToText,
             textToSpeech: adapters.textToSpeech,
             turnConfig: {
               wakePhrases: config.assistant.wakePhrases,
             },
+            ...(adapters.wakeActivation
+              ? { wakeActivation: adapters.wakeActivation }
+              : {}),
+            wakeAudioInput: adapters.wakeAudioInput,
             wakeWord: adapters.wakeWord,
           },
           options.io,
@@ -80,5 +84,5 @@ export async function runPiServiceRuntime(
 
 function validatePiServiceConfig(config: LoadedRuntimeConfig): void {
   requireVoiceConfig(config);
-  requireDesktopVoiceConfig(config);
+  requireDesktopVoiceServiceConfig(config);
 }

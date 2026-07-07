@@ -6,10 +6,10 @@ import { createCapturedWriter, line } from "../../test-support/primitives.js";
 import { createServiceSignalController } from "../../test-support/service-runtime.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
 import type {
-  VoiceRuntimeDependencies,
-  VoiceRuntimeIo,
-  VoiceTurnResult,
-} from "../voice/voice-turn.js";
+  VoiceActivationDependencies,
+  VoiceActivationResult,
+} from "../voice/voice-activation.js";
+import type { VoiceRuntimeIo } from "../voice/voice-turn.js";
 import { runPiServiceRuntime } from "./pi-service-runtime.js";
 
 describe("runPiServiceRuntime", () => {
@@ -26,10 +26,11 @@ describe("runPiServiceRuntime", () => {
         io: { fallbackOutput, stderr },
         processSignals: signals,
         retryAfterFailure: () => Promise.resolve(),
-        runVoiceTurn: async (dependencies, io) => {
-          const result = await dependencies.audioInput.capture();
+        runVoiceActivation: async (dependencies, io) => {
+          const result = await dependencies.commandAudioInput.capture();
 
           expect(result.filePath).toEqual(expect.stringContaining("capture"));
+          expect(dependencies.wakeAudioInput).toBeDefined();
           expect(io).toEqual({ fallbackOutput, stderr });
           signals.emit("SIGTERM");
 
@@ -37,7 +38,7 @@ describe("runPiServiceRuntime", () => {
             .handleTextWithDiagnostics(
               deterministicScenarios.alarmListEmpty.text,
             )
-            .then(({ response }): VoiceTurnResult => {
+            .then(({ response }): VoiceActivationResult => {
               return {
                 response,
                 status: "spoken",
@@ -62,12 +63,12 @@ describe("runPiServiceRuntime", () => {
     const signals = createServiceSignalController();
     const stderr = createCapturedWriter();
     const retryAfterFailure = vi.fn().mockResolvedValue(undefined);
-    const runVoiceTurn = vi
+    const runVoiceActivation = vi
       .fn<
         (
-          dependencies: VoiceRuntimeDependencies,
+          dependencies: VoiceActivationDependencies,
           io?: VoiceRuntimeIo,
-        ) => Promise<VoiceTurnResult>
+        ) => Promise<VoiceActivationResult>
       >()
       .mockRejectedValueOnce(new Error("raw pi voice failure"))
       .mockImplementationOnce(() => {
@@ -88,14 +89,14 @@ describe("runPiServiceRuntime", () => {
         io: { stderr },
         processSignals: signals,
         retryAfterFailure,
-        runVoiceTurn,
+        runVoiceActivation,
       }),
     ).resolves.toEqual({
       status: "stopped",
       turnsCompleted: 1,
     });
 
-    expect(runVoiceTurn).toHaveBeenCalledTimes(2);
+    expect(runVoiceActivation).toHaveBeenCalledTimes(2);
     expect(retryAfterFailure).toHaveBeenCalledWith(
       expect.objectContaining({ failures: 1 }),
     );
@@ -117,7 +118,7 @@ describe("runPiServiceRuntime", () => {
         config: invalidConfig,
         io: { stderr },
         retryAfterFailure: () => Promise.resolve(),
-        runVoiceTurn: () => {
+        runVoiceActivation: () => {
           throw new Error("should not run");
         },
       }),
@@ -142,8 +143,8 @@ describe("runPiServiceRuntime", () => {
       ),
       processSignals: signals,
       retryAfterFailure: () => Promise.resolve(),
-      runVoiceTurn: async (dependencies) => {
-        capturedAudio = await dependencies.audioInput.capture();
+      runVoiceActivation: async (dependencies) => {
+        capturedAudio = await dependencies.commandAudioInput.capture();
         signals.emit("SIGTERM");
 
         return {
@@ -194,11 +195,14 @@ describe("runPiServiceRuntime", () => {
                 phrase: "hey jarvis",
               }),
           },
+          wakeAudioInput: {
+            capture: () => Promise.resolve({ text: "Hey Jarvis" }),
+          },
         }),
         io: { stderr },
         processSignals: signals,
         retryAfterFailure,
-        runVoiceTurn: () => {
+        runVoiceActivation: () => {
           signals.emit("SIGTERM");
 
           return Promise.resolve({

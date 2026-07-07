@@ -22,12 +22,20 @@ export interface WakeWordRequest {
   wakePhrases: string[];
 }
 
+export interface WakeActivation {
+  phrase?: string;
+}
+
 export interface AudioInputPort {
   capture(): Promise<CapturedAudio>;
 }
 
 export interface WakeWordPort {
   detect(request: WakeWordRequest): Promise<WakeWordDetection>;
+}
+
+export interface WakeActivationPort {
+  waitForWake(request: { wakePhrases: string[] }): Promise<WakeActivation>;
 }
 
 export interface VoiceTempFilePort {

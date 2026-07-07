@@ -66,6 +66,9 @@ export async function runDesktopVoiceServiceRuntime(
             turnConfig: {
               wakePhrases: config.assistant.wakePhrases,
             },
+            ...(adapters.wakeActivation
+              ? { wakeActivation: adapters.wakeActivation }
+              : {}),
             wakeAudioInput: adapters.wakeAudioInput,
             wakeWord: adapters.wakeWord,
           },

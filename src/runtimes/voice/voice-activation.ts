@@ -3,6 +3,7 @@ import type {
   AudioOutputPort,
   SpeechToTextPort,
   TextToSpeechPort,
+  WakeActivationPort,
   WakeWordPort,
 } from "../../ports/voice.js";
 import type { Assistant } from "../../core/assistant/index.js";
@@ -18,6 +19,7 @@ export interface VoiceActivationDependencies {
   speechToText: SpeechToTextPort;
   textToSpeech: TextToSpeechPort;
   turnConfig: VoiceTurnConfig;
+  wakeActivation?: WakeActivationPort;
   wakeAudioInput: AudioInputPort;
   wakeWord: WakeWordPort;
 }
@@ -29,6 +31,25 @@ export async function runVoiceActivation(
   io: VoiceRuntimeIo = {},
 ): Promise<VoiceActivationResult> {
   logWakeListening(io, dependencies.turnConfig.wakePhrases);
+
+  if (dependencies.wakeActivation) {
+    const activation = await dependencies.wakeActivation.waitForWake({
+      wakePhrases: dependencies.turnConfig.wakePhrases,
+    });
+
+    logWakeDetected(io);
+
+    const commandAudio = await dependencies.commandAudioInput.capture();
+    const commandTranscript =
+      await dependencies.speechToText.transcribe(commandAudio);
+
+    return runDetectedVoiceCommand(
+      dependencies,
+      commandTranscript.text,
+      io,
+      activation.phrase ? { wakePhrase: activation.phrase } : {},
+    );
+  }
 
   const wakeAudio = await dependencies.wakeAudioInput.capture();
   const wakeTranscript = await dependencies.speechToText.transcribe(wakeAudio);

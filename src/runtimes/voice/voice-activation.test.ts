@@ -63,6 +63,47 @@ describe("voice activation", () => {
     ]);
   });
 
+  it("uses local wake activation without transcribing wake audio", async () => {
+    const progressOutput = createCapturedWriter();
+    const wakeActivations: string[][] = [];
+    const dependencies = createVoiceActivationDependencies({
+      commandUtterance: deterministicScenarios.alarmListEmpty.text,
+      wakeUtterance: "background conversation",
+    });
+
+    await expect(
+      runVoiceActivation(
+        {
+          ...dependencies,
+          wakeActivation: {
+            waitForWake: (request) => {
+              wakeActivations.push(request.wakePhrases);
+
+              return Promise.resolve({ phrase: "hey jarvis" });
+            },
+          },
+          wakeAudioInput: {
+            capture: () =>
+              Promise.reject(new Error("wake audio should not be captured")),
+          },
+        },
+        { progressOutput },
+      ),
+    ).resolves.toMatchObject({
+      response: deterministicScenarios.alarmListEmpty.response,
+      transcript: deterministicScenarios.alarmListEmpty.text,
+      wakePhrase: "hey jarvis",
+    });
+
+    expect(wakeActivations).toEqual([["hey jarvis"]]);
+    expect(progressOutput.writes).toEqual([
+      line('Now listening for wake word "hey jarvis".'),
+      line("Wake word detected, now listening..."),
+      line(`Heard: ${deterministicScenarios.alarmListEmpty.text}`),
+      line(`Assistant: ${deterministicScenarios.alarmListEmpty.response.text}`),
+    ]);
+  });
+
   it("speaks a graceful fallback if assistant handling rejects", async () => {
     const spoken = createCapturedWriter();
     const stderr = createCapturedWriter();
