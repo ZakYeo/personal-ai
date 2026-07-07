@@ -138,7 +138,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
             openAIRealtimeTranscription: {
               apiKeyEnv: "OPENAI_API_KEY",
               baseUrl: "wss://api.openai.test/v1/realtime",
-              model: "gpt-4o-transcribe",
+              model: "gpt-realtime-whisper",
               timeoutMs: 30_000,
             },
             openAIStreamingSpeech: {
@@ -185,6 +185,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
       line(`Assistant: ${deterministicScenarios.alarmListEmpty.response.text}`),
     ]);
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
+      "session.update",
       "input_audio_buffer.append",
       "input_audio_buffer.commit",
     ]);
@@ -215,7 +216,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
             openAIRealtimeTranscription: {
               apiKeyEnv: "OPENAI_API_KEY",
               baseUrl: "wss://api.openai.test/v1/realtime",
-              model: "gpt-4o-transcribe",
+              model: "gpt-realtime-whisper",
               timeoutMs: 1,
             },
             openAIStreamingSpeech: {
@@ -263,6 +264,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
       line("Wake word detected, now listening..."),
     ]);
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
+      "session.update",
       "input_audio_buffer.append",
       "input_audio_buffer.commit",
     ]);

@@ -35,7 +35,7 @@
       "args": [
         "-q",
         "-r",
-        "16000",
+        "24000",
         "-c",
         "1",
         "-b",
@@ -70,7 +70,7 @@
       "timeoutMs": 30000
     },
     "openAIRealtimeTranscription": {
-      "model": "gpt-4o-transcribe"
+      "model": "gpt-realtime-whisper"
     },
     "openAIStreamingSpeech": {
       "model": "gpt-4o-mini-tts",

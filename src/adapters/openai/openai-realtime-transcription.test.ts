@@ -8,7 +8,7 @@ describe("OpenAIRealtimeTranscription", () => {
       config: {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-4o-transcribe",
+        model: "gpt-realtime-whisper",
         timeoutMs: 30_000,
       },
       env: { OPENAI_API_KEY: "test-key" },
@@ -39,9 +39,55 @@ describe("OpenAIRealtimeTranscription", () => {
     await expect(transcriptPromise).resolves.toEqual({ text: "list alarms" });
     expect(deltas).toEqual(["list ", "alarms"]);
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
+      "session.update",
       "input_audio_buffer.append",
       "input_audio_buffer.commit",
     ]);
+  });
+
+  it("configures a transcription session before sending audio", async () => {
+    const socket = new FakeRealtimeSocket();
+    const adapter = new OpenAIRealtimeTranscription({
+      config: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "wss://api.openai.test/v1/realtime",
+        model: "gpt-realtime-whisper",
+        timeoutMs: 30_000,
+      },
+      env: { OPENAI_API_KEY: "test-key" },
+      webSocketFactory: () => socket,
+    });
+
+    const transcriptPromise = adapter.transcribeStream({
+      chunks: chunksFromText("audio"),
+    });
+
+    socket.emitOpen();
+    await socket.waitForSentType("input_audio_buffer.commit");
+    socket.emitMessage({
+      transcript: "list alarms",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+
+    await expect(transcriptPromise).resolves.toEqual({ text: "list alarms" });
+    expect(socket.sentMessages[0]).toEqual({
+      session: {
+        audio: {
+          input: {
+            format: {
+              rate: 24000,
+              type: "audio/pcm",
+            },
+            transcription: {
+              model: "gpt-realtime-whisper",
+            },
+            turn_detection: null,
+          },
+        },
+        type: "transcription",
+      },
+      type: "session.update",
+    });
   });
 
   it("rejects without an API key", async () => {
@@ -49,7 +95,7 @@ describe("OpenAIRealtimeTranscription", () => {
       config: {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-4o-transcribe",
+        model: "gpt-realtime-whisper",
         timeoutMs: 30_000,
       },
       env: {},
@@ -70,7 +116,7 @@ describe("OpenAIRealtimeTranscription", () => {
       config: {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-4o-transcribe",
+        model: "gpt-realtime-whisper",
         timeoutMs: 30_000,
       },
       env: { OPENAI_API_KEY: "test-key" },
@@ -105,7 +151,7 @@ describe("OpenAIRealtimeTranscription", () => {
       config: {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-4o-transcribe",
+        model: "gpt-realtime-whisper",
         timeoutMs: 1,
       },
       env: { OPENAI_API_KEY: "test-key" },
@@ -131,7 +177,7 @@ describe("OpenAIRealtimeTranscription", () => {
       config: {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-4o-transcribe",
+        model: "gpt-realtime-whisper",
         timeoutMs: 1,
       },
       env: { OPENAI_API_KEY: "test-key" },

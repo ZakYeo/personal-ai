@@ -132,6 +132,10 @@ After wake detection, the service streams command audio to the configured
 streaming STT adapter when available, writes transcript deltas to progress
 output, sends the final command transcript through the same assistant core, and
 streams speech audio playback when streaming TTS/output adapters are configured.
+For the OpenAI realtime transcription adapter, runtime composition configures a
+transcription session before sending audio, uses `gpt-realtime-whisper`, and
+captures raw mono PCM command audio at 24 kHz so the adapter and command config
+agree on the provider audio format.
 If streaming adapters are not configured, the runtime falls back to the existing
 batch capture, STT, TTS, and playback adapters. Recoverable activation failures
 are logged internally and retried by the neutral service loop. Startup still

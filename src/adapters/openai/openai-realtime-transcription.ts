@@ -50,6 +50,7 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
 
     try {
       await waitForSocketOpen(socket, this.options.config.timeoutMs);
+      configureTranscriptionSession(socket, this.options.config);
 
       let transcriptFailure: unknown;
       const transcriptPromise = waitForTranscript(
@@ -85,6 +86,32 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
       socket.close();
     }
   }
+}
+
+function configureTranscriptionSession(
+  socket: RealtimeSocket,
+  config: OpenAIRealtimeTranscriptionConfig,
+): void {
+  socket.send(
+    JSON.stringify({
+      session: {
+        audio: {
+          input: {
+            format: {
+              rate: 24000,
+              type: "audio/pcm",
+            },
+            transcription: {
+              model: config.model,
+            },
+            turn_detection: null,
+          },
+        },
+        type: "transcription",
+      },
+      type: "session.update",
+    }),
+  );
 }
 
 function createRealtimeTranscriptionUrl(

@@ -70,23 +70,21 @@ describe("loadConfig", () => {
   });
 
   it("loads checked-in streaming voice example configs", async () => {
-    await expect(
-      loadConfig({ configPath: "config/local-desktop-voice-openai.json" }),
-    ).resolves.toMatchObject({
-      voice: {
-        streamingSpeechToText: "openai-realtime",
-        wakeActivation: "openwakeword-command",
-      },
+    const desktopConfig = await loadConfig({
+      configPath: "config/local-desktop-voice-openai.json",
+    });
+    const piConfig = await loadConfig({
+      configPath: "config/pi-voice-openai.example.json",
     });
 
-    await expect(
-      loadConfig({ configPath: "config/pi-voice-openai.example.json" }),
-    ).resolves.toMatchObject({
-      voice: {
-        streamingSpeechToText: "openai-realtime",
-        wakeActivation: "openwakeword-command",
-      },
-    });
+    for (const config of [desktopConfig, piConfig]) {
+      expect(config.desktopVoice?.openAIRealtimeTranscription?.model).toBe(
+        "gpt-realtime-whisper",
+      );
+      expect(config.desktopVoice?.streamingAudioInput?.args).toContain("24000");
+      expect(config.voice?.streamingSpeechToText).toBe("openai-realtime");
+      expect(config.voice?.wakeActivation).toBe("openwakeword-command");
+    }
   });
 });
 
@@ -300,7 +298,7 @@ describe("parseAssistantConfig", () => {
         command: "fake-stream-play",
       },
       openAIRealtimeTranscription: {
-        model: "gpt-4o-transcribe",
+        model: "gpt-realtime-whisper",
       },
       openAIStreamingSpeech: {
         model: "gpt-4o-mini-tts",
@@ -324,7 +322,7 @@ describe("parseAssistantConfig", () => {
           openAIRealtimeTranscription: {
             apiKeyEnv: "OPENAI_API_KEY",
             baseUrl: "wss://api.openai.com/v1/realtime",
-            model: "gpt-4o-transcribe",
+            model: "gpt-realtime-whisper",
             timeoutMs: 30_000,
           },
           openAIStreamingSpeech: {
@@ -392,7 +390,7 @@ describe("parseAssistantConfig", () => {
         },
         desktopVoice: {
           openAIRealtimeTranscription: {
-            model: "gpt-4o-transcribe",
+            model: "gpt-realtime-whisper",
             timeoutMs: 0,
           },
         },
@@ -403,6 +401,28 @@ describe("parseAssistantConfig", () => {
       }),
     ).toThrow(
       "Config desktopVoice.openAIRealtimeTranscription.timeoutMs must be a positive integer.",
+    );
+  });
+
+  it("rejects non-realtime models for OpenAI realtime transcription", () => {
+    expect(() =>
+      parseAssistantConfig({
+        assistant: {
+          name: "Jarvis",
+          wakePhrases: ["hey jarvis"],
+        },
+        desktopVoice: {
+          openAIRealtimeTranscription: {
+            model: "gpt-4o-transcribe",
+          },
+        },
+        intent: {
+          provider: "deterministic",
+        },
+        features: {},
+      }),
+    ).toThrow(
+      "Config desktopVoice.openAIRealtimeTranscription.model must be gpt-realtime-whisper.",
     );
   });
 

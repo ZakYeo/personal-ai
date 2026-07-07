@@ -213,10 +213,7 @@ function parseOpenAIRealtimeTranscriptionConfig(value: unknown): {
         "desktopVoice.openAIRealtimeTranscription.baseUrl",
         "wss://api.openai.com/v1/realtime",
       ),
-      model: parseRequiredString(
-        value.model,
-        "desktopVoice.openAIRealtimeTranscription.model",
-      ),
+      model: parseOpenAIRealtimeTranscriptionModel(value.model),
       timeoutMs: parseOptionalPositiveInteger(
         value.timeoutMs,
         "desktopVoice.openAIRealtimeTranscription.timeoutMs",
@@ -224,6 +221,21 @@ function parseOpenAIRealtimeTranscriptionConfig(value: unknown): {
       ),
     },
   };
+}
+
+function parseOpenAIRealtimeTranscriptionModel(value: unknown): string {
+  const model = parseRequiredString(
+    value,
+    "desktopVoice.openAIRealtimeTranscription.model",
+  );
+
+  if (model !== "gpt-realtime-whisper") {
+    throw new Error(
+      "Config desktopVoice.openAIRealtimeTranscription.model must be gpt-realtime-whisper.",
+    );
+  }
+
+  return model;
 }
 
 function parseOpenAIStreamingSpeechConfig(value: unknown): {
