@@ -135,10 +135,10 @@ npm run smoke:desktop-voice:openai
 This command loads `.env`, requires `OPENAI_API_KEY`, uses the committed voice
 fixtures in `test/fixtures/audio/`, runs local openWakeWord activation for
 `"Hey Jarvis"`, and streams a file-fed `List my alarms` command through the
-OpenAI realtime transcription adapter. It is intentionally outside
-`npm run check`. At the time this smoke was introduced, it reproduced the
-current post-wake timeout in the desktop voice path and is the acceptance gate
-for the follow-up runtime fix.
+OpenAI realtime transcription adapter over an authenticated websocket. It also
+exercises the assistant turn and streaming spoken-output path. It is
+intentionally outside `npm run check` and guards the same post-wake path used by
+`npm start` without depending on room acoustics or a live microphone.
 
 Run one simulated voice turn:
 

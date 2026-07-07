@@ -636,7 +636,8 @@ Included:
   `config/local-desktop-voice-openai.json`.
 - `desktop-voice-service` CLI command with an explicit local config path.
 - `npm run smoke:desktop-voice:openai` opt-in file-fed smoke for local
-  openWakeWord activation plus live OpenAI realtime command transcription.
+  openWakeWord activation plus live OpenAI realtime command transcription,
+  assistant handling, and streaming spoken output.
 - Two-stage command-based activation: short wake-window capture followed by a
   separate command utterance capture.
 - Shared voice activation orchestration that reuses assistant diagnostics,

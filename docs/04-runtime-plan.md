@@ -133,9 +133,15 @@ streaming STT adapter when available, writes transcript deltas to progress
 output, sends the final command transcript through the same assistant core, and
 streams speech audio playback when streaming TTS/output adapters are configured.
 For the OpenAI realtime transcription adapter, runtime composition configures a
-transcription session before sending audio, uses `gpt-realtime-whisper`, and
-captures raw mono PCM command audio at 24 kHz so the adapter and command config
-agree on the provider audio format.
+transcription session before sending audio, uses `gpt-realtime-whisper`, sends
+the provider API key through an authenticated websocket client, and captures raw
+mono PCM command audio at 24 kHz so the adapter and command config agree on the
+provider audio format. Command-backed streaming input starts when the adapter
+begins consuming chunks, not when the stream object is created, so short
+file-fed inputs and command processes cannot finish before the realtime socket
+is ready to read them. Runtime cleanup terminates owned streaming input
+processes best-effort when realtime setup, transcription, or provider events
+fail.
 If streaming adapters are not configured, the runtime falls back to the existing
 batch capture, STT, TTS, and playback adapters. Recoverable activation failures
 are logged internally and retried by the neutral service loop. Startup still
@@ -163,7 +169,8 @@ fixtures from `test/fixtures/audio/`, runs openWakeWord against a file-fed
 raw mono 24 kHz PCM through the OpenAI realtime transcription adapter. It is
 not part of the deterministic validation gate. It is intended to reproduce the
 same post-wake path as `npm start` without depending on room acoustics or a live
-microphone.
+microphone, and it is the live acceptance guard for authenticated realtime
+transcription, assistant handling, and streaming spoken output.
 
 ### Raspberry Pi Runtime
 
