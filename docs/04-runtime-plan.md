@@ -143,11 +143,13 @@ is ready to read them. Runtime cleanup terminates owned streaming input
 processes best-effort when realtime setup, transcription, or provider events
 fail.
 If streaming adapters are not configured, the runtime falls back to the existing
-batch capture, STT, TTS, and playback adapters. Recoverable activation failures
-are logged internally and retried by the neutral service loop. Startup still
-fails closed for missing selected voice adapter IDs or missing selected desktop
-adapter config, and temp voice files are cleaned up after each activation
-attempt.
+batch capture, STT, TTS, and playback adapters. Pre-wake activation failures are
+logged internally and retried by the neutral service loop. After wake detection,
+final command capture, transcription, assistant, speech, and playback failures
+produce the same safe voice fallback as one-turn voice runtimes whenever
+possible. Startup still fails closed for missing selected voice adapter IDs or
+missing selected desktop adapter config, and temp voice files are cleaned up
+after each activation attempt.
 
 Voice service commands write human-visible progress logs to stdout when the
 runtime boundary provides a progress writer. These logs announce the configured

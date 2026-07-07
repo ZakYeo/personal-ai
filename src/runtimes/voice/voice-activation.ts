@@ -11,8 +11,13 @@ import type {
   WakeWordPort,
 } from "../../ports/voice.js";
 import type { Assistant } from "../../core/assistant/index.js";
+import {
+  logRuntimeFailure,
+  safeRuntimeFallbackResponse,
+} from "../human-boundary.js";
 import { runDetectedVoiceCommand } from "./voice-command.js";
 import { logWakeDetected, logWakeListening } from "./voice-progress.js";
+import { speakResponse } from "./voice-response.js";
 import type { VoiceRuntimeIo, VoiceTurnConfig } from "./voice-turn.js";
 import type { VoiceTurnResult } from "./voice-turn-result.js";
 
@@ -47,11 +52,8 @@ export async function runVoiceActivation(
 
     logWakeDetected(io);
 
-    const commandTranscript = await transcribeCommand(dependencies, io);
-
-    return runDetectedVoiceCommand(
+    return runPostWakeVoiceCommand(
       dependencies,
-      commandTranscript.text,
       io,
       activation.phrase ? { wakePhrase: activation.phrase } : {},
     );
@@ -81,14 +83,42 @@ export async function runVoiceActivation(
 
   logWakeDetected(io);
 
-  const commandTranscript = await transcribeCommand(dependencies, io);
-
-  return runDetectedVoiceCommand(
+  return runPostWakeVoiceCommand(
     dependencies,
-    commandTranscript.text,
     io,
     detection.phrase ? { wakePhrase: detection.phrase } : {},
   );
+}
+
+async function runPostWakeVoiceCommand(
+  dependencies: VoiceActivationDependencies,
+  io: VoiceRuntimeIo,
+  metadata: { wakePhrase?: string } = {},
+): Promise<VoiceActivationResult> {
+  try {
+    const commandTranscript = await transcribeCommand(dependencies, io);
+
+    return await runDetectedVoiceCommand(
+      dependencies,
+      commandTranscript.text,
+      io,
+      metadata,
+    );
+  } catch (error) {
+    logRuntimeFailure(error, io);
+
+    const speechOutput = await speakResponse(
+      dependencies,
+      safeRuntimeFallbackResponse,
+      io,
+    );
+
+    return {
+      response: safeRuntimeFallbackResponse,
+      ...speechOutput,
+      ...(metadata.wakePhrase ? { wakePhrase: metadata.wakePhrase } : {}),
+    };
+  }
 }
 
 async function transcribeCommand(

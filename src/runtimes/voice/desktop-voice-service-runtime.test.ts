@@ -205,9 +205,11 @@ describe("runDesktopVoiceServiceRuntime", () => {
     const fallbackOutput = createCapturedWriter();
     const stderr = createCapturedWriter();
     const socket = new FakeRealtimeSocket({});
-    const fetch = vi.fn(() =>
-      Promise.resolve(new Response(Buffer.from("spoken audio"))),
-    );
+    const fetch = vi.fn(() => {
+      signals.emit("SIGTERM");
+
+      return Promise.resolve(new Response(Buffer.from("spoken audio")));
+    });
 
     await expect(
       runDesktopVoiceServiceRuntime({
@@ -256,7 +258,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
       }),
     ).resolves.toEqual({
       status: "stopped",
-      turnsCompleted: 0,
+      turnsCompleted: 1,
     });
 
     expect(progressOutput.writes).toEqual([
@@ -269,7 +271,12 @@ describe("runDesktopVoiceServiceRuntime", () => {
       "input_audio_buffer.commit",
     ]);
     expect(socket.closed).toBe(true);
-    expect(fetch).not.toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledWith(
+      "https://api.openai.test/v1/audio/speech",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
     expect(fallbackOutput.writes).toEqual([]);
     expect(stderr.writes).toEqual([
       line("Runtime failure: Realtime transcription timed out after 100ms."),
@@ -321,9 +328,11 @@ describe("runDesktopVoiceServiceRuntime", () => {
           },
         }),
         env: { OPENAI_API_KEY: "test-api-key" },
-        fetch: vi.fn(() =>
-          Promise.resolve(new Response(Buffer.from("spoken audio"))),
-        ),
+        fetch: vi.fn(() => {
+          signals.emit("SIGTERM");
+
+          return Promise.resolve(new Response(Buffer.from("spoken audio")));
+        }),
         io: { fallbackOutput, progressOutput, stderr },
         processSignals: signals,
         retryAfterFailure: (context) => {
@@ -335,7 +344,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
       }),
     ).resolves.toEqual({
       status: "stopped",
-      turnsCompleted: 0,
+      turnsCompleted: 1,
     });
 
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
@@ -401,24 +410,10 @@ describe("runDesktopVoiceServiceRuntime", () => {
   });
 
   it.each([
-    {
-      failure: "wake microphone unavailable",
-      mode: "wake-audio" as const,
-    },
-    {
-      failure: "wake stt unavailable",
-      mode: "wake-stt" as const,
-    },
-    {
-      failure: "command microphone unavailable",
-      mode: "command-audio" as const,
-    },
-    {
-      failure: "command stt unavailable",
-      mode: "command-stt" as const,
-    },
+    { failure: "wake microphone unavailable", mode: "wake-audio" as const },
+    { failure: "wake stt unavailable", mode: "wake-stt" as const },
   ])(
-    "retries real activation after $mode infrastructure failure",
+    "retries real activation after pre-wake $mode infrastructure failure",
     async ({ failure, mode }) => {
       const signals = createServiceSignalController();
       const stderr = createCapturedWriter();
