@@ -3,7 +3,7 @@ import type {
   SynthesizedSpeechStream,
 } from "../../ports/voice.js";
 
-interface OpenAIStreamingSpeechConfig {
+export interface OpenAIStreamingSpeechConfig {
   apiKeyEnv: string;
   baseUrl: string;
   instructions: string;

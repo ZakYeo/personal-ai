@@ -4,6 +4,10 @@ export interface ParsedVoiceConfig {
   audioOutput?: string;
   input?: string;
   speechToText?: string;
+  streamingAudioInput?: string;
+  streamingAudioOutput?: string;
+  streamingSpeechToText?: string;
+  streamingTextToSpeech?: string;
   textToSpeech?: string;
   wakeActivation?: string;
   wakeWord?: string;
@@ -13,6 +17,10 @@ export interface ResolvedVoiceConfig {
   audioOutput: string;
   input: string;
   speechToText: string;
+  streamingAudioInput?: string;
+  streamingAudioOutput?: string;
+  streamingSpeechToText?: string;
+  streamingTextToSpeech?: string;
   textToSpeech: string;
   wakeActivation?: string;
   wakeWord: string;
@@ -32,6 +40,16 @@ export function parseVoiceConfig(value: unknown): {
   return {
     voice: {
       ...parseVoiceAdapter("input", value.input),
+      ...parseVoiceAdapter("streamingAudioInput", value.streamingAudioInput),
+      ...parseVoiceAdapter("streamingAudioOutput", value.streamingAudioOutput),
+      ...parseVoiceAdapter(
+        "streamingSpeechToText",
+        value.streamingSpeechToText,
+      ),
+      ...parseVoiceAdapter(
+        "streamingTextToSpeech",
+        value.streamingTextToSpeech,
+      ),
       ...parseVoiceAdapter("wakeActivation", value.wakeActivation),
       ...parseVoiceAdapter("wakeWord", value.wakeWord),
       ...parseVoiceAdapter("speechToText", value.speechToText),
@@ -46,6 +64,18 @@ export function requireVoiceConfig(config: {
 }): ResolvedVoiceConfig {
   return {
     input: requireVoiceAdapterConfig(config, "input"),
+    ...(config.voice?.streamingAudioInput
+      ? { streamingAudioInput: config.voice.streamingAudioInput }
+      : {}),
+    ...(config.voice?.streamingAudioOutput
+      ? { streamingAudioOutput: config.voice.streamingAudioOutput }
+      : {}),
+    ...(config.voice?.streamingSpeechToText
+      ? { streamingSpeechToText: config.voice.streamingSpeechToText }
+      : {}),
+    ...(config.voice?.streamingTextToSpeech
+      ? { streamingTextToSpeech: config.voice.streamingTextToSpeech }
+      : {}),
     ...(config.voice?.wakeActivation
       ? { wakeActivation: config.voice.wakeActivation }
       : {}),

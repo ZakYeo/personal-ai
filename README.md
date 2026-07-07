@@ -17,7 +17,8 @@ Implemented today:
 - Mock voice loop for one simulated voice turn.
 - Desktop voice runtime for one configured local voice turn.
 - Desktop voice service command for always-listening wake activation with
-  separate wake-window and command captures plus stdout progress logs.
+  local openWakeWord activation, live command transcript progress, and
+  streaming speech playback.
 - Neutral service runtime boundary baseline implemented in preparation for
   Milestone 5.1.
 - Raspberry Pi service command that runs configured command-based voice turns in
@@ -60,11 +61,13 @@ Current roadmap position:
 - Node.js 22 or newer.
 - npm 10 or newer.
 
-Desktop voice experiments also need local audio/STT/TTS commands configured in a
-local config file. See the [runtime plan](docs/04-runtime-plan.md) for the
+Desktop voice experiments also need local audio commands configured in a local
+config file. The default OpenAI desktop voice config uses openWakeWord for local
+`"hey jarvis"` activation and streams only post-wake command audio to OpenAI
+realtime transcription. See the [runtime plan](docs/04-runtime-plan.md) for the
 desktop voice config shape.
 Raspberry Pi service experiments use the same explicit command-based voice
-configuration and should keep machine-specific commands in a local config file.
+configuration and can start from `config/pi-voice-openai.example.json`.
 
 OpenAI intent experiments need a local config file that selects
 `intent.provider: "openai"` and an API key in the configured environment
@@ -105,8 +108,8 @@ npm start
 ```
 
 Voice service commands write progress logs to stdout, including wake listening,
-wake detection, recognized command text, and the assistant response. Internal
-diagnostics and adapter failures stay on stderr.
+wake detection, live transcript deltas, recognized command text, and the
+assistant response. Internal diagnostics and adapter failures stay on stderr.
 
 Run one simulated voice turn:
 

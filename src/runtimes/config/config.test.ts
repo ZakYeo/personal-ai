@@ -68,6 +68,26 @@ describe("loadConfig", () => {
       },
     });
   });
+
+  it("loads checked-in streaming voice example configs", async () => {
+    await expect(
+      loadConfig({ configPath: "config/local-desktop-voice-openai.json" }),
+    ).resolves.toMatchObject({
+      voice: {
+        streamingSpeechToText: "openai-realtime",
+        wakeActivation: "openwakeword-command",
+      },
+    });
+
+    await expect(
+      loadConfig({ configPath: "config/pi-voice-openai.example.json" }),
+    ).resolves.toMatchObject({
+      voice: {
+        streamingSpeechToText: "openai-realtime",
+        wakeActivation: "openwakeword-command",
+      },
+    });
+  });
 });
 
 describe("parseAssistantConfig", () => {
@@ -248,6 +268,10 @@ describe("parseAssistantConfig", () => {
       input: "mock",
       wakeWord: "mock",
       wakeActivation: "openwakeword-command",
+      streamingAudioInput: "sox-rec-stream",
+      streamingAudioOutput: "sox-play-stream",
+      streamingSpeechToText: "openai-realtime",
+      streamingTextToSpeech: "openai-streaming",
       speechToText: "mock",
       textToSpeech: "mock",
       audioOutput: "mock",
@@ -269,6 +293,19 @@ describe("parseAssistantConfig", () => {
         command: "fake-openwakeword",
         args: ["--model", "hey_jarvis"],
       },
+      streamingAudioInput: {
+        command: "fake-stream-rec",
+      },
+      streamingAudioOutput: {
+        command: "fake-stream-play",
+      },
+      openAIRealtimeTranscription: {
+        model: "gpt-4o-transcribe",
+      },
+      openAIStreamingSpeech: {
+        model: "gpt-4o-mini-tts",
+        voice: "coral",
+      },
       speechToText: {
         command: "fake-stt",
         args: ["--input", "{input}"],
@@ -281,7 +318,24 @@ describe("parseAssistantConfig", () => {
     };
 
     expect(parseAssistantConfig(createMinimalConfig({ desktopVoice }))).toEqual(
-      createMinimalConfig({ desktopVoice }),
+      createMinimalConfig({
+        desktopVoice: {
+          ...desktopVoice,
+          openAIRealtimeTranscription: {
+            apiKeyEnv: "OPENAI_API_KEY",
+            baseUrl: "wss://api.openai.com/v1/realtime",
+            model: "gpt-4o-transcribe",
+          },
+          openAIStreamingSpeech: {
+            apiKeyEnv: "OPENAI_API_KEY",
+            baseUrl: "https://api.openai.com/v1",
+            instructions: "Speak clearly and concisely.",
+            model: "gpt-4o-mini-tts",
+            responseFormat: "pcm",
+            voice: "coral",
+          },
+        },
+      }),
     );
   });
 

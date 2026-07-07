@@ -110,25 +110,29 @@ npm start
 
 That script runs the service with `config/local-desktop-voice-openai.json`.
 
-This command runs the desktop voice stack in a long-lived service loop. Each
-service iteration captures a short wake audio window, transcribes it, detects
-the configured wake phrase, and ignores the turn if no wake phrase is detected.
-After wake detection, it captures a separate command utterance, transcribes that
-command audio, sends the command transcript through the same assistant core, and
-speaks or fallback-prints the response. Recoverable activation failures are
-logged internally and retried by the neutral service loop. Startup still fails
-closed for missing voice adapter IDs or missing desktop command config, and temp
-voice files are cleaned up after each activation attempt. The first
-always-listening implementation remains command-based and STT-backed; native
-low-power wake engines or provider-event wake adapters can be added later behind
-the same runtime boundary.
+This command runs the desktop voice stack in a long-lived service loop. When
+`voice.wakeActivation` is configured, the service waits on a local wake
+activation adapter before it records or streams command audio. The checked-in
+OpenAI desktop voice config uses the `openwakeword-command` adapter and the
+pretrained openWakeWord `"hey jarvis"` model, so wake detection happens locally.
+After wake detection, the service streams command audio to the configured
+streaming STT adapter when available, writes transcript deltas to progress
+output, sends the final command transcript through the same assistant core, and
+streams speech audio playback when streaming TTS/output adapters are configured.
+If streaming adapters are not configured, the runtime falls back to the existing
+batch capture, STT, TTS, and playback adapters. Recoverable activation failures
+are logged internally and retried by the neutral service loop. Startup still
+fails closed for missing selected voice adapter IDs or missing selected desktop
+adapter config, and temp voice files are cleaned up after each activation
+attempt.
 
 Voice service commands write human-visible progress logs to stdout when the
 runtime boundary provides a progress writer. These logs announce the configured
-wake phrase, successful wake detection, the recognized command transcript, and
-the assistant's safe response. Wake-window transcripts, raw provider output,
-adapter command output, credentials, stack traces, and diagnostic causes remain
-out of progress logs; diagnostics stay on stderr.
+wake phrase, successful wake detection, live command transcript deltas, the
+recognized command transcript, and the assistant's safe response. Wake-window
+transcripts, raw provider output, adapter command output, credentials, stack
+traces, and diagnostic causes remain out of progress logs; diagnostics stay on
+stderr.
 
 ### Raspberry Pi Runtime
 
@@ -151,9 +155,12 @@ personal-ai pi-service --config path/to/pi-config.json
 ```
 
 The Raspberry Pi runtime does not fork assistant behavior. It composes the same
-assistant core with the existing service loop, shared voice-turn orchestration,
-and configured command-based voice adapters. Pi-specific command choices belong
-in local config, not in the checked-in default config.
+assistant core with the existing service loop, shared voice activation
+orchestration, and configured command-based voice adapters. The
+`config/pi-voice-openai.example.json` file shows the same openWakeWord and
+streaming OpenAI adapter IDs used by desktop with Pi-compatible command
+boundaries. Pi-specific command choices belong in local config, not in the
+checked-in default config.
 
 ## Configuration
 

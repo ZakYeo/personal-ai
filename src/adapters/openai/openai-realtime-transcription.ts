@@ -5,24 +5,24 @@ import type {
   StreamingSpeechToTextPort,
 } from "../../ports/voice.js";
 
-interface OpenAIRealtimeTranscriptionConfig {
+export interface OpenAIRealtimeTranscriptionConfig {
   apiKeyEnv: string;
   baseUrl: string;
   model: string;
 }
 
-interface RealtimeSocket {
+export interface RealtimeSocket {
   addEventListener(type: string, listener: (event?: unknown) => void): void;
   close(): void;
   send(message: string): void;
 }
 
-interface RealtimeSocketFactoryRequest {
+export interface RealtimeSocketFactoryRequest {
   apiKey: string;
   url: string;
 }
 
-type RealtimeSocketFactory = (
+export type RealtimeSocketFactory = (
   request: RealtimeSocketFactoryRequest,
 ) => RealtimeSocket;
 

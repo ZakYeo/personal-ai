@@ -12,6 +12,7 @@ import {
 import { cleanupVoiceAdapters } from "./voice-cleanup.js";
 import {
   createDesktopVoiceServiceAdapters,
+  type DesktopVoiceAdapterRuntimeDependencies,
   type DesktopVoiceServiceAdapters,
 } from "./desktop-voice-adapter-registry.js";
 import {
@@ -32,6 +33,7 @@ interface DesktopVoiceServiceRuntimeOptions extends Pick<
   createVoiceAdapters?: (
     voiceConfig: ReturnType<typeof requireVoiceConfig>,
     desktopVoiceConfig: ReturnType<typeof requireDesktopVoiceServiceConfig>,
+    dependencies: DesktopVoiceAdapterRuntimeDependencies,
   ) => DesktopVoiceServiceAdapters;
   io?: DesktopVoiceServiceRuntimeIo;
   processSignals?: ServiceProcessSignals;
@@ -53,7 +55,10 @@ export async function runDesktopVoiceServiceRuntime(
       const desktopVoiceConfig = requireDesktopVoiceServiceConfig(config);
       const adapters = (
         options.createVoiceAdapters ?? createDesktopVoiceServiceAdapters
-      )(voiceConfig, desktopVoiceConfig);
+      )(voiceConfig, desktopVoiceConfig, {
+        ...(options.env ? { env: options.env } : {}),
+        ...(options.fetch ? { fetch: options.fetch } : {}),
+      });
 
       try {
         await (options.runVoiceActivation ?? runVoiceActivation)(
@@ -62,6 +67,18 @@ export async function runDesktopVoiceServiceRuntime(
             audioOutput: adapters.audioOutput,
             commandAudioInput: adapters.audioInput,
             speechToText: adapters.speechToText,
+            ...(adapters.streamingAudioInput
+              ? { streamingAudioInput: adapters.streamingAudioInput }
+              : {}),
+            ...(adapters.streamingAudioOutput
+              ? { streamingAudioOutput: adapters.streamingAudioOutput }
+              : {}),
+            ...(adapters.streamingSpeechToText
+              ? { streamingSpeechToText: adapters.streamingSpeechToText }
+              : {}),
+            ...(adapters.streamingTextToSpeech
+              ? { streamingTextToSpeech: adapters.streamingTextToSpeech }
+              : {}),
             textToSpeech: adapters.textToSpeech,
             turnConfig: {
               wakePhrases: config.assistant.wakePhrases,

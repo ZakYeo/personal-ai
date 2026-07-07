@@ -35,11 +35,11 @@
 - Prefer explicit nested registries over encoded string keys for adapter selection; do not parse registry keys when the feature/provider/adapter relationship can be represented directly in data.
 - Feature adapters should register through the explicit per-feature adapter registry shape and receive narrow adapter dependencies/config from runtime composition rather than broad loaded config.
 - Keep selected adapter config typed at the same boundary as selected adapter factories; avoid `unknown` adapter config bags and downstream casts when a registry-local resolver can prove the shape once.
-- Voice runtimes must compose voice input, wake word, speech-to-text, text-to-speech, and audio output through configured adapter IDs; do not construct voice adapters as implicit defaults.
-- Desktop voice runtimes should use explicit local config for command-based STT/TTS and SoX input/output; keep machine-specific commands out of `config/default.json`.
+- Voice runtimes must compose voice input, streaming voice input, wake word, wake activation, speech-to-text, streaming speech-to-text, text-to-speech, streaming text-to-speech, audio output, and streaming audio output through configured adapter IDs; do not construct voice adapters as implicit defaults.
+- Desktop voice runtimes should use explicit local config for command-based STT/TTS, streaming STT/TTS, openWakeWord wake activation, and SoX input/output; keep machine-specific commands out of `config/default.json`.
 - Desktop voice temp capture/speech files are owned by runtime composition; adapters should receive an injectable temp-file owner and runtimes should clean up after each turn.
 - Treat cleanup as best-effort runtime resource release unless a stricter lifecycle guarantee is documented and tested; cleanup diagnostics should not accidentally change shared turn/retry semantics.
-- Raspberry Pi service runtime should compose the neutral service loop, configured assistant, and command-based voice adapters; keep Pi-specific commands in local config and clean up temp voice files after each turn.
+- Raspberry Pi service runtime should compose the neutral service loop, configured assistant, local wake activation, streaming voice adapters, and command-based fallback voice adapters; keep Pi-specific commands in local config and clean up temp voice files after each turn.
 - Runtime clock injection should remain a live clock (`now: () => Date` or `ClockPort`) for long-running composition; use fixed `Date` values only for intentionally frozen deterministic tests.
 - Command-based adapters should execute `command` plus `args[]`, not shell-concatenated command strings, and should enforce timeouts while preserving captured stdout/stderr diagnostics internally for spawn failures, non-zero exits, and timeout failures.
 - Keep simulated spoken output separate from fallback text output; CLI boundaries should use explicit voice result metadata rather than inferring stdout writes from voice status.

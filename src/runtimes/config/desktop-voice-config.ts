@@ -1,10 +1,29 @@
 import type { VoiceCommandConfig } from "../../ports/assistant.js";
 import { isRecord } from "./config-parse-utils.js";
 
+export interface OpenAIRealtimeTranscriptionConfig {
+  apiKeyEnv: string;
+  baseUrl: string;
+  model: string;
+}
+
+export interface OpenAIStreamingSpeechConfig {
+  apiKeyEnv: string;
+  baseUrl: string;
+  instructions: string;
+  model: string;
+  responseFormat: string;
+  voice: string;
+}
+
 export interface ParsedDesktopVoiceConfig {
   audioInput?: VoiceCommandConfig;
   audioOutput?: VoiceCommandConfig;
+  openAIRealtimeTranscription?: OpenAIRealtimeTranscriptionConfig;
+  openAIStreamingSpeech?: OpenAIStreamingSpeechConfig;
   speechToText?: VoiceCommandConfig;
+  streamingAudioInput?: VoiceCommandConfig;
+  streamingAudioOutput?: VoiceCommandConfig;
   textToSpeech?: VoiceCommandConfig;
   wakeActivation?: VoiceCommandConfig;
   wakeAudioInput?: VoiceCommandConfig;
@@ -13,7 +32,11 @@ export interface ParsedDesktopVoiceConfig {
 export interface ResolvedDesktopVoiceConfig {
   audioInput: VoiceCommandConfig;
   audioOutput: VoiceCommandConfig;
+  openAIRealtimeTranscription?: OpenAIRealtimeTranscriptionConfig;
+  openAIStreamingSpeech?: OpenAIStreamingSpeechConfig;
   speechToText: VoiceCommandConfig;
+  streamingAudioInput?: VoiceCommandConfig;
+  streamingAudioOutput?: VoiceCommandConfig;
   textToSpeech: VoiceCommandConfig;
   wakeActivation?: VoiceCommandConfig;
   wakeAudioInput?: VoiceCommandConfig;
@@ -22,6 +45,16 @@ export interface ResolvedDesktopVoiceConfig {
 export interface ResolvedDesktopVoiceServiceConfig extends ResolvedDesktopVoiceConfig {
   wakeAudioInput: VoiceCommandConfig;
 }
+
+type ParsedDesktopVoiceCommandKey =
+  | "audioInput"
+  | "audioOutput"
+  | "speechToText"
+  | "streamingAudioInput"
+  | "streamingAudioOutput"
+  | "textToSpeech"
+  | "wakeActivation"
+  | "wakeAudioInput";
 
 export function parseDesktopVoiceConfig(value: unknown): {
   desktopVoice?: ParsedDesktopVoiceConfig;
@@ -38,7 +71,13 @@ export function parseDesktopVoiceConfig(value: unknown): {
     desktopVoice: {
       ...parseVoiceCommand("audioInput", value.audioInput),
       ...parseVoiceCommand("audioOutput", value.audioOutput),
+      ...parseOpenAIRealtimeTranscriptionConfig(
+        value.openAIRealtimeTranscription,
+      ),
+      ...parseOpenAIStreamingSpeechConfig(value.openAIStreamingSpeech),
       ...parseVoiceCommand("speechToText", value.speechToText),
+      ...parseVoiceCommand("streamingAudioInput", value.streamingAudioInput),
+      ...parseVoiceCommand("streamingAudioOutput", value.streamingAudioOutput),
       ...parseVoiceCommand("textToSpeech", value.textToSpeech),
       ...parseVoiceCommand("wakeActivation", value.wakeActivation),
       ...parseVoiceCommand("wakeAudioInput", value.wakeAudioInput),
@@ -52,7 +91,22 @@ export function requireDesktopVoiceConfig(config: {
   return {
     audioInput: requireDesktopVoiceCommand(config, "audioInput"),
     audioOutput: requireDesktopVoiceCommand(config, "audioOutput"),
+    ...(config.desktopVoice?.openAIRealtimeTranscription
+      ? {
+          openAIRealtimeTranscription:
+            config.desktopVoice.openAIRealtimeTranscription,
+        }
+      : {}),
+    ...(config.desktopVoice?.openAIStreamingSpeech
+      ? { openAIStreamingSpeech: config.desktopVoice.openAIStreamingSpeech }
+      : {}),
     speechToText: requireDesktopVoiceCommand(config, "speechToText"),
+    ...(config.desktopVoice?.streamingAudioInput
+      ? { streamingAudioInput: config.desktopVoice.streamingAudioInput }
+      : {}),
+    ...(config.desktopVoice?.streamingAudioOutput
+      ? { streamingAudioOutput: config.desktopVoice.streamingAudioOutput }
+      : {}),
     textToSpeech: requireDesktopVoiceCommand(config, "textToSpeech"),
     ...(config.desktopVoice?.wakeActivation
       ? { wakeActivation: config.desktopVoice.wakeActivation }
@@ -74,7 +128,7 @@ export function requireDesktopVoiceServiceConfig(config: {
 
 function requireDesktopVoiceCommand(
   config: { desktopVoice?: ParsedDesktopVoiceConfig },
-  key: keyof ResolvedDesktopVoiceConfig,
+  key: ParsedDesktopVoiceCommandKey,
 ): VoiceCommandConfig {
   const command = config.desktopVoice?.[key];
 
@@ -85,7 +139,7 @@ function requireDesktopVoiceCommand(
   return command;
 }
 
-function parseVoiceCommand<TKey extends keyof ParsedDesktopVoiceConfig>(
+function parseVoiceCommand<TKey extends ParsedDesktopVoiceCommandKey>(
   key: TKey,
   value: unknown,
 ): Partial<Pick<ParsedDesktopVoiceConfig, TKey>> {
@@ -131,4 +185,104 @@ function parseVoiceCommand<TKey extends keyof ParsedDesktopVoiceConfig>(
       ...(timeoutMs ? { timeoutMs } : {}),
     },
   } as Pick<ParsedDesktopVoiceConfig, TKey>;
+}
+
+function parseOpenAIRealtimeTranscriptionConfig(value: unknown): {
+  openAIRealtimeTranscription?: OpenAIRealtimeTranscriptionConfig;
+} {
+  if (value === undefined) {
+    return {};
+  }
+
+  if (!isRecord(value)) {
+    throw new Error(
+      "Config desktopVoice.openAIRealtimeTranscription must be a JSON object.",
+    );
+  }
+
+  return {
+    openAIRealtimeTranscription: {
+      apiKeyEnv: parseOptionalString(
+        value.apiKeyEnv,
+        "desktopVoice.openAIRealtimeTranscription.apiKeyEnv",
+        "OPENAI_API_KEY",
+      ),
+      baseUrl: parseOptionalString(
+        value.baseUrl,
+        "desktopVoice.openAIRealtimeTranscription.baseUrl",
+        "wss://api.openai.com/v1/realtime",
+      ),
+      model: parseRequiredString(
+        value.model,
+        "desktopVoice.openAIRealtimeTranscription.model",
+      ),
+    },
+  };
+}
+
+function parseOpenAIStreamingSpeechConfig(value: unknown): {
+  openAIStreamingSpeech?: OpenAIStreamingSpeechConfig;
+} {
+  if (value === undefined) {
+    return {};
+  }
+
+  if (!isRecord(value)) {
+    throw new Error(
+      "Config desktopVoice.openAIStreamingSpeech must be a JSON object.",
+    );
+  }
+
+  return {
+    openAIStreamingSpeech: {
+      apiKeyEnv: parseOptionalString(
+        value.apiKeyEnv,
+        "desktopVoice.openAIStreamingSpeech.apiKeyEnv",
+        "OPENAI_API_KEY",
+      ),
+      baseUrl: parseOptionalString(
+        value.baseUrl,
+        "desktopVoice.openAIStreamingSpeech.baseUrl",
+        "https://api.openai.com/v1",
+      ),
+      instructions: parseOptionalString(
+        value.instructions,
+        "desktopVoice.openAIStreamingSpeech.instructions",
+        "Speak clearly and concisely.",
+      ),
+      model: parseRequiredString(
+        value.model,
+        "desktopVoice.openAIStreamingSpeech.model",
+      ),
+      responseFormat: parseOptionalString(
+        value.responseFormat,
+        "desktopVoice.openAIStreamingSpeech.responseFormat",
+        "pcm",
+      ),
+      voice: parseRequiredString(
+        value.voice,
+        "desktopVoice.openAIStreamingSpeech.voice",
+      ),
+    },
+  };
+}
+
+function parseRequiredString(value: unknown, key: string): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(`Config ${key} must be a non-empty string.`);
+  }
+
+  return value;
+}
+
+function parseOptionalString(
+  value: unknown,
+  key: string,
+  defaultValue: string,
+): string {
+  if (value === undefined) {
+    return defaultValue;
+  }
+
+  return parseRequiredString(value, key);
 }

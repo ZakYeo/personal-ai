@@ -19,23 +19,6 @@
     "audioOutput": "sox-play"
   },
   "desktopVoice": {
-    "wakeAudioInput": {
-      "command": "rec",
-      "args": [
-        "-q",
-        "-r",
-        "16000",
-        "-c",
-        "1",
-        "-b",
-        "16",
-        "{output}",
-        "trim",
-        "0",
-        "4"
-      ],
-      "timeoutMs": 7000
-    },
     "wakeActivation": {
       "command": "python3",
       "args": [
@@ -94,6 +77,23 @@
       "voice": "coral",
       "instructions": "Speak clearly and concisely.",
       "responseFormat": "pcm"
+    },
+    "wakeAudioInput": {
+      "command": "rec",
+      "args": [
+        "-q",
+        "-r",
+        "16000",
+        "-c",
+        "1",
+        "-b",
+        "16",
+        "{output}",
+        "trim",
+        "0",
+        "4"
+      ],
+      "timeoutMs": 7000
     },
     "audioInput": {
       "command": "rec",

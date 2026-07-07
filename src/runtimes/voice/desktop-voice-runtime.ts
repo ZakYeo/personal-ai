@@ -31,6 +31,10 @@ export async function createDesktopVoiceRuntime(
       createDesktopVoiceAdapters(
         voiceConfig,
         requireDesktopVoiceConfig(config),
+        {
+          ...(options.env ? { env: options.env } : {}),
+          ...(options.fetch ? { fetch: options.fetch } : {}),
+        },
       ),
   });
 }

@@ -2,7 +2,9 @@ import type {
   AudioInputPort,
   AudioOutputPort,
   SpeechToTextPort,
+  StreamingAudioInputPort,
   StreamingAudioOutputPort,
+  StreamingSpeechToTextPort,
   StreamingTextToSpeechPort,
   TextToSpeechPort,
   WakeActivationPort,
@@ -19,7 +21,9 @@ export interface VoiceActivationDependencies {
   audioOutput: AudioOutputPort;
   commandAudioInput: AudioInputPort;
   speechToText: SpeechToTextPort;
+  streamingAudioInput?: StreamingAudioInputPort;
   streamingAudioOutput?: StreamingAudioOutputPort;
+  streamingSpeechToText?: StreamingSpeechToTextPort;
   streamingTextToSpeech?: StreamingTextToSpeechPort;
   textToSpeech: TextToSpeechPort;
   turnConfig: VoiceTurnConfig;
@@ -43,9 +47,7 @@ export async function runVoiceActivation(
 
     logWakeDetected(io);
 
-    const commandAudio = await dependencies.commandAudioInput.capture();
-    const commandTranscript =
-      await dependencies.speechToText.transcribe(commandAudio);
+    const commandTranscript = await transcribeCommand(dependencies, io);
 
     return runDetectedVoiceCommand(
       dependencies,
@@ -79,9 +81,7 @@ export async function runVoiceActivation(
 
   logWakeDetected(io);
 
-  const commandAudio = await dependencies.commandAudioInput.capture();
-  const commandTranscript =
-    await dependencies.speechToText.transcribe(commandAudio);
+  const commandTranscript = await transcribeCommand(dependencies, io);
 
   return runDetectedVoiceCommand(
     dependencies,
@@ -89,4 +89,23 @@ export async function runVoiceActivation(
     io,
     detection.phrase ? { wakePhrase: detection.phrase } : {},
   );
+}
+
+async function transcribeCommand(
+  dependencies: VoiceActivationDependencies,
+  io: VoiceRuntimeIo,
+): Promise<{ text: string }> {
+  if (dependencies.streamingAudioInput && dependencies.streamingSpeechToText) {
+    const audio = await dependencies.streamingAudioInput.captureStream();
+
+    return dependencies.streamingSpeechToText.transcribeStream(audio, {
+      onTranscriptDelta: (delta) => {
+        io.progressOutput?.write(delta);
+      },
+    });
+  }
+
+  const commandAudio = await dependencies.commandAudioInput.capture();
+
+  return dependencies.speechToText.transcribe(commandAudio);
 }

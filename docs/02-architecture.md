@@ -93,10 +93,15 @@ Expected ports include:
 
 - `LlmPort`
 - `SpeechToTextPort`
+- `StreamingSpeechToTextPort`
 - `TextToSpeechPort`
+- `StreamingTextToSpeechPort`
 - `WakeWordPort`
+- `WakeActivationPort`
 - `AudioInputPort`
+- `StreamingAudioInputPort`
 - `AudioOutputPort`
+- `StreamingAudioOutputPort`
 - `FeaturePort`
 - `ClockPort`
 - `ConfigPort`

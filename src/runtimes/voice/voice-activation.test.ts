@@ -192,6 +192,50 @@ describe("voice activation", () => {
     expect(batchSpeechTexts).toEqual([]);
   });
 
+  it("streams command transcription after wake detection", async () => {
+    const progressOutput = createCapturedWriter();
+    const capturedBatchAudio: string[] = [];
+    const dependencies = createVoiceActivationDependencies({
+      wakeUtterance: "Hey Jarvis",
+    });
+
+    await expect(
+      runVoiceActivation(
+        {
+          ...dependencies,
+          commandAudioInput: {
+            capture: () => {
+              capturedBatchAudio.push("batch");
+
+              return Promise.resolve({ text: "batch command" });
+            },
+          },
+          streamingAudioInput: {
+            captureStream: () =>
+              Promise.resolve({ chunks: chunksFromText("audio") }),
+          },
+          streamingSpeechToText: {
+            transcribeStream: async (_audio, events) => {
+              await Promise.resolve();
+              events?.onTranscriptDelta?.("list ");
+              events?.onTranscriptDelta?.("alarms");
+
+              return { text: deterministicScenarios.alarmListEmpty.text };
+            },
+          },
+        },
+        { progressOutput },
+      ),
+    ).resolves.toMatchObject({
+      response: deterministicScenarios.alarmListEmpty.response,
+      transcript: deterministicScenarios.alarmListEmpty.text,
+    });
+
+    expect(capturedBatchAudio).toEqual([]);
+    expect(progressOutput.writes).toContain("list ");
+    expect(progressOutput.writes).toContain("alarms");
+  });
+
   it.each([
     {
       name: "wake audio capture",
