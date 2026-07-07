@@ -1,0 +1,144 @@
+import { env } from "node:process";
+import { join } from "node:path";
+
+import {
+  createDesktopVoiceCommand,
+  createDesktopVoiceConfig,
+} from "../test-support/desktop-voice-runtime.js";
+import { createCapturedWriter, line } from "../test-support/primitives.js";
+import { createServiceSignalController } from "../test-support/service-runtime.js";
+import type { ServiceRuntimeResult } from "./service/service-runtime.js";
+import { runDesktopVoiceServiceRuntime } from "./voice/desktop-voice-service-runtime.js";
+
+const runDesktopVoiceOpenAISmoke =
+  env.PERSONAL_AI_RUN_DESKTOP_VOICE_OPENAI_SMOKE === "1";
+const openAIApiKeyEnv = "OPENAI_API_KEY";
+const audioFixtureDirectory = join("test", "fixtures", "audio");
+const wakeFixturePath = join(audioFixtureDirectory, "hey-jarvis.wav");
+const commandFixturePath = join(
+  audioFixtureDirectory,
+  "list-my-alarms-24khz-mono-s16le.pcm",
+);
+
+describe.skipIf(!runDesktopVoiceOpenAISmoke)(
+  "desktop voice OpenAI smoke",
+  () => {
+    beforeAll(() => {
+      if (!env[openAIApiKeyEnv]) {
+        throw new Error(
+          `${openAIApiKeyEnv} must be set to run the desktop voice OpenAI smoke test.`,
+        );
+      }
+    });
+
+    it("detects a file-fed wake phrase and transcribes a file-fed command through the desktop voice service", async () => {
+      const signals = createServiceSignalController();
+      const progressOutput = createCapturedWriter();
+      const fallbackOutput = createCapturedWriter();
+      const stderr = createCapturedWriter();
+
+      const fetch: typeof globalThis.fetch = () => {
+        signals.emit("SIGTERM");
+
+        return Promise.resolve(new Response(Buffer.from("spoken audio")));
+      };
+
+      const result = await runDesktopVoiceServiceRuntime({
+        config: createDesktopVoiceConfig("", {
+          desktopVoice: {
+            openAIRealtimeTranscription: {
+              apiKeyEnv: openAIApiKeyEnv,
+              baseUrl: "wss://api.openai.com/v1/realtime",
+              model: "gpt-realtime-whisper",
+              timeoutMs: 30_000,
+            },
+            openAIStreamingSpeech: {
+              apiKeyEnv: openAIApiKeyEnv,
+              baseUrl: "https://api.openai.com/v1",
+              instructions: "Speak clearly and concisely.",
+              model: "gpt-4o-mini-tts",
+              responseFormat: "pcm",
+              voice: "coral",
+            },
+            streamingAudioInput: {
+              ...createDesktopVoiceCommand(`cat ${commandFixturePath}`),
+              timeoutMs: 45_000,
+            },
+            streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
+            wakeActivation: {
+              command: ".venv/bin/python",
+              args: [
+                "scripts/openwakeword-listener.py",
+                "--model",
+                "hey jarvis",
+                "--threshold",
+                "0.5",
+                "--rec-command",
+                `sox ${wakeFixturePath} -r 16000 -c 1 -b 16 -e signed-integer -t raw -`,
+              ],
+              timeoutMs: 30_000,
+            },
+          },
+          voice: {
+            streamingAudioInput: "sox-rec-stream",
+            streamingAudioOutput: "sox-play-stream",
+            streamingSpeechToText: "openai-realtime",
+            streamingTextToSpeech: "openai-streaming",
+            wakeActivation: "openwakeword-command",
+          },
+        }),
+        env: { [openAIApiKeyEnv]: env[openAIApiKeyEnv] },
+        fetch,
+        io: { fallbackOutput, progressOutput, stderr },
+        now: () => new Date("2026-06-26T09:00:00.000Z"),
+        processSignals: signals,
+        retryAfterFailure: (context) => {
+          context.requestShutdown("smoke failure");
+
+          return Promise.resolve();
+        },
+      });
+
+      expectSuccessfulSmokeResult(result, {
+        progress: progressOutput.writes,
+        stderr: stderr.writes,
+      });
+
+      expect(result).toEqual({
+        status: "stopped",
+        turnsCompleted: 1,
+      });
+
+      expect(progressOutput.writes).toEqual(
+        expect.arrayContaining([
+          line('Now listening for wake word "hey jarvis".'),
+          line("Wake word detected, now listening..."),
+          line("Assistant: There are no alarms set."),
+        ]),
+      );
+      expect(progressOutput.writes.join("")).toMatch(
+        /Heard: .*list my alarms/i,
+      );
+      expect(fallbackOutput.writes).toEqual([]);
+      expect(stderr.writes).toEqual([]);
+    }, 60_000);
+  },
+);
+
+function expectSuccessfulSmokeResult(
+  result: ServiceRuntimeResult,
+  output: { progress: string[]; stderr: string[] },
+): void {
+  if (result.status === "stopped" && result.turnsCompleted === 1) {
+    return;
+  }
+
+  throw new Error(
+    [
+      "Desktop voice OpenAI smoke did not complete one turn.",
+      `Result: ${JSON.stringify(result)}`,
+      `Progress output:\n${output.progress.join("")}`,
+      `Stderr output:\n${output.stderr.join("")}`,
+    ].join("\n\n"),
+  );
+}

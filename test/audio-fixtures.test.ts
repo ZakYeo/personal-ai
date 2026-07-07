@@ -14,6 +14,11 @@ const voiceFixtures = [
     fileName: "list-my-alarms.wav",
     spokenText: "List my alarms",
   },
+  {
+    expectedMinimumBytes: 40_000,
+    fileName: "list-my-alarms-24khz-mono-s16le.pcm",
+    spokenText: "List my alarms",
+  },
 ] as const;
 
 describe("voice audio fixtures", () => {
