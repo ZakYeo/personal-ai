@@ -5,6 +5,7 @@ export interface ParsedVoiceConfig {
   input?: string;
   speechToText?: string;
   textToSpeech?: string;
+  wakeActivation?: string;
   wakeWord?: string;
 }
 
@@ -13,6 +14,7 @@ export interface ResolvedVoiceConfig {
   input: string;
   speechToText: string;
   textToSpeech: string;
+  wakeActivation?: string;
   wakeWord: string;
 }
 
@@ -30,6 +32,7 @@ export function parseVoiceConfig(value: unknown): {
   return {
     voice: {
       ...parseVoiceAdapter("input", value.input),
+      ...parseVoiceAdapter("wakeActivation", value.wakeActivation),
       ...parseVoiceAdapter("wakeWord", value.wakeWord),
       ...parseVoiceAdapter("speechToText", value.speechToText),
       ...parseVoiceAdapter("textToSpeech", value.textToSpeech),
@@ -43,6 +46,9 @@ export function requireVoiceConfig(config: {
 }): ResolvedVoiceConfig {
   return {
     input: requireVoiceAdapterConfig(config, "input"),
+    ...(config.voice?.wakeActivation
+      ? { wakeActivation: config.voice.wakeActivation }
+      : {}),
     wakeWord: requireVoiceAdapterConfig(config, "wakeWord"),
     speechToText: requireVoiceAdapterConfig(config, "speechToText"),
     textToSpeech: requireVoiceAdapterConfig(config, "textToSpeech"),

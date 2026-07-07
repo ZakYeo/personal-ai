@@ -61,6 +61,54 @@ describe("runDesktopVoiceServiceRuntime", () => {
     expect(fallbackOutput.writes).toEqual([]);
   });
 
+  it("composes configured local wake activation for the service loop", async () => {
+    const signals = createServiceSignalController();
+    const wakeEvents: string[] = [];
+
+    await expect(
+      runDesktopVoiceServiceRuntime({
+        config: createDesktopVoiceConfig(
+          deterministicScenarios.alarmListEmpty.text,
+          {
+            desktopVoice: {
+              wakeActivation: {
+                command: "/bin/sh",
+                args: [
+                  "-c",
+                  `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
+                ],
+              },
+            },
+            voice: {
+              wakeActivation: "openwakeword-command",
+            },
+          },
+        ),
+        processSignals: signals,
+        retryAfterFailure: () => Promise.resolve(),
+        runVoiceActivation: async (dependencies) => {
+          const activation = await dependencies.wakeActivation?.waitForWake({
+            wakePhrases: ["hey jarvis"],
+          });
+
+          wakeEvents.push(activation?.phrase ?? "");
+          signals.emit("SIGTERM");
+
+          return {
+            response: deterministicScenarios.alarmListEmpty.response,
+            status: "spoken",
+            textOutputWritten: false,
+          };
+        },
+      }),
+    ).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 1,
+    });
+
+    expect(wakeEvents).toEqual(["hey jarvis"]);
+  });
+
   it("keeps running after a recoverable activation failure", async () => {
     const signals = createServiceSignalController();
     const stderr = createCapturedWriter();

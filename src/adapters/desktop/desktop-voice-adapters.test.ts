@@ -6,6 +6,7 @@ import { createShellCommand } from "../../test-support/adapter-contract.js";
 import {
   CommandSpeechToText,
   CommandTextToSpeech,
+  CommandWakeActivation,
   SoxAudioInput,
   SoxAudioOutput,
   TextPrefixWakeWordDetector,
@@ -54,6 +55,30 @@ describe("desktop voice adapters", () => {
       detected: true,
       phrase: "hey jarvis",
     });
+  });
+
+  it("waits for a wake event from a configured command", async () => {
+    const adapter = new CommandWakeActivation({
+      ...createShellCommand(
+        `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis","score":0.83}'`,
+      ),
+    });
+
+    await expect(
+      adapter.waitForWake({ wakePhrases: ["hey jarvis"] }),
+    ).resolves.toEqual({
+      phrase: "hey jarvis",
+    });
+  });
+
+  it("rejects malformed wake command output", async () => {
+    const adapter = new CommandWakeActivation({
+      ...createShellCommand("printf '%s\\n' not-json"),
+    });
+
+    await expect(
+      adapter.waitForWake({ wakePhrases: ["hey jarvis"] }),
+    ).rejects.toThrow("Wake activation command emitted invalid JSON.");
   });
 
   it("synthesizes speech to a file with a configured command", async () => {

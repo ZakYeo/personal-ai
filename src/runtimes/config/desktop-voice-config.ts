@@ -6,6 +6,7 @@ export interface ParsedDesktopVoiceConfig {
   audioOutput?: VoiceCommandConfig;
   speechToText?: VoiceCommandConfig;
   textToSpeech?: VoiceCommandConfig;
+  wakeActivation?: VoiceCommandConfig;
   wakeAudioInput?: VoiceCommandConfig;
 }
 
@@ -14,6 +15,7 @@ export interface ResolvedDesktopVoiceConfig {
   audioOutput: VoiceCommandConfig;
   speechToText: VoiceCommandConfig;
   textToSpeech: VoiceCommandConfig;
+  wakeActivation?: VoiceCommandConfig;
   wakeAudioInput?: VoiceCommandConfig;
 }
 
@@ -38,6 +40,7 @@ export function parseDesktopVoiceConfig(value: unknown): {
       ...parseVoiceCommand("audioOutput", value.audioOutput),
       ...parseVoiceCommand("speechToText", value.speechToText),
       ...parseVoiceCommand("textToSpeech", value.textToSpeech),
+      ...parseVoiceCommand("wakeActivation", value.wakeActivation),
       ...parseVoiceCommand("wakeAudioInput", value.wakeAudioInput),
     },
   };
@@ -51,6 +54,9 @@ export function requireDesktopVoiceConfig(config: {
     audioOutput: requireDesktopVoiceCommand(config, "audioOutput"),
     speechToText: requireDesktopVoiceCommand(config, "speechToText"),
     textToSpeech: requireDesktopVoiceCommand(config, "textToSpeech"),
+    ...(config.desktopVoice?.wakeActivation
+      ? { wakeActivation: config.desktopVoice.wakeActivation }
+      : {}),
     ...(config.desktopVoice?.wakeAudioInput
       ? { wakeAudioInput: config.desktopVoice.wakeAudioInput }
       : {}),

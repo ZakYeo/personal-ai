@@ -7,12 +7,13 @@ import type {
   SynthesizedSpeech,
   TextToSpeechPort,
   VoiceTempFilePort,
+  WakeActivationPort,
   WakeWordDetection,
   WakeWordPort,
   WakeWordRequest,
 } from "../../ports/voice.js";
 import { detectTextWakePhrase } from "../text-wake-phrase.js";
-import { runCommand } from "./process-runner.js";
+import { runCommand, runCommandUntilStdoutLine } from "./process-runner.js";
 
 export class SoxAudioInput implements AudioInputPort {
   constructor(
@@ -55,6 +56,20 @@ export class TextPrefixWakeWordDetector implements WakeWordPort {
   }
 }
 
+export class CommandWakeActivation implements WakeActivationPort {
+  constructor(private readonly commandConfig: VoiceCommandConfig) {}
+
+  async waitForWake(request: { wakePhrases: string[] }): Promise<{
+    phrase?: string;
+  }> {
+    const result = await runCommandUntilStdoutLine(this.commandConfig, (line) =>
+      parseWakeActivationLine(line, request.wakePhrases),
+    );
+
+    return result.line.phrase ? { phrase: result.line.phrase } : {};
+  }
+}
+
 export class CommandTextToSpeech implements TextToSpeechPort {
   constructor(
     private readonly commandConfig: VoiceCommandConfig,
@@ -74,6 +89,50 @@ export class CommandTextToSpeech implements TextToSpeechPort {
       text,
     };
   }
+}
+
+interface ParsedWakeActivationLine {
+  phrase?: string;
+}
+
+function parseWakeActivationLine(
+  line: string,
+  wakePhrases: string[],
+): ParsedWakeActivationLine | undefined {
+  const parsed = parseJsonLine(line);
+
+  if (!isRecord(parsed) || parsed.type !== "wake") {
+    return undefined;
+  }
+
+  const phrase = parsed.phrase;
+  if (phrase !== undefined && typeof phrase !== "string") {
+    throw new Error("Wake activation command phrase must be a string.");
+  }
+
+  if (
+    typeof phrase === "string" &&
+    wakePhrases.length > 0 &&
+    !wakePhrases.includes(phrase)
+  ) {
+    return undefined;
+  }
+
+  return phrase ? { phrase } : {};
+}
+
+function parseJsonLine(line: string): unknown {
+  try {
+    return JSON.parse(line) as unknown;
+  } catch (error) {
+    throw new Error("Wake activation command emitted invalid JSON.", {
+      cause: error,
+    });
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export class SoxAudioOutput implements AudioOutputPort {

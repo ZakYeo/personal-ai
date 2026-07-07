@@ -1,12 +1,12 @@
 import { spawn } from "node:child_process";
 
-interface RunCommandRequest {
+export interface RunCommandRequest {
   args?: string[];
   command: string;
   timeoutMs?: number;
 }
 
-interface RunCommandResult {
+export interface RunCommandResult {
   stderr: string;
   stdout: string;
 }
@@ -134,4 +134,129 @@ export function runCommand(
       resolve({ stderr, stdout });
     });
   });
+}
+
+export function runCommandUntilStdoutLine<TLine>(
+  request: RunCommandRequest,
+  selectLine: (line: string) => TLine | undefined,
+): Promise<RunCommandResult & { line: TLine }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(request.command, request.args ?? [], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
+    const timeoutMs = request.timeoutMs ?? defaultTimeoutMs;
+    let settled = false;
+    let pendingStdout = "";
+
+    const collectOutput = (): RunCommandResult => ({
+      stderr: Buffer.concat(stderrChunks).toString("utf8"),
+      stdout: Buffer.concat(stdoutChunks).toString("utf8"),
+    });
+
+    const settle = (
+      callback: (output: RunCommandResult) => void,
+      kill = false,
+    ): void => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      clearTimeout(timer);
+
+      if (kill) {
+        child.kill("SIGTERM");
+      }
+
+      callback(collectOutput());
+    };
+
+    const timer = setTimeout(() => {
+      settle((output) => {
+        reject(
+          new CommandTimeoutError(
+            `Command "${request.command}" timed out after ${timeoutMs}ms.`,
+            timeoutMs,
+            output.stderr,
+            output.stdout,
+          ),
+        );
+      }, true);
+    }, timeoutMs);
+
+    const handleStdoutLine = (line: string): void => {
+      let selected: TLine | undefined;
+
+      try {
+        selected = selectLine(line);
+      } catch (error) {
+        settle(() => reject(toError(error)), true);
+
+        return;
+      }
+
+      if (selected !== undefined) {
+        settle((output) => resolve({ ...output, line: selected }), true);
+      }
+    };
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdoutChunks.push(chunk);
+      pendingStdout += chunk.toString("utf8");
+
+      let newlineIndex = pendingStdout.indexOf("\n");
+      while (newlineIndex >= 0) {
+        const line = pendingStdout.slice(0, newlineIndex).trim();
+        pendingStdout = pendingStdout.slice(newlineIndex + 1);
+
+        if (line.length > 0) {
+          handleStdoutLine(line);
+        }
+
+        newlineIndex = pendingStdout.indexOf("\n");
+      }
+    });
+
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderrChunks.push(chunk);
+    });
+
+    child.on("error", (error) => {
+      settle((output) => {
+        reject(
+          new CommandSpawnError(
+            `Command "${request.command}" failed to start.`,
+            error,
+            output.stderr,
+            output.stdout,
+          ),
+        );
+      });
+    });
+
+    child.on("close", (code) => {
+      if (pendingStdout.trim().length > 0) {
+        handleStdoutLine(pendingStdout.trim());
+      }
+
+      settle((output) => {
+        reject(
+          new CommandExecutionError(
+            code === 0
+              ? `Command "${request.command}" exited without wake activation output.`
+              : `Command "${request.command}" exited with code ${code ?? "null"}.`,
+            code,
+            output.stderr,
+            output.stdout,
+          ),
+        );
+      });
+    });
+  });
+}
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
 }

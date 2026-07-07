@@ -1,6 +1,7 @@
 import {
   CommandSpeechToText,
   CommandTextToSpeech,
+  CommandWakeActivation,
   SoxAudioInput,
   SoxAudioOutput,
   TextPrefixWakeWordDetector,
@@ -64,6 +65,15 @@ export function createDesktopVoiceAdapters(
       "textToSpeech",
       desktopVoiceAdapterRegistry.textToSpeech,
     )(desktopVoice.textToSpeech, tempFiles),
+    ...(voice.wakeActivation
+      ? {
+          wakeActivation: selectConfiguredVoiceAdapter(
+            voice,
+            "wakeActivation",
+            desktopVoiceAdapterRegistry.wakeActivation,
+          )(requireDesktopWakeActivationConfig(desktopVoice)),
+        }
+      : {}),
     wakeWord: selectConfiguredVoiceAdapter(
       voice,
       "wakeWord",
@@ -101,6 +111,10 @@ const desktopVoiceAdapterRegistry = {
   wakeWord: {
     "text-prefix": () => new TextPrefixWakeWordDetector(),
   },
+  wakeActivation: {
+    "openwakeword-command": (command: VoiceCommandConfig) =>
+      new CommandWakeActivation(command),
+  },
   speechToText: {
     command: (command: VoiceCommandConfig) => new CommandSpeechToText(command),
   },
@@ -120,6 +134,10 @@ const desktopVoiceAdapterRegistry = {
     ) => AudioInputPort
   >;
   wakeWord: Record<string, () => WakeWordPort>;
+  wakeActivation: Record<
+    string,
+    (command: VoiceCommandConfig) => WakeActivationPort
+  >;
   speechToText: Record<
     string,
     (command: VoiceCommandConfig) => SpeechToTextPort
@@ -133,3 +151,13 @@ const desktopVoiceAdapterRegistry = {
   >;
   audioOutput: Record<string, (command: VoiceCommandConfig) => AudioOutputPort>;
 };
+
+function requireDesktopWakeActivationConfig(
+  desktopVoice: ResolvedDesktopVoiceConfig,
+): VoiceCommandConfig {
+  if (!desktopVoice.wakeActivation) {
+    throw new Error("Config desktopVoice.wakeActivation must be configured.");
+  }
+
+  return desktopVoice.wakeActivation;
+}

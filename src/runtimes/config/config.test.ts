@@ -247,6 +247,7 @@ describe("parseAssistantConfig", () => {
     const voice = {
       input: "mock",
       wakeWord: "mock",
+      wakeActivation: "openwakeword-command",
       speechToText: "mock",
       textToSpeech: "mock",
       audioOutput: "mock",
@@ -263,6 +264,10 @@ describe("parseAssistantConfig", () => {
         command: "fake-wake-rec",
         args: ["--output", "{output}"],
         timeoutMs: 1000,
+      },
+      wakeActivation: {
+        command: "fake-openwakeword",
+        args: ["--model", "hey_jarvis"],
       },
       speechToText: {
         command: "fake-stt",
