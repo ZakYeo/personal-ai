@@ -1,7 +1,4 @@
-import {
-  OpenAIRealtimeTranscription,
-  type RealtimeSocketFactory,
-} from "../../adapters/openai/openai-realtime-transcription.js";
+import { OpenAIRealtimeTranscription } from "../../adapters/openai/openai-realtime-transcription.js";
 import { createOpenAIRealtimeWebSocketFactory } from "../../adapters/openai/openai-realtime-websocket.js";
 import { OpenAIStreamingSpeech } from "../../adapters/openai/openai-streaming-speech.js";
 import type {
@@ -20,8 +17,6 @@ import {
   defineDesktopVoiceAdapter,
   type DesktopVoiceAdapterEntry,
 } from "./desktop-voice-adapter-types.js";
-
-export type { RealtimeSocketFactory };
 
 export const desktopVoiceProviderAdapterEntries = {
   streamingSpeechToText: {
