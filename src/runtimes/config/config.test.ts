@@ -177,65 +177,6 @@ describe("parseAssistantConfig", () => {
     });
   });
 
-  it("parses OpenAI intent config with defaults", () => {
-    expect(
-      parseAssistantConfig({
-        assistant: {
-          name: "Jarvis",
-          wakePhrases: ["hey jarvis"],
-        },
-        intent: {
-          provider: "openai",
-          openai: {
-            model: "gpt-5.5",
-          },
-        },
-        features: {},
-      }),
-    ).toEqual({
-      assistant: {
-        name: "Jarvis",
-        wakePhrases: ["hey jarvis"],
-      },
-      intent: {
-        provider: "openai",
-        openai: {
-          apiKeyEnv: "OPENAI_API_KEY",
-          baseUrl: "https://api.openai.com/v1",
-          model: "gpt-5.5",
-          timeoutMs: 30_000,
-        },
-      },
-      features: {},
-    });
-  });
-
-  it("parses OpenAI intent config overrides", () => {
-    expect(
-      parseAssistantConfig({
-        assistant: {
-          name: "Jarvis",
-          wakePhrases: ["hey jarvis"],
-        },
-        intent: {
-          provider: "openai",
-          openai: {
-            apiKeyEnv: "PERSONAL_AI_OPENAI_API_KEY",
-            baseUrl: "https://example.test/v1",
-            model: "gpt-5.5",
-            timeoutMs: 1000,
-          },
-        },
-        features: {},
-      }).intent.openai,
-    ).toEqual({
-      apiKeyEnv: "PERSONAL_AI_OPENAI_API_KEY",
-      baseUrl: "https://example.test/v1",
-      model: "gpt-5.5",
-      timeoutMs: 1000,
-    });
-  });
-
   it("resolves deterministic intent config", () => {
     expect(
       requireIntentConfig(
@@ -251,34 +192,6 @@ describe("parseAssistantConfig", () => {
         }),
       ),
     ).toEqual({ provider: "deterministic" });
-  });
-
-  it("resolves OpenAI intent config with provider settings", () => {
-    expect(
-      requireIntentConfig(
-        parseAssistantConfig({
-          assistant: {
-            name: "Jarvis",
-            wakePhrases: ["hey jarvis"],
-          },
-          intent: {
-            provider: "openai",
-            openai: {
-              model: "gpt-5.5",
-            },
-          },
-          features: {},
-        }),
-      ),
-    ).toEqual({
-      provider: "openai",
-      openai: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.com/v1",
-        model: "gpt-5.5",
-        timeoutMs: 30_000,
-      },
-    });
   });
 
   it("parses voice adapter IDs", () => {
@@ -350,98 +263,6 @@ describe("parseAssistantConfig", () => {
         features: {},
       }),
     ).toThrow("Config intent section must be a JSON object.");
-  });
-
-  it("parses OpenAI intent provider without provider settings", () => {
-    expect(
-      parseAssistantConfig({
-        assistant: {
-          name: "Jarvis",
-          wakePhrases: ["hey jarvis"],
-        },
-        intent: {
-          provider: "openai",
-        },
-        features: {},
-      }),
-    ).toMatchObject({
-      intent: {
-        provider: "openai",
-      },
-    });
-  });
-
-  it("rejects OpenAI intent provider without provider settings during resolution", () => {
-    expect(() =>
-      requireIntentConfig(
-        parseAssistantConfig({
-          assistant: {
-            name: "Jarvis",
-            wakePhrases: ["hey jarvis"],
-          },
-          intent: {
-            provider: "openai",
-          },
-          features: {},
-        }),
-      ),
-    ).toThrow("Config intent.openai must be configured.");
-  });
-
-  it("rejects invalid OpenAI intent model", () => {
-    expect(() =>
-      parseAssistantConfig({
-        assistant: {
-          name: "Jarvis",
-          wakePhrases: ["hey jarvis"],
-        },
-        intent: {
-          provider: "openai",
-          openai: {
-            model: "",
-          },
-        },
-        features: {},
-      }),
-    ).toThrow("Config intent.openai.model must be a non-empty string.");
-  });
-
-  it("rejects invalid OpenAI intent API key env", () => {
-    expect(() =>
-      parseAssistantConfig({
-        assistant: {
-          name: "Jarvis",
-          wakePhrases: ["hey jarvis"],
-        },
-        intent: {
-          provider: "openai",
-          openai: {
-            apiKeyEnv: "",
-            model: "gpt-5.5",
-          },
-        },
-        features: {},
-      }),
-    ).toThrow("Config intent.openai.apiKeyEnv must be a non-empty string.");
-  });
-
-  it("rejects invalid OpenAI intent timeout", () => {
-    expect(() =>
-      parseAssistantConfig({
-        assistant: {
-          name: "Jarvis",
-          wakePhrases: ["hey jarvis"],
-        },
-        intent: {
-          provider: "openai",
-          openai: {
-            model: "gpt-5.5",
-            timeoutMs: 0,
-          },
-        },
-        features: {},
-      }),
-    ).toThrow("Config intent.openai.timeoutMs must be a positive integer.");
   });
 
   it("rejects invalid feature adapter IDs", () => {

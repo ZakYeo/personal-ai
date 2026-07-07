@@ -1,8 +1,9 @@
 import { OpenAIRealtimeTranscription } from "./openai-realtime-transcription.js";
+import { TestRealtimeSocket } from "../../test-support/adapter-contract.js";
 
 describe("OpenAIRealtimeTranscription", () => {
   it("streams audio chunks and emits transcript deltas", async () => {
-    const socket = new FakeRealtimeSocket();
+    const socket = new TestRealtimeSocket();
     let requestUrl = "";
     const deltas: string[] = [];
     const adapter = createRealtimeTranscriptionAdapter({
@@ -48,7 +49,7 @@ describe("OpenAIRealtimeTranscription", () => {
   });
 
   it("configures a transcription session before sending audio", async () => {
-    const socket = new FakeRealtimeSocket();
+    const socket = new TestRealtimeSocket();
     const adapter = createRealtimeTranscriptionAdapter({ socket });
 
     const transcriptPromise = adapter.transcribeStream({
@@ -84,7 +85,7 @@ describe("OpenAIRealtimeTranscription", () => {
   });
 
   it("rejects with a safe realtime error when the provider sends an error event", async () => {
-    const socket = new FakeRealtimeSocket();
+    const socket = new TestRealtimeSocket();
     const adapter = createRealtimeTranscriptionAdapter({ socket });
 
     const transcriptPromise = adapter.transcribeStream({
@@ -129,7 +130,7 @@ describe("OpenAIRealtimeTranscription", () => {
   });
 
   it("rejects through the adapter when the socket fails before audio capture finishes", async () => {
-    const socket = new FakeRealtimeSocket();
+    const socket = new TestRealtimeSocket();
     const audio = createControlledAudioStream();
     const adapter = createRealtimeTranscriptionAdapter({ socket });
 
@@ -157,7 +158,7 @@ describe("OpenAIRealtimeTranscription", () => {
   });
 
   it("preserves socket error payloads before the socket opens", async () => {
-    const socket = new FakeRealtimeSocket();
+    const socket = new TestRealtimeSocket();
     const adapter = createRealtimeTranscriptionAdapter({ socket });
 
     const transcriptPromise = adapter.transcribeStream({
@@ -174,7 +175,7 @@ describe("OpenAIRealtimeTranscription", () => {
   });
 
   it("settles malformed message payload failures without waiting for timeout", async () => {
-    const socket = new FakeRealtimeSocket();
+    const socket = new TestRealtimeSocket();
     const adapter = createRealtimeTranscriptionAdapter({ socket });
 
     const transcriptPromise = adapter.transcribeStream({
@@ -192,7 +193,7 @@ describe("OpenAIRealtimeTranscription", () => {
   });
 
   it("rejects and closes the socket when the completed transcript never arrives", async () => {
-    const socket = new FakeRealtimeSocket();
+    const socket = new TestRealtimeSocket();
     const adapter = createRealtimeTranscriptionAdapter({
       socket,
       timeoutMs: 1,
@@ -212,7 +213,7 @@ describe("OpenAIRealtimeTranscription", () => {
   });
 
   it("rejects and closes the socket when the realtime socket never opens", async () => {
-    const socket = new FakeRealtimeSocket();
+    const socket = new TestRealtimeSocket();
     const adapter = createRealtimeTranscriptionAdapter({
       socket,
       timeoutMs: 1,
@@ -228,13 +229,13 @@ describe("OpenAIRealtimeTranscription", () => {
 
 function createRealtimeTranscriptionAdapter(options: {
   env?: Record<string, string | undefined>;
-  socket?: FakeRealtimeSocket;
+  socket?: TestRealtimeSocket;
   timeoutMs?: number;
   webSocketFactory?: ConstructorParameters<
     typeof OpenAIRealtimeTranscription
   >[0]["webSocketFactory"];
 }): OpenAIRealtimeTranscription {
-  const socket = options.socket ?? new FakeRealtimeSocket();
+  const socket = options.socket ?? new TestRealtimeSocket();
 
   return new OpenAIRealtimeTranscription({
     config: {
@@ -246,59 +247,6 @@ function createRealtimeTranscriptionAdapter(options: {
     env: options.env ?? { OPENAI_API_KEY: "test-key" },
     webSocketFactory: options.webSocketFactory ?? (() => socket),
   });
-}
-
-class FakeRealtimeSocket {
-  closed = false;
-  readonly sentMessages: Array<Record<string, unknown>> = [];
-  private readonly listeners: Record<string, Array<(event?: unknown) => void>> =
-    {};
-
-  addEventListener(type: string, listener: (event?: unknown) => void): void {
-    this.listeners[type] = [...(this.listeners[type] ?? []), listener];
-  }
-
-  close(): void {
-    this.closed = true;
-  }
-
-  send(message: string): void {
-    this.sentMessages.push(JSON.parse(message) as Record<string, unknown>);
-  }
-
-  emitOpen(): void {
-    this.emit("open");
-  }
-
-  emitMessage(message: Record<string, unknown>): void {
-    this.emit("message", { data: JSON.stringify(message) });
-  }
-
-  emitRawMessage(message: unknown): void {
-    this.emit("message", message);
-  }
-
-  emitError(error?: unknown): void {
-    this.emit("error", error);
-  }
-
-  async waitForSentType(type: string): Promise<void> {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      if (this.sentMessages.some((message) => message.type === type)) {
-        return;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-
-    throw new Error(`Timed out waiting for sent message ${type}.`);
-  }
-
-  private emit(type: string, event?: unknown): void {
-    for (const listener of this.listeners[type] ?? []) {
-      listener(event);
-    }
-  }
 }
 
 async function* chunksFromText(text: string): AsyncIterable<Uint8Array> {

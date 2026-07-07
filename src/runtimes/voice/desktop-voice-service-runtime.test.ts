@@ -1,11 +1,10 @@
 import { chmod, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type {
-  RealtimeSocket,
-  RealtimeSocketFactory,
-} from "../../adapters/openai/openai-realtime-transcription.js";
+import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
 import type { CapturedAudio } from "../../ports/voice.js";
+import { TestRealtimeSocket } from "../../test-support/adapter-contract.js";
+import { createOpenAIStreamingServiceConfig } from "../../test-support/desktop-voice-openai-service.js";
 import {
   createDesktopVoiceCommand,
   createDesktopVoiceConfig,
@@ -123,7 +122,8 @@ describe("runDesktopVoiceServiceRuntime", () => {
     const progressOutput = createCapturedWriter();
     const fallbackOutput = createCapturedWriter();
     const stderr = createCapturedWriter();
-    const socket = new FakeRealtimeSocket({
+    const socket = new TestRealtimeSocket({
+      autoOpen: true,
       transcript: deterministicScenarios.alarmListEmpty.text,
     });
     const fetch = vi.fn(() => {
@@ -174,7 +174,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
     const progressOutput = createCapturedWriter();
     const fallbackOutput = createCapturedWriter();
     const stderr = createCapturedWriter();
-    const socket = new FakeRealtimeSocket({});
+    const socket = new TestRealtimeSocket({ autoOpen: true });
     const fetch = vi.fn(() => {
       signals.emit("SIGTERM");
 
@@ -227,45 +227,19 @@ describe("runDesktopVoiceServiceRuntime", () => {
     const progressOutput = createCapturedWriter();
     const fallbackOutput = createCapturedWriter();
     const stderr = createCapturedWriter();
-    const socket = new FakeRealtimeSocket({
+    const socket = new TestRealtimeSocket({
+      autoOpen: true,
       errorOnSessionUpdate: true,
     });
 
     await expect(
       runDesktopVoiceServiceRuntime({
-        config: createDesktopVoiceConfig("", {
+        config: createOpenAIStreamingServiceConfig({
           desktopVoice: {
             streamingAudioInput: {
               ...createDesktopVoiceCommand("sleep 10"),
               timeoutMs: 30_000,
             },
-            streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
-            wakeActivation: createDesktopVoiceCommand(
-              `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
-            ),
-          },
-          rawDesktopVoice: {
-            openAIRealtimeTranscription: {
-              apiKeyEnv: "OPENAI_API_KEY",
-              baseUrl: "wss://api.openai.test/v1/realtime",
-              model: "gpt-realtime-whisper",
-              timeoutMs: 30_000,
-            },
-            openAIStreamingSpeech: {
-              apiKeyEnv: "OPENAI_API_KEY",
-              baseUrl: "https://api.openai.test/v1",
-              instructions: "Speak clearly.",
-              model: "gpt-4o-mini-tts",
-              responseFormat: "pcm",
-              voice: "coral",
-            },
-          },
-          voice: {
-            streamingAudioInput: "sox-rec-stream",
-            streamingAudioOutput: "sox-play-stream",
-            streamingSpeechToText: "openai-realtime",
-            streamingTextToSpeech: "openai-streaming",
-            wakeActivation: "openwakeword-command",
           },
         }),
         env: { OPENAI_API_KEY: "test-api-key" },
@@ -669,43 +643,6 @@ function createSuccessfulActivationAdapters(
   };
 }
 
-function createOpenAIStreamingServiceConfig(
-  options: { timeoutMs?: number } = {},
-): ReturnType<typeof createDesktopVoiceConfig> {
-  return createDesktopVoiceConfig("", {
-    desktopVoice: {
-      streamingAudioInput: createDesktopVoiceCommand("printf command-audio"),
-      streamingAudioOutput: createDesktopVoiceCommand("cat > /dev/null"),
-      wakeActivation: createDesktopVoiceCommand(
-        `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
-      ),
-    },
-    rawDesktopVoice: {
-      openAIRealtimeTranscription: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-realtime-whisper",
-        timeoutMs: options.timeoutMs ?? 30_000,
-      },
-      openAIStreamingSpeech: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.test/v1",
-        instructions: "Speak clearly.",
-        model: "gpt-4o-mini-tts",
-        responseFormat: "pcm",
-        voice: "coral",
-      },
-    },
-    voice: {
-      streamingAudioInput: "sox-rec-stream",
-      streamingAudioOutput: "sox-play-stream",
-      streamingSpeechToText: "openai-realtime",
-      streamingTextToSpeech: "openai-streaming",
-      wakeActivation: "openwakeword-command",
-    },
-  });
-}
-
 function createOpenWakeWordServiceConfig(
   command: string,
   args: string[],
@@ -721,81 +658,4 @@ function createOpenWakeWordServiceConfig(
       wakeActivation: "openwakeword-command",
     },
   });
-}
-
-class FakeRealtimeSocket implements RealtimeSocket {
-  closed = false;
-  readonly sentMessages: Array<Record<string, unknown>> = [];
-  private readonly listeners: Record<string, Array<(event?: unknown) => void>> =
-    {};
-
-  constructor(
-    private readonly options: {
-      errorOnSessionUpdate?: boolean;
-      transcript?: string;
-    },
-  ) {}
-
-  addEventListener(type: string, listener: (event?: unknown) => void): void {
-    this.listeners[type] = [...(this.listeners[type] ?? []), listener];
-
-    if (type === "open") {
-      queueMicrotask(() => {
-        this.emit("open");
-      });
-    }
-  }
-
-  close(): void {
-    this.closed = true;
-  }
-
-  send(message: string): void {
-    const parsed = JSON.parse(message) as Record<string, unknown>;
-    this.sentMessages.push(parsed);
-
-    if (parsed.type === "session.update" && this.options.errorOnSessionUpdate) {
-      queueMicrotask(() => {
-        if (this.closed) {
-          return;
-        }
-
-        this.emitMessage({
-          error: {
-            code: "invalid_request_error",
-            message: "Bad transcription session.",
-            type: "invalid_request_error",
-          },
-          type: "error",
-        });
-      });
-    }
-
-    if (parsed.type === "input_audio_buffer.commit") {
-      queueMicrotask(() => {
-        if (this.closed || this.options.transcript === undefined) {
-          return;
-        }
-
-        this.emitMessage({
-          delta: this.options.transcript,
-          type: "conversation.item.input_audio_transcription.delta",
-        });
-        this.emitMessage({
-          transcript: this.options.transcript,
-          type: "conversation.item.input_audio_transcription.completed",
-        });
-      });
-    }
-  }
-
-  private emitMessage(message: Record<string, unknown>): void {
-    this.emit("message", { data: JSON.stringify(message) });
-  }
-
-  private emit(type: string, event?: unknown): void {
-    for (const listener of this.listeners[type] ?? []) {
-      listener(event);
-    }
-  }
 }

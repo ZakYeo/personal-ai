@@ -4,6 +4,7 @@ import type {
   SpeechTranscript,
   SynthesizedSpeech,
 } from "../ports/voice.js";
+import type { RealtimeSocket } from "../adapters/openai/openai-realtime-transcription.js";
 
 export function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   const headers = new Headers(init.headers);
@@ -105,6 +106,108 @@ export function createFailingCommandScript(
   exitCode: number,
 ): string {
   return `printf '%s' ${JSON.stringify(stderr)} >&2; exit ${exitCode}`;
+}
+
+export class TestRealtimeSocket implements RealtimeSocket {
+  closed = false;
+  readonly sentMessages: Array<Record<string, unknown>> = [];
+  private readonly listeners: Record<string, Array<(event?: unknown) => void>> =
+    {};
+
+  constructor(
+    private readonly options: {
+      autoOpen?: boolean;
+      errorOnSessionUpdate?: boolean;
+      transcript?: string;
+    } = {},
+  ) {}
+
+  addEventListener(type: string, listener: (event?: unknown) => void): void {
+    this.listeners[type] = [...(this.listeners[type] ?? []), listener];
+
+    if (type === "open" && this.options.autoOpen) {
+      queueMicrotask(() => {
+        this.emitOpen();
+      });
+    }
+  }
+
+  close(): void {
+    this.closed = true;
+  }
+
+  send(message: string): void {
+    const parsed = JSON.parse(message) as Record<string, unknown>;
+    this.sentMessages.push(parsed);
+
+    if (parsed.type === "session.update" && this.options.errorOnSessionUpdate) {
+      queueMicrotask(() => {
+        if (this.closed) {
+          return;
+        }
+
+        this.emitMessage({
+          error: {
+            code: "invalid_request_error",
+            message: "Bad transcription session.",
+            type: "invalid_request_error",
+          },
+          type: "error",
+        });
+      });
+    }
+
+    if (parsed.type === "input_audio_buffer.commit") {
+      queueMicrotask(() => {
+        if (this.closed || this.options.transcript === undefined) {
+          return;
+        }
+
+        this.emitMessage({
+          delta: this.options.transcript,
+          type: "conversation.item.input_audio_transcription.delta",
+        });
+        this.emitMessage({
+          transcript: this.options.transcript,
+          type: "conversation.item.input_audio_transcription.completed",
+        });
+      });
+    }
+  }
+
+  emitOpen(): void {
+    this.emit("open");
+  }
+
+  emitMessage(message: Record<string, unknown>): void {
+    this.emit("message", { data: JSON.stringify(message) });
+  }
+
+  emitRawMessage(message: unknown): void {
+    this.emit("message", message);
+  }
+
+  emitError(error?: unknown): void {
+    this.emit("error", error);
+  }
+
+  async waitForSentType(type: string): Promise<void> {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (this.sentMessages.some((message) => message.type === type)) {
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+
+    throw new Error(`Timed out waiting for sent message ${type}.`);
+  }
+
+  private emit(type: string, event?: unknown): void {
+    for (const listener of this.listeners[type] ?? []) {
+      listener(event);
+    }
+  }
 }
 
 export const voiceAdapterContractFixtures = {
