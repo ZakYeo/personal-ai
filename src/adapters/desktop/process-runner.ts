@@ -263,30 +263,23 @@ function toError(error: unknown): Error {
 
 export function runCommandReadableStream(request: RunCommandRequest): {
   chunks: AsyncIterable<Uint8Array>;
-  cleanup(): Promise<void>;
 } {
-  let activeProcess: ReadableStreamProcess | undefined;
-
   return {
-    cleanup: async () => {
-      await activeProcess?.cleanup();
-    },
-    chunks: (async function* () {
-      activeProcess = startReadableStreamProcess(request);
-
-      yield* readProcessStdout(activeProcess.completion);
-    })(),
+    chunks: createCommandReadableIterable(request),
   };
 }
 
-interface ReadableStreamProcess {
-  cleanup(): Promise<void>;
-  completion: ProcessCompletionRequest;
+function createCommandReadableIterable(
+  request: RunCommandRequest,
+): AsyncIterable<Uint8Array> {
+  return {
+    [Symbol.asyncIterator]: () => createCommandReadableIterator(request),
+  };
 }
 
-function startReadableStreamProcess(
+function createCommandReadableIterator(
   request: RunCommandRequest,
-): ReadableStreamProcess {
+): AsyncIterator<Uint8Array> {
   const child = spawn(request.command, request.args ?? [], {
     detached: canUseProcessGroups(),
     stdio: ["ignore", "pipe", "pipe"],
@@ -305,7 +298,6 @@ function startReadableStreamProcess(
     timeoutMs,
   };
   const waitForClose = waitForProcessClose(completion);
-  completion.waitForClose = waitForClose;
   waitForClose.catch(() => {});
 
   child.stderr.on("data", (chunk: Buffer) => {
@@ -315,9 +307,13 @@ function startReadableStreamProcess(
     spawnError = error;
   });
 
+  const stdoutIterator = readProcessStdout(completion, waitForClose)[
+    Symbol.asyncIterator
+  ]();
+
   return {
-    completion,
-    cleanup: async () => {
+    next: () => stdoutIterator.next(),
+    return: async () => {
       if (child.exitCode === null && child.signalCode === null) {
         terminateProcess(child);
       }
@@ -325,8 +321,12 @@ function startReadableStreamProcess(
       try {
         await waitForClose;
       } catch {
-        // Stream cleanup is best-effort; callers keep the primary failure.
+        // Iterator cancellation is best-effort; callers keep the primary failure.
       }
+
+      await stdoutIterator.return?.();
+
+      return { done: true, value: undefined };
     },
   };
 }
@@ -374,17 +374,16 @@ interface ProcessCompletionRequest {
   stderrChunks: Buffer[];
   stdoutChunks: Buffer[];
   timeoutMs: number;
-  waitForClose?: Promise<void>;
 }
 
 async function* readProcessStdout(
   request: ProcessCompletionRequest,
+  waitForClose = waitForProcessClose(request),
 ): AsyncIterable<Uint8Array> {
   if (!request.child.stdout) {
     throw new Error("Command did not provide stdout.");
   }
 
-  const waitForClose = request.waitForClose ?? waitForProcessClose(request);
   waitForClose.catch(() => {});
 
   for await (const chunk of request.child.stdout) {

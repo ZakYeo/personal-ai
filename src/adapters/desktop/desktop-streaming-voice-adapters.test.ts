@@ -53,14 +53,22 @@ describe("desktop streaming voice adapters", () => {
     );
   });
 
-  it("can clean up a running streaming audio command before it times out", async () => {
+  it("can cancel a running streaming audio command before it times out", async () => {
     const adapter = new CommandStreamingAudioInput({
       ...createShellCommand("sleep 10"),
       timeoutMs: 30_000,
     });
     const audio = await adapter.captureStream();
+    const iterator = audio.chunks[Symbol.asyncIterator]();
+    const pendingChunk = iterator.next();
+    await new Promise((resolve) => setTimeout(resolve, 10));
 
-    await expect(audio.cleanup?.()).resolves.toBeUndefined();
+    await expect(iterator.return?.()).resolves.toEqual(
+      expect.objectContaining({ done: true }),
+    );
+    await expect(pendingChunk).rejects.toThrow(
+      'Command "/bin/sh" exited with code null.',
+    );
   });
 });
 

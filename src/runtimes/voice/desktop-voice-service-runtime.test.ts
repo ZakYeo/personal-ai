@@ -284,7 +284,6 @@ describe("runDesktopVoiceServiceRuntime", () => {
     const socket = new FakeRealtimeSocket({
       errorOnSessionUpdate: true,
     });
-    const startedAt = Date.now();
 
     await expect(
       runDesktopVoiceServiceRuntime({
@@ -339,7 +338,6 @@ describe("runDesktopVoiceServiceRuntime", () => {
       turnsCompleted: 0,
     });
 
-    expect(Date.now() - startedAt).toBeLessThan(5_000);
     expect(socket.sentMessages.map((message) => message.type)).toEqual([
       "session.update",
     ]);

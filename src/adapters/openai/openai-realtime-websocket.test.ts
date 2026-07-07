@@ -1,4 +1,4 @@
-import { createDefaultWebSocketFactory } from "./desktop-voice-adapter-registry.js";
+import { createOpenAIRealtimeWebSocketFactory } from "./openai-realtime-websocket.js";
 
 const { MockWebSocket, mockWebSocketInstances } = vi.hoisted(() => {
   type MockWebSocketListener = (event?: unknown) => void;
@@ -46,13 +46,13 @@ vi.mock("ws", () => ({
   default: MockWebSocket,
 }));
 
-describe("desktop voice adapter registry", () => {
+describe("OpenAI realtime websocket factory", () => {
   beforeEach(() => {
     mockWebSocketInstances.length = 0;
   });
 
   it("creates authenticated realtime sockets with the ws client", () => {
-    const socket = createDefaultWebSocketFactory({
+    const socket = createOpenAIRealtimeWebSocketFactory({
       apiKey: "test-api-key",
       url: "wss://api.openai.test/v1/realtime?intent=transcription",
     });

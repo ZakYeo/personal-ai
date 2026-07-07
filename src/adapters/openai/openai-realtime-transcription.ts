@@ -58,7 +58,7 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
         this.options.config.timeoutMs,
       );
 
-      await streamAudioToSocket(socket, audio, transcriptPromise);
+      await streamAudioToSocket(socket, audio.chunks, transcriptPromise);
 
       socket.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
 
@@ -66,7 +66,6 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
 
       return transcript;
     } finally {
-      await cleanupAudioStream(audio);
       socket.close();
     }
   }
@@ -74,52 +73,61 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
 
 async function streamAudioToSocket(
   socket: RealtimeSocket,
-  audio: CapturedAudioStream,
+  chunks: AsyncIterable<Uint8Array>,
   transcriptPromise: Promise<SpeechTranscript>,
 ): Promise<void> {
-  const iterator = audio.chunks[Symbol.asyncIterator]();
+  const iterator = chunks[Symbol.asyncIterator]();
 
-  while (true) {
-    const next = await Promise.race([
-      iterator.next().then(
-        (result) => ({ result, type: "chunk" }) as const,
-        (error: unknown) => ({ error, type: "failure" }) as const,
-      ),
-      transcriptPromise.then(
-        () => ({ type: "transcript" }) as const,
-        (error: unknown) => ({ error, type: "failure" }) as const,
-      ),
-    ]);
+  try {
+    while (true) {
+      const next = await nextAudioChunkOrTranscriptFailure(
+        iterator,
+        transcriptPromise,
+      );
 
-    if (next.type === "failure") {
-      throw toError(next.error);
-    }
+      if (next.done) {
+        return;
+      }
 
-    if (next.type === "transcript") {
-      throw new Error(
-        "Realtime transcription completed before audio stream finished.",
+      socket.send(
+        JSON.stringify({
+          audio: Buffer.from(next.value).toString("base64"),
+          type: "input_audio_buffer.append",
+        }),
       );
     }
-
-    if (next.result.done) {
-      return;
-    }
-
-    socket.send(
-      JSON.stringify({
-        audio: Buffer.from(next.result.value).toString("base64"),
-        type: "input_audio_buffer.append",
-      }),
-    );
+  } catch (error) {
+    await iterator.return?.();
+    throw error;
   }
 }
 
-async function cleanupAudioStream(audio: CapturedAudioStream): Promise<void> {
-  try {
-    await audio.cleanup?.();
-  } catch {
-    // Audio stream cleanup is best-effort and must not mask transcription errors.
+async function nextAudioChunkOrTranscriptFailure(
+  iterator: AsyncIterator<Uint8Array>,
+  transcriptPromise: Promise<SpeechTranscript>,
+): Promise<IteratorResult<Uint8Array>> {
+  const next = await Promise.race([
+    iterator.next().then(
+      (result) => ({ result, type: "chunk" }) as const,
+      (error: unknown) => ({ error, type: "failure" }) as const,
+    ),
+    transcriptPromise.then(
+      () => ({ type: "transcript" }) as const,
+      (error: unknown) => ({ error, type: "failure" }) as const,
+    ),
+  ]);
+
+  if (next.type === "failure") {
+    throw toError(next.error);
   }
+
+  if (next.type === "transcript") {
+    throw new Error(
+      "Realtime transcription completed before audio stream finished.",
+    );
+  }
+
+  return next.result;
 }
 
 function configureTranscriptionSession(
