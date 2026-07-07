@@ -98,6 +98,12 @@ Run the default deterministic CLI:
 npm run cli -- ask "Hey Jarvis, list my alarms"
 ```
 
+Start the default desktop OpenAI voice service:
+
+```bash
+npm start
+```
+
 Run one simulated voice turn:
 
 ```bash
@@ -197,6 +203,8 @@ Common development commands:
 - `npm run format:check` - check Prettier formatting.
 - `npm run typecheck` - run TypeScript without emitting files.
 - `npm run build` - compile production JavaScript.
+- `npm start` - run the default desktop OpenAI voice service with
+  `config/local-desktop-voice-openai.json`.
 - `npm run cli -- desktop-voice-once --config config/desktop-voice-demo.json` -
   run the committed command-based desktop voice demo.
 - `npm run cli -- desktop-voice-service --config path/to/desktop-config.json` -

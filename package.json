@@ -30,6 +30,7 @@
     "secrets:check": "secretlint \"**/*\"",
     "smoke:pi:qemu": "tsx src/runtimes/pi/pi-qemu-smoke.ts",
     "spellcheck": "cspell .",
+    "start": "npm run cli -- desktop-voice-service --config config/local-desktop-voice-openai.json",
     "test": "vitest",
     "test:coverage": "vitest --run --coverage",
     "test:e2e:openai": "PERSONAL_AI_RUN_OPENAI_E2E=1 node --env-file=.env ./node_modules/vitest/vitest.mjs --run src/runtimes/openai-intent-routing.e2e.test.ts",

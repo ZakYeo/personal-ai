@@ -85,6 +85,7 @@
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run test:e2e:openai` - run the opt-in live OpenAI intent routing E2E test with `.env`.
 - `npm run build` - compile the production JavaScript output.
+- `npm start` - run the default desktop OpenAI voice service with `config/local-desktop-voice-openai.json`.
 - `npm run cli -- ask "..."` - run the deterministic text CLI in development; loads `.env` when present.
 - `npm run cli -- voice-once --utterance "..."` - run one simulated mock voice turn.
 - `npm run cli -- desktop-voice-once --config path/to/desktop-config.json` - run one configured desktop voice turn.

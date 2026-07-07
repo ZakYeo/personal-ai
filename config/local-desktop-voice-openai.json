@@ -1,0 +1,93 @@
+{
+  "assistant": {
+    "name": "Jarvis",
+    "wakePhrases": ["hey jarvis"]
+  },
+  "intent": {
+    "provider": "deterministic"
+  },
+  "voice": {
+    "input": "sox-rec",
+    "wakeWord": "text-prefix",
+    "speechToText": "command",
+    "textToSpeech": "command",
+    "audioOutput": "sox-play"
+  },
+  "desktopVoice": {
+    "wakeAudioInput": {
+      "command": "rec",
+      "args": [
+        "-q",
+        "-r",
+        "16000",
+        "-c",
+        "1",
+        "-b",
+        "16",
+        "{output}",
+        "trim",
+        "0",
+        "4"
+      ],
+      "timeoutMs": 7000
+    },
+    "audioInput": {
+      "command": "rec",
+      "args": [
+        "-q",
+        "-r",
+        "16000",
+        "-c",
+        "1",
+        "-b",
+        "16",
+        "{output}",
+        "trim",
+        "0",
+        "8"
+      ],
+      "timeoutMs": 11000
+    },
+    "speechToText": {
+      "command": "/bin/sh",
+      "args": [
+        "-c",
+        "test -n \"$OPENAI_API_KEY\" || { echo 'OPENAI_API_KEY is not set' >&2; exit 2; }\ncurl --fail --silent --show-error --request POST --url https://api.openai.com/v1/audio/transcriptions --header \"Authorization: Bearer $OPENAI_API_KEY\" --header 'Content-Type: multipart/form-data' --form file=@\"$1\" --form model=gpt-4o-transcribe --form response_format=text",
+        "sh",
+        "{input}"
+      ],
+      "timeoutMs": 30000
+    },
+    "textToSpeech": {
+      "command": "/bin/sh",
+      "args": [
+        "-c",
+        "test -n \"$OPENAI_API_KEY\" || { echo 'OPENAI_API_KEY is not set' >&2; exit 2; }\njq -n --arg input \"$1\" '{model:\"gpt-4o-mini-tts\", voice:\"coral\", input:$input, instructions:\"Speak clearly and concisely.\", response_format:\"wav\"}' | curl --fail --silent --show-error https://api.openai.com/v1/audio/speech --header \"Authorization: Bearer $OPENAI_API_KEY\" --header 'Content-Type: application/json' --data-binary @- --output \"$2\"",
+        "sh",
+        "{text}",
+        "{output}"
+      ],
+      "timeoutMs": 30000
+    },
+    "audioOutput": {
+      "command": "play",
+      "args": ["-q", "{input}"],
+      "timeoutMs": 10000
+    }
+  },
+  "features": {
+    "calendar": {
+      "enabled": true,
+      "adapter": "mock"
+    },
+    "messaging": {
+      "enabled": true,
+      "adapter": "mock"
+    },
+    "alarms": {
+      "enabled": true,
+      "adapter": "local",
+      "confirmationRequiredCapabilities": ["alarm.create"]
+    }
+  }
+}

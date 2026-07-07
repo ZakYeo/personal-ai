@@ -632,6 +632,8 @@ or live provider dependencies to the deterministic validation gate.
 
 Included:
 
+- `npm start` default entrypoint for the desktop OpenAI voice service using
+  `config/local-desktop-voice-openai.json`.
 - `desktop-voice-service` CLI command with an explicit local config path.
 - Two-stage command-based activation: short wake-window capture followed by a
   separate command utterance capture.

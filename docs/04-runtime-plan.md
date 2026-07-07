@@ -102,6 +102,14 @@ The desktop voice service command is:
 personal-ai desktop-voice-service --config path/to/desktop-config.json
 ```
 
+For this repository's default desktop OpenAI voice setup, use:
+
+```bash
+npm start
+```
+
+That script runs the service with `config/local-desktop-voice-openai.json`.
+
 This command runs the desktop voice stack in a long-lived service loop. Each
 service iteration captures a short wake audio window, transcribes it, detects
 the configured wake phrase, and ignores the turn if no wake phrase is detected.
