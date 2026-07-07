@@ -33,7 +33,7 @@ import type {
   ResolvedDesktopVoiceConfig,
   ResolvedDesktopVoiceServiceConfig,
   OpenAIRealtimeTranscriptionConfig,
-  OpenAIStreamingSpeechConfig
+  OpenAIStreamingSpeechConfig,
 } from "../config/desktop-voice-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import { selectConfiguredVoiceAdapter } from "./voice-adapter-selection.js";
