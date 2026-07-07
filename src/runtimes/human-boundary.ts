@@ -57,13 +57,40 @@ function formatRuntimeDiagnosticFields(error: unknown): string[] {
   }
 
   return [
+    ...formatRuntimeDiagnosticNumberField("status", error.status),
+    ...formatRuntimeDiagnosticField("response body", error.responseBody),
+    ...formatRuntimeDiagnosticJsonField("event", error.event),
     ...formatRuntimeDiagnosticField("stderr", error.stderr),
     ...formatRuntimeDiagnosticField("stdout", error.stdout),
   ];
 }
 
+function formatRuntimeDiagnosticNumberField(
+  label: string,
+  value: unknown,
+): string[] {
+  if (typeof value !== "number") {
+    return [];
+  }
+
+  return [`Runtime failure ${label}: ${value}\n`];
+}
+
+function formatRuntimeDiagnosticJsonField(
+  label: string,
+  value: unknown,
+): string[] {
+  if (value === undefined) {
+    return [];
+  }
+
+  return [
+    `Runtime failure ${label}: ${truncateDiagnostic(JSON.stringify(value))}\n`,
+  ];
+}
+
 function formatRuntimeDiagnosticField(
-  label: "stderr" | "stdout",
+  label: "response body" | "stderr" | "stdout",
   value: unknown,
 ): string[] {
   if (typeof value !== "string" || value.length === 0) {

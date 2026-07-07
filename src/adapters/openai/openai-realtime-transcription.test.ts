@@ -126,9 +126,17 @@ describe("OpenAIRealtimeTranscription", () => {
       type: "error",
     });
 
-    await expect(transcriptPromise).rejects.toThrow(
-      "Realtime transcription failed.",
-    );
+    await expect(transcriptPromise).rejects.toMatchObject({
+      event: {
+        error: {
+          code: "invalid_value",
+          message: "Unsupported session shape.",
+          type: "invalid_request_error",
+        },
+        type: "error",
+      },
+      message: "Realtime transcription failed.",
+    });
     expect(socket.closed).toBe(true);
   });
 

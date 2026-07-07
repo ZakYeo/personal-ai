@@ -50,6 +50,31 @@ describe("OpenAIStreamingSpeech", () => {
       "OpenAI API key environment variable OPENAI_API_KEY is not set.",
     );
   });
+
+  it("preserves provider status and body diagnostics for non-OK responses", async () => {
+    const adapter = new OpenAIStreamingSpeech({
+      config: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "https://api.openai.test/v1",
+        instructions: "Speak clearly.",
+        model: "gpt-4o-mini-tts",
+        responseFormat: "pcm",
+        voice: "coral",
+      },
+      env: { OPENAI_API_KEY: "test-key" },
+      fetch: vi.fn().mockResolvedValue(
+        new Response('{"error":"quota exceeded"}', {
+          status: 429,
+        }),
+      ),
+    });
+
+    await expect(adapter.synthesizeStream("Alarm set.")).rejects.toMatchObject({
+      message: "OpenAI speech request failed with status 429.",
+      responseBody: '{"error":"quota exceeded"}',
+      status: 429,
+    });
+  });
 });
 
 function streamFromText(text: string): ReadableStream<Uint8Array> {

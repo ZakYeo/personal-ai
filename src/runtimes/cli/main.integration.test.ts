@@ -267,6 +267,35 @@ describe("personal-ai ask CLI", () => {
     });
   });
 
+  it("logs runtime provider diagnostics without exposing them in stdout", async () => {
+    const providerError = Object.assign(new Error("OpenAI speech failed."), {
+      responseBody: '{"error":"provider token secret"}',
+      status: 429,
+    });
+    const result = await runCliWithInjectedRuntime({
+      args: ["ask", "fail safely"],
+      runtime: {
+        handleText: () =>
+          Promise.resolve({
+            status: "error",
+            text: "legacy path should not be used",
+          }),
+        handleTextWithDiagnostics: () => Promise.reject(providerError),
+      },
+    });
+
+    expect(result).toMatchObject({
+      exitCode: 1,
+      stdout: stdoutLine("I hit a problem and could not complete that."),
+    });
+    expect(result.stdout.join("")).not.toContain("provider token secret");
+    expect(result.stderr).toEqual([
+      "Runtime failure: OpenAI speech failed.\n",
+      "Runtime failure status: 429\n",
+      'Runtime failure response body: {"error":"provider token secret"}\n',
+    ]);
+  });
+
   it("prints a graceful response and diagnostics when voice setup fails", async () => {
     const configPath = await writeTempConfig(
       withVoiceAdapterId("speechToText", "unknown", {

@@ -2,11 +2,8 @@ import type {
   StreamingTextToSpeechPort,
   SynthesizedSpeechStream,
 } from "../../ports/voice.js";
-import {
-  createOpenAIStatusError,
-  createOpenAIUrl,
-  resolveOpenAIApiKey,
-} from "./openai-voice-client.js";
+import { createOpenAIUrl, resolveOpenAIApiKey } from "./openai-voice-client.js";
+import { createOpenAIVoiceProviderError } from "./openai-voice-provider-error.js";
 
 interface OpenAIStreamingSpeechConfig {
   apiKeyEnv: string;
@@ -48,7 +45,11 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
     );
 
     if (!response.ok) {
-      throw createOpenAIStatusError("speech", response.status);
+      throw createOpenAIVoiceProviderError({
+        message: `OpenAI speech request failed with status ${response.status}.`,
+        responseBody: await response.text(),
+        status: response.status,
+      });
     }
 
     if (!response.body) {

@@ -5,6 +5,7 @@ import type {
   StreamingSpeechToTextPort,
 } from "../../ports/voice.js";
 import { resolveOpenAIApiKey } from "./openai-voice-client.js";
+import { createOpenAIVoiceProviderError } from "./openai-voice-provider-error.js";
 
 interface OpenAIRealtimeTranscriptionConfig {
   apiKeyEnv: string;
@@ -203,7 +204,12 @@ function waitForTranscript(
 
         if (event.type === "error") {
           clearTimeout(timer);
-          reject(new Error("Realtime transcription failed."));
+          reject(
+            createOpenAIVoiceProviderError({
+              event,
+              message: "Realtime transcription failed.",
+            }),
+          );
           return;
         }
 

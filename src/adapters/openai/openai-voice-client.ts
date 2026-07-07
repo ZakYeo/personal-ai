@@ -21,13 +21,6 @@ export function createOpenAIUrl(baseUrl: string, path: string): string {
   return new URL(path, ensureTrailingSlash(baseUrl)).toString();
 }
 
-export function createOpenAIStatusError(
-  operation: string,
-  status: number,
-): Error {
-  return new Error(`OpenAI ${operation} request failed with status ${status}.`);
-}
-
 function ensureTrailingSlash(value: string): string {
   return value.endsWith("/") ? value : `${value}/`;
 }
