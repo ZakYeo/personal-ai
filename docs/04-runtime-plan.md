@@ -151,6 +151,20 @@ transcripts, raw provider output, adapter command output, credentials, stack
 traces, and diagnostic causes remain out of progress logs; diagnostics stay on
 stderr.
 
+The opt-in desktop voice OpenAI smoke command is:
+
+```bash
+npm run smoke:desktop-voice:openai
+```
+
+This command loads `.env`, requires `OPENAI_API_KEY`, uses committed audio
+fixtures from `test/fixtures/audio/`, runs openWakeWord against a file-fed
+`"Hey Jarvis"` wake phrase, and streams a file-fed `List my alarms` command as
+raw mono 24 kHz PCM through the OpenAI realtime transcription adapter. It is
+not part of the deterministic validation gate. It is intended to reproduce the
+same post-wake path as `npm start` without depending on room acoustics or a live
+microphone.
+
 ### Raspberry Pi Runtime
 
 The Raspberry Pi runtime runs the assistant as a long-lived service process.

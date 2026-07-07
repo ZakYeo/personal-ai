@@ -126,6 +126,20 @@ Voice service commands write progress logs to stdout, including wake listening,
 wake detection, live transcript deltas, recognized command text, and the
 assistant response. Internal diagnostics and adapter failures stay on stderr.
 
+Run the opt-in desktop voice OpenAI smoke test:
+
+```bash
+npm run smoke:desktop-voice:openai
+```
+
+This command loads `.env`, requires `OPENAI_API_KEY`, uses the committed voice
+fixtures in `test/fixtures/audio/`, runs local openWakeWord activation for
+`"Hey Jarvis"`, and streams a file-fed `List my alarms` command through the
+OpenAI realtime transcription adapter. It is intentionally outside
+`npm run check`. At the time this smoke was introduced, it reproduced the
+current post-wake timeout in the desktop voice path and is the acceptance gate
+for the follow-up runtime fix.
+
 Run one simulated voice turn:
 
 ```bash
@@ -230,6 +244,8 @@ Common development commands:
 - `npm start` - run the default desktop OpenAI voice service with
   `config/local-desktop-voice-openai.json`; progress logs are written to
   stdout.
+- `npm run smoke:desktop-voice:openai` - run the opt-in file-fed desktop voice
+  smoke against local openWakeWord and live OpenAI realtime transcription.
 - `npm run cli -- desktop-voice-once --config config/desktop-voice-demo.json` -
   run the committed command-based desktop voice demo.
 - `npm run cli -- desktop-voice-service --config path/to/desktop-config.json` -
