@@ -224,6 +224,7 @@ function buildPiServiceRuntimeOptions(
     env,
     io: {
       fallbackOutput: io.stdout,
+      progressOutput: io.stdout,
       stderr: io.stderr,
     },
     ...(fixedNow ? { now: () => new Date(fixedNow) } : {}),
@@ -245,6 +246,7 @@ function buildDesktopVoiceServiceRuntimeOptions(
     env,
     io: {
       fallbackOutput: io.stdout,
+      progressOutput: io.stdout,
       stderr: io.stderr,
     },
     ...(fixedNow ? { now: () => new Date(fixedNow) } : {}),

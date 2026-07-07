@@ -513,7 +513,11 @@ function createServiceOptionsAssertion(
   return (options?: {
     configPath?: string;
     env?: NodeJS.ProcessEnv;
-    io?: { fallbackOutput?: unknown; stderr?: unknown };
+    io?: {
+      fallbackOutput?: unknown;
+      progressOutput?: unknown;
+      stderr?: unknown;
+    };
     processSignals?: unknown;
   }): void => {
     if (!options) {
@@ -523,6 +527,7 @@ function createServiceOptionsAssertion(
     expect(options.configPath).toBe(configPath);
     expect(options.env?.OPENAI_API_KEY).toBe("test-api-key");
     expect(options.io?.fallbackOutput).toBe(io.stdout);
+    expect(options.io?.progressOutput).toBe(io.stdout);
     expect(options.io?.stderr).toBe(io.stderr);
     expect(options.processSignals).toBeDefined();
   };
