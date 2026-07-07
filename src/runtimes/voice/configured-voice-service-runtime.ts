@@ -17,7 +17,7 @@ import {
   type DesktopVoiceServiceAdapters,
 } from "./desktop-voice-adapter-registry.js";
 import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
-import type { ProcessControl } from "../../adapters/desktop/process-runner.js";
+import type { ProcessControl } from "../../ports/process-control.js";
 import {
   runVoiceActivation,
   type VoiceActivationDependencies,

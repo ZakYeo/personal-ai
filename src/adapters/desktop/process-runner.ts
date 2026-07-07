@@ -1,9 +1,5 @@
 import { spawn } from "node:child_process";
-
-export interface ProcessControl {
-  kill(pid: number, signal: NodeJS.Signals): void;
-  platform: string;
-}
+import type { ProcessControl } from "../../ports/process-control.js";
 
 interface RunCommandRequest {
   args?: string[];

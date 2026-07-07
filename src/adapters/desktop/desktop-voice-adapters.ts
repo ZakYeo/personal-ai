@@ -12,12 +12,9 @@ import type {
   WakeWordPort,
   WakeWordRequest,
 } from "../../ports/voice.js";
+import type { ProcessControl } from "../../ports/process-control.js";
 import { detectTextWakePhrase } from "../text-wake-phrase.js";
-import {
-  runCommand,
-  runCommandUntilStdoutLine,
-  type ProcessControl,
-} from "./process-runner.js";
+import { runCommand, runCommandUntilStdoutLine } from "./process-runner.js";
 
 export class SoxAudioInput implements AudioInputPort {
   constructor(

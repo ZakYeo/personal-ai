@@ -10,7 +10,6 @@ import {
   CommandStreamingAudioInput,
   CommandStreamingAudioOutput,
 } from "../../adapters/desktop/desktop-streaming-voice-adapters.js";
-import type { ProcessControl } from "../../adapters/desktop/process-runner.js";
 import {
   OpenAIRealtimeTranscription,
   type RealtimeSocketFactory,
@@ -18,6 +17,7 @@ import {
 import { createOpenAIRealtimeWebSocketFactory } from "../../adapters/openai/openai-realtime-websocket.js";
 import { OpenAIStreamingSpeech } from "../../adapters/openai/openai-streaming-speech.js";
 import type { VoiceCommandConfig } from "../../ports/assistant.js";
+import type { ProcessControl } from "../../ports/process-control.js";
 import type {
   AudioInputPort,
   AudioOutputPort,

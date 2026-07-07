@@ -4,10 +4,10 @@ import type {
   StreamingAudioInputPort,
   StreamingAudioOutputPort,
 } from "../../ports/voice.js";
+import type { ProcessControl } from "../../ports/process-control.js";
 import {
   runCommandReadableStream,
   runCommandWritableStream,
-  type ProcessControl,
 } from "./process-runner.js";
 
 export class CommandStreamingAudioInput implements StreamingAudioInputPort {

@@ -10,7 +10,7 @@ import {
   createVoiceRuntime,
   type VoiceRuntime,
 } from "./voice-runtime-factory.js";
-import type { ProcessControl } from "../../adapters/desktop/process-runner.js";
+import type { ProcessControl } from "../../ports/process-control.js";
 
 interface DesktopVoiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,

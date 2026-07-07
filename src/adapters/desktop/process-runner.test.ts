@@ -7,8 +7,8 @@ import type {
   CommandExecutionError,
   CommandSpawnError,
   CommandTimeoutError,
-  ProcessControl,
 } from "./process-runner.js";
+import type { ProcessControl } from "../../ports/process-control.js";
 import {
   runCommand,
   runCommandReadableStream,

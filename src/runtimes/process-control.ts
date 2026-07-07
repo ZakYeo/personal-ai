@@ -1,4 +1,4 @@
-import type { ProcessControl } from "../adapters/desktop/process-runner.js";
+import type { ProcessControl } from "../ports/process-control.js";
 
 export function createNodeProcessControl(
   processState: Pick<NodeJS.Process, "kill" | "platform">,
