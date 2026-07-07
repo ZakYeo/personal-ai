@@ -4,6 +4,7 @@
     "**/node_modules/**",
     "**/dist/**",
     "**/coverage/**",
+    "**/.venv/**",
     "**/.vitest-attachments/**",
     "**/package-lock.json"
   ],

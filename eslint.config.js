@@ -44,6 +44,7 @@ export default tseslint.config(
       "coverage/**",
       "dist/**",
       "node_modules/**",
+      ".venv/**",
       ".vitest-attachments/**",
     ],
   },
