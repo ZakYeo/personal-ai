@@ -4,7 +4,19 @@
     "wakePhrases": ["hey jarvis"]
   },
   "intent": {
-    "provider": "deterministic"
+    "provider": "openai",
+    "openai": {
+      "model": "gpt-5.4-nano"
+    }
+  },
+  "conversation": {
+    "provider": "openai",
+    "history": {
+      "maxTurnsBeforeCompaction": 5
+    },
+    "openai": {
+      "model": "gpt-5.4-nano"
+    }
   },
   "voice": {
     "input": "sox-rec",

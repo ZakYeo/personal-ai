@@ -19,6 +19,8 @@
 - Shared runtime control-loop behavior, result metadata, and fallback semantics should live in neutral runtime-owned modules, not in one runtime-specific module imported by another.
 - Keep adapter/config selection policy canonical. Do not duplicate missing-config, adapter-ID lookup, or unregistered-adapter handling across registries when one shared runtime helper can own it.
 - Keep broad loaded config at runtime composition boundaries; pass core, features, and adapters the narrowest validated shape they need.
+- General conversation support is selected with `conversation.provider`; keep chat history in the assistant instance unless a persistence milestone explicitly changes that boundary.
+- Conversation history compacts after `conversation.history.maxTurnsBeforeCompaction` completed user/assistant turns; the current default is 5.
 - Keep process state, clocks, IO streams, and network clients injectable at runtime/composition boundaries; avoid direct `process.env`, `globalThis.fetch`, `new Date()`, stdout, or stderr access in core, feature, or adapter internals.
 - When one runtime factory composes another runtime or assistant factory, forward the same injectable environment, network, clock, and IO dependencies instead of letting nested composition fall back to globals.
 - Parse config, provider responses, command output, and other external data from `unknown` with field-by-field validation before casting to application types.

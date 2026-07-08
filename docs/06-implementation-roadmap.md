@@ -9,7 +9,8 @@ Work should be delivered in thin, committable TDD slices. Each slice starts with
 The architecture, deterministic core, safety pipeline, harness layers, tooling,
 mock voice loop, desktop voice runtime, real provider adapter foundations,
 Google Calendar adapter, neutral service runtime, Raspberry Pi service command,
-and opt-in Raspberry Pi OS QEMU smoke support are implemented.
+opt-in Raspberry Pi OS QEMU smoke support, and general conversation support
+with in-memory chat history are implemented.
 
 The next product milestone should move the assistant from mostly stateless
 runtime experiments toward useful local behavior that survives restarts. Start

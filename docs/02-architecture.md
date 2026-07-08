@@ -79,6 +79,7 @@ The core coordinates assistant behavior:
 - Receives normalized user input.
 - Tracks conversation/session context.
 - Calls the configured intent interpreter.
+- Routes general conversation turns to the configured conversation responder.
 - Chooses or invokes feature plugins.
 - Applies validation and confirmation rules.
 - Produces structured assistant responses.
@@ -127,6 +128,7 @@ Initial adapters should be deterministic and local:
 Real-provider experiments can integrate behind the same ports:
 
 - OpenAI intent interpreter adapter using the Responses API.
+- OpenAI conversation responder and compactor adapters using the Responses API.
 - Anthropic or local model LLM adapters.
 - Whisper, Vosk, cloud STT, or Python sidecar STT adapters.
 - Piper, system TTS, or cloud TTS adapters.
@@ -158,6 +160,8 @@ The LLM should help with:
 - Summarization.
 - Drafting responses.
 - Asking clarification questions.
+- General Q&A and casual conversation.
+- Compacting chat history into a safe summary.
 
 The LLM should not directly perform irreversible actions. The core must validate structured commands and route side effects through feature plugins.
 

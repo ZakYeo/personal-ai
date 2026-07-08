@@ -26,8 +26,8 @@ Implemented today:
 - Config-driven adapter selection for intent, features, and voice components.
 - Explicit nested feature adapter registration for mock/local feature adapters.
 - Focused runtime config resolvers for assistant policy, intent providers,
-  voice adapter IDs, and desktop voice command settings.
-- Opt-in OpenAI intent provider adapter behind the existing intent port.
+  conversation providers, voice adapter IDs, and desktop voice command settings.
+- Opt-in OpenAI intent and conversation adapters behind the existing ports.
 - Opt-in Google Calendar adapter behind the calendar search port.
 - Provider adapter contract helpers for deterministic credentials, transport,
   provider response, timeout, and diagnostic tests.
@@ -71,9 +71,10 @@ source `scripts/setup-openwakeword-venv.sh` before `npm start`.
 Raspberry Pi service experiments use the same explicit command-based voice
 configuration and can start from `config/pi-voice-openai.example.json`.
 
-OpenAI intent experiments need a local config file that selects
-`intent.provider: "openai"` and an API key in the configured environment
-variable. Do not store API keys in repository config files.
+OpenAI intent and conversation experiments need a local config file that
+selects `intent.provider: "openai"` and, for general Q&A, selects
+`conversation.provider: "openai"`. API keys are read from the configured
+environment variable. Do not store API keys in repository config files.
 The development CLI loads `.env` when present with Node's
 `--env-file-if-exists` support. The opt-in OpenAI E2E test also loads `.env`;
 both use the `OPENAI_API_KEY` variable name.
@@ -125,6 +126,10 @@ npm start
 Voice service commands write progress logs to stdout, including wake listening,
 wake detection, live transcript deltas, recognized command text, and the
 assistant response. Internal diagnostics and adapter failures stay on stderr.
+The default OpenAI desktop voice config routes casual questions such as
+`"Hey Jarvis, how are you today?"` to the OpenAI conversation provider after
+wake activation, keeps one in-memory chat window for the running assistant
+instance, and compacts chat history after 5 completed user/assistant turns.
 
 Run the opt-in desktop voice OpenAI smoke test:
 
@@ -207,6 +212,12 @@ Run the CLI with a local OpenAI intent config:
 
 ```bash
 npm run cli -- ask --config path/to/openai-config.json "Hey Jarvis, list my alarms"
+```
+
+Run the CLI with a local OpenAI conversation config:
+
+```bash
+npm run cli -- ask --config path/to/openai-config.json "Hey Jarvis, how are you today?"
 ```
 
 Run the live OpenAI intent routing E2E test:

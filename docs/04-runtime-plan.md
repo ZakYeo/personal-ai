@@ -260,6 +260,16 @@ intent:
     baseUrl: https://api.openai.com/v1
     timeoutMs: 30000
 
+conversation:
+  provider: disabled
+  history:
+    maxTurnsBeforeCompaction: 5
+  openai:
+    model: gpt-5.5
+    apiKeyEnv: OPENAI_API_KEY
+    baseUrl: https://api.openai.com/v1
+    timeoutMs: 30000
+
 features:
   calendar:
     enabled: true
@@ -280,12 +290,14 @@ features:
 
 The final format can be JSON, YAML, TOML, or TypeScript config. The configured
 text runtime currently uses JSON with `intent.provider`, optional
-`intent.openai` settings, `voice` adapter IDs, optional `desktopVoice` command
-settings, and per-feature `adapter` IDs. Deterministic behavior is one selected
-intent provider, not a separate runtime identity. The important rule is that
-provider, voice, and feature selection must be configuration-driven. Text-only
-runtimes may ignore the `voice` and `desktopVoice` sections, but voice runtimes
-must reject missing or unregistered voice adapter IDs during composition.
+`intent.openai` settings, `conversation.provider`, optional
+`conversation.openai` settings, `voice` adapter IDs, optional `desktopVoice`
+command settings, and per-feature `adapter` IDs. Deterministic behavior is one
+selected intent provider, not a separate runtime identity. The important rule is
+that provider, conversation, voice, and feature selection must be
+configuration-driven. Text-only runtimes may ignore the `voice` and
+`desktopVoice` sections, but voice runtimes must reject missing or unregistered
+voice adapter IDs during composition.
 Desktop voice runtimes must also reject missing desktop command settings for
 selected command-based adapters. Desktop voice command adapters replace
 `{input}`, `{output}`, and `{text}` placeholders in configured argument values.
@@ -311,6 +323,16 @@ opt-in `npm run test:e2e:openai` routing E2E test may load `.env`, read the
 `OPENAI_API_KEY` variable, call the live Responses API with a weak/cheap model,
 cover routing for the currently enabled feature capabilities, and consume
 provider quota. This live test is not part of `npm run check`.
+
+The conversation provider is selected separately with `conversation.provider`.
+The default provider is `disabled`, so deterministic configs remain network-free
+and unknown non-command text stays deterministic. The `openai` conversation
+provider requires `conversation.openai.model` and uses the same environment
+credential defaults as the OpenAI intent provider. One assistant instance owns
+one in-memory chat window. Conversation turns append user and assistant text to
+that window; after `conversation.history.maxTurnsBeforeCompaction` completed
+user/assistant turns, the configured compactor replaces older turns with a
+summary. The default compaction threshold is 5.
 The `google` calendar adapter is opt-in and selected with
 `features.calendar.adapter: google`. It requires an OAuth access token from the
 configured environment variable, defaulting to
