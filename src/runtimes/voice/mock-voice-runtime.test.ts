@@ -70,6 +70,44 @@ describe("mock voice runtime", () => {
     );
   });
 
+  it("speaks general conversation responses after wake activation", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      jsonResponse({
+        output_text: JSON.stringify({
+          command: null,
+          kind: "conversation",
+          response: null,
+        }),
+      }),
+    );
+    const utterance = "Hey Jarvis, how are you today?";
+    const config = createRuntimeConfigWithOpenAIIntentProvider();
+    const runtime = await createMockVoiceRuntime({
+      config: {
+        ...config,
+        conversation: {
+          history: config.conversation.history,
+          provider: "deterministic",
+        },
+        voice: mockVoiceConfig,
+      },
+      env: { OPENAI_API_KEY: "test-api-key" },
+      fetch,
+      utterance,
+    });
+
+    await expect(runtime.runOnce()).resolves.toMatchObject({
+      response: {
+        status: "ok",
+        text: `I can chat about "${utterance}".`,
+      },
+      spokenText: `I can chat about "${utterance}".`,
+      status: "spoken",
+      transcript: utterance,
+      wakePhrase: "hey jarvis",
+    });
+  });
+
   it("ignores utterances without the wake phrase", async () => {
     const assistant = createThrowingAssistant();
     const dependencies = createVoiceRuntimeDependencies({
