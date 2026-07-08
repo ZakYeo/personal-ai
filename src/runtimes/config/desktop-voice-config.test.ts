@@ -51,6 +51,12 @@ describe("desktop voice config parsing", () => {
             textToSpeech: desktopVoice.textToSpeech,
           },
         }),
+        conversation: {
+          history: {
+            maxTurnsBeforeCompaction: 5,
+          },
+          provider: "disabled",
+        },
         rawDesktopVoice: desktopVoice,
       },
     );

@@ -6,10 +6,7 @@ import type {
   AssistantContext,
   ClockPort,
 } from "../ports/assistant.js";
-import type {
-  ConversationCompactorPort,
-  ConversationResponderPort,
-} from "../ports/conversation.js";
+import type { ConversationCompactorPort } from "../ports/conversation.js";
 import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import type {
   FeatureArguments,
@@ -111,18 +108,6 @@ export function createInterpreter(
           ? { command: interpretation, kind: "command" }
           : interpretation,
       ),
-  };
-}
-
-export function createConversationResponder(
-  text = "I am doing well today.",
-): ConversationResponderPort {
-  return {
-    respond: () =>
-      Promise.resolve({
-        status: "ok",
-        text,
-      }),
   };
 }
 

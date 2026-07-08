@@ -53,16 +53,29 @@ export function createRuntimeConfigWithOpenAIIntentProvider(): LoadedRuntimeConf
 }
 
 export function createRuntimeConfigWithOpenAIConversationProvider(): LoadedRuntimeConfig {
-  return withConversationProvider("openai", {
-    apiKeyEnv: "OPENAI_API_KEY",
-    baseUrl: "https://api.openai.test/v1",
-    model: "gpt-5.5",
-    timeoutMs: 30_000,
-  });
+  return {
+    ...enabledDeterministicConfig,
+    conversation: {
+      history: enabledDeterministicConfig.conversation.history,
+      openai: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "https://api.openai.test/v1",
+        model: "gpt-5.5",
+        timeoutMs: 30_000,
+      },
+      provider: "openai",
+    },
+  };
 }
 
 export function createRuntimeConfigWithUnknownConversationProvider(): LoadedRuntimeConfig {
-  return withConversationProvider("unknown");
+  return {
+    ...enabledDeterministicConfig,
+    conversation: {
+      history: enabledDeterministicConfig.conversation.history,
+      provider: "unknown",
+    },
+  };
 }
 
 export function createRuntimeConfigWithGoogleCalendarAdapter(): LoadedRuntimeConfig {
@@ -108,21 +121,6 @@ export function withIntentProvider(
   return {
     ...config,
     intent: {
-      provider,
-      ...(openai ? { openai } : {}),
-    },
-  };
-}
-
-export function withConversationProvider(
-  provider: string,
-  openai?: LoadedRuntimeConfig["conversation"]["openai"],
-  config: LoadedRuntimeConfig = enabledDeterministicConfig,
-): LoadedRuntimeConfig {
-  return {
-    ...config,
-    conversation: {
-      history: config.conversation.history,
       provider,
       ...(openai ? { openai } : {}),
     },

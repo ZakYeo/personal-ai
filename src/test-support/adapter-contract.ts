@@ -79,6 +79,21 @@ export function createAbortingFetchStub(): typeof fetch {
   });
 }
 
+export function readJsonRequestBody<TBody>(
+  fetch: typeof globalThis.fetch,
+): TBody {
+  const init = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as
+    | RequestInit
+    | undefined;
+  const body = init?.body;
+
+  if (typeof body !== "string") {
+    throw new TypeError("Expected JSON request body.");
+  }
+
+  return JSON.parse(body) as TBody;
+}
+
 export function createShellCommand(
   script: string,
   ...args: string[]

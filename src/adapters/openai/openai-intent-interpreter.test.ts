@@ -8,6 +8,7 @@ import {
   jsonResponse,
   malformedJsonResponse,
   providerErrorResponse,
+  readJsonRequestBody,
 } from "../../test-support/adapter-contract.js";
 import { deterministicTestNow } from "../../test-support/primitives.js";
 import { OpenAIIntentInterpreter } from "./openai-intent-interpreter.js";
@@ -350,14 +351,5 @@ interface RequestBody {
 }
 
 function readRequestBody(fetch: typeof globalThis.fetch): RequestBody {
-  const init = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as
-    | RequestInit
-    | undefined;
-  const body = init?.body;
-
-  if (typeof body !== "string") {
-    throw new TypeError("Expected JSON request body.");
-  }
-
-  return JSON.parse(body) as RequestBody;
+  return readJsonRequestBody<RequestBody>(fetch);
 }
