@@ -6,13 +6,6 @@ import type {
   AssistantResponse,
   ClockPort,
 } from "../../ports/assistant.js";
-import type {
-  ConversationCompactorPort,
-  ConversationHistoryConfig,
-  ConversationResponderPort,
-  ConversationState,
-  ConversationTurn,
-} from "../../ports/conversation.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import {
@@ -21,16 +14,17 @@ import {
   type AppError,
 } from "./app-error.js";
 import { decodeCommandForCapability } from "./command-validation.js";
+import {
+  createConversationSession,
+  type ConversationSession,
+  type ConversationSessionDependencies,
+} from "./conversation-session.js";
 import { evaluateConfirmationPolicy } from "./confirmation-policy.js";
 
 export interface AssistantDependencies {
   clock: ClockPort;
   config: AssistantPolicyConfig;
-  conversation?: {
-    compactor: ConversationCompactorPort;
-    history: ConversationHistoryConfig;
-    responder: ConversationResponderPort;
-  };
+  conversation?: ConversationSessionDependencies;
   features: FeaturePlugin[];
   intentInterpreter: IntentInterpreterPort;
 }
@@ -43,14 +37,14 @@ export interface Assistant {
 export function createAssistant(
   dependencies: AssistantDependencies,
 ): Assistant {
-  const conversationState: ConversationState = {
-    recentTurns: [],
-  };
+  const conversation = dependencies.conversation
+    ? createConversationSession(dependencies.conversation)
+    : undefined;
 
   async function handleTextWithDiagnostics(
     text: string,
   ): Promise<AssistantOutcome> {
-    return handleTextInternal(text, dependencies, conversationState);
+    return handleTextInternal(text, dependencies, conversation);
   }
 
   return {
@@ -66,7 +60,7 @@ export function createAssistant(
 async function handleTextInternal(
   text: string,
   dependencies: AssistantDependencies,
-  conversationState: ConversationState,
+  conversation: ConversationSession | undefined,
 ): Promise<AssistantOutcome> {
   const normalizedText = text.trim();
 
@@ -98,12 +92,7 @@ async function handleTextInternal(
   }
 
   if (interpretation.kind === "conversation") {
-    return handleConversation(
-      normalizedText,
-      dependencies,
-      context,
-      conversationState,
-    );
+    return handleConversation(normalizedText, context, conversation);
   }
 
   const command = interpretation.command;
@@ -187,11 +176,10 @@ async function handleTextInternal(
 
 async function handleConversation(
   input: string,
-  dependencies: AssistantDependencies,
   context: AssistantContext,
-  conversationState: ConversationState,
+  conversation: ConversationSession | undefined,
 ): Promise<AssistantOutcome> {
-  if (!dependencies.conversation) {
+  if (!conversation) {
     return {
       response: {
         status: "unknown",
@@ -201,22 +189,7 @@ async function handleConversation(
   }
 
   try {
-    const response = await dependencies.conversation.responder.respond(
-      input,
-      cloneConversationState(conversationState),
-      context,
-    );
-
-    conversationState.recentTurns.push(
-      { content: input, role: "user" },
-      { content: response.text, role: "assistant" },
-    );
-
-    await compactConversationIfNeeded(
-      conversationState,
-      dependencies.conversation,
-      context,
-    );
+    const response = await conversation.respond(input, context);
 
     return {
       response,
@@ -233,42 +206,6 @@ async function handleConversation(
       }),
     );
   }
-}
-
-async function compactConversationIfNeeded(
-  conversationState: ConversationState,
-  conversation: NonNullable<AssistantDependencies["conversation"]>,
-  context: AssistantContext,
-): Promise<void> {
-  if (
-    countUserTurns(conversationState.recentTurns) <
-    conversation.history.maxTurnsBeforeCompaction
-  ) {
-    return;
-  }
-
-  const compacted = await conversation.compactor.compact(
-    cloneConversationState(conversationState),
-    context,
-  );
-
-  if (compacted.summary) {
-    conversationState.summary = compacted.summary;
-  } else {
-    delete conversationState.summary;
-  }
-  conversationState.recentTurns = [...compacted.recentTurns];
-}
-
-function countUserTurns(turns: ConversationTurn[]): number {
-  return turns.filter((turn) => turn.role === "user").length;
-}
-
-function cloneConversationState(state: ConversationState): ConversationState {
-  return {
-    ...(state.summary ? { summary: state.summary } : {}),
-    recentTurns: state.recentTurns.map((turn) => ({ ...turn })),
-  };
 }
 
 function outcomeFromError(error: AppError): AssistantOutcome {

@@ -409,4 +409,64 @@ describe("createAssistant", () => {
       },
     });
   });
+
+  it("does not commit conversation history when compaction fails", async () => {
+    const cause = new Error("compaction failed");
+    const respond = vi.fn((input: string, state: ConversationState) =>
+      Promise.resolve({
+        status: "ok" as const,
+        text: `answered ${input} after ${state.recentTurns.length} turns`,
+      }),
+    );
+    const assistant = createAssistant({
+      clock,
+      config,
+      conversation: {
+        compactor: {
+          compact: () => Promise.reject(cause),
+        },
+        history: { maxTurnsBeforeCompaction: 1 },
+        responder: { respond },
+      },
+      features: [],
+      intentInterpreter: createInterpreter({ kind: "conversation" }),
+    });
+
+    await expect(assistant.handleTextWithDiagnostics("first")).resolves.toEqual(
+      {
+        diagnostics: [
+          {
+            category: "conversation_failure",
+            cause,
+            message: "compaction failed",
+          },
+        ],
+        response: {
+          status: "error",
+          text: "I could not answer that right now.",
+        },
+      },
+    );
+    await expect(
+      assistant.handleTextWithDiagnostics("second"),
+    ).resolves.toEqual({
+      diagnostics: [
+        {
+          category: "conversation_failure",
+          cause,
+          message: "compaction failed",
+        },
+      ],
+      response: {
+        status: "error",
+        text: "I could not answer that right now.",
+      },
+    });
+    expect(respond).toHaveBeenNthCalledWith(
+      2,
+      "second",
+      { recentTurns: [] },
+      { clock, config },
+    );
+  });
 });

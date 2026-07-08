@@ -103,6 +103,7 @@ async function fetchConversationOutputText(input: {
   });
 
   return extractOpenAIOutputText(response, {
+    createError: (message) => new OpenAIConversationError(message),
     missingMessage: "OpenAI conversation response did not include output text.",
     notObjectMessage: "OpenAI conversation response body must be an object.",
   });

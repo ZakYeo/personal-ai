@@ -2,7 +2,10 @@ import type {
   AssistantContext,
   OpenAIIntentConfig,
 } from "../../ports/assistant.js";
-import type { ConversationState } from "../../ports/conversation.js";
+import type {
+  ConversationState,
+  ConversationTurn,
+} from "../../ports/conversation.js";
 
 export function createOpenAIConversationRequestBody(
   input: string,
@@ -20,13 +23,13 @@ export function createOpenAIConversationRequestBody(
               "Answer the user's general question conversationally.",
               "Do not claim to execute commands or access unavailable tools.",
               "Return only JSON matching the supplied schema.",
-              formatConversationState(state),
             ].join(" "),
             type: "input_text",
           },
         ],
         role: "system",
       },
+      ...formatConversationStateMessages(state),
       {
         content: [
           {
@@ -64,13 +67,13 @@ export function createOpenAIConversationCompactionRequestBody(
               "Preserve stable user preferences, facts, open questions, and useful context.",
               "Do not include secrets, credentials, stack traces, or provider diagnostics.",
               "Return only JSON matching the supplied schema.",
-              formatConversationState(state),
             ].join(" "),
             type: "input_text",
           },
         ],
         role: "system",
       },
+      ...formatConversationStateMessages(state),
     ],
     model: config.model,
     text: {
@@ -102,16 +105,30 @@ const conversationSummarySchema = {
   type: "object",
 };
 
-function formatConversationState(state: ConversationState): string {
-  const summary = state.summary
-    ? `Summary:\n${state.summary}`
-    : "Summary: none";
-  const recentTurns =
-    state.recentTurns.length === 0
-      ? "Recent turns: none"
-      : `Recent turns:\n${state.recentTurns
-          .map((turn) => `${turn.role}: ${turn.content}`)
-          .join("\n")}`;
+function formatConversationStateMessages(state: ConversationState) {
+  return [
+    ...(state.summary
+      ? [
+          createInputMessage(
+            "assistant",
+            `Earlier conversation summary: ${state.summary}`,
+          ),
+        ]
+      : []),
+    ...state.recentTurns.map((turn) =>
+      createInputMessage(turn.role, turn.content),
+    ),
+  ];
+}
 
-  return `${summary}\n${recentTurns}`;
+function createInputMessage(role: ConversationTurn["role"], text: string) {
+  return {
+    content: [
+      {
+        text,
+        type: "input_text",
+      },
+    ],
+    role,
+  };
 }

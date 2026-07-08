@@ -15,7 +15,7 @@ import {
   OpenAIConversationCompactor,
   OpenAIConversationResponder,
 } from "./openai-conversation.js";
-import type { OpenAIConversationError } from "./openai-conversation-error.js";
+import { OpenAIConversationError } from "./openai-conversation-error.js";
 
 const context = {
   clock: {
@@ -65,10 +65,22 @@ describe("OpenAIConversationResponder", () => {
       },
       required: ["text"],
     });
-    expect(JSON.stringify(body.input)).toContain(
-      "Summary:\\nThe user is checking in casually.",
+    const messages = body.input as Array<{
+      content: Array<{ text: string; type: string }>;
+      role: string;
+    }>;
+    expect(messages[0]?.content[0]?.text).not.toContain("How are you?");
+    expect(messages[0]?.content[0]?.text).not.toContain(
+      "The user is checking in casually.",
     );
-    expect(JSON.stringify(body.input)).toContain("user: How are you?");
+    expect(messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          content: [{ text: "How are you?", type: "input_text" }],
+          role: "user",
+        }),
+      ]),
+    );
   });
 
   it("rejects missing API keys before calling the provider", async () => {
@@ -132,6 +144,22 @@ describe("OpenAIConversationResponder", () => {
     await expect(
       responder.respond("How are you?", { recentTurns: [] }, context),
     ).rejects.toThrow("OpenAI conversation response was not valid JSON.");
+  });
+
+  it("rejects missing provider output text with conversation errors", async () => {
+    const responder = createResponder({
+      fetch: createFetchStub(jsonResponse({ output: [] })),
+    });
+    const rejection = responder.respond(
+      "How are you?",
+      { recentTurns: [] },
+      context,
+    );
+
+    await expect(rejection).rejects.toBeInstanceOf(OpenAIConversationError);
+    await expect(rejection).rejects.toThrow(
+      "OpenAI conversation response did not include output text.",
+    );
   });
 
   it("aborts requests that exceed the configured timeout", async () => {
