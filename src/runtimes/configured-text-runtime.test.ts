@@ -3,7 +3,9 @@ import { disabledCalendarConfig } from "../test-support/deterministic-runtime-fi
 import {
   createConfiguredTextRuntimeHarness,
   createRuntimeConfigWithGoogleCalendarAdapter,
+  createRuntimeConfigWithOpenAIConversationProvider,
   createRuntimeConfigWithOpenAIIntentProvider,
+  createRuntimeConfigWithUnknownConversationProvider,
   createRuntimeConfigWithMissingFeatureAdapter,
   createRuntimeConfigWithUnknownFeatureAdapter,
   createRuntimeConfigWithUnknownIntentProvider,
@@ -71,6 +73,16 @@ describe("createConfiguredTextRuntime", () => {
     ).rejects.toThrow('Config intent.provider "unknown" is not registered.');
   });
 
+  it("rejects unknown conversation providers during composition", async () => {
+    await expect(
+      createConfiguredTextRuntimeHarness({
+        config: createRuntimeConfigWithUnknownConversationProvider(),
+      }),
+    ).rejects.toThrow(
+      'Config conversation.provider "unknown" is not registered.',
+    );
+  });
+
   it("wires OpenAI intent providers into the assistant", async () => {
     const fetch = vi.fn().mockResolvedValue(
       new Response(
@@ -104,6 +116,85 @@ describe("createConfiguredTextRuntime", () => {
         method: "POST",
       }),
     );
+  });
+
+  it("wires deterministic conversation providers into the assistant", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          output_text: JSON.stringify({
+            command: null,
+            kind: "conversation",
+            response: null,
+          }),
+        }),
+        { status: 200 },
+      ),
+    );
+    const assistant = await createConfiguredTextRuntimeHarness({
+      config: {
+        ...createRuntimeConfigWithOpenAIIntentProvider(),
+        conversation: {
+          history: {
+            maxTurnsBeforeCompaction: 5,
+          },
+          provider: "deterministic",
+        },
+      },
+      env: { OPENAI_API_KEY: "test-api-key" },
+      fetch,
+    });
+
+    await expect(
+      assistant.handleText("Hey Jarvis, how are you today?"),
+    ).resolves.toEqual({
+      status: "ok",
+      text: 'I can chat about "Hey Jarvis, how are you today?".',
+    });
+  });
+
+  it("wires OpenAI conversation providers into the assistant", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            output_text: JSON.stringify({
+              command: null,
+              kind: "conversation",
+              response: null,
+            }),
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            output_text: JSON.stringify({
+              text: "I am doing well today.",
+            }),
+          }),
+          { status: 200 },
+        ),
+      );
+    const assistant = await createConfiguredTextRuntimeHarness({
+      config: {
+        ...createRuntimeConfigWithOpenAIIntentProvider(),
+        conversation:
+          createRuntimeConfigWithOpenAIConversationProvider().conversation,
+      },
+      env: { OPENAI_API_KEY: "test-api-key" },
+      fetch,
+    });
+
+    await expect(
+      assistant.handleText("Hey Jarvis, how are you today?"),
+    ).resolves.toEqual({
+      status: "ok",
+      text: "I am doing well today.",
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("wires Google Calendar adapters into the assistant", async () => {

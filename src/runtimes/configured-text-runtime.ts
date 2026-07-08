@@ -3,6 +3,7 @@ import type { Assistant } from "../core/assistant/index.js";
 import type { ClockPort } from "../ports/assistant.js";
 import { loadConfig, type LoadedRuntimeConfig } from "./config/config.js";
 import { toAssistantPolicyConfig } from "./config/assistant-policy-config.js";
+import { createConfiguredConversation } from "./conversation-provider-selection.js";
 import { createConfiguredFeatureSelection } from "./feature-adapter-selection.js";
 import { createConfiguredIntentInterpreter } from "./intent-provider-selection.js";
 
@@ -31,10 +32,15 @@ export async function createConfiguredTextRuntime(
       fetch,
     },
   });
+  const conversation = createConfiguredConversation(config, {
+    env,
+    fetch,
+  });
 
   return createAssistant({
     clock,
     config: toAssistantPolicyConfig(config),
+    ...(conversation ? { conversation } : {}),
     features: featureSelection.features,
     intentInterpreter: createConfiguredIntentInterpreter(
       config,
