@@ -6,6 +6,12 @@
   "intent": {
     "provider": "deterministic"
   },
+  "conversation": {
+    "provider": "disabled",
+    "history": {
+      "maxTurnsBeforeCompaction": 5
+    }
+  },
   "voice": {
     "input": "mock",
     "wakeWord": "mock",

@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { isRecord } from "./config-parse-utils.js";
 import { parseDesktopVoiceConfig } from "./desktop-voice-config.js";
+import { parseConversationConfig } from "./conversation-config.js";
 import {
   parseFeaturesConfig,
   parseRawFeaturesConfig,
@@ -70,6 +71,7 @@ export function parseAssistantConfig(value: unknown): LoadedRuntimeConfig {
       name: assistant.name,
       wakePhrases: assistant.wakePhrases,
     },
+    conversation: parseConversationConfig(value.conversation),
     ...parseDesktopVoiceConfig(value.desktopVoice),
     ...parseVoiceConfig(value.voice),
     intent: parseIntentConfig(intent),

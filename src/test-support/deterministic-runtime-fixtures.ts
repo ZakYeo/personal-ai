@@ -50,6 +50,12 @@ export const runtimeFailureConfig: LoadedRuntimeConfig = {
   intent: {
     provider: "deterministic",
   },
+  conversation: {
+    history: {
+      maxTurnsBeforeCompaction: 5,
+    },
+    provider: "disabled",
+  },
   features: {},
 };
 

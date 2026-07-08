@@ -15,6 +15,12 @@ describe("loadConfig", () => {
       intent: {
         provider: "deterministic",
       },
+      conversation: {
+        history: {
+          maxTurnsBeforeCompaction: 5,
+        },
+        provider: "disabled",
+      },
       voice: {
         input: "mock",
         wakeWord: "mock",
@@ -70,6 +76,12 @@ describe("loadConfig", () => {
       },
       intent: {
         provider: "deterministic",
+      },
+      conversation: {
+        history: {
+          maxTurnsBeforeCompaction: 5,
+        },
+        provider: "disabled",
       },
       features: {
         calendar: { enabled: false },
@@ -160,6 +172,12 @@ describe("parseAssistantConfig", () => {
       intent: {
         provider: "deterministic",
       },
+      conversation: {
+        history: {
+          maxTurnsBeforeCompaction: 5,
+        },
+        provider: "disabled",
+      },
       features: {
         alarms: {
           enabled: true,
@@ -208,9 +226,15 @@ describe("parseAssistantConfig", () => {
       audioOutput: "mock",
     };
 
-    expect(parseAssistantConfig(createMinimalConfig({ voice }))).toEqual(
-      createMinimalConfig({ voice }),
-    );
+    expect(parseAssistantConfig(createMinimalConfig({ voice }))).toEqual({
+      ...createMinimalConfig({ voice }),
+      conversation: {
+        history: {
+          maxTurnsBeforeCompaction: 5,
+        },
+        provider: "disabled",
+      },
+    });
   });
 
   it("rejects invalid voice adapter IDs", () => {
@@ -240,6 +264,12 @@ describe("parseAssistantConfig", () => {
         },
         intent: {
           provider: "deterministic",
+        },
+        conversation: {
+          history: {
+            maxTurnsBeforeCompaction: 5,
+          },
+          provider: "disabled",
         },
         features: {
           alarms: {

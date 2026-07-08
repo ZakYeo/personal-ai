@@ -1,4 +1,5 @@
 import type { AssistantPolicyConfig } from "../../ports/assistant.js";
+import type { ParsedConversationConfig } from "./conversation-config.js";
 import type {
   ParsedDesktopVoiceConfig,
   RawDesktopVoiceConfig,
@@ -13,6 +14,7 @@ import type { ParsedVoiceConfig } from "./voice-config.js";
 export interface LoadedRuntimeConfig extends AssistantPolicyConfig {
   desktopVoice?: ParsedDesktopVoiceConfig;
   rawDesktopVoice?: RawDesktopVoiceConfig;
+  conversation: ParsedConversationConfig;
   voice?: ParsedVoiceConfig;
   intent: ParsedIntentConfig;
   features: ParsedFeaturesConfig;

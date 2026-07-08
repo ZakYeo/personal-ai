@@ -56,6 +56,12 @@ export function createLoadedRuntimeConfig(
 ): LoadedRuntimeConfig {
   return {
     ...createAssistantConfig(features),
+    conversation: {
+      history: {
+        maxTurnsBeforeCompaction: 5,
+      },
+      provider: "disabled",
+    },
     intent: {
       provider: "deterministic",
     },
