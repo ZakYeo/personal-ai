@@ -1,0 +1,54 @@
+import { OpenAIConversationError } from "./openai-conversation-error.js";
+
+export function parseOpenAIConversationResponse(value: string): string {
+  const parsed = parseOutputText(value);
+
+  if (!isRecord(parsed)) {
+    throw new OpenAIConversationError(
+      "OpenAI conversation response must be an object.",
+    );
+  }
+
+  if (typeof parsed.text !== "string" || parsed.text.length === 0) {
+    throw new OpenAIConversationError(
+      "OpenAI conversation response text must be a non-empty string.",
+    );
+  }
+
+  return parsed.text;
+}
+
+export function parseOpenAIConversationSummary(value: string): string {
+  const parsed = parseOutputText(value);
+
+  if (!isRecord(parsed)) {
+    throw new OpenAIConversationError(
+      "OpenAI conversation compaction response must be an object.",
+    );
+  }
+
+  if (typeof parsed.summary !== "string" || parsed.summary.length === 0) {
+    throw new OpenAIConversationError(
+      "OpenAI conversation summary must be a non-empty string.",
+    );
+  }
+
+  return parsed.summary;
+}
+
+function parseOutputText(value: string): unknown {
+  try {
+    return JSON.parse(value) as unknown;
+  } catch (error) {
+    throw new OpenAIConversationError(
+      "OpenAI conversation response was not valid JSON.",
+      undefined,
+      value,
+      { cause: error },
+    );
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

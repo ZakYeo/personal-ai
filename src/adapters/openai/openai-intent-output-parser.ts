@@ -42,7 +42,19 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
     };
   }
 
-  if (value.kind === "response") {
+  if (value.kind === "conversation") {
+    if (value.command !== null || value.response !== null) {
+      throw new OpenAIIntentError(
+        "OpenAI intent conversation response must set command and response to null.",
+      );
+    }
+
+    return {
+      kind: "conversation",
+    };
+  }
+
+  if (value.kind === "unknown" || value.kind === "unsupported") {
     if (value.command !== null) {
       throw new OpenAIIntentError(
         "OpenAI intent fallback response must set command to null.",
@@ -50,13 +62,13 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
     }
 
     return {
-      kind: "unknown",
+      kind: value.kind,
       response: parseAssistantResponse(value.response),
     };
   }
 
   throw new OpenAIIntentError(
-    "OpenAI intent response kind must be command or response.",
+    "OpenAI intent response kind must be command, conversation, unknown, or unsupported.",
   );
 }
 

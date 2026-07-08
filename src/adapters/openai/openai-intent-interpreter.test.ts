@@ -109,7 +109,7 @@ describe("OpenAIIntentInterpreter", () => {
           required: ["capability", "parameters", "rawText"],
         },
         kind: {
-          enum: ["command", "response"],
+          enum: ["command", "conversation", "unknown", "unsupported"],
         },
         response: {
           type: ["object", "null"],
@@ -123,15 +123,34 @@ describe("OpenAIIntentInterpreter", () => {
     expect(JSON.stringify(body.input)).toContain("query: string (required)");
   });
 
-  it("returns a response from structured provider output", async () => {
+  it("returns a conversation classification from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({
         output_text: JSON.stringify({
-          kind: "response",
+          kind: "conversation",
+          command: null,
+          response: null,
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({ fetch });
+
+    await expect(
+      interpreter.interpret("Hey Jarvis, how are you today?", context),
+    ).resolves.toEqual({
+      kind: "conversation",
+    });
+  });
+
+  it("returns an unsupported response from structured provider output", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        output_text: JSON.stringify({
+          kind: "unsupported",
           command: null,
           response: {
-            status: "unknown",
-            text: "I could not map that to a command.",
+            status: "unsupported",
+            text: "I cannot do that.",
           },
         }),
       }),
@@ -139,12 +158,12 @@ describe("OpenAIIntentInterpreter", () => {
     const interpreter = createInterpreter({ fetch });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, do something unusual", context),
+      interpreter.interpret("Hey Jarvis, send money", context),
     ).resolves.toEqual({
-      kind: "unknown",
+      kind: "unsupported",
       response: {
-        status: "unknown",
-        text: "I could not map that to a command.",
+        status: "unsupported",
+        text: "I cannot do that.",
       },
     });
   });

@@ -1,10 +1,19 @@
 import { OpenAIIntentError } from "./openai-intent-error.js";
 
-export function extractOpenAIOutputText(value: unknown): string {
+interface ExtractOpenAIOutputTextMessages {
+  missingMessage: string;
+  notObjectMessage: string;
+}
+
+export function extractOpenAIOutputText(
+  value: unknown,
+  messages: ExtractOpenAIOutputTextMessages = {
+    missingMessage: "OpenAI intent response did not include output text.",
+    notObjectMessage: "OpenAI intent response body must be an object.",
+  },
+): string {
   if (!isRecord(value)) {
-    throw new OpenAIIntentError(
-      "OpenAI intent response body must be an object.",
-    );
+    throw new OpenAIIntentError(messages.notObjectMessage);
   }
 
   if (typeof value.output_text === "string") {
@@ -21,9 +30,7 @@ export function extractOpenAIOutputText(value: unknown): string {
     }
   }
 
-  throw new OpenAIIntentError(
-    "OpenAI intent response did not include output text.",
-  );
+  throw new OpenAIIntentError(messages.missingMessage);
 }
 
 function extractContentText(value: unknown): string | undefined {

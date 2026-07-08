@@ -26,7 +26,9 @@ export function createOpenAIIntentRequestBody(
               "Return only JSON matching the supplied schema.",
               "Map requests to enabled assistant capabilities when possible.",
               "Use kind command with command populated and response null when a capability matches.",
-              "Use kind response with command null and response populated when no capability matches.",
+              "Use kind conversation with command and response null for general questions or casual chat.",
+              "Use kind unsupported with command null and response populated for command-like requests that no enabled capability can handle.",
+              "Use kind unknown with command null and response populated only when the user intent is unclear.",
               `Enabled capabilities:\n${formatCapabilities(capabilityCatalog)}`,
             ].join(" "),
             type: "input_text",
@@ -81,7 +83,7 @@ const intentInterpretationSchema = {
       type: ["object", "null"],
     },
     kind: {
-      enum: ["command", "response"],
+      enum: ["command", "conversation", "unknown", "unsupported"],
       type: "string",
     },
     response: {
