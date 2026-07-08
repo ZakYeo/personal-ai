@@ -3,7 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
 import type { CapturedAudio } from "../../ports/voice.js";
-import { TestRealtimeSocket } from "../../test-support/adapter-contract.js";
+import {
+  jsonResponse,
+  TestRealtimeSocket,
+} from "../../test-support/adapter-contract.js";
 import { createOpenAIStreamingServiceConfig } from "../../test-support/desktop-voice-openai-service.js";
 import {
   createDesktopVoiceCommand,
@@ -19,6 +22,7 @@ import type {
   VoiceActivationDependencies,
   VoiceActivationResult,
 } from "./voice-activation.js";
+import { runVoiceActivation } from "./voice-activation.js";
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
 import type { DesktopVoiceServiceAdapters } from "./desktop-voice-adapter-registry.js";
 import type { VoiceRuntimeIo } from "./voice-turn.js";
@@ -165,6 +169,99 @@ describe("runDesktopVoiceServiceRuntime", () => {
         method: "POST",
       }),
     );
+    expect(fallbackOutput.writes).toEqual([]);
+    expect(stderr.writes).toEqual([]);
+  });
+
+  it("routes casual streaming speech through the conversation provider", async () => {
+    const signals = createServiceSignalController();
+    const progressOutput = createCapturedWriter();
+    const fallbackOutput = createCapturedWriter();
+    const stderr = createCapturedWriter();
+    const utterance = "How's it going?";
+    const responseText = "It's going well.";
+    const socket = new TestRealtimeSocket({
+      autoOpen: true,
+      transcript: utterance,
+    });
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          output_text: JSON.stringify({
+            command: null,
+            kind: "conversation",
+            response: {
+              status: "ok",
+              text: responseText,
+            },
+          }),
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          output_text: JSON.stringify({
+            text: responseText,
+          }),
+        }),
+      )
+      .mockResolvedValueOnce(new Response(Buffer.from("spoken audio")));
+
+    await expect(
+      runDesktopVoiceServiceRuntime({
+        config: {
+          ...createOpenAIStreamingServiceConfig(),
+          conversation: {
+            history: {
+              maxTurnsBeforeCompaction: 5,
+            },
+            openai: {
+              apiKeyEnv: "OPENAI_API_KEY",
+              baseUrl: "https://api.openai.test/v1",
+              model: "gpt-5.5",
+              timeoutMs: 30_000,
+            },
+            provider: "openai",
+          },
+          intent: {
+            openai: {
+              apiKeyEnv: "OPENAI_API_KEY",
+              baseUrl: "https://api.openai.test/v1",
+              model: "gpt-5.5",
+              timeoutMs: 30_000,
+            },
+            provider: "openai",
+          },
+        },
+        env: { OPENAI_API_KEY: "test-api-key" },
+        fetch,
+        io: { fallbackOutput, progressOutput, stderr },
+        processSignals: signals,
+        retryAfterFailure: (context) => {
+          context.requestShutdown("test failure");
+
+          return Promise.resolve();
+        },
+        runVoiceActivation: async (dependencies, io) => {
+          const result = await runVoiceActivation(dependencies, io);
+          signals.emit("SIGTERM");
+
+          return result;
+        },
+        webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
+      }),
+    ).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 1,
+    });
+
+    expect(progressOutput.writes).toEqual([
+      line('Now listening for wake word "hey jarvis".'),
+      line("Wake word detected, now listening..."),
+      utterance,
+      line(`Heard: ${utterance}`),
+      line(`Assistant: ${responseText}`),
+    ]);
     expect(fallbackOutput.writes).toEqual([]);
     expect(stderr.writes).toEqual([]);
   });

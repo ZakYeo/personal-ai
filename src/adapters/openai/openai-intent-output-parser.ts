@@ -43,9 +43,9 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   if (value.kind === "conversation") {
-    if (value.command !== null || value.response !== null) {
+    if (value.command !== null) {
       throw new OpenAIIntentError(
-        "OpenAI intent conversation response must set command and response to null.",
+        "OpenAI intent conversation response must set command to null.",
       );
     }
 

@@ -143,6 +143,28 @@ describe("OpenAIIntentInterpreter", () => {
     });
   });
 
+  it("returns a conversation classification when provider includes fallback response text", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        output_text: JSON.stringify({
+          kind: "conversation",
+          command: null,
+          response: {
+            status: "ok",
+            text: "I am doing well.",
+          },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({ fetch });
+
+    await expect(
+      interpreter.interpret("Hey Jarvis, how are you today?", context),
+    ).resolves.toEqual({
+      kind: "conversation",
+    });
+  });
+
   it("returns an unsupported response from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({
