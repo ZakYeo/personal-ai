@@ -1,10 +1,15 @@
 import { createAssistant } from "../core/assistant/assistant.js";
+import type { AssistantDependencies } from "../core/assistant/assistant.js";
 import type {
   AssistantCommand,
   AssistantPolicyConfig,
   AssistantContext,
   ClockPort,
 } from "../ports/assistant.js";
+import type {
+  ConversationCompactorPort,
+  ConversationResponderPort,
+} from "../ports/conversation.js";
 import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import type {
   FeatureArguments,
@@ -97,9 +102,36 @@ export function createInterpreter(
     interpret: () =>
       Promise.resolve(
         "capability" in interpretation
-          ? { command: interpretation }
+          ? { command: interpretation, kind: "command" }
           : interpretation,
       ),
+  };
+}
+
+export function createConversationResponder(
+  text = "I am doing well today.",
+): ConversationResponderPort {
+  return {
+    respond: () =>
+      Promise.resolve({
+        status: "ok",
+        text,
+      }),
+  };
+}
+
+export function createConversationCompactor(): ConversationCompactorPort {
+  return {
+    compact: (state) =>
+      Promise.resolve({
+        summary: [
+          state.summary,
+          ...state.recentTurns.map((turn) => `${turn.role}: ${turn.content}`),
+        ]
+          .filter((line): line is string => Boolean(line))
+          .join("\n"),
+        recentTurns: [],
+      }),
   };
 }
 
@@ -192,11 +224,13 @@ export function createAssistantHarness(
     features: FeaturePlugin[];
     interpretation: AssistantCommand | IntentInterpretation;
     intentInterpreter: IntentInterpreterPort;
+    conversation: AssistantDependencies["conversation"];
   }> = {},
 ): ReturnType<typeof createAssistant> {
   return createAssistant({
     clock: overrides.clock ?? createFixedClock(),
     config: overrides.config ?? createAssistantConfig(),
+    ...(overrides.conversation ? { conversation: overrides.conversation } : {}),
     features: overrides.features ?? [createFeature()],
     intentInterpreter:
       overrides.intentInterpreter ??

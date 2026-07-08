@@ -5,6 +5,7 @@ export type AppErrorCategory =
   | "confirmation_required"
   | "unsupported"
   | "feature_failure"
+  | "conversation_failure"
   | "unexpected";
 
 export interface AppError {
@@ -42,6 +43,11 @@ export function mapAppErrorToResponse(error: AppError): AssistantResponse {
       return {
         status: "error",
         text: error.publicMessage ?? "I could not complete that command.",
+      };
+    case "conversation_failure":
+      return {
+        status: "error",
+        text: error.publicMessage ?? "I could not answer that right now.",
       };
     case "unexpected":
       return {

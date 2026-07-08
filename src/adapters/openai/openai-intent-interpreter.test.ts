@@ -76,6 +76,7 @@ describe("OpenAIIntentInterpreter", () => {
         },
         rawText: "Hey Jarvis, check my calendar for the upcoming wedding",
       },
+      kind: "command",
     });
 
     expect(fetch).toHaveBeenCalledWith(
@@ -140,6 +141,7 @@ describe("OpenAIIntentInterpreter", () => {
     await expect(
       interpreter.interpret("Hey Jarvis, do something unusual", context),
     ).resolves.toEqual({
+      kind: "unknown",
       response: {
         status: "unknown",
         text: "I could not map that to a command.",
@@ -179,6 +181,7 @@ describe("OpenAIIntentInterpreter", () => {
         parameters: {},
         rawText: "Hey Jarvis, list my alarms",
       },
+      kind: "command",
     });
   });
 

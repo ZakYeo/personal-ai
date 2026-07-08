@@ -4,10 +4,22 @@ import type {
   AssistantResponse,
 } from "./assistant.js";
 
-export interface IntentInterpretation {
-  command?: AssistantCommand;
-  response?: AssistantResponse;
-}
+export type IntentInterpretation =
+  | {
+      command: AssistantCommand;
+      kind: "command";
+    }
+  | {
+      kind: "conversation";
+    }
+  | {
+      kind: "unknown";
+      response: AssistantResponse;
+    }
+  | {
+      kind: "unsupported";
+      response: AssistantResponse;
+    };
 
 export interface IntentInterpreterPort {
   interpret(

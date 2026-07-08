@@ -38,6 +38,7 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
 
     return {
       command: parseCommand(value.command),
+      kind: "command",
     };
   }
 
@@ -49,6 +50,7 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
     }
 
     return {
+      kind: "unknown",
       response: parseAssistantResponse(value.response),
     };
   }

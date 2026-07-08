@@ -6,6 +6,13 @@ import type {
   AssistantResponse,
   ClockPort,
 } from "../../ports/assistant.js";
+import type {
+  ConversationCompactorPort,
+  ConversationHistoryConfig,
+  ConversationResponderPort,
+  ConversationState,
+  ConversationTurn,
+} from "../../ports/conversation.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import {
@@ -19,6 +26,11 @@ import { evaluateConfirmationPolicy } from "./confirmation-policy.js";
 export interface AssistantDependencies {
   clock: ClockPort;
   config: AssistantPolicyConfig;
+  conversation?: {
+    compactor: ConversationCompactorPort;
+    history: ConversationHistoryConfig;
+    responder: ConversationResponderPort;
+  };
   features: FeaturePlugin[];
   intentInterpreter: IntentInterpreterPort;
 }
@@ -31,10 +43,14 @@ export interface Assistant {
 export function createAssistant(
   dependencies: AssistantDependencies,
 ): Assistant {
+  const conversationState: ConversationState = {
+    recentTurns: [],
+  };
+
   async function handleTextWithDiagnostics(
     text: string,
   ): Promise<AssistantOutcome> {
-    return handleTextInternal(text, dependencies);
+    return handleTextInternal(text, dependencies, conversationState);
   }
 
   return {
@@ -50,6 +66,7 @@ export function createAssistant(
 async function handleTextInternal(
   text: string,
   dependencies: AssistantDependencies,
+  conversationState: ConversationState,
 ): Promise<AssistantOutcome> {
   const normalizedText = text.trim();
 
@@ -71,19 +88,22 @@ async function handleTextInternal(
     context,
   );
 
-  if (interpretation.response) {
+  if (
+    interpretation.kind === "unknown" ||
+    interpretation.kind === "unsupported"
+  ) {
     return {
       response: interpretation.response,
     };
   }
 
-  if (!interpretation.command) {
-    return {
-      response: {
-        status: "unknown",
-        text: "I could not understand that command.",
-      },
-    };
+  if (interpretation.kind === "conversation") {
+    return handleConversation(
+      normalizedText,
+      dependencies,
+      context,
+      conversationState,
+    );
   }
 
   const command = interpretation.command;
@@ -165,12 +185,102 @@ async function handleTextInternal(
   }
 }
 
+async function handleConversation(
+  input: string,
+  dependencies: AssistantDependencies,
+  context: AssistantContext,
+  conversationState: ConversationState,
+): Promise<AssistantOutcome> {
+  if (!dependencies.conversation) {
+    return {
+      response: {
+        status: "unknown",
+        text: "I could not understand that command.",
+      },
+    };
+  }
+
+  try {
+    const response = await dependencies.conversation.responder.respond(
+      input,
+      cloneConversationState(conversationState),
+      context,
+    );
+
+    conversationState.recentTurns.push(
+      { content: input, role: "user" },
+      { content: response.text, role: "assistant" },
+    );
+
+    await compactConversationIfNeeded(
+      conversationState,
+      dependencies.conversation,
+      context,
+    );
+
+    return {
+      response,
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown conversation error";
+
+    return outcomeFromError(
+      createAppError({
+        category: "conversation_failure",
+        cause: error,
+        message,
+      }),
+    );
+  }
+}
+
+async function compactConversationIfNeeded(
+  conversationState: ConversationState,
+  conversation: NonNullable<AssistantDependencies["conversation"]>,
+  context: AssistantContext,
+): Promise<void> {
+  if (
+    countUserTurns(conversationState.recentTurns) <
+    conversation.history.maxTurnsBeforeCompaction
+  ) {
+    return;
+  }
+
+  const compacted = await conversation.compactor.compact(
+    cloneConversationState(conversationState),
+    context,
+  );
+
+  if (compacted.summary) {
+    conversationState.summary = compacted.summary;
+  } else {
+    delete conversationState.summary;
+  }
+  conversationState.recentTurns = [...compacted.recentTurns];
+}
+
+function countUserTurns(turns: ConversationTurn[]): number {
+  return turns.filter((turn) => turn.role === "user").length;
+}
+
+function cloneConversationState(state: ConversationState): ConversationState {
+  return {
+    ...(state.summary ? { summary: state.summary } : {}),
+    recentTurns: state.recentTurns.map((turn) => ({ ...turn })),
+  };
+}
+
 function outcomeFromError(error: AppError): AssistantOutcome {
   const outcome: AssistantOutcome = {
     response: mapAppErrorToResponse(error),
   };
 
-  if (error.cause !== undefined || error.category === "feature_failure") {
+  if (
+    error.cause !== undefined ||
+    error.category === "feature_failure" ||
+    error.category === "conversation_failure"
+  ) {
     outcome.diagnostics = [toAssistantDiagnostic(error)];
   }
 

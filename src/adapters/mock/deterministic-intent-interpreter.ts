@@ -31,12 +31,14 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
 
       if (parameters) {
         return Promise.resolve({
+          kind: "command",
           command: createCommand(rule.capability, text, parameters),
         });
       }
     }
 
     return Promise.resolve({
+      kind: "unknown",
       response: {
         status: "unknown",
         text: "I could not map that to a deterministic command.",

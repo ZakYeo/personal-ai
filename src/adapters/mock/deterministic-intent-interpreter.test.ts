@@ -40,6 +40,7 @@ describe("DeterministicIntentInterpreter", () => {
         parameters: { value: "echo this" },
         rawText: "Hey Jarvis, echo this",
       },
+      kind: "command",
     });
   });
 
@@ -49,6 +50,7 @@ describe("DeterministicIntentInterpreter", () => {
     await expect(
       interpreter.interpret("Hey Jarvis, list my alarms", context),
     ).resolves.toEqual({
+      kind: "unknown",
       response: {
         status: "unknown",
         text: "I could not map that to a deterministic command.",
@@ -67,6 +69,7 @@ describe("DeterministicIntentInterpreter", () => {
     await expect(
       interpreter.interpret("Hey Jarvis, order lunch", context),
     ).resolves.toEqual({
+      kind: "unknown",
       response: {
         status: "unknown",
         text: "I could not map that to a deterministic command.",

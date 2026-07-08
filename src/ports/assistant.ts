@@ -16,6 +16,7 @@ export type AssistantDiagnosticCategory =
   | "confirmation_required"
   | "unsupported"
   | "feature_failure"
+  | "conversation_failure"
   | "unexpected";
 
 export interface AssistantDiagnostic {
