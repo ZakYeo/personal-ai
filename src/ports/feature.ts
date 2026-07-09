@@ -16,6 +16,8 @@ export interface DeterministicFeatureRule {
 export interface FeatureCapability {
   name: string;
   risk: "low" | "high";
+  summary?: string;
+  description?: string;
   requiresConfirmation?: boolean;
   parameters?: Record<string, FeatureCapabilityParameter>;
   deterministicRules?: DeterministicCapabilityRule[];
@@ -175,6 +177,10 @@ export function defineFeature<
     capabilities: capabilityEntries.map(([name, handler]) => ({
       name,
       risk: handler.risk,
+      ...(handler.summary === undefined ? {} : { summary: handler.summary }),
+      ...(handler.description === undefined
+        ? {}
+        : { description: handler.description }),
       ...(handler.requiresConfirmation === undefined
         ? {}
         : { requiresConfirmation: handler.requiresConfirmation }),

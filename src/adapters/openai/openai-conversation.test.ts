@@ -86,6 +86,42 @@ describe("OpenAIConversationResponder", () => {
     );
   });
 
+  it("grounds general conversation with enabled capability metadata", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        output_text: JSON.stringify({
+          expectsFollowUp: false,
+          text: "I can list local alarms.",
+        }),
+      }),
+    );
+    const responder = createResponder({
+      capabilityCatalog: [
+        {
+          capability: {
+            description: "List the local alarms currently stored.",
+            name: "alarm.list",
+            risk: "low",
+            summary: "List local alarms.",
+          },
+          featureId: "alarms",
+          featureName: "Local Alarms",
+        },
+      ],
+      fetch,
+    });
+
+    await responder.respond("What can you do?", { recentTurns: [] }, context);
+
+    const body = readRequestBody(fetch);
+
+    expect(JSON.stringify(body.input)).toContain("alarm.list");
+    expect(JSON.stringify(body.input)).toContain("List local alarms.");
+    expect(JSON.stringify(body.input)).toContain(
+      "List the local alarms currently stored.",
+    );
+  });
+
   it("rejects missing API keys before calling the provider", async () => {
     const fetch = vi.fn();
     const responder = createResponder({
@@ -225,6 +261,9 @@ describe("OpenAIConversationCompactor", () => {
 });
 
 interface CreateConversationOptions {
+  capabilityCatalog?: ConstructorParameters<
+    typeof OpenAIConversationResponder
+  >[0]["capabilityCatalog"];
   env?: Record<string, string | undefined>;
   fetch?: typeof fetch;
   timeoutMs?: number;
@@ -246,6 +285,9 @@ function createOptions(options: CreateConversationOptions = {}) {
       model: "gpt-5.5",
       timeoutMs: options.timeoutMs ?? 30_000,
     },
+    ...(options.capabilityCatalog
+      ? { capabilityCatalog: options.capabilityCatalog }
+      : {}),
     env:
       options.env ??
       createProviderCredentialEnv("OPENAI_API_KEY", "test-api-key"),

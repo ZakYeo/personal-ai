@@ -32,10 +32,14 @@ export async function createConfiguredTextRuntime(
       fetch,
     },
   });
-  const conversation = createConfiguredConversation(config, {
-    env,
-    fetch,
-  });
+  const conversation = createConfiguredConversation(
+    config,
+    featureSelection.features,
+    {
+      env,
+      fetch,
+    },
+  );
 
   return createAssistant({
     clock,

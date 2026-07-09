@@ -34,7 +34,10 @@ export function createMessagingFeature(): FeaturePlugin {
     displayName: "Mock Messaging",
     capabilities: {
       "messaging.draft_reply": defineCapability({
+        description:
+          "Draft a reply for a configured messaging channel without sending it.",
         risk: "low",
+        summary: "Draft a message reply without sending it.",
         parameters: messagingDraftReplyParameters,
         deterministicRules: deterministicRulesFor("messaging.draft_reply"),
         execute: (request) => draftReply(request.args),

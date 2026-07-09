@@ -172,6 +172,7 @@ describe("createConfiguredTextRuntime", () => {
         new Response(
           JSON.stringify({
             output_text: JSON.stringify({
+              expectsFollowUp: false,
               text: "I am doing well today.",
             }),
           }),
@@ -191,6 +192,7 @@ describe("createConfiguredTextRuntime", () => {
     await expect(
       assistant.handleText("Hey Jarvis, how are you today?"),
     ).resolves.toEqual({
+      expectsFollowUp: false,
       status: "ok",
       text: "I am doing well today.",
     });

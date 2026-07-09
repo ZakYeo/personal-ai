@@ -33,7 +33,10 @@ export function createCalendarFeature(
     displayName: "Calendar",
     capabilities: {
       "calendar.search_events": defineCapability({
+        description:
+          "Search configured calendar events for a natural-language query and return the best matching event date.",
         risk: "low",
+        summary: "Search configured calendar events.",
         parameters: calendarSearchEventsParameters,
         deterministicRules: deterministicRulesFor("calendar.search_events"),
         execute: async (request, context) =>

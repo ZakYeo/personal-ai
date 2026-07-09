@@ -54,7 +54,10 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
     displayName: "Local Alarms",
     capabilities: {
       "alarm.create": defineCapability({
+        description:
+          "Create a local alarm scheduled a number of minutes from now. This requires confirmation before the alarm is saved.",
         risk: "high",
+        summary: "Create a local alarm after a relative delay.",
         requiresConfirmation: true,
         parameters: alarmCreateParameters,
         deterministicRules: deterministicRulesFor("alarm.create"),
@@ -62,7 +65,10 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
           createAlarm(request.args, context, store),
       }),
       "alarm.list": defineCapability({
+        description:
+          "List the local alarms currently stored by this assistant runtime.",
         risk: "low",
+        summary: "List currently stored local alarms.",
         parameters: alarmListParameters,
         deterministicRules: deterministicRulesFor("alarm.list"),
         execute: () => listAlarms(store),

@@ -8,11 +8,13 @@ import type {
   ConversationResponderPort,
   ConversationState,
 } from "../ports/conversation.js";
+import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import {
   requireConversationConfig,
   type ResolvedConversationConfig,
 } from "./config/conversation-config.js";
+import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
 
 interface ConversationProviderDependencies {
   env: Record<string, string | undefined>;
@@ -24,6 +26,7 @@ type ConversationFactory<TConversation extends ResolvedConversationConfig> =
     config: LoadedRuntimeConfig;
     conversation: TConversation;
     dependencies: ConversationProviderDependencies;
+    features: FeaturePlugin[];
   }) => AssistantDependencies["conversation"];
 
 type ConversationProviderRegistry = {
@@ -36,6 +39,7 @@ interface CreateConfiguredConversationOptions {
 
 export function createConfiguredConversation(
   config: LoadedRuntimeConfig,
+  features: FeaturePlugin[],
   dependencies: ConversationProviderDependencies,
   options: CreateConfiguredConversationOptions = {},
 ): AssistantDependencies["conversation"] {
@@ -56,6 +60,7 @@ export function createConfiguredConversation(
     config,
     conversation,
     dependencies,
+    features,
   });
 }
 
@@ -67,8 +72,9 @@ function createDefaultConversationProviderRegistry(): Required<ConversationProvi
       responder: new DeterministicConversationResponder(),
     }),
     disabled: () => noConversation,
-    openai: ({ conversation, dependencies }) => {
+    openai: ({ conversation, dependencies, features }) => {
       const options = {
+        capabilityCatalog: createProviderCapabilityCatalog(features),
         config: conversation.openai,
         env: dependencies.env,
         fetch: dependencies.fetch,

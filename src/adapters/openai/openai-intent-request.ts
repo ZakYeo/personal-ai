@@ -29,7 +29,7 @@ export function createOpenAIIntentRequestBody(
               "Use kind conversation with command and response null for general questions or casual chat.",
               "Use kind unsupported with command null and response populated for command-like requests that no enabled capability can handle.",
               "Use kind unknown with command null and response populated only when the user intent is unclear.",
-              `Enabled capabilities:\n${formatCapabilities(capabilityCatalog)}`,
+              `Enabled capabilities:\n${formatOpenAICapabilities(capabilityCatalog)}`,
             ].join(" "),
             type: "input_text",
           },
@@ -110,7 +110,9 @@ const intentInterpretationSchema = {
   type: "object",
 };
 
-function formatCapabilities(catalog: OpenAIIntentCapability[]): string {
+export function formatOpenAICapabilities(
+  catalog: OpenAIIntentCapability[],
+): string {
   if (catalog.length === 0) {
     return "No capabilities are enabled.";
   }
@@ -134,7 +136,13 @@ function formatCapabilities(catalog: OpenAIIntentCapability[]): string {
         })
         .join("; ");
 
-      return `${capability.name} from ${featureId} (${featureName}); risk ${capability.risk}; parameters ${parameterText || "none"}`;
+      return [
+        `${capability.name} from ${featureId} (${featureName})`,
+        `summary ${capability.summary ?? "not provided"}`,
+        `description ${capability.description ?? "not provided"}`,
+        `risk ${capability.risk}`,
+        `parameters ${parameterText || "none"}`,
+      ].join("; ");
     })
     .join("\n");
 }

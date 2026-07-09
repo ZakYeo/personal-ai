@@ -6,12 +6,17 @@ import type {
   ConversationState,
   ConversationTurn,
 } from "../../ports/conversation.js";
+import {
+  formatOpenAICapabilities,
+  type OpenAIIntentCapability,
+} from "./openai-intent-request.js";
 
 export function createOpenAIConversationRequestBody(
   input: string,
   state: ConversationState,
   context: AssistantContext,
   config: OpenAIIntentConfig,
+  capabilityCatalog: OpenAIIntentCapability[] = [],
 ) {
   return {
     input: [
@@ -22,6 +27,7 @@ export function createOpenAIConversationRequestBody(
               `You are ${context.config.assistant.name}, a concise personal voice assistant.`,
               "Answer the user's general question conversationally.",
               "Do not claim to execute commands or access unavailable tools.",
+              `The assistant's enabled capabilities are:\n${formatOpenAICapabilities(capabilityCatalog)}`,
               "Set expectsFollowUp to true only when your reply directly asks the user for more input.",
               "Return only JSON matching the supplied schema.",
             ].join(" "),

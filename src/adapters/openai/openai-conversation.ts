@@ -14,12 +14,14 @@ import {
   createOpenAIConversationCompactionRequestBody,
   createOpenAIConversationRequestBody,
 } from "./openai-conversation-request.js";
+import type { OpenAIIntentCapability } from "./openai-intent-request.js";
 import {
   parseOpenAIConversationResponse,
   parseOpenAIConversationSummary,
 } from "./openai-conversation-output-parser.js";
 
 interface OpenAIConversationOptions {
+  capabilityCatalog?: OpenAIIntentCapability[];
   config: OpenAIIntentConfig;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
@@ -39,6 +41,7 @@ export class OpenAIConversationResponder implements ConversationResponderPort {
         state,
         context,
         this.options.config,
+        this.options.capabilityCatalog ?? [],
       ),
       options: this.options,
     });
