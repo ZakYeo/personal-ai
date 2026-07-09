@@ -11,7 +11,10 @@ import {
 } from "./voice-progress.js";
 import { handleAssistantText, speakResponse } from "./voice-response.js";
 import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
-import type { VoiceTimingRecorder } from "./voice-timings.js";
+import {
+  createVoiceTurnInstrumentation,
+  type VoiceTurnInstrumentation,
+} from "./voice-timings.js";
 import type { VoiceTurnResult } from "./voice-turn-result.js";
 
 interface VoiceCommandDependencies {
@@ -26,43 +29,32 @@ export async function runDetectedVoiceCommand(
   dependencies: VoiceCommandDependencies,
   commandText: string,
   io: VoiceRuntimeIo,
-  metadata: { timingRecorder?: VoiceTimingRecorder; wakePhrase?: string } = {},
+  metadata: {
+    instrumentation?: VoiceTurnInstrumentation;
+    wakePhrase?: string;
+  } = {},
 ): Promise<VoiceTurnResult> {
+  const instrumentation =
+    metadata.instrumentation ?? createVoiceTurnInstrumentation();
+
   logCommandTranscript(io, commandText);
 
-  const response = await measureOptional(
-    metadata.timingRecorder,
-    "assistant handling",
-    () => handleAssistantText(dependencies.assistant, commandText, io),
+  const response = await instrumentation.measure("assistant handling", () =>
+    handleAssistantText(dependencies.assistant, commandText, io),
   );
 
   logAssistantResponse(io, response);
 
-  const speechOutput = await measureOptional(
-    metadata.timingRecorder,
-    "speech output",
-    () => speakResponse(dependencies, response, io),
+  const speechOutput = await instrumentation.measure("speech output", () =>
+    speakResponse(dependencies, response, io),
   );
+  const timings = instrumentation.snapshotIfEnabled();
 
   return {
     response,
     ...speechOutput,
-    ...(metadata.timingRecorder
-      ? { timings: metadata.timingRecorder.snapshot() }
-      : {}),
+    ...(timings ? { timings } : {}),
     transcript: commandText,
     ...(metadata.wakePhrase ? { wakePhrase: metadata.wakePhrase } : {}),
   };
-}
-
-async function measureOptional<T>(
-  timingRecorder: VoiceTimingRecorder | undefined,
-  name: string,
-  operation: () => Promise<T>,
-): Promise<T> {
-  if (!timingRecorder) {
-    return operation();
-  }
-
-  return timingRecorder.measure(name, operation);
 }

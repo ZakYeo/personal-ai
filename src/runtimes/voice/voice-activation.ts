@@ -19,9 +19,9 @@ import { runDetectedVoiceCommand } from "./voice-command.js";
 import { logWakeDetected, logWakeListening } from "./voice-progress.js";
 import { speakResponse } from "./voice-response.js";
 import {
-  createVoiceTimingRecorder,
-  type MonotonicNow,
-  type VoiceTimingRecorder,
+  createVoiceTurnInstrumentation,
+  type VoiceTimingOptions,
+  type VoiceTurnInstrumentation,
 } from "./voice-timings.js";
 import type { VoiceRuntimeIo, VoiceTurnConfig } from "./voice-turn.js";
 import type { VoiceTurnResult } from "./voice-turn-result.js";
@@ -36,7 +36,7 @@ export interface VoiceActivationDependencies {
   streamingSpeechToText?: StreamingSpeechToTextPort;
   streamingTextToSpeech?: StreamingTextToSpeechPort;
   textToSpeech: TextToSpeechPort;
-  timing?: { nowMs?: MonotonicNow };
+  timing?: VoiceTimingOptions;
   turnConfig: VoiceTurnConfig;
   wakeActivation?: WakeActivationPort;
   wakeAudioInput: AudioInputPort;
@@ -49,52 +49,41 @@ export async function runVoiceActivation(
   dependencies: VoiceActivationDependencies,
   io: VoiceRuntimeIo = {},
 ): Promise<VoiceActivationResult> {
-  const timingRecorder = dependencies.timing
-    ? createVoiceTimingRecorder(dependencies.timing.nowMs)
-    : undefined;
+  const instrumentation = createVoiceTurnInstrumentation(dependencies.timing);
 
   logWakeListening(io, dependencies.turnConfig.wakePhrases);
 
   if (dependencies.wakeActivation) {
     const { wakeActivation } = dependencies;
-    const activation = await measureOptional(
-      timingRecorder,
-      "wake activation",
-      () =>
-        wakeActivation.waitForWake({
-          wakePhrases: dependencies.turnConfig.wakePhrases,
-        }),
+    const activation = await instrumentation.measure("wake activation", () =>
+      wakeActivation.waitForWake({
+        wakePhrases: dependencies.turnConfig.wakePhrases,
+      }),
     );
 
     logWakeDetected(io);
 
     return runPostWakeVoiceCommand(dependencies, io, {
+      instrumentation,
       ...(activation.phrase ? { wakePhrase: activation.phrase } : {}),
-      ...(timingRecorder ? { timingRecorder } : {}),
     });
   }
 
-  const wakeAudio = await measureOptional(
-    timingRecorder,
-    "wake audio capture",
-    () => dependencies.wakeAudioInput.capture(),
+  const wakeAudio = await instrumentation.measure("wake audio capture", () =>
+    dependencies.wakeAudioInput.capture(),
   );
-  const wakeTranscript = await measureOptional(
-    timingRecorder,
+  const wakeTranscript = await instrumentation.measure(
     "wake speech-to-text",
     () => dependencies.speechToText.transcribe(wakeAudio),
   );
-  const detection = await measureOptional(
-    timingRecorder,
-    "wake word detection",
-    () =>
-      dependencies.wakeWord.detect({
-        audio: {
-          ...wakeAudio,
-          text: wakeTranscript.text,
-        },
-        wakePhrases: dependencies.turnConfig.wakePhrases,
-      }),
+  const detection = await instrumentation.measure("wake word detection", () =>
+    dependencies.wakeWord.detect({
+      audio: {
+        ...wakeAudio,
+        text: wakeTranscript.text,
+      },
+      wakePhrases: dependencies.turnConfig.wakePhrases,
+    }),
   );
 
   if (!detection.detected) {
@@ -105,7 +94,7 @@ export async function runVoiceActivation(
       },
       status: "ignored",
       textOutputWritten: false,
-      ...(timingRecorder ? { timings: timingRecorder.snapshot() } : {}),
+      ...timingsResult(instrumentation),
       transcript: wakeTranscript.text,
     };
   }
@@ -113,21 +102,21 @@ export async function runVoiceActivation(
   logWakeDetected(io);
 
   return runPostWakeVoiceCommand(dependencies, io, {
+    instrumentation,
     ...(detection.phrase ? { wakePhrase: detection.phrase } : {}),
-    ...(timingRecorder ? { timingRecorder } : {}),
   });
 }
 
 async function runPostWakeVoiceCommand(
   dependencies: VoiceActivationDependencies,
   io: VoiceRuntimeIo,
-  metadata: { timingRecorder?: VoiceTimingRecorder; wakePhrase?: string } = {},
+  metadata: { instrumentation: VoiceTurnInstrumentation; wakePhrase?: string },
 ): Promise<VoiceActivationResult> {
   try {
     const commandTranscript = await transcribeCommand(
       dependencies,
       io,
-      metadata.timingRecorder,
+      metadata.instrumentation,
     );
 
     return await runDetectedVoiceCommand(
@@ -148,9 +137,7 @@ async function runPostWakeVoiceCommand(
     return {
       response: safeRuntimeFallbackResponse,
       ...speechOutput,
-      ...(metadata.timingRecorder
-        ? { timings: metadata.timingRecorder.snapshot() }
-        : {}),
+      ...timingsResult(metadata.instrumentation),
       ...(metadata.wakePhrase ? { wakePhrase: metadata.wakePhrase } : {}),
     };
   }
@@ -159,17 +146,15 @@ async function runPostWakeVoiceCommand(
 async function transcribeCommand(
   dependencies: VoiceActivationDependencies,
   io: VoiceRuntimeIo,
-  timingRecorder: VoiceTimingRecorder | undefined,
+  instrumentation: VoiceTurnInstrumentation,
 ): Promise<{ text: string }> {
   if (dependencies.streamingAudioInput && dependencies.streamingSpeechToText) {
     const { streamingAudioInput, streamingSpeechToText } = dependencies;
-    const audio = await measureOptional(
-      timingRecorder,
-      "command stream setup",
-      () => streamingAudioInput.captureStream(),
+    const audio = await instrumentation.measure("command stream setup", () =>
+      streamingAudioInput.captureStream(),
     );
 
-    return measureOptional(timingRecorder, "command transcription", () =>
+    return instrumentation.measure("command transcription", () =>
       streamingSpeechToText.transcribeStream(audio, {
         onTranscriptDelta: (delta) => {
           io.progressOutput?.write(delta);
@@ -178,25 +163,20 @@ async function transcribeCommand(
     );
   }
 
-  const commandAudio = await measureOptional(
-    timingRecorder,
+  const commandAudio = await instrumentation.measure(
     "command audio capture",
     () => dependencies.commandAudioInput.capture(),
   );
 
-  return measureOptional(timingRecorder, "command speech-to-text", () =>
+  return instrumentation.measure("command speech-to-text", () =>
     dependencies.speechToText.transcribe(commandAudio),
   );
 }
 
-async function measureOptional<T>(
-  timingRecorder: VoiceTimingRecorder | undefined,
-  name: string,
-  operation: () => Promise<T>,
-): Promise<T> {
-  if (!timingRecorder) {
-    return operation();
-  }
+function timingsResult(
+  instrumentation: VoiceTurnInstrumentation,
+): Pick<VoiceTurnResult, "timings"> | Record<string, never> {
+  const timings = instrumentation.snapshotIfEnabled();
 
-  return timingRecorder.measure(name, operation);
+  return timings ? { timings } : {};
 }

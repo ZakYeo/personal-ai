@@ -22,7 +22,7 @@ export function createFileFedDesktopVoiceOpenAISmokeConfig(
     desktopVoice: {
       ...config.desktopVoice,
       streamingAudioInput: {
-        args: createOpenWakeWordCommandFixtureStreamArgs(fixtures.commandPcm),
+        args: createCommandFixtureStreamArgs(config, fixtures.commandPcm),
         command: "sox",
         timeoutMs: 45_000,
       },
@@ -47,9 +47,12 @@ export function createFileFedDesktopVoiceOpenAISmokeConfig(
   };
 }
 
-function createOpenWakeWordCommandFixtureStreamArgs(
+function createCommandFixtureStreamArgs(
+  config: LoadedRuntimeConfig,
   commandPcmPath: string,
 ): string[] {
+  const effects = commandCaptureEffects(config);
+
   return [
     "-r",
     "24000",
@@ -73,17 +76,21 @@ function createOpenWakeWordCommandFixtureStreamArgs(
     "-t",
     "raw",
     "-",
-    "trim",
-    "0",
-    "8",
-    "silence",
-    "1",
-    "0.1",
-    "1%",
-    "1",
-    "0.8",
-    "1%",
+    ...effects,
   ];
+}
+
+function commandCaptureEffects(config: LoadedRuntimeConfig): string[] {
+  const args = config.desktopVoice?.streamingAudioInput?.args;
+  const outputIndex = args?.indexOf("-");
+
+  if (!args || outputIndex === undefined || outputIndex < 0) {
+    throw new Error(
+      "Desktop voice OpenAI smoke config requires streamingAudioInput output args.",
+    );
+  }
+
+  return args.slice(outputIndex + 1);
 }
 
 function createOpenWakeWordFixtureRecCommand(wakeWavPath: string): string {

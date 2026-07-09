@@ -150,8 +150,8 @@ intentionally outside `npm run check` and guards the same post-wake path used by
 Successful smoke runs print a `Voice timing summary` with wake activation,
 command stream setup, command transcription, assistant handling, speech output,
 and total durations. These timings are diagnostic and provider-variable; recent
-local samples were roughly 3.4s to 4.3s total, with live realtime transcription
-dominating the fixture-fed run.
+local end-to-end samples were roughly 6.0s to 8.4s total across realtime
+transcription, intent routing, and streaming speech.
 
 Run one simulated voice turn:
 

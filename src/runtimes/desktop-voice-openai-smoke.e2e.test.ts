@@ -52,12 +52,9 @@ describe.skipIf(!runDesktopVoiceOpenAISmoke)(
         },
       );
 
-      const fetch = createSmokeFetch();
-
       const result = await runDesktopVoiceServiceRuntime({
         config,
         env: { [openAIApiKeyEnv]: env[openAIApiKeyEnv] },
-        fetch,
         io: { fallbackOutput, progressOutput, stderr },
         now: () => new Date("2026-06-26T09:00:00.000Z"),
         processSignals: signals,
@@ -124,46 +121,6 @@ describe.skipIf(!runDesktopVoiceOpenAISmoke)(
 
 function printSmokeTimings(timings: VoiceTurnTimings): void {
   stdout.write(`${formatVoiceTimings(timings).join("\n")}\n`);
-}
-
-function createSmokeFetch(): typeof globalThis.fetch {
-  return (input) => {
-    const url = requestUrl(input);
-
-    if (url.endsWith("/responses")) {
-      return Promise.resolve(
-        Response.json({
-          output_text: JSON.stringify({
-            command: {
-              capability: "alarm.list",
-              parameters: [],
-              rawText: "List my alarms.",
-            },
-            kind: "command",
-            response: null,
-          }),
-        }),
-      );
-    }
-
-    if (url.endsWith("/audio/speech")) {
-      return Promise.resolve(new Response(Buffer.from("spoken audio")));
-    }
-
-    return Promise.reject(new Error(`Unexpected smoke fetch URL: ${url}`));
-  };
-}
-
-function requestUrl(input: Parameters<typeof globalThis.fetch>[0]): string {
-  if (typeof input === "string") {
-    return input;
-  }
-
-  if (input instanceof URL) {
-    return input.toString();
-  }
-
-  return input.url;
 }
 
 function expectSuccessfulSmokeResult(

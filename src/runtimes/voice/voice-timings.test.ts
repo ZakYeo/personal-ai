@@ -1,4 +1,5 @@
 import {
+  createVoiceTurnInstrumentation,
   createVoiceTimingRecorder,
   formatVoiceTimings,
 } from "./voice-timings.js";
@@ -55,6 +56,31 @@ describe("voice timings", () => {
       "- assistant: 103ms",
       "- total: 200ms",
     ]);
+  });
+
+  it("provides no-op instrumentation when timing is disabled", async () => {
+    const instrumentation = createVoiceTurnInstrumentation();
+
+    await expect(
+      instrumentation.measure("assistant handling", () =>
+        Promise.resolve("handled"),
+      ),
+    ).resolves.toBe("handled");
+
+    expect(instrumentation.snapshotIfEnabled()).toBeUndefined();
+  });
+
+  it("provides measured instrumentation when timing is enabled", async () => {
+    const instrumentation = createVoiceTurnInstrumentation({
+      nowMs: createScriptedClock([0, 10, 30, 35]),
+    });
+
+    await instrumentation.measure("speech output", () => Promise.resolve());
+
+    expect(instrumentation.snapshotIfEnabled()).toEqual({
+      phases: [{ durationMs: 20, name: "speech output" }],
+      totalMs: 35,
+    });
   });
 });
 

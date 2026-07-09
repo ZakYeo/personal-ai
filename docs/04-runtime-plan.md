@@ -184,7 +184,8 @@ Successful smoke runs print a diagnostic timing summary with wake activation,
 command stream setup, command transcription, assistant handling, speech output,
 and total durations. The values are advisory rather than thresholds because live
 provider latency varies; local samples after adding the summary were roughly
-3.4s to 4.3s total, with command transcription dominating fixture-fed runs.
+6.0s to 8.4s total across realtime transcription, intent routing, and streaming
+speech.
 
 ### Raspberry Pi Runtime
 

@@ -15,6 +15,15 @@ export interface VoiceTimingRecorder {
 
 export type MonotonicNow = () => number;
 
+export interface VoiceTimingOptions {
+  nowMs?: MonotonicNow;
+}
+
+export interface VoiceTurnInstrumentation {
+  measure<T>(name: string, operation: () => Promise<T>): Promise<T>;
+  snapshotIfEnabled(): VoiceTurnTimings | undefined;
+}
+
 export function createVoiceTimingRecorder(
   nowMs: MonotonicNow = defaultMonotonicNow,
 ): VoiceTimingRecorder {
@@ -40,6 +49,24 @@ export function createVoiceTimingRecorder(
         totalMs: elapsedMs(nowMs(), startedAt),
       };
     },
+  };
+}
+
+export function createVoiceTurnInstrumentation(
+  options?: VoiceTimingOptions,
+): VoiceTurnInstrumentation {
+  if (!options) {
+    return {
+      measure: (_name, operation) => operation(),
+      snapshotIfEnabled: () => {},
+    };
+  }
+
+  const recorder = createVoiceTimingRecorder(options.nowMs);
+
+  return {
+    measure: (name, operation) => recorder.measure(name, operation),
+    snapshotIfEnabled: () => recorder.snapshot(),
   };
 }
 
