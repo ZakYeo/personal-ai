@@ -1,4 +1,4 @@
-import { env } from "node:process";
+import { env, stdout } from "node:process";
 import { join } from "node:path";
 
 import { createFileFedDesktopVoiceOpenAISmokeConfig } from "../test-support/desktop-voice-openai-smoke.js";
@@ -8,6 +8,10 @@ import { loadConfig } from "./config/config.js";
 import type { ServiceRuntimeResult } from "./service/service-runtime.js";
 import { runDesktopVoiceServiceRuntime } from "./voice/desktop-voice-service-runtime.js";
 import { runVoiceActivation } from "./voice/voice-activation.js";
+import {
+  formatVoiceTimings,
+  type VoiceTurnTimings,
+} from "./voice/voice-timings.js";
 
 const runDesktopVoiceOpenAISmoke =
   env.PERSONAL_AI_RUN_DESKTOP_VOICE_OPENAI_SMOKE === "1";
@@ -39,6 +43,7 @@ describe.skipIf(!runDesktopVoiceOpenAISmoke)(
       const progressOutput = createCapturedWriter();
       const fallbackOutput = createCapturedWriter();
       const stderr = createCapturedWriter();
+      let smokeTimings: VoiceTurnTimings | undefined;
       const config = createFileFedDesktopVoiceOpenAISmokeConfig(
         await loadConfig({ configPath: desktopVoiceOpenAIConfigPath }),
         {
@@ -64,7 +69,14 @@ describe.skipIf(!runDesktopVoiceOpenAISmoke)(
           return Promise.resolve();
         },
         runVoiceActivation: async (dependencies, io) => {
-          const activationResult = await runVoiceActivation(dependencies, io);
+          const activationResult = await runVoiceActivation(
+            {
+              ...dependencies,
+              timing: {},
+            },
+            io,
+          );
+          smokeTimings = activationResult.timings;
           signals.emit("SIGTERM");
 
           return activationResult;
@@ -93,9 +105,28 @@ describe.skipIf(!runDesktopVoiceOpenAISmoke)(
       );
       expect(fallbackOutput.writes).toEqual([]);
       expect(stderr.writes).toEqual([]);
+      if (!smokeTimings) {
+        throw new Error("Desktop voice OpenAI smoke did not capture timings.");
+      }
+
+      expect(smokeTimings.phases.map((phase) => phase.name)).toEqual(
+        expect.arrayContaining([
+          "wake activation",
+          "command stream setup",
+          "command transcription",
+          "assistant handling",
+          "speech output",
+        ]),
+      );
+      expect(Number.isFinite(smokeTimings.totalMs)).toBe(true);
+      printSmokeTimings(smokeTimings);
     }, 60_000);
   },
 );
+
+function printSmokeTimings(timings: VoiceTurnTimings): void {
+  stdout.write(`${formatVoiceTimings(timings).join("\n")}\n`);
+}
 
 function expectSuccessfulSmokeResult(
   result: ServiceRuntimeResult,
