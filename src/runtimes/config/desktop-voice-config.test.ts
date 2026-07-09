@@ -134,13 +134,27 @@ describe("desktop voice config resolvers", () => {
       streamingSpeechToText: {
         audioInput: { command: "fake-stream-rec" },
         transcription: {
-          create: expect.any(Function) as unknown,
+          adapterId: "openai-realtime",
+          config: {
+            apiKeyEnv: "OPENAI_API_KEY",
+            baseUrl: "wss://api.openai.com/v1/realtime",
+            model: "gpt-realtime-whisper",
+            timeoutMs: 30_000,
+          },
         },
       },
       streamingTextToSpeech: {
         audioOutput: { command: "fake-stream-play" },
         speech: {
-          create: expect.any(Function) as unknown,
+          adapterId: "openai-streaming",
+          config: {
+            apiKeyEnv: "OPENAI_API_KEY",
+            baseUrl: "https://api.openai.com/v1",
+            instructions: "Speak clearly and concisely.",
+            model: "gpt-4o-mini-tts",
+            responseFormat: "pcm",
+            voice: "coral",
+          },
         },
       },
       wakeActivation: { command: "fake-wake" },

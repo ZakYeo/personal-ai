@@ -14,6 +14,10 @@ import type {
   WakeWordPort,
 } from "../../ports/voice.js";
 import type { ParsedDesktopVoiceConfig } from "../config/desktop-voice-config.js";
+import type {
+  OpenAIRealtimeTranscriptionConfig,
+  OpenAIStreamingSpeechConfig,
+} from "../config/desktop-voice-openai-types.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
 
@@ -35,18 +39,24 @@ export interface DesktopVoiceServiceAdapters extends DesktopVoiceAdapters {
   wakeAudioInput: AudioInputPort;
 }
 
-export interface ResolvedDesktopProviderAdapter<TAdapter> {
-  create(context: DesktopVoiceAdapterContext): TAdapter;
+export interface ResolvedDesktopRealtimeTranscriptionProviderConfig {
+  adapterId: "openai-realtime";
+  config: OpenAIRealtimeTranscriptionConfig;
+}
+
+export interface ResolvedDesktopStreamingSpeechProviderConfig {
+  adapterId: "openai-streaming";
+  config: OpenAIStreamingSpeechConfig;
 }
 
 export interface ResolvedDesktopStreamingSpeechToTextConfig {
   audioInput: VoiceCommandConfig;
-  transcription: ResolvedDesktopProviderAdapter<StreamingSpeechToTextPort>;
+  transcription: ResolvedDesktopRealtimeTranscriptionProviderConfig;
 }
 
 export interface ResolvedDesktopStreamingTextToSpeechConfig {
   audioOutput: VoiceCommandConfig;
-  speech: ResolvedDesktopProviderAdapter<StreamingTextToSpeechPort>;
+  speech: ResolvedDesktopStreamingSpeechProviderConfig;
 }
 
 export interface ResolvedDesktopVoiceAdapterConfig {
@@ -101,11 +111,11 @@ export interface DesktopVoiceSlotTopology {
     StreamingAudioOutputPort
   >;
   streamingSpeechToText: DesktopVoiceSlotDescriptor<
-    unknown,
+    OpenAIRealtimeTranscriptionConfig,
     StreamingSpeechToTextPort
   >;
   streamingTextToSpeech: DesktopVoiceSlotDescriptor<
-    unknown,
+    OpenAIStreamingSpeechConfig,
     StreamingTextToSpeechPort
   >;
   textToSpeech: DesktopVoiceSlotDescriptor<

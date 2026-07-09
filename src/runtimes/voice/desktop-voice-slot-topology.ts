@@ -6,7 +6,6 @@ import { desktopVoiceProviderAdapterEntries } from "./desktop-voice-provider-ada
 import type {
   DesktopVoiceAdapterContext,
   DesktopVoiceAdapterEntry,
-  ResolvedDesktopProviderAdapter,
   DesktopVoiceSlotDescriptor,
   DesktopVoiceSlotTopology,
 } from "./desktop-voice-adapter-types.js";
@@ -76,21 +75,6 @@ export function createDesktopVoiceSlotAdapter<TConfig, TAdapter>(
     config,
     context,
   );
-}
-
-export function resolveDesktopVoiceSlotProvider<TConfig, TAdapter>(
-  voice: ResolvedVoiceConfig,
-  descriptor: DesktopVoiceSlotDescriptor<TConfig, TAdapter>,
-  config: {
-    desktopVoice?: ParsedDesktopVoiceConfig;
-  },
-): ResolvedDesktopProviderAdapter<TAdapter> {
-  const entry = selectConfiguredDesktopVoiceAdapter(voice, descriptor);
-  const adapterConfig = entry.resolveConfig(config);
-
-  return {
-    create: (context) => entry.create(adapterConfig, context),
-  };
 }
 
 function selectConfiguredDesktopVoiceAdapter<TConfig, TAdapter>(
