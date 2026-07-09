@@ -129,10 +129,9 @@ async function runVoicePipelineActivation(
 
   return runPostWakeVoiceCommand(dependencies, io, {
     instrumentation,
-    initialCommandTranscript:
-      dependencies.turnConfig.initialCommandSource === "wake-transcript"
-        ? wakeTranscript.text
-        : undefined,
+    ...(dependencies.turnConfig.initialCommandSource === "wake-transcript"
+      ? { initialCommandTranscript: wakeTranscript.text }
+      : {}),
     ...(detection.phrase ? { wakePhrase: detection.phrase } : {}),
   });
 }
