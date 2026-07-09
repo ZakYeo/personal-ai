@@ -142,6 +142,11 @@ file-fed inputs and command processes cannot finish before the realtime socket
 is ready to read them. Runtime cleanup terminates owned streaming input
 processes best-effort when realtime setup, transcription, or provider events
 fail.
+The default desktop OpenAI command capture keeps an eight-second maximum trim
+guard but also uses SoX trailing-silence detection after wake activation. That
+keeps the service from waiting for the full capture window after the user has
+finished speaking while still bounding command capture if silence detection is
+unreliable.
 If streaming adapters are not configured, the runtime falls back to the existing
 batch capture, STT, TTS, and playback adapters. Pre-wake activation failures are
 logged internally and retried by the neutral service loop. After wake detection,
@@ -168,11 +173,18 @@ npm run smoke:desktop-voice:openai
 This command loads `.env`, requires `OPENAI_API_KEY`, uses committed audio
 fixtures from `test/fixtures/audio/`, runs openWakeWord against a file-fed
 `"Hey Jarvis"` wake phrase, and streams a file-fed `List my alarms` command as
-raw mono 24 kHz PCM through the OpenAI realtime transcription adapter. It is
-not part of the deterministic validation gate. It is intended to reproduce the
-same post-wake path as `npm start` without depending on room acoustics or a live
-microphone, and it is the live acceptance guard for authenticated realtime
-transcription, assistant handling, and streaming spoken output.
+raw mono 24 kHz PCM through the same SoX trim and trailing-silence chain used by
+the local command capture before sending it to the OpenAI realtime transcription
+adapter. It is not part of the deterministic validation gate. It is intended to
+reproduce the same post-wake path as `npm start` without depending on room
+acoustics or a live microphone, and it is the live acceptance guard for
+authenticated realtime transcription, assistant handling, and streaming spoken
+output.
+Successful smoke runs print a diagnostic timing summary with wake activation,
+command stream setup, command transcription, assistant handling, speech output,
+and total durations. The values are advisory rather than thresholds because live
+provider latency varies; local samples after adding the summary were roughly
+3.4s to 4.3s total, with command transcription dominating fixture-fed runs.
 
 ### Raspberry Pi Runtime
 

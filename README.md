@@ -68,6 +68,9 @@ realtime transcription. See the [runtime plan](docs/04-runtime-plan.md) for the
 desktop voice config shape. The checked-in default config expects the
 OpenWakeWord Python dependency in `.venv`; run `npm run setup:openwakeword` or
 source `scripts/setup-openwakeword-venv.sh` before `npm start`.
+The default desktop command capture uses SoX silence detection after wake
+activation so recording stops shortly after trailing silence while retaining an
+eight-second maximum capture guard.
 Raspberry Pi service experiments use the same explicit command-based voice
 configuration and can start from `config/pi-voice-openai.example.json`.
 
@@ -144,6 +147,11 @@ OpenAI realtime transcription adapter over an authenticated websocket. It also
 exercises the assistant turn and streaming spoken-output path. It is
 intentionally outside `npm run check` and guards the same post-wake path used by
 `npm start` without depending on room acoustics or a live microphone.
+Successful smoke runs print a `Voice timing summary` with wake activation,
+command stream setup, command transcription, assistant handling, speech output,
+and total durations. These timings are diagnostic and provider-variable; recent
+local samples were roughly 3.4s to 4.3s total, with live realtime transcription
+dominating the fixture-fed run.
 
 Run one simulated voice turn:
 
