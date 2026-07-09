@@ -1,4 +1,6 @@
 import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
+import type { RealtimeSocketFactory } from "../adapters/openai/openai-realtime-transcription.js";
+import { TestRealtimeSocket } from "./adapter-contract.js";
 import {
   createDesktopVoiceCommand,
   createDesktopVoiceConfig,
@@ -43,4 +45,55 @@ export function createOpenAIStreamingServiceConfig(
       wakeActivation: "openwakeword-command",
     },
   });
+}
+
+export function createOpenAIConversationStreamingServiceConfig(): LoadedRuntimeConfig {
+  const openAIConfig = {
+    apiKeyEnv: "OPENAI_API_KEY",
+    baseUrl: "https://api.openai.test/v1",
+    model: "gpt-5.5",
+    timeoutMs: 30_000,
+  };
+
+  return {
+    ...createOpenAIStreamingServiceConfig(),
+    conversation: {
+      history: {
+        maxTurnsBeforeCompaction: 5,
+      },
+      openai: openAIConfig,
+      provider: "openai",
+    },
+    intent: {
+      openai: openAIConfig,
+      provider: "openai",
+    },
+  };
+}
+
+export function createQueuedRealtimeSocketFactory(transcripts: string[]): {
+  sockets: TestRealtimeSocket[];
+  webSocketFactory: RealtimeSocketFactory;
+} {
+  const sockets = transcripts.map(
+    (transcript) =>
+      new TestRealtimeSocket({
+        autoOpen: true,
+        transcript,
+      }),
+  );
+  const pendingSockets = [...sockets];
+
+  return {
+    sockets,
+    webSocketFactory: () => {
+      const socket = pendingSockets.shift();
+
+      if (!socket) {
+        throw new Error("Unexpected transcription socket request.");
+      }
+
+      return socket;
+    },
+  };
 }

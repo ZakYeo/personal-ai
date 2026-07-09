@@ -1,7 +1,11 @@
 import { createInMemoryAlarmStore } from "../adapters/local/in-memory-alarm-store.js";
 import { createGoogleCalendarAdapter } from "../adapters/google-calendar/google-calendar-adapter.js";
 import { createMockCalendar } from "../adapters/mock/mock-calendar.js";
-import { createCapabilityInfoFeature } from "../features/assistant/capability-info-feature.js";
+import {
+  createCapabilityInfoCatalogFeature,
+  createCapabilityInfoFeature,
+} from "../features/assistant/capability-info-feature.js";
+import { createCapabilityCatalog } from "../ports/capability-catalog.js";
 import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
 import { createCalendarFeature } from "../features/calendar/calendar-feature.js";
 import { createMessagingFeature } from "../features/messaging/messaging-feature.js";
@@ -73,7 +77,7 @@ export function createConfiguredFeatures(
   config: LoadedRuntimeConfig,
   options: CreateConfiguredFeaturesOptions,
 ): FeaturePlugin[] {
-  return createAdapterBackedFeatures(config, options).features;
+  return createConfiguredFeatureSelection(config, options).features;
 }
 
 export function createConfiguredFeatureSelection(
@@ -81,18 +85,18 @@ export function createConfiguredFeatureSelection(
   options: CreateConfiguredFeaturesOptions,
 ): ConfiguredFeatureSelection {
   const registry = options.registry ?? createDefaultFeatureAdapterRegistry();
-  let features: FeaturePlugin[] = [];
-
   const configuredFeatures = createAdapterBackedFeatures(config, {
     ...options,
     registry,
   }).features;
-  const capabilityInfoFeature = createCapabilityInfoFeature(() => features);
-
-  features = [...configuredFeatures, capabilityInfoFeature];
+  const catalog = createCapabilityCatalog([
+    ...configuredFeatures,
+    createCapabilityInfoCatalogFeature(),
+  ]);
+  const capabilityInfoFeature = createCapabilityInfoFeature(catalog);
 
   return {
-    features,
+    features: [...configuredFeatures, capabilityInfoFeature],
   };
 }
 

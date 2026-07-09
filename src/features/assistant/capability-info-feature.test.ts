@@ -1,6 +1,10 @@
 import { createAlarmFeature } from "../alarms/alarm-feature.js";
-import { createCapabilityInfoFeature } from "./capability-info-feature.js";
+import {
+  createCapabilityInfoCatalogFeature,
+  createCapabilityInfoFeature,
+} from "./capability-info-feature.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
+import { createCapabilityCatalog } from "../../ports/capability-catalog.js";
 import {
   createFeatureContext,
   expectCapabilityMetadata,
@@ -102,10 +106,11 @@ describe("createCapabilityInfoFeature", () => {
 
 function createFeature() {
   const alarmFeature = createAlarmFeature(createTestAlarmStore());
-  let features = [alarmFeature];
-  const capabilityInfoFeature = createCapabilityInfoFeature(() => features);
-
-  features = [alarmFeature, capabilityInfoFeature];
+  const catalog = createCapabilityCatalog([
+    alarmFeature,
+    createCapabilityInfoCatalogFeature(),
+  ]);
+  const capabilityInfoFeature = createCapabilityInfoFeature(catalog);
 
   return capabilityInfoFeature;
 }

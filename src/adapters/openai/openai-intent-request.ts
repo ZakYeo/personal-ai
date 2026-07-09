@@ -2,13 +2,9 @@ import type {
   AssistantContext,
   OpenAIIntentConfig,
 } from "../../ports/assistant.js";
-import type { FeatureCapability } from "../../ports/feature.js";
+import type { CapabilityCatalogEntry } from "../../ports/capability-catalog.js";
 
-export interface OpenAIIntentCapability {
-  featureId: string;
-  featureName: string;
-  capability: FeatureCapability;
-}
+export type OpenAIIntentCapability = CapabilityCatalogEntry;
 
 export function createOpenAIIntentRequestBody(
   text: string,
@@ -118,30 +114,13 @@ export function formatOpenAICapabilities(
   }
 
   return catalog
-    .map(({ capability, featureId, featureName }) => {
-      const parameters = capability.parameters ?? {};
-      const parameterText = Object.entries(parameters)
-        .map(([name, parameter]) => {
-          const constraints = [
-            parameter.required ? "required" : "optional",
-            parameter.minimum === undefined
-              ? undefined
-              : `minimum ${parameter.minimum}`,
-            parameter.positive ? "positive" : undefined,
-          ].filter(
-            (constraint): constraint is string => constraint !== undefined,
-          );
-
-          return `${name}: ${parameter.type}${constraints.length > 0 ? ` (${constraints.join(", ")})` : ""}`;
-        })
-        .join("; ");
-
+    .map(({ capability, featureId, featureName, parameterText }) => {
       return [
         `${capability.name} from ${featureId} (${featureName})`,
         `summary ${capability.summary ?? "not provided"}`,
         `description ${capability.description ?? "not provided"}`,
         `risk ${capability.risk}`,
-        `parameters ${parameterText || "none"}`,
+        `parameters ${parameterText}`,
       ].join("; ");
     })
     .join("\n");

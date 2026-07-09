@@ -88,7 +88,8 @@ Voice adapter selection must be explicit at runtime composition boundaries. A vo
 Follow-up listening is neutral voice runtime behavior. A voice runtime may
 capture a no-wake reply only when the assistant response explicitly sets
 `expectsFollowUp: true`, and it should return to normal wake listening once a
-response does not request another follow-up.
+response does not request another follow-up or the runtime-owned maximum
+follow-up count is reached.
 
 Desktop voice command settings are runtime configuration, not core behavior.
 Machine-specific command names, arguments, and timeouts belong in local config

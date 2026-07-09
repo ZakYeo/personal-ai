@@ -59,6 +59,7 @@ describe("OpenAIIntentInterpreter", () => {
           },
           featureId: "calendar",
           featureName: "Mock Calendar",
+          parameterText: "query: string (required)",
         },
       ],
       fetch,

@@ -40,16 +40,19 @@ describe("createProviderCapabilityCatalog", () => {
         capability: features[0]?.capabilities[0],
         featureId: "calendar",
         featureName: "Calendar",
+        parameterText: "title: string (required)",
       },
       {
         capability: features[0]?.capabilities[1],
         featureId: "calendar",
         featureName: "Calendar",
+        parameterText: "none",
       },
       {
         capability: features[1]?.capabilities[0],
         featureId: "messaging",
         featureName: "Messaging",
+        parameterText: "none",
       },
     ]);
   });

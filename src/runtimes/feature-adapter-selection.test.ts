@@ -58,7 +58,10 @@ describe("createConfiguredFeatures", () => {
       registry,
     });
 
-    expect(features.map((feature) => feature.id)).toEqual(["calendar"]);
+    expect(features.map((feature) => feature.id)).toEqual([
+      "calendar",
+      "assistant",
+    ]);
     expect(Object.keys(observedContext?.dependencies ?? {}).sort()).toEqual([
       "env",
       "fetch",
@@ -137,7 +140,10 @@ describe("createConfiguredFeatures", () => {
       dependencies: featureAdapterDependencies,
     });
 
-    expect(features.map((feature) => feature.id)).toEqual(["calendar"]);
+    expect(features.map((feature) => feature.id)).toEqual([
+      "calendar",
+      "assistant",
+    ]);
   });
 
   it("rejects invalid Google calendar adapter config only when selected", () => {

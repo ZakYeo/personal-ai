@@ -12,6 +12,12 @@ export interface AssistantResponse {
   expectsFollowUp?: boolean;
 }
 
+export function assistantResponseExpectsFollowUp(
+  response: AssistantResponse,
+): boolean {
+  return response.expectsFollowUp === true;
+}
+
 export type AssistantDiagnosticCategory =
   | "validation"
   | "confirmation_required"

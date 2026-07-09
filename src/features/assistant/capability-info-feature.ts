@@ -1,7 +1,7 @@
+import type { CapabilityCatalog } from "../../ports/capability-catalog.js";
 import type {
   DeterministicFeatureRule,
   FeatureArgsFromParameters,
-  FeatureCapability,
   FeatureCapabilityParameters,
   FeaturePlugin,
   FeatureResult,
@@ -42,7 +42,7 @@ const capabilityInfoDeterministicRules: DeterministicFeatureRule[] = [
 ];
 
 export function createCapabilityInfoFeature(
-  getFeatures: () => FeaturePlugin[],
+  catalog: CapabilityCatalog,
 ): FeaturePlugin {
   return defineFeature({
     id: "assistant",
@@ -57,7 +57,7 @@ export function createCapabilityInfoFeature(
         deterministicRules: deterministicRulesFor(
           "assistant.capabilities.list",
         ),
-        execute: () => listCapabilities(getFeatures()),
+        execute: () => listCapabilities(catalog),
       }),
       "assistant.capabilities.describe": defineCapability({
         description:
@@ -68,10 +68,18 @@ export function createCapabilityInfoFeature(
         deterministicRules: deterministicRulesFor(
           "assistant.capabilities.describe",
         ),
-        execute: (request) => describeCapability(getFeatures(), request.args),
+        execute: (request) => describeCapability(catalog, request.args),
       }),
     },
   });
+}
+
+export function createCapabilityInfoCatalogFeature(): {
+  capabilities: FeaturePlugin["capabilities"];
+  displayName: string;
+  id: string;
+} {
+  return createCapabilityInfoFeature([] satisfies CapabilityCatalog);
 }
 
 function deterministicRulesFor(capability: string) {
@@ -80,10 +88,10 @@ function deterministicRulesFor(capability: string) {
     .map((rule) => rule.match);
 }
 
-function listCapabilities(features: FeaturePlugin[]): FeatureResult {
-  const capabilityLines = collectCapabilityEntries(features).map(
-    ({ capability, feature }) =>
-      `${capability.name}: ${capability.summary ?? feature.displayName}`,
+function listCapabilities(catalog: CapabilityCatalog): FeatureResult {
+  const capabilityLines = catalog.map(
+    ({ capability, featureName }) =>
+      `${capability.name}: ${capability.summary ?? featureName}`,
   );
 
   if (capabilityLines.length === 0) {
@@ -98,12 +106,10 @@ function listCapabilities(features: FeaturePlugin[]): FeatureResult {
 }
 
 function describeCapability(
-  features: FeaturePlugin[],
+  catalog: CapabilityCatalog,
   args: CapabilityDescribeArgs,
 ): FeatureResult {
-  const entry = collectCapabilityEntries(features).find(
-    ({ capability }) => capability.name === args.name,
-  );
+  const entry = catalog.find(({ capability }) => capability.name === args.name);
 
   if (!entry) {
     return {
@@ -111,53 +117,16 @@ function describeCapability(
     };
   }
 
-  const parameters = formatCapabilityParameters(entry.capability);
-
   return {
     text: [
-      `${entry.capability.name} (${entry.feature.displayName}):`,
+      `${entry.capability.name} (${entry.featureName}):`,
       entry.capability.description ??
         entry.capability.summary ??
         "No description is available.",
       `Risk: ${entry.capability.risk}.`,
-      `Parameters: ${parameters}.`,
+      `Parameters: ${entry.parameterText}.`,
     ].join(" "),
   };
-}
-
-function collectCapabilityEntries(features: FeaturePlugin[]): Array<{
-  capability: FeatureCapability;
-  feature: FeaturePlugin;
-}> {
-  return features.flatMap((feature) =>
-    feature.capabilities.map((capability) => ({
-      capability,
-      feature,
-    })),
-  );
-}
-
-function formatCapabilityParameters(capability: FeatureCapability): string {
-  const parameters = capability.parameters ?? {};
-  const entries = Object.entries(parameters);
-
-  if (entries.length === 0) {
-    return "none";
-  }
-
-  return entries
-    .map(([name, parameter]) => {
-      const constraints = [
-        parameter.required ? "required" : "optional",
-        parameter.minimum === undefined
-          ? undefined
-          : `minimum ${parameter.minimum}`,
-        parameter.positive ? "positive" : undefined,
-      ].filter((constraint): constraint is string => constraint !== undefined);
-
-      return `${name}: ${parameter.type}${constraints.length > 0 ? ` (${constraints.join(", ")})` : ""}`;
-    })
-    .join("; ");
 }
 
 function findCapabilityName(text: string): string | undefined {

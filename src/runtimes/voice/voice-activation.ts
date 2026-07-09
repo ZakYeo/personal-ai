@@ -15,12 +15,8 @@ import {
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
-import { runDetectedVoiceCommand } from "./voice-command.js";
-import {
-  logFollowUpListening,
-  logWakeDetected,
-  logWakeListening,
-} from "./voice-progress.js";
+import { runVoiceCommandSequence } from "./voice-command-sequence.js";
+import { logWakeDetected, logWakeListening } from "./voice-progress.js";
 import { speakResponse } from "./voice-response.js";
 import {
   createVoiceTurnInstrumentation,
@@ -123,34 +119,17 @@ async function runPostWakeVoiceCommand(
       metadata.instrumentation,
     );
 
-    let result = await runDetectedVoiceCommand(
+    return await runVoiceCommandSequence(
       dependencies,
       commandTranscript.text,
       io,
-      metadata,
+      {
+        captureFollowUp: () =>
+          transcribeCommand(dependencies, io, metadata.instrumentation),
+        instrumentation: metadata.instrumentation,
+        ...(metadata.wakePhrase ? { wakePhrase: metadata.wakePhrase } : {}),
+      },
     );
-
-    while (result.response.expectsFollowUp === true) {
-      logFollowUpListening(io);
-
-      const followUpTranscript = await transcribeCommand(
-        dependencies,
-        io,
-        metadata.instrumentation,
-      );
-
-      result = await runDetectedVoiceCommand(
-        dependencies,
-        followUpTranscript.text,
-        io,
-        {
-          instrumentation: metadata.instrumentation,
-          ...(metadata.wakePhrase ? { wakePhrase: metadata.wakePhrase } : {}),
-        },
-      );
-    }
-
-    return result;
   } catch (error) {
     logRuntimeFailure(error, io);
 

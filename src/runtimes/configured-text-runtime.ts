@@ -44,7 +44,7 @@ export async function createConfiguredTextRuntime(
   return createAssistant({
     clock,
     config: toAssistantPolicyConfig(config, {
-      additionalEnabledFeatures: ["assistant"],
+      enabledFeatureIds: featureSelection.features.map((feature) => feature.id),
     }),
     ...(conversation ? { conversation } : {}),
     features: featureSelection.features,

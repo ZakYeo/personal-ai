@@ -106,6 +106,7 @@ describe("OpenAIConversationResponder", () => {
           },
           featureId: "alarms",
           featureName: "Local Alarms",
+          parameterText: "none",
         },
       ],
       fetch,

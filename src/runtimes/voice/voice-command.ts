@@ -17,7 +17,7 @@ import {
 } from "./voice-timings.js";
 import type { VoiceTurnResult } from "./voice-turn-result.js";
 
-interface VoiceCommandDependencies {
+export interface VoiceCommandDependencies {
   assistant: Assistant;
   audioOutput: AudioOutputPort;
   streamingAudioOutput?: StreamingAudioOutputPort;

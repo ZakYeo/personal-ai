@@ -7,7 +7,11 @@ import {
   jsonResponse,
   TestRealtimeSocket,
 } from "../../test-support/adapter-contract.js";
-import { createOpenAIStreamingServiceConfig } from "../../test-support/desktop-voice-openai-service.js";
+import {
+  createOpenAIConversationStreamingServiceConfig,
+  createOpenAIStreamingServiceConfig,
+  createQueuedRealtimeSocketFactory,
+} from "../../test-support/desktop-voice-openai-service.js";
 import {
   createDesktopVoiceCommand,
   createDesktopVoiceConfig,
@@ -229,16 +233,10 @@ describe("runDesktopVoiceServiceRuntime", () => {
     const firstUtterance = "How are you today?";
     const followUpUtterance = "What are your capable functionalities?";
     const firstResponseText = "I am doing well. How can I help you today?";
-    const sockets = [
-      new TestRealtimeSocket({
-        autoOpen: true,
-        transcript: firstUtterance,
-      }),
-      new TestRealtimeSocket({
-        autoOpen: true,
-        transcript: followUpUtterance,
-      }),
-    ];
+    const { sockets, webSocketFactory } = createQueuedRealtimeSocketFactory([
+      firstUtterance,
+      followUpUtterance,
+    ]);
     const signals = createServiceSignalController();
     const progressOutput = createCapturedWriter();
     const fallbackOutput = createCapturedWriter();
@@ -278,32 +276,13 @@ describe("runDesktopVoiceServiceRuntime", () => {
       )
       .mockResolvedValueOnce(new Response(Buffer.from("spoken audio")));
 
-    const result = await runDesktopVoiceServiceRuntime({
-      config: createOpenAIConversationStreamingServiceConfig(),
-      env: { OPENAI_API_KEY: "test-api-key" },
+    const result = await runOpenAIConversationStreamingActivationSmoke({
+      fallbackOutput,
       fetch,
-      io: { fallbackOutput, progressOutput, stderr },
-      processSignals: signals,
-      retryAfterFailure: (context) => {
-        context.requestShutdown("test failure");
-
-        return Promise.resolve();
-      },
-      runVoiceActivation: async (dependencies, io) => {
-        const activationResult = await runVoiceActivation(dependencies, io);
-        signals.emit("SIGTERM");
-
-        return activationResult;
-      },
-      webSocketFactory: (() => {
-        const socket = sockets.shift();
-
-        if (!socket) {
-          throw new Error("Unexpected transcription socket request.");
-        }
-
-        return socket;
-      }) satisfies RealtimeSocketFactory,
+      progressOutput,
+      signals,
+      stderr,
+      webSocketFactory,
     });
 
     expect(result).toEqual({
@@ -323,7 +302,18 @@ describe("runDesktopVoiceServiceRuntime", () => {
     ]);
     expect(fallbackOutput.writes).toEqual([]);
     expect(stderr.writes).toEqual([]);
-    expect(sockets).toEqual([]);
+    expect(
+      sockets.flatMap((socket) =>
+        socket.sentMessages.map((message) => message.type),
+      ),
+    ).toEqual([
+      "session.update",
+      "input_audio_buffer.append",
+      "input_audio_buffer.commit",
+      "session.update",
+      "input_audio_buffer.append",
+      "input_audio_buffer.commit",
+    ]);
   });
 
   it("fails the activation cleanly when realtime transcription never completes", async () => {
@@ -733,23 +723,12 @@ async function runCasualConversationStreamingSmoke(input: {
     )
     .mockResolvedValueOnce(new Response(Buffer.from("spoken audio")));
 
-  const result = await runDesktopVoiceServiceRuntime({
-    config: createOpenAIConversationStreamingServiceConfig(),
-    env: { OPENAI_API_KEY: "test-api-key" },
+  const result = await runOpenAIConversationStreamingActivationSmoke({
+    fallbackOutput,
     fetch,
-    io: { fallbackOutput, progressOutput, stderr },
-    processSignals: signals,
-    retryAfterFailure: (context) => {
-      context.requestShutdown("test failure");
-
-      return Promise.resolve();
-    },
-    runVoiceActivation: async (dependencies, io) => {
-      const result = await runVoiceActivation(dependencies, io);
-      signals.emit("SIGTERM");
-
-      return result;
-    },
+    progressOutput,
+    signals,
+    stderr,
     webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
   });
 
@@ -761,30 +740,37 @@ async function runCasualConversationStreamingSmoke(input: {
   };
 }
 
-function createOpenAIConversationStreamingServiceConfig(): ReturnType<
-  typeof createOpenAIStreamingServiceConfig
-> {
-  const openAIConfig = {
-    apiKeyEnv: "OPENAI_API_KEY",
-    baseUrl: "https://api.openai.test/v1",
-    model: "gpt-5.5",
-    timeoutMs: 30_000,
-  };
+async function runOpenAIConversationStreamingActivationSmoke(options: {
+  fallbackOutput: ReturnType<typeof createCapturedWriter>;
+  fetch: typeof fetch;
+  progressOutput: ReturnType<typeof createCapturedWriter>;
+  signals: ReturnType<typeof createServiceSignalController>;
+  stderr: ReturnType<typeof createCapturedWriter>;
+  webSocketFactory: RealtimeSocketFactory;
+}): Promise<Awaited<ReturnType<typeof runDesktopVoiceServiceRuntime>>> {
+  return runDesktopVoiceServiceRuntime({
+    config: createOpenAIConversationStreamingServiceConfig(),
+    env: { OPENAI_API_KEY: "test-api-key" },
+    fetch: options.fetch,
+    io: {
+      fallbackOutput: options.fallbackOutput,
+      progressOutput: options.progressOutput,
+      stderr: options.stderr,
+    },
+    processSignals: options.signals,
+    retryAfterFailure: (context) => {
+      context.requestShutdown("test failure");
 
-  return {
-    ...createOpenAIStreamingServiceConfig(),
-    conversation: {
-      history: {
-        maxTurnsBeforeCompaction: 5,
-      },
-      openai: openAIConfig,
-      provider: "openai",
+      return Promise.resolve();
     },
-    intent: {
-      openai: openAIConfig,
-      provider: "openai",
+    runVoiceActivation: async (dependencies, io) => {
+      const result = await runVoiceActivation(dependencies, io);
+      options.signals.emit("SIGTERM");
+
+      return result;
     },
-  };
+    webSocketFactory: options.webSocketFactory,
+  });
 }
 
 type InfrastructureFailureMode =

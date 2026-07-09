@@ -167,7 +167,9 @@ When an assistant response sets `expectsFollowUp: true`, the neutral voice
 activation loop logs that it is listening for the user's reply and captures one
 additional command utterance without requiring the wake phrase. The loop may
 continue only if the next response also explicitly requests follow-up; otherwise
-the service returns to normal wake listening.
+the service returns to normal wake listening. The neutral voice command
+sequence owns the maximum no-wake follow-up count so model output cannot keep a
+runtime in unbounded no-wake capture.
 
 The opt-in desktop voice OpenAI smoke command is:
 
