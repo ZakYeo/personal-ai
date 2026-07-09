@@ -179,6 +179,85 @@ describe("voice activation", () => {
     ]);
   });
 
+  it("captures a requested follow-up utterance without another wake phrase", async () => {
+    const progressOutput = createCapturedWriter();
+    const handledTexts: string[] = [];
+    const commandUtterances = [
+      "How are you today?",
+      "What are your capable functionalities?",
+    ];
+    const responses = [
+      {
+        expectsFollowUp: true,
+        status: "ok" as const,
+        text: "I am doing well. How can I help you today?",
+      },
+      {
+        status: "ok" as const,
+        text: "I can list alarms and search calendar events.",
+      },
+    ];
+    const dependencies = createVoiceActivationDependencies({
+      assistant: {
+        handleText: () =>
+          Promise.reject(new Error("handleText should not be called")),
+        handleTextWithDiagnostics: (text) => {
+          handledTexts.push(text);
+
+          const response = responses.shift();
+
+          if (!response) {
+            return Promise.reject(new Error("Unexpected assistant turn."));
+          }
+
+          return Promise.resolve({ response });
+        },
+      },
+      wakeUtterance: "Hey Jarvis",
+    });
+
+    await expect(
+      runVoiceActivation(
+        {
+          ...dependencies,
+          commandAudioInput: {
+            capture: () => {
+              const text = commandUtterances.shift();
+
+              if (!text) {
+                return Promise.reject(new Error("Unexpected command capture."));
+              }
+
+              return Promise.resolve({ text });
+            },
+          },
+        },
+        { progressOutput },
+      ),
+    ).resolves.toMatchObject({
+      response: {
+        status: "ok",
+        text: "I can list alarms and search calendar events.",
+      },
+      transcript: "What are your capable functionalities?",
+      wakePhrase: "hey jarvis",
+    });
+
+    expect(handledTexts).toEqual([
+      "How are you today?",
+      "What are your capable functionalities?",
+    ]);
+    expect(progressOutput.writes).toEqual([
+      line('Now listening for wake word "hey jarvis".'),
+      line("Wake word detected, now listening..."),
+      line("Heard: How are you today?"),
+      line("Assistant: I am doing well. How can I help you today?"),
+      line("Listening for your reply..."),
+      line("Heard: What are your capable functionalities?"),
+      line("Assistant: I can list alarms and search calendar events."),
+    ]);
+  });
+
   it("speaks a graceful fallback if assistant handling rejects", async () => {
     const spoken = createCapturedWriter();
     const stderr = createCapturedWriter();

@@ -19,6 +19,10 @@ export function logWakeDetected(io: VoiceRuntimeIo): void {
   logVoiceProgress(io, "Wake word detected, now listening...");
 }
 
+export function logFollowUpListening(io: VoiceRuntimeIo): void {
+  logVoiceProgress(io, "Listening for your reply...");
+}
+
 export function logCommandTranscript(
   io: VoiceRuntimeIo,
   commandText: string,
