@@ -311,6 +311,47 @@ describe("voice activation", () => {
     expect(progressOutput.writes).toContain("alarms");
   });
 
+  it("returns opt-in timing metadata for the streaming activation path", async () => {
+    const dependencies = createVoiceActivationDependencies({
+      wakeUtterance: "Hey Jarvis",
+    });
+
+    await expect(
+      runVoiceActivation({
+        ...dependencies,
+        streamingAudioInput: {
+          captureStream: () =>
+            Promise.resolve({ chunks: chunksFromText("audio") }),
+        },
+        streamingSpeechToText: {
+          transcribeStream: () =>
+            Promise.resolve({
+              text: deterministicScenarios.alarmListEmpty.text,
+            }),
+        },
+        timing: {
+          nowMs: createScriptedClock([
+            0, 10, 20, 25, 30, 35, 80, 85, 100, 105, 130, 140,
+          ]),
+        },
+        wakeActivation: {
+          waitForWake: () => Promise.resolve({ phrase: "hey jarvis" }),
+        },
+      }),
+    ).resolves.toMatchObject({
+      timings: {
+        phases: [
+          { durationMs: 10, name: "wake activation" },
+          { durationMs: 5, name: "command stream setup" },
+          { durationMs: 45, name: "command transcription" },
+          { durationMs: 15, name: "assistant handling" },
+          { durationMs: 25, name: "speech output" },
+        ],
+        totalMs: 140,
+      },
+    });
+  });
+
   it.each(preWakeFailureScenarios)(
     "lets pre-wake $name failures reach the service boundary",
     async (scenario) => {
@@ -359,3 +400,18 @@ describe("voice activation", () => {
     },
   );
 });
+
+function createScriptedClock(values: number[]): () => number {
+  let index = 0;
+
+  return () => {
+    const value = values[index] ?? values.at(-1);
+    index += 1;
+
+    if (value === undefined) {
+      throw new Error("Scripted clock requires at least one value.");
+    }
+
+    return value;
+  };
+}
