@@ -22,8 +22,8 @@ export function createFileFedDesktopVoiceOpenAISmokeConfig(
     desktopVoice: {
       ...config.desktopVoice,
       streamingAudioInput: {
-        args: [fixtures.commandPcm],
-        command: "cat",
+        args: createOpenWakeWordCommandFixtureStreamArgs(fixtures.commandPcm),
+        command: "sox",
         timeoutMs: 45_000,
       },
       streamingAudioOutput: {
@@ -45,6 +45,45 @@ export function createFileFedDesktopVoiceOpenAISmokeConfig(
       },
     },
   };
+}
+
+function createOpenWakeWordCommandFixtureStreamArgs(
+  commandPcmPath: string,
+): string[] {
+  return [
+    "-r",
+    "24000",
+    "-c",
+    "1",
+    "-b",
+    "16",
+    "-e",
+    "signed-integer",
+    "-t",
+    "raw",
+    commandPcmPath,
+    "-r",
+    "24000",
+    "-c",
+    "1",
+    "-b",
+    "16",
+    "-e",
+    "signed-integer",
+    "-t",
+    "raw",
+    "-",
+    "trim",
+    "0",
+    "8",
+    "silence",
+    "1",
+    "0.1",
+    "1%",
+    "1",
+    "0.8",
+    "1%",
+  ];
 }
 
 function createOpenWakeWordFixtureRecCommand(wakeWavPath: string): string {

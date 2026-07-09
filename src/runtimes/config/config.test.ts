@@ -111,6 +111,25 @@ describe("loadConfig", () => {
       expect(config.voice?.wakeActivation).toBe("openwakeword-command");
     }
   });
+
+  it("ends desktop OpenAI command capture on trailing silence", async () => {
+    const config = await loadConfig({
+      configPath: "config/local-desktop-voice-openai.json",
+    });
+
+    expect(config.desktopVoice?.streamingAudioInput?.args?.slice(-10)).toEqual([
+      "trim",
+      "0",
+      "8",
+      "silence",
+      "1",
+      "0.1",
+      "1%",
+      "1",
+      "0.8",
+      "1%",
+    ]);
+  });
 });
 
 describe("parseAssistantConfig", () => {
