@@ -279,30 +279,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
       .mockResolvedValueOnce(new Response(Buffer.from("spoken audio")));
 
     const result = await runDesktopVoiceServiceRuntime({
-      config: {
-        ...createOpenAIStreamingServiceConfig(),
-        conversation: {
-          history: {
-            maxTurnsBeforeCompaction: 5,
-          },
-          openai: {
-            apiKeyEnv: "OPENAI_API_KEY",
-            baseUrl: "https://api.openai.test/v1",
-            model: "gpt-5.5",
-            timeoutMs: 30_000,
-          },
-          provider: "openai",
-        },
-        intent: {
-          openai: {
-            apiKeyEnv: "OPENAI_API_KEY",
-            baseUrl: "https://api.openai.test/v1",
-            model: "gpt-5.5",
-            timeoutMs: 30_000,
-          },
-          provider: "openai",
-        },
-      },
+      config: createOpenAIConversationStreamingServiceConfig(),
       env: { OPENAI_API_KEY: "test-api-key" },
       fetch,
       io: { fallbackOutput, progressOutput, stderr },
@@ -757,30 +734,7 @@ async function runCasualConversationStreamingSmoke(input: {
     .mockResolvedValueOnce(new Response(Buffer.from("spoken audio")));
 
   const result = await runDesktopVoiceServiceRuntime({
-    config: {
-      ...createOpenAIStreamingServiceConfig(),
-      conversation: {
-        history: {
-          maxTurnsBeforeCompaction: 5,
-        },
-        openai: {
-          apiKeyEnv: "OPENAI_API_KEY",
-          baseUrl: "https://api.openai.test/v1",
-          model: "gpt-5.5",
-          timeoutMs: 30_000,
-        },
-        provider: "openai",
-      },
-      intent: {
-        openai: {
-          apiKeyEnv: "OPENAI_API_KEY",
-          baseUrl: "https://api.openai.test/v1",
-          model: "gpt-5.5",
-          timeoutMs: 30_000,
-        },
-        provider: "openai",
-      },
-    },
+    config: createOpenAIConversationStreamingServiceConfig(),
     env: { OPENAI_API_KEY: "test-api-key" },
     fetch,
     io: { fallbackOutput, progressOutput, stderr },
@@ -804,6 +758,32 @@ async function runCasualConversationStreamingSmoke(input: {
     progressOutput: progressOutput.writes,
     result,
     stderr: stderr.writes,
+  };
+}
+
+function createOpenAIConversationStreamingServiceConfig(): ReturnType<
+  typeof createOpenAIStreamingServiceConfig
+> {
+  const openAIConfig = {
+    apiKeyEnv: "OPENAI_API_KEY",
+    baseUrl: "https://api.openai.test/v1",
+    model: "gpt-5.5",
+    timeoutMs: 30_000,
+  };
+
+  return {
+    ...createOpenAIStreamingServiceConfig(),
+    conversation: {
+      history: {
+        maxTurnsBeforeCompaction: 5,
+      },
+      openai: openAIConfig,
+      provider: "openai",
+    },
+    intent: {
+      openai: openAIConfig,
+      provider: "openai",
+    },
   };
 }
 

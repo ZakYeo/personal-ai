@@ -1,6 +1,6 @@
 import { createAlarmFeature } from "../alarms/alarm-feature.js";
 import { createCapabilityInfoFeature } from "./capability-info-feature.js";
-import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
+import type { AlarmStore } from "../../ports/alarm-store.js";
 import {
   createFeatureContext,
   expectCapabilityMetadata,
@@ -101,11 +101,18 @@ describe("createCapabilityInfoFeature", () => {
 });
 
 function createFeature() {
-  const alarmFeature = createAlarmFeature(createInMemoryAlarmStore());
+  const alarmFeature = createAlarmFeature(createTestAlarmStore());
   let features = [alarmFeature];
   const capabilityInfoFeature = createCapabilityInfoFeature(() => features);
 
   features = [alarmFeature, capabilityInfoFeature];
 
   return capabilityInfoFeature;
+}
+
+function createTestAlarmStore(): AlarmStore {
+  return {
+    add: (alarm) => ({ ...alarm, id: "alarm-1" }),
+    list: () => [],
+  };
 }
