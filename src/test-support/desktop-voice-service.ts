@@ -208,7 +208,7 @@ export async function runOpenAIConversationStreamingActivationSmoke(options: {
   });
 }
 
-export type InfrastructureFailureMode =
+type InfrastructureFailureMode =
   | "command-audio"
   | "command-stt"
   | "wake-audio"

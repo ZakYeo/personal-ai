@@ -8,8 +8,6 @@ export {
   CommandExecutionError,
   CommandSpawnError,
   CommandTimeoutError,
-  type RunCommandRequest,
-  type RunCommandResult,
 } from "./command-process.js";
 export {
   runCommandReadableStream,

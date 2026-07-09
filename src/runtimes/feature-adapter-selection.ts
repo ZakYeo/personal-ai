@@ -17,7 +17,6 @@ export {
   defineFeatureAdapterEntry,
   type FeatureAdapterDependencies,
   type FeatureAdapterRegistry,
-  type FeatureRegistryEntry,
 } from "./feature-adapter-registry.js";
 
 interface ConfiguredFeatureSelection {

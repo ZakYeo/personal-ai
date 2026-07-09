@@ -58,7 +58,7 @@ const nodeProcessControl: ProcessControl = {
 
 type CommandStdio = "ignore" | "pipe";
 
-export interface CommandProcessOptions {
+interface CommandProcessOptions {
   captureStdout: boolean;
   detached: boolean;
   onStdoutData?: (chunk: Buffer) => void;
@@ -72,7 +72,7 @@ export function startCommandProcess(
   return new CommandProcess(request, options);
 }
 
-export class CommandProcess {
+class CommandProcess {
   private readonly child: ReturnType<typeof spawn>;
   private readonly completion: Promise<RunCommandResult>;
   private readonly processControl: ProcessControl;

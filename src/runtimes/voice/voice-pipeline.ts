@@ -26,13 +26,13 @@ import {
 } from "./voice-timings.js";
 import type { VoiceTurnResult } from "./voice-turn-result.js";
 
-export interface VoicePipelineConfig {
+interface VoicePipelineConfig {
   initialCommandSource: "command-capture" | "wake-transcript";
   preWakeFailureMode: "fallback" | "throw";
   wakePhrases: string[];
 }
 
-export interface VoicePipelineDependencies {
+interface VoicePipelineDependencies {
   assistant: Assistant;
   audioOutput: AudioOutputPort;
   commandAudioInput: AudioInputPort;
