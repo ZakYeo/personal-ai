@@ -19,9 +19,6 @@ export function createOpenAIStreamingServiceConfig(
       wakeActivation: createDesktopVoiceCommand(
         `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
       ),
-      ...options.desktopVoice,
-    },
-    rawDesktopVoice: {
       openAIRealtimeTranscription: {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "wss://api.openai.test/v1/realtime",
@@ -36,6 +33,7 @@ export function createOpenAIStreamingServiceConfig(
         responseFormat: "pcm",
         voice: "coral",
       },
+      ...options.desktopVoice,
     },
     voice: {
       streamingAudioInput: "sox-rec-stream",

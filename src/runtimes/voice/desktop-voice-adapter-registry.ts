@@ -1,8 +1,5 @@
 import { requireDesktopVoiceCommandConfig } from "../config/desktop-voice-config.js";
-import type {
-  ParsedDesktopVoiceConfig,
-  RawDesktopVoiceConfig,
-} from "../config/desktop-voice-config.js";
+import type { ParsedDesktopVoiceConfig } from "../config/desktop-voice-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import type { VoiceTempFilePort } from "../../ports/voice.js";
 import {
@@ -29,7 +26,6 @@ export function resolveDesktopVoiceAdapterConfig(
   voice: ResolvedVoiceConfig,
   config: {
     desktopVoice?: ParsedDesktopVoiceConfig;
-    rawDesktopVoice?: RawDesktopVoiceConfig;
   },
 ): ResolvedDesktopVoiceAdapterConfig {
   requireStreamingPair(
@@ -114,7 +110,6 @@ export function resolveDesktopVoiceServiceAdapterConfig(
   voice: ResolvedVoiceConfig,
   config: {
     desktopVoice?: ParsedDesktopVoiceConfig;
-    rawDesktopVoice?: RawDesktopVoiceConfig;
   },
 ): ResolvedDesktopVoiceServiceAdapterConfig {
   return {

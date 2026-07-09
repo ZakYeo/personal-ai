@@ -1,30 +1,16 @@
 import type { AssistantPolicyConfig } from "../../ports/assistant.js";
+import type { GoogleCalendarConfig } from "../../ports/calendar.js";
+import { parseCalendarFeatureConfig } from "./calendar-feature-config.js";
 import { isRecord } from "./config-parse-utils.js";
 
 export type ParsedCommonFeatureConfig =
   AssistantPolicyConfig["features"][string] & { adapter?: string };
 
-export type ParsedFeatureConfig = ParsedCommonFeatureConfig;
-
-export type ParsedFeaturesConfig = Record<string, ParsedCommonFeatureConfig>;
-
-export type RawFeaturesConfig = Record<string, Record<string, unknown>>;
-
-export function parseRawFeaturesConfig(
-  value: Record<string, unknown>,
-): RawFeaturesConfig {
-  const features: RawFeaturesConfig = {};
-
-  for (const [featureId, featureConfig] of Object.entries(value)) {
-    if (!isRecord(featureConfig)) {
-      throw new Error(`Config feature "${featureId}" must be a JSON object.`);
-    }
-
-    features[featureId] = featureConfig;
-  }
-
-  return features;
+export interface ParsedFeatureConfig extends ParsedCommonFeatureConfig {
+  google?: GoogleCalendarConfig;
 }
+
+export type ParsedFeaturesConfig = Record<string, ParsedFeatureConfig>;
 
 export function parseFeaturesConfig(
   value: Record<string, unknown>,
@@ -46,6 +32,7 @@ export function parseFeaturesConfig(
       enabled: featureConfig.enabled,
       ...parseFeatureAdapter(featureId, featureConfig),
       ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
+      ...parseSelectedFeatureAdapterConfig(featureId, featureConfig),
     };
 
     features[featureId] = parsed;
@@ -97,4 +84,15 @@ function parseConfirmationRequiredCapabilities(
   return {
     confirmationRequiredCapabilities: value,
   };
+}
+
+function parseSelectedFeatureAdapterConfig(
+  featureId: string,
+  featureConfig: Record<string, unknown>,
+): Partial<ParsedFeatureConfig> {
+  if (featureId !== "calendar" || featureConfig.adapter !== "google") {
+    return {};
+  }
+
+  return parseCalendarFeatureConfig(featureConfig);
 }

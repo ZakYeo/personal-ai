@@ -3,10 +3,7 @@ import { fileURLToPath } from "node:url";
 import { isRecord } from "./config-parse-utils.js";
 import { parseDesktopVoiceConfig } from "./desktop-voice-config.js";
 import { parseConversationConfig } from "./conversation-config.js";
-import {
-  parseFeaturesConfig,
-  parseRawFeaturesConfig,
-} from "./feature-config.js";
+import { parseFeaturesConfig } from "./feature-config.js";
 import { parseIntentConfig } from "./intent-config.js";
 import type { LoadedRuntimeConfig } from "./runtime-config.js";
 import { parseVoiceConfig } from "./voice-config.js";
@@ -76,8 +73,5 @@ export function parseAssistantConfig(value: unknown): LoadedRuntimeConfig {
     ...parseVoiceConfig(value.voice),
     intent: parseIntentConfig(intent),
     features: parseFeaturesConfig(features),
-    ...(Object.keys(features).length > 0
-      ? { rawFeatures: parseRawFeaturesConfig(features) }
-      : {}),
   };
 }

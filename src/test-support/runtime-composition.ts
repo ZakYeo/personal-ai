@@ -86,13 +86,6 @@ export function createRuntimeConfigWithGoogleCalendarAdapter(): LoadedRuntimeCon
       calendar: {
         enabled: true,
         adapter: "google",
-      },
-    },
-    rawFeatures: {
-      ...enabledDeterministicConfig.rawFeatures,
-      calendar: {
-        enabled: true,
-        adapter: "google",
         google: {
           accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
           baseUrl: "https://calendar.example.test/v3",

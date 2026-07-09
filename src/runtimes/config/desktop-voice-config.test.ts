@@ -49,6 +49,20 @@ describe("desktop voice config parsing", () => {
             streamingAudioOutput: desktopVoice.streamingAudioOutput,
             speechToText: desktopVoice.speechToText,
             textToSpeech: desktopVoice.textToSpeech,
+            openAIRealtimeTranscription: {
+              apiKeyEnv: "OPENAI_API_KEY",
+              baseUrl: "wss://api.openai.com/v1/realtime",
+              model: "gpt-realtime-whisper",
+              timeoutMs: 30_000,
+            },
+            openAIStreamingSpeech: {
+              apiKeyEnv: "OPENAI_API_KEY",
+              baseUrl: "https://api.openai.com/v1",
+              instructions: "Speak clearly and concisely.",
+              model: "gpt-4o-mini-tts",
+              responseFormat: "pcm",
+              voice: "coral",
+            },
           },
         }),
         conversation: {
@@ -57,7 +71,6 @@ describe("desktop voice config parsing", () => {
           },
           provider: "disabled",
         },
-        rawDesktopVoice: desktopVoice,
       },
     );
   });
@@ -183,34 +196,30 @@ describe("desktop voice config resolvers", () => {
     ).toThrow('Config voice.wakeActivation "unknown" is not registered.');
   });
 
-  it("rejects invalid selected OpenAI realtime transcription timeout at the adapter resolver boundary", () => {
-    const config = createDesktopStreamingRuntimeConfig({
-      desktopVoice: {
-        openAIRealtimeTranscription: {
-          model: "gpt-realtime-whisper",
-          timeoutMs: 0,
-        },
-      },
-    });
-
+  it("rejects invalid selected OpenAI realtime transcription timeout at the config boundary", () => {
     expect(() =>
-      resolveDesktopVoiceAdapterConfig(requireVoiceConfig(config), config),
+      createDesktopStreamingRuntimeConfig({
+        desktopVoice: {
+          openAIRealtimeTranscription: {
+            model: "gpt-realtime-whisper",
+            timeoutMs: 0,
+          },
+        },
+      }),
     ).toThrow(
       "Config desktopVoice.openAIRealtimeTranscription.timeoutMs must be a positive integer.",
     );
   });
 
-  it("rejects non-realtime selected models for OpenAI realtime transcription at the adapter resolver boundary", () => {
-    const config = createDesktopStreamingRuntimeConfig({
-      desktopVoice: {
-        openAIRealtimeTranscription: {
-          model: "gpt-4o-transcribe",
-        },
-      },
-    });
-
+  it("rejects non-realtime selected models for OpenAI realtime transcription at the config boundary", () => {
     expect(() =>
-      resolveDesktopVoiceAdapterConfig(requireVoiceConfig(config), config),
+      createDesktopStreamingRuntimeConfig({
+        desktopVoice: {
+          openAIRealtimeTranscription: {
+            model: "gpt-4o-transcribe",
+          },
+        },
+      }),
     ).toThrow(
       "Config desktopVoice.openAIRealtimeTranscription.model must be gpt-realtime-whisper.",
     );

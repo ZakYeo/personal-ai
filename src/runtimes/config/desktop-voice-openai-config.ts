@@ -3,21 +3,16 @@ import {
   parseOptionalNonEmptyString,
   parseOptionalPositiveInteger,
 } from "./config-parse-utils.js";
-import type { RawDesktopVoiceConfig } from "./desktop-voice-config.js";
 import type {
   OpenAIRealtimeTranscriptionConfig,
   OpenAIStreamingSpeechConfig,
 } from "./desktop-voice-openai-types.js";
 
-export function requireDesktopOpenAIRealtimeTranscriptionConfig(config: {
-  rawDesktopVoice?: RawDesktopVoiceConfig;
-}): OpenAIRealtimeTranscriptionConfig {
-  const value = config.rawDesktopVoice?.openAIRealtimeTranscription;
-
+export function parseDesktopOpenAIRealtimeTranscriptionConfig(value: unknown): {
+  openAIRealtimeTranscription?: OpenAIRealtimeTranscriptionConfig;
+} {
   if (value === undefined) {
-    throw new Error(
-      "Config desktopVoice.openAIRealtimeTranscription must be configured.",
-    );
+    return {};
   }
 
   if (!isRecord(value)) {
@@ -27,34 +22,48 @@ export function requireDesktopOpenAIRealtimeTranscriptionConfig(config: {
   }
 
   return {
-    apiKeyEnv: parseOptionalNonEmptyString(
-      value.apiKeyEnv,
-      "Config desktopVoice.openAIRealtimeTranscription.apiKeyEnv must be a non-empty string.",
-      "OPENAI_API_KEY",
-    ),
-    baseUrl: parseOptionalNonEmptyString(
-      value.baseUrl,
-      "Config desktopVoice.openAIRealtimeTranscription.baseUrl must be a non-empty string.",
-      "wss://api.openai.com/v1/realtime",
-    ),
-    model: parseOpenAIRealtimeTranscriptionModel(value.model),
-    timeoutMs: parseOptionalPositiveInteger(
-      value.timeoutMs,
-      "Config desktopVoice.openAIRealtimeTranscription.timeoutMs must be a positive integer.",
-      30_000,
-    ),
+    openAIRealtimeTranscription: {
+      apiKeyEnv: parseOptionalNonEmptyString(
+        value.apiKeyEnv,
+        "Config desktopVoice.openAIRealtimeTranscription.apiKeyEnv must be a non-empty string.",
+        "OPENAI_API_KEY",
+      ),
+      baseUrl: parseOptionalNonEmptyString(
+        value.baseUrl,
+        "Config desktopVoice.openAIRealtimeTranscription.baseUrl must be a non-empty string.",
+        "wss://api.openai.com/v1/realtime",
+      ),
+      model: parseOpenAIRealtimeTranscriptionModel(value.model),
+      timeoutMs: parseOptionalPositiveInteger(
+        value.timeoutMs,
+        "Config desktopVoice.openAIRealtimeTranscription.timeoutMs must be a positive integer.",
+        30_000,
+      ),
+    },
   };
 }
 
-export function requireDesktopOpenAIStreamingSpeechConfig(config: {
-  rawDesktopVoice?: RawDesktopVoiceConfig;
-}): OpenAIStreamingSpeechConfig {
-  const value = config.rawDesktopVoice?.openAIStreamingSpeech;
+export function requireDesktopOpenAIRealtimeTranscriptionConfig(config: {
+  desktopVoice?: {
+    openAIRealtimeTranscription?: OpenAIRealtimeTranscriptionConfig;
+  };
+}): OpenAIRealtimeTranscriptionConfig {
+  const value = config.desktopVoice?.openAIRealtimeTranscription;
 
   if (value === undefined) {
     throw new Error(
-      "Config desktopVoice.openAIStreamingSpeech must be configured.",
+      "Config desktopVoice.openAIRealtimeTranscription must be configured.",
     );
+  }
+
+  return value;
+}
+
+export function parseDesktopOpenAIStreamingSpeechConfig(value: unknown): {
+  openAIStreamingSpeech?: OpenAIStreamingSpeechConfig;
+} {
+  if (value === undefined) {
+    return {};
   }
 
   if (!isRecord(value)) {
@@ -64,35 +73,51 @@ export function requireDesktopOpenAIStreamingSpeechConfig(config: {
   }
 
   return {
-    apiKeyEnv: parseOptionalNonEmptyString(
-      value.apiKeyEnv,
-      "Config desktopVoice.openAIStreamingSpeech.apiKeyEnv must be a non-empty string.",
-      "OPENAI_API_KEY",
-    ),
-    baseUrl: parseOptionalNonEmptyString(
-      value.baseUrl,
-      "Config desktopVoice.openAIStreamingSpeech.baseUrl must be a non-empty string.",
-      "https://api.openai.com/v1",
-    ),
-    instructions: parseOptionalNonEmptyString(
-      value.instructions,
-      "Config desktopVoice.openAIStreamingSpeech.instructions must be a non-empty string.",
-      "Speak clearly and concisely.",
-    ),
-    model: parseRequiredString(
-      value.model,
-      "desktopVoice.openAIStreamingSpeech.model",
-    ),
-    responseFormat: parseOptionalNonEmptyString(
-      value.responseFormat,
-      "Config desktopVoice.openAIStreamingSpeech.responseFormat must be a non-empty string.",
-      "pcm",
-    ),
-    voice: parseRequiredString(
-      value.voice,
-      "desktopVoice.openAIStreamingSpeech.voice",
-    ),
+    openAIStreamingSpeech: {
+      apiKeyEnv: parseOptionalNonEmptyString(
+        value.apiKeyEnv,
+        "Config desktopVoice.openAIStreamingSpeech.apiKeyEnv must be a non-empty string.",
+        "OPENAI_API_KEY",
+      ),
+      baseUrl: parseOptionalNonEmptyString(
+        value.baseUrl,
+        "Config desktopVoice.openAIStreamingSpeech.baseUrl must be a non-empty string.",
+        "https://api.openai.com/v1",
+      ),
+      instructions: parseOptionalNonEmptyString(
+        value.instructions,
+        "Config desktopVoice.openAIStreamingSpeech.instructions must be a non-empty string.",
+        "Speak clearly and concisely.",
+      ),
+      model: parseRequiredString(
+        value.model,
+        "desktopVoice.openAIStreamingSpeech.model",
+      ),
+      responseFormat: parseOptionalNonEmptyString(
+        value.responseFormat,
+        "Config desktopVoice.openAIStreamingSpeech.responseFormat must be a non-empty string.",
+        "pcm",
+      ),
+      voice: parseRequiredString(
+        value.voice,
+        "desktopVoice.openAIStreamingSpeech.voice",
+      ),
+    },
   };
+}
+
+export function requireDesktopOpenAIStreamingSpeechConfig(config: {
+  desktopVoice?: { openAIStreamingSpeech?: OpenAIStreamingSpeechConfig };
+}): OpenAIStreamingSpeechConfig {
+  const value = config.desktopVoice?.openAIStreamingSpeech;
+
+  if (value === undefined) {
+    throw new Error(
+      "Config desktopVoice.openAIStreamingSpeech must be configured.",
+    );
+  }
+
+  return value;
 }
 
 function parseOpenAIRealtimeTranscriptionModel(value: unknown): string {

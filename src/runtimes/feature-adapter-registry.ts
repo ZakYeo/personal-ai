@@ -13,16 +13,12 @@ interface FeatureAdapterContext<TAdapterConfig> {
 
 interface FeatureAdapterDefinition<TAdapterConfig> {
   create(context: FeatureAdapterContext<TAdapterConfig>): FeaturePlugin;
-  resolveConfig(context: {
-    featureConfig: ParsedFeatureConfig;
-    rawFeatureConfig: Record<string, unknown>;
-  }): TAdapterConfig;
+  resolveConfig(featureConfig: ParsedFeatureConfig): TAdapterConfig;
 }
 
 export interface FeatureAdapterEntry {
   create(
     featureConfig: ParsedFeatureConfig,
-    rawFeatureConfig: Record<string, unknown>,
     dependencies: FeatureAdapterDependencies,
   ): FeaturePlugin;
 }
@@ -37,12 +33,9 @@ export function defineFeatureAdapterEntry<TAdapterConfig>(
   entry: FeatureAdapterDefinition<TAdapterConfig>,
 ): FeatureAdapterEntry {
   return {
-    create: (featureConfig, rawFeatureConfig, dependencies) => {
+    create: (featureConfig, dependencies) => {
       return entry.create({
-        adapterConfig: entry.resolveConfig({
-          featureConfig,
-          rawFeatureConfig,
-        }),
+        adapterConfig: entry.resolveConfig(featureConfig),
         dependencies,
       });
     },

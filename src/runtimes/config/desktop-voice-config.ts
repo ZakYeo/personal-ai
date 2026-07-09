@@ -1,9 +1,19 @@
 import type { VoiceCommandConfig } from "../../ports/assistant.js";
 import { isRecord } from "./config-parse-utils.js";
+import {
+  parseDesktopOpenAIRealtimeTranscriptionConfig,
+  parseDesktopOpenAIStreamingSpeechConfig,
+} from "./desktop-voice-openai-config.js";
+import type {
+  OpenAIRealtimeTranscriptionConfig,
+  OpenAIStreamingSpeechConfig,
+} from "./desktop-voice-openai-types.js";
 
 export interface ParsedDesktopVoiceConfig {
   audioInput?: VoiceCommandConfig;
   audioOutput?: VoiceCommandConfig;
+  openAIRealtimeTranscription?: OpenAIRealtimeTranscriptionConfig;
+  openAIStreamingSpeech?: OpenAIStreamingSpeechConfig;
   speechToText?: VoiceCommandConfig;
   streamingAudioInput?: VoiceCommandConfig;
   streamingAudioOutput?: VoiceCommandConfig;
@@ -11,8 +21,6 @@ export interface ParsedDesktopVoiceConfig {
   wakeActivation?: VoiceCommandConfig;
   wakeAudioInput?: VoiceCommandConfig;
 }
-
-export type RawDesktopVoiceConfig = Record<string, unknown>;
 
 interface ResolvedDesktopVoiceConfig {
   audioInput: VoiceCommandConfig;
@@ -37,7 +45,6 @@ type ParsedDesktopVoiceCommandKey =
 
 export function parseDesktopVoiceConfig(value: unknown): {
   desktopVoice?: ParsedDesktopVoiceConfig;
-  rawDesktopVoice?: RawDesktopVoiceConfig;
 } {
   if (value === undefined) {
     return {};
@@ -57,8 +64,11 @@ export function parseDesktopVoiceConfig(value: unknown): {
       ...parseVoiceCommand("textToSpeech", value.textToSpeech),
       ...parseVoiceCommand("wakeActivation", value.wakeActivation),
       ...parseVoiceCommand("wakeAudioInput", value.wakeAudioInput),
+      ...parseDesktopOpenAIRealtimeTranscriptionConfig(
+        value.openAIRealtimeTranscription,
+      ),
+      ...parseDesktopOpenAIStreamingSpeechConfig(value.openAIStreamingSpeech),
     },
-    rawDesktopVoice: value,
   };
 }
 

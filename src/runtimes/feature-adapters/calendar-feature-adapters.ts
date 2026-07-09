@@ -2,7 +2,7 @@ import { createGoogleCalendarAdapter } from "../../adapters/google-calendar/goog
 import { createMockCalendar } from "../../adapters/mock/mock-calendar.js";
 import { createCalendarFeature } from "../../features/calendar/calendar-feature.js";
 import type { GoogleCalendarConfig } from "../../ports/calendar.js";
-import { parseCalendarFeatureConfig } from "../config/calendar-feature-config.js";
+import type { ParsedFeatureConfig } from "../config/feature-config.js";
 import {
   defineFeatureAdapterEntry,
   type FeatureRegistryEntry,
@@ -11,7 +11,7 @@ import {
 export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
   return {
     adapters: {
-      google: defineFeatureAdapterEntry({
+      google: defineFeatureAdapterEntry<CalendarGoogleAdapterConfig>({
         create: (context) => {
           return createCalendarFeature(
             createGoogleCalendarAdapter({
@@ -21,7 +21,8 @@ export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
             }),
           );
         },
-        resolveConfig: requireCalendarGoogleAdapterConfig,
+        resolveConfig: (featureConfig): CalendarGoogleAdapterConfig =>
+          requireCalendarGoogleAdapterConfig({ featureConfig }),
       }),
       mock: defineFeatureAdapterEntry({
         create: () => createCalendarFeature(createMockCalendar()),
@@ -36,9 +37,9 @@ interface CalendarGoogleAdapterConfig {
 }
 
 function requireCalendarGoogleAdapterConfig(context: {
-  rawFeatureConfig: Record<string, unknown>;
+  featureConfig: ParsedFeatureConfig;
 }): CalendarGoogleAdapterConfig {
-  const featureConfig = parseCalendarFeatureConfig(context.rawFeatureConfig);
+  const featureConfig = context.featureConfig;
 
   if (!featureConfig.google) {
     throw new Error('Config feature "calendar".google must be configured.');

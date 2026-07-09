@@ -68,7 +68,6 @@ function createAdapterBackedFeatures(
         selectConfiguredFeatureAdapter(
           featureId,
           featureConfig,
-          config.rawFeatures?.[featureId] ?? {},
           registry,
           options.dependencies,
         ),
@@ -79,7 +78,6 @@ function createAdapterBackedFeatures(
 function selectConfiguredFeatureAdapter(
   featureId: string,
   featureConfig: ParsedFeatureConfig,
-  rawFeatureConfig: Record<string, unknown>,
   registry: FeatureAdapterRegistry,
   dependencies: FeatureAdapterDependencies,
 ): FeaturePlugin {
@@ -97,5 +95,5 @@ function selectConfiguredFeatureAdapter(
       `Config feature "${featureId}" adapter "${adapterId}" is not registered.`,
   });
 
-  return adapter.create(featureConfig, rawFeatureConfig, dependencies);
+  return adapter.create(featureConfig, dependencies);
 }

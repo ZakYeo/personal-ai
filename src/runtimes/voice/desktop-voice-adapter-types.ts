@@ -13,10 +13,7 @@ import type {
   WakeActivationPort,
   WakeWordPort,
 } from "../../ports/voice.js";
-import type {
-  ParsedDesktopVoiceConfig,
-  RawDesktopVoiceConfig,
-} from "../config/desktop-voice-config.js";
+import type { ParsedDesktopVoiceConfig } from "../config/desktop-voice-config.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
 
@@ -80,10 +77,7 @@ export interface DesktopVoiceAdapterContext {
 
 export interface DesktopVoiceAdapterEntry<TConfig, TAdapter> {
   create(config: TConfig, context: DesktopVoiceAdapterContext): TAdapter;
-  resolveConfig(config: {
-    desktopVoice?: ParsedDesktopVoiceConfig;
-    rawDesktopVoice?: RawDesktopVoiceConfig;
-  }): TConfig;
+  resolveConfig(config: { desktopVoice?: ParsedDesktopVoiceConfig }): TConfig;
 }
 
 export interface DesktopVoiceSlotDescriptor<TConfig, TAdapter> {

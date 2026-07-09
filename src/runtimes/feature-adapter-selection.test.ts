@@ -203,8 +203,7 @@ describe("createConfiguredFeatures", () => {
         calendar: {
           adapters: {
             google: defineFeatureAdapterEntry({
-              resolveConfig: ({ rawFeatureConfig }) =>
-                requireTestGoogleConfig(rawFeatureConfig),
+              resolveConfig: requireTestGoogleConfig,
               create: (context) => {
                 return factory(context.adapterConfig);
               },
@@ -278,16 +277,11 @@ interface TestGoogleConfig {
 }
 
 function requireTestGoogleConfig(
-  rawFeatureConfig: Record<string, unknown>,
+  featureConfig: LoadedRuntimeConfig["features"][string],
 ): TestGoogleConfig {
-  const google = rawFeatureConfig.google;
+  const google = featureConfig.google;
 
-  if (
-    typeof google !== "object" ||
-    google === null ||
-    !("accessTokenEnv" in google) ||
-    typeof google.accessTokenEnv !== "string"
-  ) {
+  if (!google) {
     throw new Error('Config feature "calendar".google must be configured.');
   }
 

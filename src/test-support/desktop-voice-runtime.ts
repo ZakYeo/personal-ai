@@ -35,7 +35,6 @@ export function createDesktopVoiceConfig(
         "{output}",
       ),
     },
-    rawDesktopVoice: {},
     voice: {
       audioOutput: "sox-play",
       input: "sox-rec",
@@ -51,11 +50,6 @@ export function createDesktopVoiceConfig(
     assistant: overrides.assistant ?? baseConfig.assistant,
     desktopVoice: {
       ...baseConfig.desktopVoice,
-      ...overrides.desktopVoice,
-    },
-    rawDesktopVoice: {
-      ...baseConfig.rawDesktopVoice,
-      ...overrides.rawDesktopVoice,
       ...overrides.desktopVoice,
     },
     features: overrides.features ?? baseConfig.features,
