@@ -136,12 +136,14 @@ For the OpenAI realtime transcription adapter, runtime composition configures a
 transcription session before sending audio, uses `gpt-realtime-whisper`, sends
 the provider API key through an authenticated websocket client, and captures raw
 mono PCM command audio at 24 kHz so the adapter and command config agree on the
-provider audio format. Command-backed streaming input starts when the adapter
-begins consuming chunks, not when the stream object is created, so short
-file-fed inputs and command processes cannot finish before the realtime socket
-is ready to read them. Runtime cleanup terminates owned streaming input
-processes best-effort when realtime setup, transcription, or provider events
-fail.
+provider audio format. The adapter keeps request construction, provider event
+parsing, socket/session settlement, and audio streaming in focused modules so
+transport and provider-output parsing do not accumulate in one class.
+Command-backed streaming input starts when the adapter begins consuming chunks,
+not when the stream object is created, so short file-fed inputs and command
+processes cannot finish before the realtime socket is ready to read them.
+Runtime cleanup terminates owned streaming input processes best-effort when
+realtime setup, transcription, or provider events fail.
 The default desktop OpenAI command capture keeps an eight-second maximum trim
 guard but also uses SoX trailing-silence detection after wake activation. That
 keeps the service from waiting for the full capture window after the user has
@@ -498,6 +500,9 @@ By default, this validates required local artifacts and prints the QEMU command
 without spawning a VM. Passing `--run` starts QEMU with the printed arguments.
 The command does not download Raspberry Pi OS images, kernels, or DTBs, does not
 provision `systemd`, and is not part of the deterministic `npm run check` gate.
+The executable wrapper owns process argv/env, exit code, filesystem lookup, and
+spawn wiring; parse, preflight, command construction, and run behavior live in
+injectable helpers.
 After the guest boots, run `npm run cli -- pi-service --config
 path/to/pi-config.json` inside the guest or an equivalent deployed checkout.
 

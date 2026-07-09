@@ -3,8 +3,9 @@ import type { GoogleCalendarConfig } from "../../ports/calendar.js";
 import { parseCalendarFeatureConfig } from "./calendar-feature-config.js";
 import { isRecord } from "./config-parse-utils.js";
 
-export type ParsedCommonFeatureConfig =
-  AssistantPolicyConfig["features"][string] & { adapter?: string };
+type ParsedCommonFeatureConfig = AssistantPolicyConfig["features"][string] & {
+  adapter?: string;
+};
 
 export interface ParsedFeatureConfig extends ParsedCommonFeatureConfig {
   google?: GoogleCalendarConfig;

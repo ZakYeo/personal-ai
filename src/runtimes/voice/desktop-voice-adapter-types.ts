@@ -39,12 +39,12 @@ export interface DesktopVoiceServiceAdapters extends DesktopVoiceAdapters {
   wakeAudioInput: AudioInputPort;
 }
 
-export interface ResolvedDesktopRealtimeTranscriptionProviderConfig {
+interface ResolvedDesktopRealtimeTranscriptionProviderConfig {
   adapterId: "openai-realtime";
   config: OpenAIRealtimeTranscriptionConfig;
 }
 
-export interface ResolvedDesktopStreamingSpeechProviderConfig {
+interface ResolvedDesktopStreamingSpeechProviderConfig {
   adapterId: "openai-streaming";
   config: OpenAIStreamingSpeechConfig;
 }

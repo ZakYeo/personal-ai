@@ -1,4 +1,4 @@
-export interface PiQemuSmokeOptions {
+interface PiQemuSmokeOptions {
   configPath: string;
   cpus: number;
   dtbPath: string;
@@ -10,7 +10,7 @@ export interface PiQemuSmokeOptions {
   sshPort: number;
 }
 
-export interface PiQemuSmokeIo {
+interface PiQemuSmokeIo {
   stderr: Pick<NodeJS.WriteStream, "write">;
   stdout: Pick<NodeJS.WriteStream, "write">;
 }
@@ -61,7 +61,7 @@ export async function runPiQemuSmokeCore(
   }
 }
 
-export function parsePiQemuSmokeArgs(args: string[]): PiQemuSmokeOptions {
+function parsePiQemuSmokeArgs(args: string[]): PiQemuSmokeOptions {
   const parsed: Partial<PiQemuSmokeOptions> = { ...defaultOptions };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -147,7 +147,7 @@ export function parsePiQemuSmokeArgs(args: string[]): PiQemuSmokeOptions {
   return parsed as PiQemuSmokeOptions;
 }
 
-export function preflightPiQemuSmoke(
+function preflightPiQemuSmoke(
   options: PiQemuSmokeOptions,
   dependencies: Pick<PiQemuSmokeDependencies, "commandExists" | "fileExists">,
 ): void {
@@ -167,7 +167,7 @@ export function preflightPiQemuSmoke(
   }
 }
 
-export function buildPiQemuArgs(options: PiQemuSmokeOptions): string[] {
+function buildPiQemuArgs(options: PiQemuSmokeOptions): string[] {
   return [
     "-machine",
     "raspi3b",
@@ -192,7 +192,7 @@ export function buildPiQemuArgs(options: PiQemuSmokeOptions): string[] {
   ];
 }
 
-export function formatCommand(command: string, args: string[]): string {
+function formatCommand(command: string, args: string[]): string {
   return [command, ...args].map(quoteShellArg).join(" ");
 }
 

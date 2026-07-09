@@ -147,7 +147,9 @@ The selected adapter's resolved config should be typed at the same boundary as
 the selected adapter factory. Do not pass `unknown` adapter config through a
 generic feature context and recover the real shape with casts inside factories.
 If adapter config differs by adapter ID, model that relationship in a resolved
-discriminated type or in the registry entry itself.
+discriminated type or in the registry entry itself. Loaded runtime config should
+not retain raw adapter config bags for later hidden reparsing; selected adapter
+sections should become typed config before adapter construction.
 
 The same rule applies to safety policy, fallback policy, and config resolution:
 centralize the policy where drift would create inconsistent user-facing or
@@ -169,10 +171,12 @@ requires those values; make the runtime boundary prove the invariant once.
 
 Raw config parsing and runtime-specific config resolution should have separate
 ownership. Parsing should validate external JSON shape and primitive field
-types from `unknown`. Resolvers should own runtime-required invariants such as
-selected provider options, required adapter IDs, command settings, and missing
-or unknown selection errors. Avoid proving the same invariant in both the parser
-and a resolver unless the duplicate check is deliberately tested and documented.
+types from `unknown` and produce typed selected adapter/provider sub-config
+instead of retaining raw JSON bags. Resolvers should own runtime-required
+invariants such as required adapter IDs, command settings, and missing or
+unknown selection errors. Avoid proving the same invariant in both the parser
+and a resolver unless the duplicate check is deliberately tested and
+documented.
 
 ## Implementation Conventions
 
@@ -272,8 +276,10 @@ should also guard against subtler boundary and abstraction drift.
   drift.
 - Deterministic interpreters and fixtures should not grow into a central list of
   feature-specific branches. When matching rules grow, prefer data-backed
-  deterministic rules or feature-local fixtures that keep routing tied to
-  declared capability metadata.
+  deterministic rules or feature-local fixtures keyed by capability name.
+  Deterministic matcher functions should stay separate from provider-facing
+  capability metadata so provider catalogs expose only stable capability
+  descriptions, parameters, and risk.
 - Cleanup and best-effort resource release should not silently change runtime
   control-flow semantics. When shared runtimes treat cleanup failure as logged
   diagnostics, environment-specific runtimes should use the same policy unless

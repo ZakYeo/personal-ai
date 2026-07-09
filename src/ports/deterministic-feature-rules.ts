@@ -10,7 +10,7 @@ export interface DeterministicFeatureRule {
   match: DeterministicCapabilityRule;
 }
 
-export interface FeaturePluginWithDeterministicRules extends FeaturePlugin {
+interface FeaturePluginWithDeterministicRules extends FeaturePlugin {
   deterministicIntentRules: DeterministicFeatureRule[];
 }
 

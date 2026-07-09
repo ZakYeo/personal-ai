@@ -18,11 +18,9 @@ import {
 } from "./openai-realtime-transcription-session.js";
 import { resolveOpenAIApiKey } from "./openai-voice-client.js";
 
-export type { OpenAIRealtimeTranscriptionConfig } from "./openai-realtime-transcription-request.js";
 export type {
   RealtimeSocket,
   RealtimeSocketFactory,
-  RealtimeSocketFactoryRequest,
 } from "./openai-realtime-transcription-session.js";
 
 interface OpenAIRealtimeTranscriptionOptions {

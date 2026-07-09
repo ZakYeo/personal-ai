@@ -488,7 +488,8 @@ Ongoing hardening themes to keep checking during future provider work:
   composition shapes where that removes optionality or prevents provider/runtime
   settings from leaking through core contracts.
 - Keep raw config parsing separate from runtime-specific resolution so selected
-  provider, adapter, and command invariants are proved by one canonical owner.
+  provider, adapter, and command invariants are proved by one canonical owner;
+  do not carry raw adapter config bags past the config boundary.
 - Keep selected adapter config typed with the selected adapter factory rather
   than passing untyped config bags through generic contexts and casting later.
 - Promote diagnostic-aware assistant outcomes to a stable public contract for
@@ -501,6 +502,8 @@ Ongoing hardening themes to keep checking during future provider work:
 - Decompose real provider adapters when they begin combining transport,
   request-body construction, provider response extraction, provider-output
   parsing, and application validation in one module.
+- Keep deterministic intent matching feature-local and capability-name keyed,
+  but outside provider-facing capability metadata.
 - Factor repeated voice runtime composition and shared wake phrase matching
   before adding another voice runtime or wake word adapter.
 - Ensure nested runtime factories forward injected environment, network, clock,
@@ -608,6 +611,8 @@ Included:
   kernel, DTB, and QEMU binary inputs.
 - Stable dry-run output by default, with `--run` required before spawning QEMU.
 - Operator overrides for QEMU binary path, SSH host port, memory, and CPU count.
+- A small executable wrapper around injectable parse, preflight, command-build,
+  and run helpers.
 - Documentation for required local artifacts, example usage, and limitations.
 
 Excluded:
