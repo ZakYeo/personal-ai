@@ -1,6 +1,6 @@
 import WebSocket, { type RawData } from "ws";
 
-import type { RealtimeSocketFactory } from "./openai-realtime-transcription.js";
+import type { RealtimeSocketFactory } from "./openai-realtime-transcription-session.js";
 
 export const createOpenAIRealtimeWebSocketFactory: RealtimeSocketFactory = ({
   apiKey,

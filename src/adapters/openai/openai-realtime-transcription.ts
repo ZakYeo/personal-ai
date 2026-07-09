@@ -4,30 +4,26 @@ import type {
   StreamingSpeechToTextEvents,
   StreamingSpeechToTextPort,
 } from "../../ports/voice.js";
+import { streamAudioToSocket } from "./openai-realtime-transcription-audio.js";
+import {
+  createAudioCommitMessage,
+  createRealtimeTranscriptionUrl,
+  createTranscriptionSessionUpdateMessage,
+  type OpenAIRealtimeTranscriptionConfig,
+} from "./openai-realtime-transcription-request.js";
+import {
+  type RealtimeSocketFactory,
+  waitForSocketOpen,
+  waitForTranscript,
+} from "./openai-realtime-transcription-session.js";
 import { resolveOpenAIApiKey } from "./openai-voice-client.js";
-import { createOpenAIVoiceProviderError } from "./openai-voice-provider-error.js";
 
-interface OpenAIRealtimeTranscriptionConfig {
-  apiKeyEnv: string;
-  baseUrl: string;
-  model: string;
-  timeoutMs: number;
-}
-
-export interface RealtimeSocket {
-  addEventListener(type: string, listener: (event?: unknown) => void): void;
-  close(): void;
-  send(message: string): void;
-}
-
-export interface RealtimeSocketFactoryRequest {
-  apiKey: string;
-  url: string;
-}
-
-export type RealtimeSocketFactory = (
-  request: RealtimeSocketFactoryRequest,
-) => RealtimeSocket;
+export type { OpenAIRealtimeTranscriptionConfig } from "./openai-realtime-transcription-request.js";
+export type {
+  RealtimeSocket,
+  RealtimeSocketFactory,
+  RealtimeSocketFactoryRequest,
+} from "./openai-realtime-transcription-session.js";
 
 interface OpenAIRealtimeTranscriptionOptions {
   config: OpenAIRealtimeTranscriptionConfig;
@@ -51,7 +47,7 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
 
     try {
       await waitForSocketOpen(socket, this.options.config.timeoutMs);
-      configureTranscriptionSession(socket, this.options.config);
+      socket.send(createTranscriptionSessionUpdateMessage(this.options.config));
 
       const transcriptPromise = waitForTranscript(
         socket,
@@ -61,7 +57,7 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
 
       await streamAudioToSocket(socket, audio.chunks, transcriptPromise);
 
-      socket.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
+      socket.send(createAudioCommitMessage());
 
       const transcript = await transcriptPromise;
 
@@ -70,272 +66,4 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
       socket.close();
     }
   }
-}
-
-async function streamAudioToSocket(
-  socket: RealtimeSocket,
-  chunks: AsyncIterable<Uint8Array>,
-  transcriptPromise: Promise<SpeechTranscript>,
-): Promise<void> {
-  const iterator = chunks[Symbol.asyncIterator]();
-
-  try {
-    while (true) {
-      const next = await nextAudioChunkOrTranscriptFailure(
-        iterator,
-        transcriptPromise,
-      );
-
-      if (next.done) {
-        return;
-      }
-
-      socket.send(
-        JSON.stringify({
-          audio: Buffer.from(next.value).toString("base64"),
-          type: "input_audio_buffer.append",
-        }),
-      );
-    }
-  } catch (error) {
-    await iterator.return?.();
-    throw error;
-  }
-}
-
-async function nextAudioChunkOrTranscriptFailure(
-  iterator: AsyncIterator<Uint8Array>,
-  transcriptPromise: Promise<SpeechTranscript>,
-): Promise<IteratorResult<Uint8Array>> {
-  const next = await Promise.race([
-    iterator.next().then(
-      (result) => ({ result, type: "chunk" }) as const,
-      (error: unknown) => ({ error, type: "failure" }) as const,
-    ),
-    transcriptPromise.then(
-      () => ({ type: "transcript" }) as const,
-      (error: unknown) => ({ error, type: "failure" }) as const,
-    ),
-  ]);
-
-  if (next.type === "failure") {
-    throw toError(next.error);
-  }
-
-  if (next.type === "transcript") {
-    throw new Error(
-      "Realtime transcription completed before audio stream finished.",
-    );
-  }
-
-  return next.result;
-}
-
-function configureTranscriptionSession(
-  socket: RealtimeSocket,
-  config: OpenAIRealtimeTranscriptionConfig,
-): void {
-  socket.send(
-    JSON.stringify({
-      session: {
-        audio: {
-          input: {
-            format: {
-              rate: 24000,
-              type: "audio/pcm",
-            },
-            transcription: {
-              model: config.model,
-            },
-            turn_detection: null,
-          },
-        },
-        type: "transcription",
-      },
-      type: "session.update",
-    }),
-  );
-}
-
-function createRealtimeTranscriptionUrl(
-  config: OpenAIRealtimeTranscriptionConfig,
-): string {
-  const url = new URL(config.baseUrl);
-  url.searchParams.set("intent", "transcription");
-
-  return url.toString();
-}
-
-function waitForSocketOpen(
-  socket: RealtimeSocket,
-  timeoutMs: number,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const settle = createRealtimeSettlement({
-      reject,
-      resolve,
-      timeoutMs,
-    });
-
-    socket.addEventListener("open", () => {
-      settle.resolve();
-    });
-    socket.addEventListener("error", (event) => {
-      settle.reject(createRealtimeSocketError(event));
-    });
-  });
-}
-
-function waitForTranscript(
-  socket: RealtimeSocket,
-  events: StreamingSpeechToTextEvents,
-  timeoutMs: number,
-): Promise<SpeechTranscript> {
-  let text = "";
-
-  return new Promise((resolve, reject) => {
-    const settle = createRealtimeSettlement({
-      reject,
-      resolve,
-      timeoutMs,
-    });
-
-    socket.addEventListener("message", (messageEvent) => {
-      try {
-        const event = parseRealtimeEvent(messageEvent);
-
-        if (event.type === "error") {
-          settle.reject(
-            createOpenAIVoiceProviderError({
-              event,
-              message: "Realtime transcription failed.",
-            }),
-          );
-          return;
-        }
-
-        if (
-          event.type === "conversation.item.input_audio_transcription.delta"
-        ) {
-          const delta = parseStringField(event, "delta");
-          text += delta;
-          events.onTranscriptDelta?.(delta);
-          return;
-        }
-
-        if (
-          event.type === "conversation.item.input_audio_transcription.completed"
-        ) {
-          settle.resolve({
-            text: parseOptionalStringField(event, "transcript") ?? text,
-          });
-        }
-      } catch (error) {
-        settle.reject(
-          createOpenAIVoiceProviderError({
-            cause: error,
-            event: messageEvent,
-            message: "Realtime transcription message was invalid.",
-          }),
-        );
-      }
-    });
-    socket.addEventListener("error", (event) => {
-      settle.reject(createRealtimeSocketError(event));
-    });
-  });
-}
-
-function createRealtimeSettlement<T>(options: {
-  reject(error: Error): void;
-  resolve(value: T): void;
-  timeoutMs: number;
-}): {
-  reject(error: Error): void;
-  resolve(value: T): void;
-} {
-  let settled = false;
-
-  const settle = (complete: () => void): void => {
-    if (settled) {
-      return;
-    }
-
-    settled = true;
-    clearTimeout(timer);
-    complete();
-  };
-
-  const timer = setTimeout(() => {
-    settle(() => options.reject(createRealtimeTimeoutError(options.timeoutMs)));
-  }, options.timeoutMs);
-
-  return {
-    reject: (error) => {
-      settle(() => options.reject(error));
-    },
-    resolve: (value) => {
-      settle(() => options.resolve(value));
-    },
-  };
-}
-
-function createRealtimeSocketError(event: unknown): Error {
-  return createOpenAIVoiceProviderError({
-    event,
-    message: "Realtime transcription socket failed.",
-  });
-}
-
-function createRealtimeTimeoutError(timeoutMs: number): Error {
-  return new Error(`Realtime transcription timed out after ${timeoutMs}ms.`);
-}
-
-function parseRealtimeEvent(messageEvent: unknown): Record<string, unknown> {
-  if (!isRecord(messageEvent) || typeof messageEvent.data !== "string") {
-    throw new Error("Realtime transcription event must include string data.");
-  }
-
-  const parsed = JSON.parse(messageEvent.data) as unknown;
-
-  if (!isRecord(parsed) || typeof parsed.type !== "string") {
-    throw new Error("Realtime transcription event type must be a string.");
-  }
-
-  return parsed;
-}
-
-function parseStringField(value: Record<string, unknown>, key: string): string {
-  const field = value[key];
-
-  if (typeof field !== "string") {
-    throw new Error(`Realtime transcription event ${key} must be a string.`);
-  }
-
-  return field;
-}
-
-function parseOptionalStringField(
-  value: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const field = value[key];
-
-  if (field === undefined) {
-    return undefined;
-  }
-
-  if (typeof field !== "string") {
-    throw new Error(`Realtime transcription event ${key} must be a string.`);
-  }
-
-  return field;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function toError(error: unknown): Error {
-  return error instanceof Error ? error : new Error(String(error));
 }
