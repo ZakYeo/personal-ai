@@ -147,6 +147,77 @@ describe("mock voice runtime", () => {
     ]);
   });
 
+  it("captures a requested follow-up utterance without another wake phrase", async () => {
+    const progressOutput = createCapturedWriter();
+    const handledTexts: string[] = [];
+    const utterances = [
+      "Hey Jarvis, how are you today?",
+      "What are your capable functionalities?",
+    ];
+    const responses = [
+      {
+        expectsFollowUp: true,
+        status: "ok" as const,
+        text: "I am doing well. How can I help you today?",
+      },
+      deterministicScenarios.capabilityList.response,
+    ];
+    const dependencies = createVoiceRuntimeDependencies({
+      assistant: {
+        handleText: () =>
+          Promise.reject(new Error("handleText should not be called")),
+        handleTextWithDiagnostics: (text) => {
+          handledTexts.push(text);
+
+          const response = responses.shift();
+
+          if (!response) {
+            return Promise.reject(new Error("Unexpected assistant turn."));
+          }
+
+          return Promise.resolve({ response });
+        },
+      },
+    });
+
+    await expect(
+      runVoiceTurn(
+        {
+          ...dependencies,
+          audioInput: {
+            capture: () => {
+              const utterance = utterances.shift();
+
+              if (!utterance) {
+                return Promise.reject(new Error("Unexpected audio capture."));
+              }
+
+              return Promise.resolve({ text: utterance });
+            },
+          },
+        },
+        { progressOutput },
+      ),
+    ).resolves.toMatchObject({
+      response: deterministicScenarios.capabilityList.response,
+      transcript: "What are your capable functionalities?",
+      wakePhrase: "hey jarvis",
+    });
+    expect(handledTexts).toEqual([
+      "Hey Jarvis, how are you today?",
+      "What are your capable functionalities?",
+    ]);
+    expect(progressOutput.writes).toEqual([
+      line('Now listening for wake word "hey jarvis".'),
+      line("Wake word detected, now listening..."),
+      line("Heard: Hey Jarvis, how are you today?"),
+      line("Assistant: I am doing well. How can I help you today?"),
+      line("Listening for your reply..."),
+      line("Heard: What are your capable functionalities?"),
+      line(`Assistant: ${deterministicScenarios.capabilityList.response.text}`),
+    ]);
+  });
+
   it("speaks a graceful fallback if assistant handling rejects", async () => {
     const spoken = createCapturedWriter();
     const stderr = createCapturedWriter();

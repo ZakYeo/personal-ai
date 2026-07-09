@@ -6,13 +6,7 @@ import type {
   TextToSpeechPort,
   WakeWordPort,
 } from "../../ports/voice.js";
-import {
-  logRuntimeFailure,
-  safeRuntimeFallbackResponse,
-} from "../human-boundary.js";
-import { runDetectedVoiceCommand } from "./voice-command.js";
-import { logWakeDetected, logWakeListening } from "./voice-progress.js";
-import { speakResponse } from "./voice-response.js";
+import { runVoicePipeline } from "./voice-pipeline.js";
 import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
 import type { VoiceTurnResult } from "./voice-turn-result.js";
 
@@ -37,50 +31,32 @@ export async function runVoiceTurn(
   dependencies: VoiceRuntimeDependencies,
   io: VoiceRuntimeIo = {},
 ): Promise<VoiceTurnResult> {
-  try {
-    logWakeListening(io, dependencies.turnConfig.wakePhrases);
-
-    const audio = await dependencies.audioInput.capture();
-    const transcript = await dependencies.speechToText.transcribe(audio);
-    const detection = await dependencies.wakeWord.detect({
-      audio: {
-        ...audio,
-        text: transcript.text,
+  const result = await runVoicePipeline(
+    {
+      assistant: dependencies.assistant,
+      audioOutput: dependencies.audioOutput,
+      commandAudioInput: dependencies.audioInput,
+      speechToText: dependencies.speechToText,
+      textToSpeech: dependencies.textToSpeech,
+      turnConfig: {
+        initialCommandSource: "wake-transcript",
+        preWakeFailureMode: "fallback",
+        wakePhrases: dependencies.turnConfig.wakePhrases,
       },
-      wakePhrases: dependencies.turnConfig.wakePhrases,
-    });
+      wakeAudioInput: dependencies.audioInput,
+      wakeWord: dependencies.wakeWord,
+    },
+    io,
+  );
 
-    if (!detection.detected) {
-      return {
-        response: {
-          status: "unknown",
-          text: "Wake phrase not detected.",
-        },
-        status: "ignored",
-        textOutputWritten: false,
-      };
-    }
-
-    logWakeDetected(io);
-
-    return await runDetectedVoiceCommand(
-      dependencies,
-      transcript.text,
-      io,
-      detection.phrase ? { wakePhrase: detection.phrase } : {},
-    );
-  } catch (error) {
-    logRuntimeFailure(error, io);
-
-    const speechOutput = await speakResponse(
-      dependencies,
-      safeRuntimeFallbackResponse,
-      io,
-    );
-
+  if (result.status === "ignored") {
     return {
-      response: safeRuntimeFallbackResponse,
-      ...speechOutput,
+      response: result.response,
+      status: result.status,
+      textOutputWritten: result.textOutputWritten,
+      ...(result.timings ? { timings: result.timings } : {}),
     };
   }
+
+  return result;
 }
