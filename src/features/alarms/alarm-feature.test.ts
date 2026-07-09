@@ -28,6 +28,13 @@ describe("createAlarmFeature", () => {
       risk: "low",
       parameters: {},
     });
+    expect(feature.capabilities).toEqual(
+      expect.not.arrayContaining([
+        expect.objectContaining({
+          deterministicRules: expect.any(Array) as unknown,
+        }),
+      ]),
+    );
   });
 
   it("handles alarm create and list commands", () => {

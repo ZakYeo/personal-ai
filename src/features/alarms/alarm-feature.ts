@@ -1,11 +1,14 @@
 import type { AssistantContext } from "../../ports/assistant.js";
 import type {
-  DeterministicFeatureRule,
   FeatureArgsFromParameters,
   FeatureCapabilityParameters,
   FeaturePlugin,
   FeatureResult,
 } from "../../ports/feature.js";
+import {
+  defineDeterministicFeatureRules,
+  type DeterministicFeatureRule,
+} from "../../ports/deterministic-feature-rules.js";
 import { defineCapability, defineFeature } from "../../ports/feature.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
 
@@ -49,38 +52,33 @@ const alarmDeterministicIntentRules: DeterministicFeatureRule[] = [
 ];
 
 export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
-  return defineFeature({
-    id: "alarms",
-    displayName: "Local Alarms",
-    capabilities: {
-      "alarm.create": defineCapability({
-        description:
-          "Create a local alarm scheduled a number of minutes from now. This requires confirmation before the alarm is saved.",
-        risk: "high",
-        summary: "Create a local alarm after a relative delay.",
-        requiresConfirmation: true,
-        parameters: alarmCreateParameters,
-        deterministicRules: deterministicRulesFor("alarm.create"),
-        execute: (request, context: AssistantContext) =>
-          createAlarm(request.args, context, store),
-      }),
-      "alarm.list": defineCapability({
-        description:
-          "List the local alarms currently stored by this assistant runtime.",
-        risk: "low",
-        summary: "List currently stored local alarms.",
-        parameters: alarmListParameters,
-        deterministicRules: deterministicRulesFor("alarm.list"),
-        execute: () => listAlarms(store),
-      }),
-    },
-  });
-}
-
-function deterministicRulesFor(capability: string) {
-  return alarmDeterministicIntentRules
-    .filter((rule) => rule.capability === capability)
-    .map((rule) => rule.match);
+  return defineDeterministicFeatureRules(
+    defineFeature({
+      id: "alarms",
+      displayName: "Local Alarms",
+      capabilities: {
+        "alarm.create": defineCapability({
+          description:
+            "Create a local alarm scheduled a number of minutes from now. This requires confirmation before the alarm is saved.",
+          risk: "high",
+          summary: "Create a local alarm after a relative delay.",
+          requiresConfirmation: true,
+          parameters: alarmCreateParameters,
+          execute: (request, context: AssistantContext) =>
+            createAlarm(request.args, context, store),
+        }),
+        "alarm.list": defineCapability({
+          description:
+            "List the local alarms currently stored by this assistant runtime.",
+          risk: "low",
+          summary: "List currently stored local alarms.",
+          parameters: alarmListParameters,
+          execute: () => listAlarms(store),
+        }),
+      },
+    }),
+    alarmDeterministicIntentRules,
+  );
 }
 
 function createAlarm(

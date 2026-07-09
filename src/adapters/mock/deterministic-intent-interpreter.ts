@@ -6,7 +6,7 @@ import type {
   IntentInterpretation,
   IntentInterpreterPort,
 } from "../../ports/intent.js";
-import type { DeterministicCapabilityRule } from "../../ports/feature.js";
+import type { DeterministicCapabilityRule } from "../../ports/deterministic-feature-rules.js";
 import { stripWakePhrase } from "../spoken-text.js";
 
 export interface DeterministicIntentRule {

@@ -3,6 +3,7 @@ import {
   type DeterministicIntentRule,
 } from "../adapters/mock/deterministic-intent-interpreter.js";
 import type { FeaturePlugin } from "../ports/feature.js";
+import { getDeterministicFeatureRules } from "../ports/deterministic-feature-rules.js";
 import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
 import type { IntentInterpreterPort } from "../ports/intent.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
@@ -78,12 +79,7 @@ function createDeterministicIntentRules(
   features: FeaturePlugin[],
 ): DeterministicIntentRule[] {
   const featureBackedRules = features.flatMap((feature) =>
-    feature.capabilities.flatMap((capability) =>
-      (capability.deterministicRules ?? []).map((match) => ({
-        capability: capability.name,
-        match,
-      })),
-    ),
+    getDeterministicFeatureRules(feature),
   );
 
   return featureBackedRules.filter(

@@ -1,10 +1,13 @@
 import type {
-  DeterministicFeatureRule,
   FeatureArgsFromParameters,
   FeatureCapabilityParameters,
   FeaturePlugin,
   FeatureResult,
 } from "../../ports/feature.js";
+import {
+  defineDeterministicFeatureRules,
+  type DeterministicFeatureRule,
+} from "../../ports/deterministic-feature-rules.js";
 import { defineCapability, defineFeature } from "../../ports/feature.js";
 
 const messagingDraftReplyParameters = {
@@ -29,27 +32,23 @@ const messagingDeterministicIntentRules: DeterministicFeatureRule[] = [
 ];
 
 export function createMessagingFeature(): FeaturePlugin {
-  return defineFeature({
-    id: "messaging",
-    displayName: "Mock Messaging",
-    capabilities: {
-      "messaging.draft_reply": defineCapability({
-        description:
-          "Draft a reply for a configured messaging channel without sending it.",
-        risk: "low",
-        summary: "Draft a message reply without sending it.",
-        parameters: messagingDraftReplyParameters,
-        deterministicRules: deterministicRulesFor("messaging.draft_reply"),
-        execute: (request) => draftReply(request.args),
-      }),
-    },
-  });
-}
-
-function deterministicRulesFor(capability: string) {
-  return messagingDeterministicIntentRules
-    .filter((rule) => rule.capability === capability)
-    .map((rule) => rule.match);
+  return defineDeterministicFeatureRules(
+    defineFeature({
+      id: "messaging",
+      displayName: "Mock Messaging",
+      capabilities: {
+        "messaging.draft_reply": defineCapability({
+          description:
+            "Draft a reply for a configured messaging channel without sending it.",
+          risk: "low",
+          summary: "Draft a message reply without sending it.",
+          parameters: messagingDraftReplyParameters,
+          execute: (request) => draftReply(request.args),
+        }),
+      },
+    }),
+    messagingDeterministicIntentRules,
+  );
 }
 
 function draftReply(args: MessagingDraftReplyArgs): FeatureResult {

@@ -1,11 +1,14 @@
 import type { CapabilityCatalog } from "../../ports/capability-catalog.js";
 import type {
-  DeterministicFeatureRule,
   FeatureArgsFromParameters,
   FeatureCapabilityParameters,
   FeaturePlugin,
   FeatureResult,
 } from "../../ports/feature.js";
+import {
+  defineDeterministicFeatureRules,
+  type DeterministicFeatureRule,
+} from "../../ports/deterministic-feature-rules.js";
 import { defineCapability, defineFeature } from "../../ports/feature.js";
 
 const capabilityDescribeParameters = {
@@ -44,34 +47,31 @@ const capabilityInfoDeterministicRules: DeterministicFeatureRule[] = [
 export function createCapabilityInfoFeature(
   catalog: CapabilityCatalog,
 ): FeaturePlugin {
-  return defineFeature({
-    id: "assistant",
-    displayName: "Assistant Capability Catalog",
-    capabilities: {
-      "assistant.capabilities.list": defineCapability({
-        description:
-          "List the assistant capabilities enabled in this runtime using the generated capability catalog.",
-        risk: "low",
-        summary: "List enabled assistant capabilities.",
-        parameters: capabilityListParameters,
-        deterministicRules: deterministicRulesFor(
-          "assistant.capabilities.list",
-        ),
-        execute: () => listCapabilities(catalog),
-      }),
-      "assistant.capabilities.describe": defineCapability({
-        description:
-          "Describe one enabled assistant capability by stable capability name.",
-        risk: "low",
-        summary: "Describe one enabled assistant capability.",
-        parameters: capabilityDescribeParameters,
-        deterministicRules: deterministicRulesFor(
-          "assistant.capabilities.describe",
-        ),
-        execute: (request) => describeCapability(catalog, request.args),
-      }),
-    },
-  });
+  return defineDeterministicFeatureRules(
+    defineFeature({
+      id: "assistant",
+      displayName: "Assistant Capability Catalog",
+      capabilities: {
+        "assistant.capabilities.list": defineCapability({
+          description:
+            "List the assistant capabilities enabled in this runtime using the generated capability catalog.",
+          risk: "low",
+          summary: "List enabled assistant capabilities.",
+          parameters: capabilityListParameters,
+          execute: () => listCapabilities(catalog),
+        }),
+        "assistant.capabilities.describe": defineCapability({
+          description:
+            "Describe one enabled assistant capability by stable capability name.",
+          risk: "low",
+          summary: "Describe one enabled assistant capability.",
+          parameters: capabilityDescribeParameters,
+          execute: (request) => describeCapability(catalog, request.args),
+        }),
+      },
+    }),
+    capabilityInfoDeterministicRules,
+  );
 }
 
 export function createCapabilityInfoCatalogFeature(): {
@@ -80,12 +80,6 @@ export function createCapabilityInfoCatalogFeature(): {
   id: string;
 } {
   return createCapabilityInfoFeature([] satisfies CapabilityCatalog);
-}
-
-function deterministicRulesFor(capability: string) {
-  return capabilityInfoDeterministicRules
-    .filter((rule) => rule.capability === capability)
-    .map((rule) => rule.match);
 }
 
 function listCapabilities(catalog: CapabilityCatalog): FeatureResult {
