@@ -96,6 +96,10 @@ For each capability:
 
 - Use a stable capability name such as `alarm.create`.
 - Set `risk` to `low` or `high`.
+- Provide a short user-facing `summary` and fuller `description`. Runtime
+  composition uses these fields for provider prompts and the assistant
+  capability catalog, so capability-awareness should come from metadata rather
+  than hard-coded prompt branches.
 - Set `requiresConfirmation` for high-risk capabilities unless there is an
   explicit documented exception.
 - Declare expected command parameters with type metadata and
@@ -126,6 +130,10 @@ feature-to-adapter registry. Existing deterministic adapters are selected as
 should add entries to the same registry shape and receive narrow adapter
 dependencies/config from runtime composition rather than importing provider
 selection policy into feature modules.
+The runtime also adds a built-in `assistant` feature that lists or describes the
+enabled capability catalog. It is runtime-owned rather than user-configured, and
+it must stay backed by the same generated feature metadata used by provider
+prompts.
 Adapter-specific configuration should be resolved as part of selecting the
 adapter, not passed as an untyped generic bag. A feature adapter registry entry
 should either receive the exact resolved config type it needs or own the small

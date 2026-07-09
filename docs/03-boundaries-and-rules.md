@@ -85,6 +85,10 @@ Voice response is a best-effort invariant: an exception in command handling shou
 Voice runtimes should keep spoken output semantics separate from text fallback output. CLI callers should depend on explicit runtime result metadata when deciding whether stdout already received fallback text.
 
 Voice adapter selection must be explicit at runtime composition boundaries. A voice runtime may use mock adapters, but it should select them through configured adapter IDs for input, wake word, speech-to-text, text-to-speech, and audio output rather than by constructing implicit defaults.
+Follow-up listening is neutral voice runtime behavior. A voice runtime may
+capture a no-wake reply only when the assistant response explicitly sets
+`expectsFollowUp: true`, and it should return to normal wake listening once a
+response does not request another follow-up.
 
 Desktop voice command settings are runtime configuration, not core behavior.
 Machine-specific command names, arguments, and timeouts belong in local config
@@ -99,6 +103,9 @@ and tests all make a narrower exception explicit. Runtime configuration may add
 confirmation requirements for lower-risk or environment-specific cases, but it
 should not silently downgrade the default safety posture of high-risk
 capabilities.
+Capability summaries and descriptions are part of the declared metadata.
+Provider prompts and user-facing capability list/detail answers should use the
+generated enabled capability catalog instead of hard-coded feature lists.
 
 Development or test fixtures may exercise an unconfirmed high-risk path only
 when the fixture name and test expectation make that override obvious. Production

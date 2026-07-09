@@ -225,6 +225,130 @@ describe("runDesktopVoiceServiceRuntime", () => {
     },
   );
 
+  it("smoke-continues streaming speech for a follow-up capability question without another wake word", async () => {
+    const firstUtterance = "How are you today?";
+    const followUpUtterance = "What are your capable functionalities?";
+    const firstResponseText = "I am doing well. How can I help you today?";
+    const sockets = [
+      new TestRealtimeSocket({
+        autoOpen: true,
+        transcript: firstUtterance,
+      }),
+      new TestRealtimeSocket({
+        autoOpen: true,
+        transcript: followUpUtterance,
+      }),
+    ];
+    const signals = createServiceSignalController();
+    const progressOutput = createCapturedWriter();
+    const fallbackOutput = createCapturedWriter();
+    const stderr = createCapturedWriter();
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          output_text: JSON.stringify({
+            command: null,
+            kind: "conversation",
+            response: null,
+          }),
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          output_text: JSON.stringify({
+            expectsFollowUp: true,
+            text: firstResponseText,
+          }),
+        }),
+      )
+      .mockResolvedValueOnce(new Response(Buffer.from("spoken audio")))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          output_text: JSON.stringify({
+            command: {
+              capability: "assistant.capabilities.list",
+              parameters: [],
+              rawText: followUpUtterance,
+            },
+            kind: "command",
+            response: null,
+          }),
+        }),
+      )
+      .mockResolvedValueOnce(new Response(Buffer.from("spoken audio")));
+
+    const result = await runDesktopVoiceServiceRuntime({
+      config: {
+        ...createOpenAIStreamingServiceConfig(),
+        conversation: {
+          history: {
+            maxTurnsBeforeCompaction: 5,
+          },
+          openai: {
+            apiKeyEnv: "OPENAI_API_KEY",
+            baseUrl: "https://api.openai.test/v1",
+            model: "gpt-5.5",
+            timeoutMs: 30_000,
+          },
+          provider: "openai",
+        },
+        intent: {
+          openai: {
+            apiKeyEnv: "OPENAI_API_KEY",
+            baseUrl: "https://api.openai.test/v1",
+            model: "gpt-5.5",
+            timeoutMs: 30_000,
+          },
+          provider: "openai",
+        },
+      },
+      env: { OPENAI_API_KEY: "test-api-key" },
+      fetch,
+      io: { fallbackOutput, progressOutput, stderr },
+      processSignals: signals,
+      retryAfterFailure: (context) => {
+        context.requestShutdown("test failure");
+
+        return Promise.resolve();
+      },
+      runVoiceActivation: async (dependencies, io) => {
+        const activationResult = await runVoiceActivation(dependencies, io);
+        signals.emit("SIGTERM");
+
+        return activationResult;
+      },
+      webSocketFactory: (() => {
+        const socket = sockets.shift();
+
+        if (!socket) {
+          throw new Error("Unexpected transcription socket request.");
+        }
+
+        return socket;
+      }) satisfies RealtimeSocketFactory,
+    });
+
+    expect(result).toEqual({
+      status: "stopped",
+      turnsCompleted: 1,
+    });
+    expect(progressOutput.writes).toEqual([
+      line('Now listening for wake word "hey jarvis".'),
+      line("Wake word detected, now listening..."),
+      firstUtterance,
+      line(`Heard: ${firstUtterance}`),
+      line(`Assistant: ${firstResponseText}`),
+      line("Listening for your reply..."),
+      followUpUtterance,
+      line(`Heard: ${followUpUtterance}`),
+      line(`Assistant: ${deterministicScenarios.capabilityList.response.text}`),
+    ]);
+    expect(fallbackOutput.writes).toEqual([]);
+    expect(stderr.writes).toEqual([]);
+    expect(sockets).toEqual([]);
+  });
+
   it("fails the activation cleanly when realtime transcription never completes", async () => {
     const signals = createServiceSignalController();
     const progressOutput = createCapturedWriter();
@@ -625,6 +749,7 @@ async function runCasualConversationStreamingSmoke(input: {
     .mockResolvedValueOnce(
       jsonResponse({
         output_text: JSON.stringify({
+          expectsFollowUp: false,
           text: input.responseText,
         }),
       }),

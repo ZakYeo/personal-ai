@@ -18,7 +18,8 @@ Implemented today:
 - Desktop voice runtime for one configured local voice turn.
 - Desktop voice service command for always-listening wake activation with
   local openWakeWord activation, live command transcript progress, and
-  streaming speech playback.
+  streaming speech playback. If a response explicitly asks for a reply, the
+  service captures the next utterance without requiring the wake phrase again.
 - Neutral service runtime boundary baseline implemented in preparation for
   Milestone 5.1.
 - Raspberry Pi service command that runs configured command-based voice turns in
@@ -33,6 +34,8 @@ Implemented today:
   provider response, timeout, and diagnostic tests.
 - Mock calendar and messaging features.
 - Local alarm feature backed by an adapter-owned store.
+- Built-in assistant capability catalog feature for listing and describing the
+  currently enabled capabilities from feature metadata.
 - Runtime fallback handling that keeps human-facing responses safe while logging
   diagnostics internally.
 - Runtime-owned cleanup for desktop voice capture and speech temp files.
@@ -133,6 +136,10 @@ The default OpenAI desktop voice config routes casual questions such as
 `"Hey Jarvis, how are you today?"` to the OpenAI conversation provider after
 wake activation, keeps one in-memory chat window for the running assistant
 instance, and compacts chat history after 5 completed user/assistant turns.
+OpenAI conversation responses use structured JSON with safe text plus an
+`expectsFollowUp` flag; when that flag is true, voice service runtimes listen
+for the next reply without another wake word before returning to normal wake
+listening.
 
 Run the opt-in desktop voice OpenAI smoke test:
 

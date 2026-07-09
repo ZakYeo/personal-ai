@@ -163,6 +163,11 @@ recognized command transcript, and the assistant's safe response. Wake-window
 transcripts, raw provider output, adapter command output, credentials, stack
 traces, and diagnostic causes remain out of progress logs; diagnostics stay on
 stderr.
+When an assistant response sets `expectsFollowUp: true`, the neutral voice
+activation loop logs that it is listening for the user's reply and captures one
+additional command utterance without requiring the wake phrase. The loop may
+continue only if the next response also explicitly requests follow-up; otherwise
+the service returns to normal wake listening.
 
 The opt-in desktop voice OpenAI smoke command is:
 
@@ -345,7 +350,9 @@ credential defaults as the OpenAI intent provider. One assistant instance owns
 one in-memory chat window. Conversation turns append user and assistant text to
 that window; after `conversation.history.maxTurnsBeforeCompaction` completed
 user/assistant turns, the configured compactor replaces older turns with a
-summary. The default compaction threshold is 5.
+summary. The default compaction threshold is 5. OpenAI conversation responses
+return strict JSON containing safe response text and `expectsFollowUp`; raw
+provider output stays inside adapter diagnostics.
 The `google` calendar adapter is opt-in and selected with
 `features.calendar.adapter: google`. It requires an OAuth access token from the
 configured environment variable, defaulting to
@@ -360,7 +367,10 @@ and provider-specific construction rules do not drift between runtimes. Runtime
 config parsing stays separate from assistant policy projection, intent provider
 resolution, voice adapter ID resolution, and desktop voice command resolution.
 Provider-facing capability catalog construction is shared by runtime composition
-so future intent providers can reuse the same feature metadata projection.
+so future intent and conversation providers can reuse the same feature metadata
+projection. Capability summaries and descriptions are generated from enabled
+feature metadata and also back the built-in assistant capability catalog
+feature.
 
 Runtime composition should resolve broad optional configuration into
 runtime-specific validated shapes before adapter construction. For a voice
