@@ -22,6 +22,7 @@ export function createOpenAIConversationRequestBody(
               `You are ${context.config.assistant.name}, a concise personal voice assistant.`,
               "Answer the user's general question conversationally.",
               "Do not claim to execute commands or access unavailable tools.",
+              "Set expectsFollowUp to true only when your reply directly asks the user for more input.",
               "Return only JSON matching the supplied schema.",
             ].join(" "),
             type: "input_text",
@@ -90,9 +91,10 @@ export function createOpenAIConversationCompactionRequestBody(
 const conversationResponseSchema = {
   additionalProperties: false,
   properties: {
+    expectsFollowUp: { type: "boolean" },
     text: { type: "string" },
   },
-  required: ["text"],
+  required: ["text", "expectsFollowUp"],
   type: "object",
 };
 

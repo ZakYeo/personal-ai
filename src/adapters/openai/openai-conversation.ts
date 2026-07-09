@@ -44,8 +44,8 @@ export class OpenAIConversationResponder implements ConversationResponderPort {
     });
 
     return {
+      ...parseOpenAIConversationResponse(outputText),
       status: "ok" as const,
-      text: parseOpenAIConversationResponse(outputText),
     };
   }
 }

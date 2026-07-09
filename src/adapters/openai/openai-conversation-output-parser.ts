@@ -1,6 +1,9 @@
 import { OpenAIConversationError } from "./openai-conversation-error.js";
 
-export function parseOpenAIConversationResponse(value: string): string {
+export function parseOpenAIConversationResponse(value: string): {
+  expectsFollowUp: boolean;
+  text: string;
+} {
   const parsed = parseOutputText(value);
 
   if (!isRecord(parsed)) {
@@ -15,7 +18,16 @@ export function parseOpenAIConversationResponse(value: string): string {
     );
   }
 
-  return parsed.text;
+  if (typeof parsed.expectsFollowUp !== "boolean") {
+    throw new OpenAIConversationError(
+      "OpenAI conversation response expectsFollowUp must be a boolean.",
+    );
+  }
+
+  return {
+    expectsFollowUp: parsed.expectsFollowUp,
+    text: parsed.text,
+  };
 }
 
 export function parseOpenAIConversationSummary(value: string): string {

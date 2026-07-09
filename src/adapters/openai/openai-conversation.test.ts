@@ -43,6 +43,7 @@ describe("OpenAIConversationResponder", () => {
     const fetch = createFetchStub(
       jsonResponse({
         output_text: JSON.stringify({
+          expectsFollowUp: true,
           text: "I am doing well today.",
         }),
       }),
@@ -52,6 +53,7 @@ describe("OpenAIConversationResponder", () => {
     await expect(
       responder.respond("Hey Jarvis, how are you today?", state, context),
     ).resolves.toEqual({
+      expectsFollowUp: true,
       status: "ok",
       text: "I am doing well today.",
     });
@@ -61,9 +63,10 @@ describe("OpenAIConversationResponder", () => {
     expect(body.text.format.schema).toMatchObject({
       additionalProperties: false,
       properties: {
+        expectsFollowUp: { type: "boolean" },
         text: { type: "string" },
       },
-      required: ["text"],
+      required: ["text", "expectsFollowUp"],
     });
     const messages = body.input as Array<{
       content: Array<{ text: string; type: string }>;
@@ -144,6 +147,24 @@ describe("OpenAIConversationResponder", () => {
     await expect(
       responder.respond("How are you?", { recentTurns: [] }, context),
     ).rejects.toThrow("OpenAI conversation response was not valid JSON.");
+  });
+
+  it("rejects provider output without a boolean follow-up directive", async () => {
+    const responder = createResponder({
+      fetch: createFetchStub(
+        jsonResponse({
+          output_text: JSON.stringify({
+            text: "I am doing well today.",
+          }),
+        }),
+      ),
+    });
+
+    await expect(
+      responder.respond("How are you?", { recentTurns: [] }, context),
+    ).rejects.toThrow(
+      "OpenAI conversation response expectsFollowUp must be a boolean.",
+    );
   });
 
   it("rejects missing provider output text with conversation errors", async () => {

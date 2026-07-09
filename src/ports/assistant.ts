@@ -9,6 +9,7 @@ export type AssistantResponseStatus =
 export interface AssistantResponse {
   status: AssistantResponseStatus;
   text: string;
+  expectsFollowUp?: boolean;
 }
 
 export type AssistantDiagnosticCategory =
