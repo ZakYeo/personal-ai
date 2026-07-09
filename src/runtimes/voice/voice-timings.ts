@@ -8,7 +8,7 @@ export interface VoiceTurnTimings {
   totalMs: number;
 }
 
-export interface VoiceTimingRecorder {
+interface VoiceTimingRecorder {
   measure<T>(name: string, operation: () => Promise<T>): Promise<T>;
   snapshot(): VoiceTurnTimings;
 }
@@ -58,7 +58,7 @@ export function createVoiceTurnInstrumentation(
   if (!options) {
     return {
       measure: (_name, operation) => operation(),
-      snapshotIfEnabled: () => {},
+      snapshotIfEnabled: noTimings,
     };
   }
 
@@ -82,6 +82,10 @@ export function formatVoiceTimings(timings: VoiceTurnTimings): string[] {
 
 function elapsedMs(finishedAt: number, startedAt: number): number {
   return Math.max(0, Math.round(finishedAt - startedAt));
+}
+
+function noTimings(): VoiceTurnTimings | undefined {
+  return;
 }
 
 function formatDurationMs(durationMs: number): string {
