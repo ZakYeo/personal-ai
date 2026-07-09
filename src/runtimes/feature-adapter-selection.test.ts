@@ -89,6 +89,7 @@ describe("createConfiguredFeatures", () => {
     expect(selection.features.map((feature) => feature.id)).toEqual([
       "messaging",
       "alarms",
+      "assistant",
     ]);
     expect(selection).not.toHaveProperty("deterministicIntentRules");
   });

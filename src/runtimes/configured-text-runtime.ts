@@ -43,7 +43,9 @@ export async function createConfiguredTextRuntime(
 
   return createAssistant({
     clock,
-    config: toAssistantPolicyConfig(config),
+    config: toAssistantPolicyConfig(config, {
+      additionalEnabledFeatures: ["assistant"],
+    }),
     ...(conversation ? { conversation } : {}),
     features: featureSelection.features,
     intentInterpreter: createConfiguredIntentInterpreter(

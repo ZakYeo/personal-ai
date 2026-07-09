@@ -65,6 +65,14 @@ describe("createConfiguredTextRuntime", () => {
     ).resolves.toEqual(deterministicScenarios.alarmListEmpty.response);
   });
 
+  it("answers capability list questions from the generated catalog", async () => {
+    const assistant = await createConfiguredTextRuntimeHarness();
+
+    await expect(
+      assistant.handleText(deterministicScenarios.capabilityList.text),
+    ).resolves.toEqual(deterministicScenarios.capabilityList.response);
+  });
+
   it("rejects unknown intent providers during composition", async () => {
     await expect(
       createConfiguredTextRuntimeHarness({

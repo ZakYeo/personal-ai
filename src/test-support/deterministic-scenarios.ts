@@ -41,6 +41,21 @@ export const deterministicScenarios = {
       text: "Alarms: alarm-1 at 2026-06-26T09:10:00.000Z (ping me).",
     },
   },
+  capabilityList: {
+    text: "Hey Jarvis, what are your capable functionalities?",
+    response: {
+      status: "ok",
+      text: [
+        "I can use these enabled capabilities:",
+        "calendar.search_events: Search configured calendar events.;",
+        "messaging.draft_reply: Draft a message reply without sending it.;",
+        "alarm.create: Create a local alarm after a relative delay.;",
+        "alarm.list: List currently stored local alarms.;",
+        "assistant.capabilities.list: List enabled assistant capabilities.;",
+        "assistant.capabilities.describe: Describe one enabled assistant capability.",
+      ].join(" "),
+    },
+  },
   unknown: {
     text: "Hey Jarvis, what is this?",
     response: {
