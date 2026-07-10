@@ -25,6 +25,7 @@ export interface ServiceTurnContext {
   configPath?: string;
   now(): Date;
   requestShutdown(reason?: string): void;
+  shutdownSignal: AbortSignal;
 }
 
 export interface ServiceTurnFailureContext {
@@ -91,10 +92,15 @@ export async function runServiceRuntime(
           requestShutdown: (reason) => {
             state.requestShutdown(reason);
           },
+          shutdownSignal: state.shutdownSignal,
         });
         turnsCompleted += 1;
         turnFailures = 0;
       } catch (error) {
+        if (state.shutdownRequested) {
+          break;
+        }
+
         turnFailures += 1;
         logRuntimeFailure(error, options.io ?? {});
         await retryAfterTurnFailure(options, {
@@ -142,6 +148,7 @@ export async function runServiceRuntime(
 }
 
 function createServiceState() {
+  const shutdownController = new AbortController();
   let shutdownContext: ServiceShutdownContext = {};
   let shutdownRequested = false;
 
@@ -151,6 +158,9 @@ function createServiceState() {
     },
     get shutdownRequested() {
       return shutdownRequested;
+    },
+    get shutdownSignal() {
+      return shutdownController.signal;
     },
     requestShutdown(reason?: string, signal?: ServiceSignal) {
       if (shutdownRequested) {
@@ -162,6 +172,9 @@ function createServiceState() {
         ...(reason ? { reason } : {}),
         ...(signal ? { signal } : {}),
       };
+      shutdownController.abort(
+        new Error(reason ?? "Service shutdown requested."),
+      );
     },
   };
 }

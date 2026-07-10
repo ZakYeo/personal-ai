@@ -128,6 +128,10 @@ This command runs the desktop voice stack in a long-lived service loop. When
 activation adapter before it records or streams command audio. The checked-in
 OpenAI desktop voice config uses the `openwakeword-command` adapter and the
 pretrained openWakeWord `"hey jarvis"` model, so wake detection happens locally.
+The local desktop config passes `--threshold 0.35` to the listener as a moderate
+sensitivity default. Lower values make `"Hey Jarvis"` easier to trigger but can
+increase false activations; raise the value again if the service wakes too often
+from background speech.
 After wake detection, the service streams command audio to the configured
 streaming STT adapter when available, writes transcript deltas to progress
 output, sends the final command transcript through the same assistant core, and
@@ -473,7 +477,10 @@ execution, clock access, signal registration, stderr diagnostics, and shutdown
 hooks. Startup failures return a safe fallback outcome, signal registration
 failures clean up partial handlers, recoverable turn failures are logged before
 the injected retry policy runs, and injected `SIGINT`/`SIGTERM` handlers request
-graceful shutdown before unregistering.
+graceful shutdown before unregistering. Shutdown signals also abort the active
+service turn so long-running command-backed wake activation, capture, or
+transcription input can terminate promptly instead of waiting for a wake phrase
+or command timeout.
 
 The Raspberry Pi service command builds on this service boundary. It validates
 the required voice and desktop command config during startup, runs configured

@@ -75,7 +75,10 @@ config file. The default OpenAI desktop voice config uses openWakeWord for local
 realtime transcription. See the [runtime plan](docs/04-runtime-plan.md) for the
 desktop voice config shape. The checked-in default config expects the
 OpenWakeWord Python dependency in `.venv`; run `npm run setup:openwakeword` or
-source `scripts/setup-openwakeword-venv.sh` before `npm start`.
+source `scripts/setup-openwakeword-venv.sh` before `npm start`. It passes
+`--threshold 0.35` to the listener so local wake activation is moderately
+sensitive; tune that value in `config/local-desktop-voice-openai.json` if your
+room or microphone needs a different false-wake tradeoff.
 The default desktop command capture uses SoX silence detection after wake
 activation so recording stops shortly after trailing silence while retaining an
 eight-second maximum capture guard.
@@ -147,7 +150,9 @@ npm start
 
 Voice service commands write progress logs to stdout, including wake listening,
 wake detection, live transcript deltas, recognized command text, and the
-assistant response. Internal diagnostics and adapter failures stay on stderr.
+assistant response. `Ctrl+C` requests graceful shutdown and aborts active
+command-backed wake activation, capture, or transcription input. Internal
+diagnostics and adapter failures stay on stderr.
 The default OpenAI desktop voice config routes casual questions such as
 `"Hey Jarvis, how are you today?"` to the OpenAI conversation provider after
 wake activation, keeps one in-memory chat window for the running assistant

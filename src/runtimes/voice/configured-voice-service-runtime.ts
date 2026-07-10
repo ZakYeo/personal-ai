@@ -62,7 +62,7 @@ export function runConfiguredVoiceServiceRuntime(
 
   return runConfiguredServiceRuntime(options, {
     validateConfig: (config) => validateVoiceServiceConfig(config, env),
-    runTurn: async ({ assistant, config }) => {
+    runTurn: async ({ assistant, config, shutdownSignal }) => {
       const voiceConfig = requireVoiceConfig(config);
       const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
         voiceConfig,
@@ -74,6 +74,7 @@ export function runConfiguredVoiceServiceRuntime(
         env,
         fetch,
         processControl,
+        shutdownSignal,
         ...(options.webSocketFactory
           ? { webSocketFactory: options.webSocketFactory }
           : {}),

@@ -594,7 +594,8 @@ Implemented structure:
   invalid config returns a safe startup failure outcome while logging
   diagnostics internally.
 - Recoverable voice turn failures are logged and retried through the service
-  retry policy, while `SIGINT` and `SIGTERM` request graceful shutdown.
+  retry policy, while `SIGINT` and `SIGTERM` request graceful shutdown and
+  abort active command-backed wake activation, capture, or transcription input.
 - Temporary voice capture and speech files are cleaned up after each service
   turn.
 - ARM64 Docker/QEMU userland smoke commands are documented as optional
@@ -643,7 +644,8 @@ or live provider dependencies to the deterministic validation gate.
 Included:
 
 - `npm start` default entrypoint for the desktop OpenAI voice service using
-  `config/local-desktop-voice-openai.json`.
+  `config/local-desktop-voice-openai.json`, including a moderately sensitive
+  OpenWakeWord `--threshold 0.35` default.
 - `desktop-voice-service` CLI command with an explicit local config path.
 - `npm run smoke:desktop-voice:openai` opt-in file-fed smoke for local
   openWakeWord activation plus live OpenAI realtime command transcription,
@@ -663,6 +665,8 @@ Acceptance criteria:
 - Wake detection captures and transcribes a separate command utterance before
   invoking the assistant core.
 - Recoverable activation failures are logged and retried by the service loop.
+- Shutdown signals abort long-running wake activation, capture, or
+  transcription input instead of waiting for a wake phrase or command timeout.
 - One-shot desktop voice behavior remains backward compatible.
 
 ## Milestone 6: Persistent Local Assistant State

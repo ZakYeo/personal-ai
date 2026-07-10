@@ -5,6 +5,7 @@ export interface RunCommandRequest {
   args?: string[];
   command: string;
   processControl?: ProcessControl;
+  signal?: AbortSignal;
   timeoutMs?: number;
 }
 
@@ -78,6 +79,7 @@ class CommandProcess {
   private readonly processControl: ProcessControl;
   private readonly stderrChunks: Buffer[] = [];
   private readonly stdoutChunks: Buffer[] = [];
+  private terminationRequested = false;
 
   constructor(
     private readonly request: RunCommandRequest,
@@ -126,10 +128,15 @@ class CommandProcess {
   }
 
   terminate(): void {
-    if (this.child.exitCode !== null || this.child.signalCode !== null) {
+    if (
+      this.terminationRequested ||
+      this.child.exitCode !== null ||
+      this.child.signalCode !== null
+    ) {
       return;
     }
 
+    this.terminationRequested = true;
     terminateProcess(this.child, this.processControl);
   }
 
@@ -190,6 +197,7 @@ class CommandProcess {
 
         settled = true;
         clearTimeout(timer);
+        this.request.signal?.removeEventListener("abort", onAbort);
         callback();
       };
 
@@ -208,6 +216,20 @@ class CommandProcess {
           );
         });
       }, timeoutMs);
+
+      const onAbort = (): void => {
+        settle(() => {
+          this.terminate();
+          reject(toError(this.request.signal?.reason ?? "Command aborted."));
+        });
+      };
+
+      if (this.request.signal?.aborted) {
+        onAbort();
+        return;
+      }
+
+      this.request.signal?.addEventListener("abort", onAbort, { once: true });
 
       this.child.on("error", (error) => {
         settle(() => {

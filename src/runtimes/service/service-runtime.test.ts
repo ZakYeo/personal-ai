@@ -174,4 +174,35 @@ describe("runServiceRuntime", () => {
     });
     expect(harness.stderr.writes).toEqual([]);
   });
+
+  it("aborts an active turn after an injected shutdown signal", async () => {
+    const signals = createServiceSignalController();
+    const retryAfterFailure = vi.fn().mockResolvedValue(undefined);
+    const runTurn = vi
+      .fn()
+      .mockImplementation((context: ServiceTurnContext) => {
+        signals.emit("SIGINT");
+        const shutdownReason: unknown = context.shutdownSignal.reason;
+
+        return Promise.reject(
+          shutdownReason instanceof Error
+            ? shutdownReason
+            : new Error("missing abort reason"),
+        );
+      });
+    const harness = createServiceRuntimeHarness({
+      processSignals: signals,
+      retryAfterFailure,
+      runTurn,
+    });
+
+    await expect(harness.run()).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 0,
+    });
+
+    expect(runTurn).toHaveBeenCalledTimes(1);
+    expect(retryAfterFailure).not.toHaveBeenCalled();
+    expect(harness.stderr.writes).toEqual([]);
+  });
 });

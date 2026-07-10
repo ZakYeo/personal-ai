@@ -108,6 +108,53 @@ describe("runDesktopVoiceServiceRuntime", () => {
     expect(wakeEvents).toEqual(["hey jarvis"]);
   });
 
+  it("stops cleanly when a shutdown signal aborts wake activation", async () => {
+    const signals = createServiceSignalController();
+    const stderr = createCapturedWriter();
+    const killedProcessGroups: number[] = [];
+
+    const result = runDesktopVoiceServiceRuntime({
+      config: createDesktopVoiceConfig(
+        deterministicScenarios.alarmListEmpty.text,
+        {
+          desktopVoice: {
+            wakeActivation: {
+              args: ["-c", "sleep 10"],
+              command: "/bin/sh",
+              timeoutMs: 10_000,
+            },
+          },
+          voice: {
+            wakeActivation: "openwakeword-command",
+          },
+        },
+      ),
+      io: { stderr },
+      processControl: {
+        kill: (pid, signal) => {
+          killedProcessGroups.push(pid);
+          process.kill(pid, signal);
+        },
+        platform: "linux",
+      },
+      processSignals: signals,
+      retryAfterFailure: () => Promise.resolve(),
+    });
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50);
+    });
+    signals.emit("SIGINT");
+
+    await expect(result).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 0,
+    });
+    expect(killedProcessGroups).toHaveLength(1);
+    expect(killedProcessGroups[0]).toBeLessThan(0);
+    expect(stderr.writes).toEqual([]);
+  });
+
   it("keeps running after a recoverable activation failure", async () => {
     const signals = createServiceSignalController();
     const stderr = createCapturedWriter();

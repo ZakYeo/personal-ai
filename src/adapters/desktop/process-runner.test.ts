@@ -69,6 +69,32 @@ describe("runCommand", () => {
       stdout: "",
     } satisfies Partial<CommandSpawnError>);
   });
+
+  it("terminates the command when the request is aborted", async () => {
+    const controller = new AbortController();
+    const killedProcessGroups: number[] = [];
+    const processControl: ProcessControl = {
+      kill: (pid, signal) => {
+        killedProcessGroups.push(pid);
+        process.kill(pid, signal);
+      },
+      platform: "linux",
+    };
+
+    const result = runCommand({
+      args: ["-c", "printf 'partial transcript'; sleep 1"],
+      command: "/bin/sh",
+      processControl,
+      signal: controller.signal,
+      timeoutMs: 1_000,
+    });
+
+    controller.abort(new Error("shutdown requested"));
+
+    await expect(result).rejects.toThrow("shutdown requested");
+    expect(killedProcessGroups).toHaveLength(1);
+    expect(killedProcessGroups[0]).toBeLessThan(0);
+  });
 });
 
 describe("runCommandUntilStdoutLine", () => {

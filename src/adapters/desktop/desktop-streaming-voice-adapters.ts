@@ -14,6 +14,7 @@ export class CommandStreamingAudioInput implements StreamingAudioInputPort {
   constructor(
     private readonly commandConfig: VoiceCommandConfig,
     private readonly processControl?: ProcessControl,
+    private readonly signal?: AbortSignal,
   ) {}
 
   captureStream(): Promise<CapturedAudioStream> {
@@ -21,6 +22,7 @@ export class CommandStreamingAudioInput implements StreamingAudioInputPort {
       runCommandReadableStream({
         ...this.commandConfig,
         ...(this.processControl ? { processControl: this.processControl } : {}),
+        ...(this.signal ? { signal: this.signal } : {}),
       }),
     );
   }
@@ -30,6 +32,7 @@ export class CommandStreamingAudioOutput implements StreamingAudioOutputPort {
   constructor(
     private readonly commandConfig: VoiceCommandConfig,
     private readonly processControl?: ProcessControl,
+    private readonly signal?: AbortSignal,
   ) {}
 
   playStream(chunks: AsyncIterable<Uint8Array>): Promise<void> {
@@ -37,6 +40,7 @@ export class CommandStreamingAudioOutput implements StreamingAudioOutputPort {
       {
         ...this.commandConfig,
         ...(this.processControl ? { processControl: this.processControl } : {}),
+        ...(this.signal ? { signal: this.signal } : {}),
       },
       chunks,
     );

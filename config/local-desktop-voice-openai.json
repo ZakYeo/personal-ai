@@ -61,7 +61,7 @@
         "--model",
         "hey jarvis",
         "--threshold",
-        "0.5"
+        "0.35"
       ],
       "timeoutMs": 86400000
     },

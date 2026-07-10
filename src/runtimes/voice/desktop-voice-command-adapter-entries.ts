@@ -43,6 +43,7 @@ export const desktopVoiceCommandAdapterEntries = {
           command,
           context.tempFiles,
           context.dependencies.processControl,
+          context.dependencies.shutdownSignal,
         ),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "audioInput"),
@@ -51,7 +52,11 @@ export const desktopVoiceCommandAdapterEntries = {
   speechToText: {
     command: defineDesktopVoiceAdapter({
       create: (command: VoiceCommandConfig, context) =>
-        new CommandSpeechToText(command, context.dependencies.processControl),
+        new CommandSpeechToText(
+          command,
+          context.dependencies.processControl,
+          context.dependencies.shutdownSignal,
+        ),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "speechToText"),
     }),
@@ -62,6 +67,7 @@ export const desktopVoiceCommandAdapterEntries = {
         new CommandStreamingAudioInput(
           command,
           context.dependencies.processControl,
+          context.dependencies.shutdownSignal,
         ),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "streamingAudioInput"),
@@ -93,7 +99,11 @@ export const desktopVoiceCommandAdapterEntries = {
   wakeActivation: {
     "openwakeword-command": defineDesktopVoiceAdapter({
       create: (command: VoiceCommandConfig, context) =>
-        new CommandWakeActivation(command, context.dependencies.processControl),
+        new CommandWakeActivation(
+          command,
+          context.dependencies.processControl,
+          context.dependencies.shutdownSignal,
+        ),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "wakeActivation"),
     }),

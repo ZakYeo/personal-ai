@@ -77,6 +77,7 @@ export interface DesktopVoiceAdapterRuntimeDependencies {
   env: Record<string, string | undefined>;
   fetch: typeof globalThis.fetch;
   processControl: ProcessControl;
+  shutdownSignal?: AbortSignal;
   webSocketFactory?: RealtimeSocketFactory;
 }
 
