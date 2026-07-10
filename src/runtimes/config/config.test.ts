@@ -32,7 +32,7 @@ describe("loadConfig", () => {
         audioOutput: "mock",
       },
       features: {
-        calendar: { enabled: true, adapter: "mock" },
+        calendar: { enabled: true, adapter: "mock", upcomingWindowDays: 92 },
         messaging: { enabled: true, adapter: "mock" },
         alarms: {
           enabled: true,
@@ -58,7 +58,7 @@ describe("loadConfig", () => {
           provider: "deterministic",
         },
         features: {
-          calendar: { enabled: false },
+          calendar: { enabled: false, upcomingWindowDays: 92 },
         },
       }),
     );
@@ -81,7 +81,7 @@ describe("loadConfig", () => {
         provider: "disabled",
       },
       features: {
-        calendar: { enabled: false },
+        calendar: { enabled: false, upcomingWindowDays: 92 },
       },
     });
   });
@@ -354,6 +354,7 @@ describe("parseAssistantConfig", () => {
     expect(config.features.calendar).toEqual({
       enabled: true,
       adapter: "google",
+      upcomingWindowDays: 92,
       google: {
         accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
         baseUrl: "https://www.googleapis.com/calendar/v3",
@@ -365,6 +366,26 @@ describe("parseAssistantConfig", () => {
         timeoutMs: 30_000,
         tokenUrl: "https://oauth2.googleapis.com/token",
       },
+    });
+  });
+
+  it("parses calendar upcoming window overrides", () => {
+    const config = parseAssistantConfig(
+      createMinimalConfig({
+        features: {
+          calendar: {
+            enabled: true,
+            adapter: "mock",
+            upcomingWindowDays: 31,
+          },
+        },
+      }),
+    );
+
+    expect(config.features.calendar).toEqual({
+      enabled: true,
+      adapter: "mock",
+      upcomingWindowDays: 31,
     });
   });
 
@@ -388,6 +409,24 @@ describe("parseAssistantConfig", () => {
     );
   });
 
+  it("validates calendar upcoming window during parsing", () => {
+    expect(() =>
+      parseAssistantConfig(
+        createMinimalConfig({
+          features: {
+            calendar: {
+              enabled: true,
+              adapter: "mock",
+              upcomingWindowDays: 0,
+            },
+          },
+        }),
+      ),
+    ).toThrow(
+      'Config feature "calendar".upcomingWindowDays must be a positive integer.',
+    );
+  });
+
   it("ignores unselected feature adapter provider config", () => {
     const feature = parseAssistantConfig(
       createMinimalConfig({
@@ -406,6 +445,7 @@ describe("parseAssistantConfig", () => {
     expect(feature).toEqual({
       enabled: true,
       adapter: "mock",
+      upcomingWindowDays: 92,
     });
   });
 });

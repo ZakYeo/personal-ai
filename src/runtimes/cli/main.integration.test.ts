@@ -33,7 +33,10 @@ import { safeRuntimeFallbackResponse } from "../human-boundary.js";
 describe("personal-ai ask CLI", () => {
   it("prints the calendar response", async () => {
     await expect(
-      runAsk({ text: deterministicScenarios.calendarWedding.text }),
+      runAsk({
+        env: { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
+        text: deterministicScenarios.calendarWedding.text,
+      }),
     ).resolves.toEqual(
       cliResult(
         0,
@@ -44,7 +47,10 @@ describe("personal-ai ask CLI", () => {
 
   it("smoke-prints upcoming calendar events through the mock calendar", async () => {
     await expect(
-      runAsk({ text: deterministicScenarios.calendarUpcomingEvents.text }),
+      runAsk({
+        env: { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
+        text: deterministicScenarios.calendarUpcomingEvents.text,
+      }),
     ).resolves.toEqual(
       cliResult(
         0,
@@ -79,7 +85,9 @@ describe("personal-ai ask CLI", () => {
   });
 
   it("runs one simulated voice turn with the default utterance", async () => {
-    await expect(runCli(["voice-once"])).resolves.toEqual({
+    await expect(
+      runCli(["voice-once"], { PERSONAL_AI_FIXED_NOW: deterministicNowIso }),
+    ).resolves.toEqual({
       exitCode: 0,
       stdout: [`${deterministicScenarios.calendarWedding.response.text}\n`],
       stderr: [],
@@ -113,13 +121,16 @@ describe("personal-ai ask CLI", () => {
     const configPath = await writeTempConfig(voiceEnabledDeterministicConfig);
 
     await expect(
-      runCli([
-        "voice-once",
-        "--config",
-        configPath,
-        "--utterance",
-        deterministicScenarios.calendarUpcomingEvents.text,
-      ]),
+      runCli(
+        [
+          "voice-once",
+          "--config",
+          configPath,
+          "--utterance",
+          deterministicScenarios.calendarUpcomingEvents.text,
+        ],
+        { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
+      ),
     ).resolves.toEqual({
       exitCode: 0,
       stdout: [

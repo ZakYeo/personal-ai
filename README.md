@@ -32,7 +32,8 @@ Implemented today:
 - Opt-in OpenAI intent and conversation adapters behind the existing ports.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events
-  port, with refresh-token OAuth support.
+  port, with a three-month default upcoming window and refresh-token OAuth
+  support.
 - Provider adapter contract helpers for deterministic credentials, transport,
   provider response, timeout, and diagnostic tests.
 - Mock calendar and messaging features.
@@ -101,6 +102,9 @@ command. If Google shows "Access blocked" because the app has not completed
 verification, open the matching Google Cloud project, go to Google Auth
 Platform > Audience, and add your Google account under Test users before running
 the setup command again. Do not store Google tokens in repository config files.
+Generic upcoming calendar requests default to a 92-day window through
+`features.calendar.upcomingWindowDays`, which prevents long-running recurring
+events from filling normal spoken answers.
 
 ## Quick Start
 

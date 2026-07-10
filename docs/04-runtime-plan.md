@@ -304,6 +304,7 @@ features:
   calendar:
     enabled: true
     adapter: mock
+    upcomingWindowDays: 92
     google:
       accessTokenEnv: GOOGLE_CALENDAR_ACCESS_TOKEN
       clientIdEnv: GOOGLE_CALENDAR_CLIENT_ID
@@ -380,7 +381,10 @@ command responses into spoken-friendly wording, preserving command facts and
 falling back to the original safe response while logging diagnostics if
 rewriting fails.
 The `google` calendar adapter is opt-in and selected with
-`features.calendar.adapter: google`. It can use a legacy OAuth access token from
+`features.calendar.adapter: google`. Generic upcoming event searches default to
+`features.calendar.upcomingWindowDays: 92`, so normal list requests stay within
+roughly three months unless the user or config supplies a different date range.
+The adapter can use a legacy OAuth access token from
 `GOOGLE_CALENDAR_ACCESS_TOKEN`, or exchange `GOOGLE_CALENDAR_CLIENT_ID`,
 `GOOGLE_CALENDAR_CLIENT_SECRET`, and `GOOGLE_CALENDAR_REFRESH_TOKEN` for an
 access token at `https://oauth2.googleapis.com/token`. `calendarId`, `baseUrl`,

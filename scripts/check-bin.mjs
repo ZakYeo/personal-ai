@@ -9,7 +9,9 @@ const exitCode = await main(
     "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?",
   ],
   {
-    env: {},
+    env: {
+      PERSONAL_AI_FIXED_NOW: "2026-06-26T09:00:00.000Z",
+    },
     stdout: {
       write: (chunk) => {
         stdout.push(String(chunk));
@@ -25,7 +27,8 @@ const exitCode = await main(
   },
 );
 
-const expectedOutput = "The upcoming wedding is on 2026-09-12.\n";
+const expectedOutput =
+  "Upcoming wedding is on September 12, in about three months.\n";
 const actualOutput = stdout.join("");
 
 if (exitCode !== 0 || actualOutput !== expectedOutput || stderr.length > 0) {

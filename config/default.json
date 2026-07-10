@@ -22,7 +22,8 @@
   "features": {
     "calendar": {
       "enabled": true,
-      "adapter": "mock"
+      "adapter": "mock",
+      "upcomingWindowDays": 92
     },
     "messaging": {
       "enabled": true,

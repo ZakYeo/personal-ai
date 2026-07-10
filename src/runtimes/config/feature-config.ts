@@ -1,6 +1,9 @@
 import type { AssistantPolicyConfig } from "../../ports/assistant.js";
 import type { GoogleCalendarConfig } from "../../ports/calendar.js";
-import { parseCalendarFeatureConfig } from "./calendar-feature-config.js";
+import {
+  parseCalendarFeatureConfig,
+  parseSelectedCalendarAdapterConfig,
+} from "./calendar-feature-config.js";
 import { isRecord } from "./config-parse-utils.js";
 
 type ParsedCommonFeatureConfig = AssistantPolicyConfig["features"][string] & {
@@ -9,6 +12,7 @@ type ParsedCommonFeatureConfig = AssistantPolicyConfig["features"][string] & {
 
 export interface ParsedFeatureConfig extends ParsedCommonFeatureConfig {
   google?: GoogleCalendarConfig;
+  upcomingWindowDays?: number;
 }
 
 export type ParsedFeaturesConfig = Record<string, ParsedFeatureConfig>;
@@ -32,6 +36,7 @@ export function parseFeaturesConfig(
     const parsed = {
       enabled: featureConfig.enabled,
       ...parseFeatureAdapter(featureId, featureConfig),
+      ...parseFeatureConfig(featureId, featureConfig),
       ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
       ...parseSelectedFeatureAdapterConfig(featureId, featureConfig),
     };
@@ -40,6 +45,17 @@ export function parseFeaturesConfig(
   }
 
   return features;
+}
+
+function parseFeatureConfig(
+  featureId: string,
+  featureConfig: Record<string, unknown>,
+): Partial<ParsedFeatureConfig> {
+  if (featureId !== "calendar") {
+    return {};
+  }
+
+  return parseCalendarFeatureConfig(featureConfig);
 }
 
 function parseFeatureAdapter(
@@ -95,5 +111,5 @@ function parseSelectedFeatureAdapterConfig(
     return {};
   }
 
-  return parseCalendarFeatureConfig(featureConfig);
+  return parseSelectedCalendarAdapterConfig(featureConfig);
 }

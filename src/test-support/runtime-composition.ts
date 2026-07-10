@@ -101,6 +101,7 @@ export function createRuntimeConfigWithGoogleCalendarAdapter(): LoadedRuntimeCon
       calendar: {
         enabled: true,
         adapter: "google",
+        upcomingWindowDays: 92,
         google: {
           accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
           baseUrl: "https://calendar.example.test/v3",

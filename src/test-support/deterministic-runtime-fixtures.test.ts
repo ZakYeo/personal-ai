@@ -14,7 +14,7 @@ describe("deterministic runtime fixtures", () => {
     expect(deterministicNowIso).toBe("2026-06-26T09:00:00.000Z");
     expect(deterministicNow.toISOString()).toBe(deterministicNowIso);
     expect(enabledDeterministicConfig.features).toEqual({
-      calendar: { enabled: true, adapter: "mock" },
+      calendar: { enabled: true, adapter: "mock", upcomingWindowDays: 92 },
       messaging: { enabled: true, adapter: "mock" },
       alarms: { enabled: true, adapter: "local" },
     });
@@ -25,6 +25,7 @@ describe("deterministic runtime fixtures", () => {
     });
     expect(disabledCalendarConfig.features.calendar).toEqual({
       enabled: false,
+      upcomingWindowDays: 92,
     });
   });
 

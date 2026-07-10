@@ -19,14 +19,22 @@ export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
               env: context.dependencies.env,
               fetch: context.dependencies.fetch,
             }),
+            {
+              upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
+            },
           );
         },
         resolveConfig: (featureConfig): CalendarGoogleAdapterConfig =>
           requireCalendarGoogleAdapterConfig({ featureConfig }),
       }),
-      mock: defineFeatureAdapterEntry({
-        create: () => createCalendarFeature(createMockCalendar()),
-        resolveConfig: () => {},
+      mock: defineFeatureAdapterEntry<CalendarMockAdapterConfig>({
+        create: (context) =>
+          createCalendarFeature(createMockCalendar(), {
+            upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
+          }),
+        resolveConfig: (featureConfig): CalendarMockAdapterConfig => ({
+          upcomingWindowDays: requireUpcomingWindowDays(featureConfig),
+        }),
       }),
     },
   };
@@ -34,6 +42,11 @@ export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
 
 interface CalendarGoogleAdapterConfig {
   google: GoogleCalendarConfig;
+  upcomingWindowDays: number;
+}
+
+interface CalendarMockAdapterConfig {
+  upcomingWindowDays: number;
 }
 
 function requireCalendarGoogleAdapterConfig(context: {
@@ -47,5 +60,16 @@ function requireCalendarGoogleAdapterConfig(context: {
 
   return {
     google: featureConfig.google,
+    upcomingWindowDays: requireUpcomingWindowDays(featureConfig),
   };
+}
+
+function requireUpcomingWindowDays(featureConfig: ParsedFeatureConfig): number {
+  if (featureConfig.upcomingWindowDays === undefined) {
+    throw new Error(
+      'Config feature "calendar".upcomingWindowDays must be configured.',
+    );
+  }
+
+  return featureConfig.upcomingWindowDays;
 }

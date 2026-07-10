@@ -3,6 +3,7 @@ import { runVoiceTurn } from "./voice-turn.js";
 import { jsonResponse } from "../../test-support/adapter-contract.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import {
+  deterministicNow,
   enabledDeterministicConfig,
   mockVoiceConfig,
   runtimeFailureResponse,
@@ -23,6 +24,7 @@ describe("mock voice runtime", () => {
   it("runs a simulated voice command through the assistant core", async () => {
     const runtime = await createMockVoiceRuntime({
       config: voiceEnabledDeterministicConfig,
+      now: () => deterministicNow,
       utterance: deterministicScenarios.calendarWedding.text,
     });
 

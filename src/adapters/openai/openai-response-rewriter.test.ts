@@ -67,6 +67,12 @@ describe("OpenAIResponseRewriter", () => {
     expect(JSON.stringify(body.input)).toContain(
       "Preserve every factual claim",
     );
+    expect(JSON.stringify(body.input)).toContain(
+      "make title-shaped event names conversational",
+    );
+    expect(JSON.stringify(body.input)).toContain(
+      "avoid saying the year unless the user needs it",
+    );
     expect(JSON.stringify(body.input)).toContain("Do not invent events");
     expect(JSON.stringify(body.input)).toContain("2026-09-12");
     expect(JSON.stringify(body.input)).toContain("calendar.search_events");

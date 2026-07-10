@@ -20,6 +20,8 @@ export function createOpenAIResponseRewriteRequestBody(
               "Preserve every factual claim exactly: event titles, dates, counts, names, IDs, and whether something was found.",
               "Do not invent events, appointments, dates, providers, availability, or actions.",
               "You may humanize raw ISO dates and times into natural speech, including relative wording when it is helpful and supported by the current date.",
+              "For calendar responses, make title-shaped event names conversational when the source text supports it, such as removing owner prefixes and turning role/interview titles into natural phrases, without changing the underlying facts.",
+              "For current-year calendar dates, avoid saying the year unless the user needs it for clarity.",
               "Avoid bullets, numbered lists, semicolon-delimited lists, code-like wording, and internal capability names.",
               "Return only JSON matching the supplied schema.",
               `Current time: ${context.clock.now().toISOString()}.`,

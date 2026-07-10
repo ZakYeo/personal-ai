@@ -7,11 +7,30 @@ import {
 
 interface CalendarFeatureProviderConfig {
   google?: GoogleCalendarConfig;
+  upcomingWindowDays: number;
 }
 
 export function parseCalendarFeatureConfig(
   featureConfig: Record<string, unknown>,
 ): CalendarFeatureProviderConfig {
+  return {
+    upcomingWindowDays: parseOptionalPositiveInteger(
+      featureConfig.upcomingWindowDays,
+      'Config feature "calendar".upcomingWindowDays must be a positive integer.',
+      92,
+    ),
+  };
+}
+
+export function parseSelectedCalendarAdapterConfig(
+  featureConfig: Record<string, unknown>,
+): Pick<CalendarFeatureProviderConfig, "google"> {
+  return parseCalendarGoogleConfig(featureConfig);
+}
+
+function parseCalendarGoogleConfig(
+  featureConfig: Record<string, unknown>,
+): Pick<CalendarFeatureProviderConfig, "google"> {
   const google = featureConfig.google;
 
   if (google === undefined) {
