@@ -97,7 +97,10 @@ already have the client ID and secret, run `npm run setup:google-calendar` to
 approve read-only calendar access and print the refresh-token line to add to
 `.env`. `npm start` fails before listening when Google Calendar is selected and
 the required token setup is missing, with a message pointing back to that setup
-command. Do not store Google tokens in repository config files.
+command. If Google shows "Access blocked" because the app has not completed
+verification, open the matching Google Cloud project, go to Google Auth
+Platform > Audience, and add your Google account under Test users before running
+the setup command again. Do not store Google tokens in repository config files.
 
 ## Quick Start
 
@@ -260,6 +263,12 @@ Generate a local Google Calendar refresh token:
 ```bash
 npm run setup:google-calendar
 ```
+
+If the browser shows `Error 403: access_denied` with an "app is currently being
+tested" message, the Google Cloud OAuth app is still in external testing mode.
+Add the account you are approving, such as `zakyeomanson@gmail.com`, to Google
+Auth Platform > Audience > Test users for the same project as
+`GOOGLE_CALENDAR_CLIENT_ID`, then rerun the setup command.
 
 Run the CLI with a local Google Calendar feature config:
 
