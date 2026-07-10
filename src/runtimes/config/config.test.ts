@@ -330,8 +330,12 @@ describe("parseAssistantConfig", () => {
         accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
         baseUrl: "https://www.googleapis.com/calendar/v3",
         calendarId: "primary",
+        clientIdEnv: "GOOGLE_CALENDAR_CLIENT_ID",
+        clientSecretEnv: "GOOGLE_CALENDAR_CLIENT_SECRET",
         maxResults: 10,
+        refreshTokenEnv: "GOOGLE_CALENDAR_REFRESH_TOKEN",
         timeoutMs: 30_000,
+        tokenUrl: "https://oauth2.googleapis.com/token",
       },
     });
   });

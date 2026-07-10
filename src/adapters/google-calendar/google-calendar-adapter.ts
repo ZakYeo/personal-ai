@@ -7,6 +7,7 @@ import type {
 } from "../../ports/calendar.js";
 import { fetchGoogleCalendarEvents } from "./google-calendar-client.js";
 import { GoogleCalendarError } from "./google-calendar-error.js";
+import { fetchGoogleCalendarAccessToken } from "./google-calendar-token.js";
 import { parseGoogleCalendarEvents } from "./google-calendar-events-parser.js";
 
 export { GoogleCalendarError } from "./google-calendar-error.js";
@@ -31,13 +32,7 @@ async function searchEvents(
   searchOptions: CalendarSearchOptions,
   options: GoogleCalendarAdapterOptions,
 ): Promise<CalendarEvent[]> {
-  const accessToken = options.env[options.config.accessTokenEnv];
-
-  if (!accessToken) {
-    throw new GoogleCalendarError(
-      `Google Calendar access token environment variable ${options.config.accessTokenEnv} is not set.`,
-    );
-  }
+  const accessToken = await resolveAccessToken(options);
 
   return parseGoogleCalendarEvents(
     await fetchGoogleCalendarEvents({
@@ -48,4 +43,43 @@ async function searchEvents(
       now: searchOptions.now,
     }),
   );
+}
+
+async function resolveAccessToken(
+  options: GoogleCalendarAdapterOptions,
+): Promise<string> {
+  const accessToken = options.env[options.config.accessTokenEnv];
+
+  if (accessToken) {
+    return accessToken;
+  }
+
+  const clientId = requireEnv(options, "clientIdEnv", "client ID");
+  const clientSecret = requireEnv(options, "clientSecretEnv", "client secret");
+  const refreshToken = requireEnv(options, "refreshTokenEnv", "refresh token");
+
+  return fetchGoogleCalendarAccessToken({
+    clientId,
+    clientSecret,
+    config: options.config,
+    fetch: options.fetch,
+    refreshToken,
+  });
+}
+
+function requireEnv(
+  options: GoogleCalendarAdapterOptions,
+  configKey: "clientIdEnv" | "clientSecretEnv" | "refreshTokenEnv",
+  label: string,
+): string {
+  const envName = options.config[configKey];
+  const value = options.env[envName];
+
+  if (!value) {
+    throw new GoogleCalendarError(
+      `Google Calendar ${label} environment variable ${envName} is not set.`,
+    );
+  }
+
+  return value;
 }

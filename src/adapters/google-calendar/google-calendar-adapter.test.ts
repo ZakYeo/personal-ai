@@ -111,7 +111,7 @@ describe("createGoogleCalendarAdapter", () => {
     );
   });
 
-  it("rejects missing access tokens before calling the provider", async () => {
+  it("rejects missing Google auth credentials before calling the provider", async () => {
     const fetch = vi.fn();
     const calendar = createAdapter({
       env: createMissingProviderCredentialEnv(),
@@ -124,9 +124,90 @@ describe("createGoogleCalendarAdapter", () => {
         { now: deterministicTestNow },
       ),
     ).rejects.toThrow(
-      "Google Calendar access token environment variable GOOGLE_CALENDAR_ACCESS_TOKEN is not set.",
+      "Google Calendar client ID environment variable GOOGLE_CALENDAR_CLIENT_ID is not set.",
     );
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("exchanges refresh-token credentials before calling Google Calendar", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ access_token: "fresh-token" }))
+      .mockResolvedValueOnce(jsonResponse({ items: [] }));
+    const calendar = createAdapter({
+      env: {
+        GOOGLE_CALENDAR_CLIENT_ID: "test-client-id",
+        GOOGLE_CALENDAR_CLIENT_SECRET: "test-client-secret",
+        GOOGLE_CALENDAR_REFRESH_TOKEN: "test-refresh-token",
+      },
+      fetch,
+    });
+
+    await expect(
+      calendar.searchEvents({}, { now: deterministicTestNow }),
+    ).resolves.toEqual([]);
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      "https://oauth2.googleapis.com/token",
+      expect.objectContaining({
+        body: JSON.stringify({
+          client_id: "test-client-id",
+          client_secret: "test-client-secret",
+          grant_type: "refresh_token",
+          refresh_token: "test-refresh-token",
+        }),
+        headers: {
+          "content-type": "application/json",
+        },
+        method: "POST",
+      }),
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      "https://calendar.example.test/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=2026-06-26T09%3A00%3A00.000Z&maxResults=10",
+      expect.objectContaining({
+        headers: {
+          authorization: "Bearer fresh-token",
+        },
+        method: "GET",
+      }),
+    );
+  });
+
+  it("rejects missing refresh-token credentials before calling the provider", async () => {
+    const fetch = vi.fn();
+    const calendar = createAdapter({
+      env: {
+        GOOGLE_CALENDAR_CLIENT_ID: "test-client-id",
+        GOOGLE_CALENDAR_CLIENT_SECRET: "test-client-secret",
+      },
+      fetch,
+    });
+
+    await expect(
+      calendar.searchEvents({}, { now: deterministicTestNow }),
+    ).rejects.toThrow(
+      "Google Calendar refresh token environment variable GOOGLE_CALENDAR_REFRESH_TOKEN is not set.",
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed token exchange responses", async () => {
+    const calendar = createAdapter({
+      env: {
+        GOOGLE_CALENDAR_CLIENT_ID: "test-client-id",
+        GOOGLE_CALENDAR_CLIENT_SECRET: "test-client-secret",
+        GOOGLE_CALENDAR_REFRESH_TOKEN: "test-refresh-token",
+      },
+      fetch: createFetchStub(jsonResponse({ access_token: "" })),
+    });
+
+    await expect(
+      calendar.searchEvents({}, { now: deterministicTestNow }),
+    ).rejects.toThrow(
+      "Google Calendar token response access_token must be a non-empty string.",
+    );
   });
 
   it("rejects non-2xx provider responses with status diagnostics", async () => {
@@ -235,7 +316,11 @@ function createAdapter(options: CreateAdapterOptions = {}) {
       accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
       baseUrl: "https://calendar.example.test/v3",
       calendarId: "primary",
+      clientIdEnv: "GOOGLE_CALENDAR_CLIENT_ID",
+      clientSecretEnv: "GOOGLE_CALENDAR_CLIENT_SECRET",
       maxResults: 10,
+      refreshTokenEnv: "GOOGLE_CALENDAR_REFRESH_TOKEN",
+      tokenUrl: "https://oauth2.googleapis.com/token",
       timeoutMs: options.timeoutMs ?? 30_000,
     },
     env:
