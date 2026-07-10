@@ -71,6 +71,58 @@ describe("desktop voice service startup", () => {
     );
   });
 
+  it("fails startup with Google Calendar setup guidance when the refresh token is missing", async () => {
+    const stderr = createCapturedWriter();
+    const runVoiceActivation = vi.fn();
+
+    await expect(
+      runDesktopVoiceServiceRuntime({
+        config: createDesktopVoiceConfig(
+          deterministicScenarios.alarmListEmpty.text,
+          {
+            features: {
+              calendar: {
+                enabled: true,
+                adapter: "google",
+                google: {
+                  accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
+                  baseUrl: "https://calendar.example.test/v3",
+                  calendarId: "primary",
+                  clientIdEnv: "GOOGLE_CALENDAR_CLIENT_ID",
+                  clientSecretEnv: "GOOGLE_CALENDAR_CLIENT_SECRET",
+                  maxResults: 10,
+                  refreshTokenEnv: "GOOGLE_CALENDAR_REFRESH_TOKEN",
+                  timeoutMs: 30_000,
+                  tokenUrl: "https://oauth2.googleapis.com/token",
+                },
+              },
+              messaging: { enabled: true, adapter: "mock" },
+              alarms: { enabled: true, adapter: "local" },
+            },
+          },
+        ),
+        env: {
+          GOOGLE_CALENDAR_CLIENT_ID: "test-client-id",
+          GOOGLE_CALENDAR_CLIENT_SECRET: "test-client-secret",
+        },
+        io: { stderr },
+        retryAfterFailure: () => Promise.resolve(),
+        runVoiceActivation,
+      }),
+    ).resolves.toEqual({
+      response: safeRuntimeFallbackResponse,
+      status: "startup_failed",
+      turnsCompleted: 0,
+    });
+
+    expect(runVoiceActivation).not.toHaveBeenCalled();
+    expect(stderr.writes).toContain(
+      line(
+        'Runtime failure: Google Calendar is selected but GOOGLE_CALENDAR_REFRESH_TOKEN is not set. Run "npm run setup:google-calendar" first, add the printed GOOGLE_CALENDAR_REFRESH_TOKEN line to .env, then start the service again.',
+      ),
+    );
+  });
+
   it("fails startup once with OpenWakeWord setup guidance when the local Python listener dependency is missing", async () => {
     const stderr = createCapturedWriter();
     const runVoiceActivation = vi.fn();

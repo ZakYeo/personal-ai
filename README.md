@@ -95,7 +95,9 @@ requires local OAuth credentials in `.env`: `GOOGLE_CALENDAR_CLIENT_ID`,
 `GOOGLE_CALENDAR_CLIENT_SECRET`, and `GOOGLE_CALENDAR_REFRESH_TOKEN`. If you
 already have the client ID and secret, run `npm run setup:google-calendar` to
 approve read-only calendar access and print the refresh-token line to add to
-`.env`. Do not store Google tokens in repository config files.
+`.env`. `npm start` fails before listening when Google Calendar is selected and
+the required token setup is missing, with a message pointing back to that setup
+command. Do not store Google tokens in repository config files.
 
 ## Quick Start
 

@@ -18,6 +18,7 @@ import {
 } from "./desktop-voice-adapter-registry.js";
 import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
 import type { ProcessControl } from "../../ports/process-control.js";
+import { validateGoogleCalendarStartup } from "../google-calendar-startup-check.js";
 import {
   runVoiceActivation,
   type VoiceActivationDependencies,
@@ -60,7 +61,7 @@ export function runConfiguredVoiceServiceRuntime(
     options.processControl ?? createNodeProcessControl(process);
 
   return runConfiguredServiceRuntime(options, {
-    validateConfig: validateVoiceServiceConfig,
+    validateConfig: (config) => validateVoiceServiceConfig(config, env),
     runTurn: async ({ assistant, config }) => {
       const voiceConfig = requireVoiceConfig(config);
       const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
@@ -118,6 +119,7 @@ export function runConfiguredVoiceServiceRuntime(
 
 async function validateVoiceServiceConfig(
   config: LoadedRuntimeConfig,
+  env: Record<string, string | undefined>,
 ): Promise<void> {
   const voiceConfig = requireVoiceConfig(config);
   const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
@@ -126,4 +128,5 @@ async function validateVoiceServiceConfig(
   );
 
   await validateOpenWakeWordStartup(voiceConfig, desktopVoiceConfig);
+  validateGoogleCalendarStartup(config, env);
 }
