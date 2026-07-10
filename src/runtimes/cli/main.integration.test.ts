@@ -42,6 +42,17 @@ describe("personal-ai ask CLI", () => {
     );
   });
 
+  it("smoke-prints upcoming calendar events through the mock calendar", async () => {
+    await expect(
+      runAsk({ text: deterministicScenarios.calendarUpcomingEvents.text }),
+    ).resolves.toEqual(
+      cliResult(
+        0,
+        stdoutLine(deterministicScenarios.calendarUpcomingEvents.response.text),
+      ),
+    );
+  });
+
   it("prints the messaging draft response", async () => {
     await expect(
       runAsk({ text: deterministicScenarios.messagingWhatsappDraft.text }),
@@ -93,6 +104,26 @@ describe("personal-ai ask CLI", () => {
       exitCode: 0,
       stdout: [
         `${deterministicScenarios.alarmCreateNeedsConfirmation.response.text}\n`,
+      ],
+      stderr: [],
+    });
+  });
+
+  it("smoke-runs upcoming calendar events through mock voice and calendar", async () => {
+    const configPath = await writeTempConfig(voiceEnabledDeterministicConfig);
+
+    await expect(
+      runCli([
+        "voice-once",
+        "--config",
+        configPath,
+        "--utterance",
+        deterministicScenarios.calendarUpcomingEvents.text,
+      ]),
+    ).resolves.toEqual({
+      exitCode: 0,
+      stdout: [
+        `${deterministicScenarios.calendarUpcomingEvents.response.text}\n`,
       ],
       stderr: [],
     });

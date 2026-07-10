@@ -13,6 +13,13 @@ export const deterministicScenarios = {
       text: "The upcoming wedding is on 2026-09-12.",
     },
   },
+  calendarUpcomingEvents: {
+    text: "Hey Jarvis, can you check my calendar please? What upcoming events do I have?",
+    response: {
+      status: "ok",
+      text: "Your upcoming calendar events are: Upcoming wedding on 2026-09-12.",
+    },
+  },
   messagingWhatsappDraft: {
     text: "Hey Jarvis, can you respond to that WhatsApp message for me?",
     response: {

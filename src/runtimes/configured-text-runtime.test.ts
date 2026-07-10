@@ -21,6 +21,14 @@ describe("createConfiguredTextRuntime", () => {
     ).resolves.toEqual(deterministicScenarios.calendarWedding.response);
   });
 
+  it("smoke-routes upcoming calendar events through the mock calendar adapter", async () => {
+    const assistant = await createConfiguredTextRuntimeHarness();
+
+    await expect(
+      assistant.handleText(deterministicScenarios.calendarUpcomingEvents.text),
+    ).resolves.toEqual(deterministicScenarios.calendarUpcomingEvents.response);
+  });
+
   it("respects disabled features from config", async () => {
     const assistant = await createConfiguredTextRuntimeHarness({
       config: disabledCalendarConfig,
