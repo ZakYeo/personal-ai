@@ -41,6 +41,7 @@ export function createCalendarFeature(
             "Search configured calendar events for a natural-language query and return the best matching event date.",
           risk: "low",
           summary: "Search configured calendar events.",
+          spokenSummary: "check your calendar",
           parameters: calendarSearchEventsParameters,
           execute: async (request, context) =>
             searchEvents(calendar, request.args, context.clock.now()),

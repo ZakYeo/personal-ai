@@ -35,7 +35,8 @@ Implemented today:
 - Mock calendar and messaging features.
 - Local alarm feature backed by an adapter-owned store.
 - Built-in assistant capability catalog feature for listing and describing the
-  currently enabled capabilities from feature metadata.
+  currently enabled capabilities from feature metadata, with concise spoken
+  summaries for normal voice answers.
 - Runtime fallback handling that keeps human-facing responses safe while logging
   diagnostics internally.
 - Runtime-owned cleanup for desktop voice capture and speech temp files.

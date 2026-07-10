@@ -8,6 +8,7 @@ export interface FeatureCapability {
   name: string;
   risk: "low" | "high";
   summary?: string;
+  spokenSummary?: string;
   description?: string;
   requiresConfirmation?: boolean;
   parameters?: Record<string, FeatureCapabilityParameter>;
@@ -168,6 +169,9 @@ export function defineFeature<
       name,
       risk: handler.risk,
       ...(handler.summary === undefined ? {} : { summary: handler.summary }),
+      ...(handler.spokenSummary === undefined
+        ? {}
+        : { spokenSummary: handler.spokenSummary }),
       ...(handler.description === undefined
         ? {}
         : { description: handler.description }),

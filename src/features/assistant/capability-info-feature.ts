@@ -83,20 +83,55 @@ export function createCapabilityInfoCatalogFeature(): {
 }
 
 function listCapabilities(catalog: CapabilityCatalog): FeatureResult {
-  const capabilityLines = catalog.map(
-    ({ capability, featureName }) =>
-      `${capability.name}: ${capability.summary ?? featureName}`,
-  );
+  const spokenCapabilities = formatSpokenCapabilities(catalog);
 
-  if (capabilityLines.length === 0) {
+  if (spokenCapabilities.length === 0) {
     return {
       text: "No assistant capabilities are enabled.",
     };
   }
 
+  const confirmationText = catalog.some(
+    ({ capability, featureId }) =>
+      featureId !== "assistant" &&
+      (capability.requiresConfirmation === true || capability.risk === "high"),
+  )
+    ? " I will ask before creating an alarm."
+    : "";
+
   return {
-    text: `I can use these enabled capabilities: ${capabilityLines.join("; ")}`,
+    text: `I can ${formatSpokenList(spokenCapabilities)}.${confirmationText}`,
   };
+}
+
+function formatSpokenCapabilities(catalog: CapabilityCatalog): string[] {
+  const capabilities = catalog
+    .filter(({ featureId }) => featureId !== "assistant")
+    .map(({ capability, featureName }) =>
+      formatFallbackCapability(
+        capability.spokenSummary ?? capability.summary ?? featureName,
+      ),
+    );
+
+  return [...new Set(capabilities)];
+}
+
+function formatFallbackCapability(text: string): string {
+  return text
+    .replace(/\.$/u, "")
+    .replace(/^([A-Z])/u, (letter) => letter.toLowerCase());
+}
+
+function formatSpokenList(items: string[]): string {
+  if (items.length === 1) {
+    return items[0] ?? "";
+  }
+
+  if (items.length === 2) {
+    return `${items[0]} and ${items[1]}`;
+  }
+
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
 function describeCapability(

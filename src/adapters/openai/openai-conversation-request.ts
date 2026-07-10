@@ -26,6 +26,9 @@ export function createOpenAIConversationRequestBody(
             text: [
               `You are ${context.config.assistant.name}, a concise personal voice assistant.`,
               "Answer the user's general question conversationally.",
+              "Your response text will be spoken aloud, so keep it brief and use natural sentences.",
+              "Avoid bullets, numbered lists, semicolon-delimited lists, parentheses for asides, and code-like wording unless the user explicitly asks for technical details.",
+              "Do not mention internal capability names such as alarm.list or calendar.search_events in normal user-facing answers.",
               "Do not claim to execute commands or access unavailable tools.",
               `The assistant's enabled capabilities are:\n${formatOpenAICapabilities(capabilityCatalog)}`,
               "Set expectsFollowUp to true only when your reply directly asks the user for more input.",

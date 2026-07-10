@@ -45,15 +45,7 @@ export const deterministicScenarios = {
     text: "Hey Jarvis, what are your capable functionalities?",
     response: {
       status: "ok",
-      text: [
-        "I can use these enabled capabilities:",
-        "calendar.search_events: Search configured calendar events.;",
-        "messaging.draft_reply: Draft a message reply without sending it.;",
-        "alarm.create: Create a local alarm after a relative delay.;",
-        "alarm.list: List currently stored local alarms.;",
-        "assistant.capabilities.list: List enabled assistant capabilities.;",
-        "assistant.capabilities.describe: Describe one enabled assistant capability.",
-      ].join(" "),
+      text: "I can check your calendar, draft message replies, and manage local alarms. I will ask before creating an alarm.",
     },
   },
   unknown: {

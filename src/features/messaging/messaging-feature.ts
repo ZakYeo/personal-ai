@@ -42,6 +42,7 @@ export function createMessagingFeature(): FeaturePlugin {
             "Draft a reply for a configured messaging channel without sending it.",
           risk: "low",
           summary: "Draft a message reply without sending it.",
+          spokenSummary: "draft message replies",
           parameters: messagingDraftReplyParameters,
           execute: (request) => draftReply(request.args),
         }),

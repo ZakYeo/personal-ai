@@ -375,6 +375,10 @@ so future intent and conversation providers can reuse the same feature metadata
 projection. Capability summaries and descriptions are generated from enabled
 feature metadata and also back the built-in assistant capability catalog
 feature.
+Voice-facing answers should present this capability metadata in natural spoken
+language. Normal user-facing responses should avoid bullets, semicolon-delimited
+lists, and internal capability names such as `alarm.list` unless the user asks
+for technical detail.
 
 Runtime composition should resolve broad optional configuration into
 runtime-specific validated shapes before adapter construction. For a voice

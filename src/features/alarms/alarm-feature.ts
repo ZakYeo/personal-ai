@@ -62,6 +62,7 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
             "Create a local alarm scheduled a number of minutes from now. This requires confirmation before the alarm is saved.",
           risk: "high",
           summary: "Create a local alarm after a relative delay.",
+          spokenSummary: "manage local alarms",
           requiresConfirmation: true,
           parameters: alarmCreateParameters,
           execute: (request, context: AssistantContext) =>
@@ -72,6 +73,7 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
             "List the local alarms currently stored by this assistant runtime.",
           risk: "low",
           summary: "List currently stored local alarms.",
+          spokenSummary: "manage local alarms",
           parameters: alarmListParameters,
           execute: () => listAlarms(store),
         }),

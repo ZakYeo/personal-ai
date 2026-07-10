@@ -123,6 +123,32 @@ describe("OpenAIConversationResponder", () => {
     );
   });
 
+  it("instructs the provider to answer in a spoken, user-facing style", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        output_text: JSON.stringify({
+          expectsFollowUp: false,
+          text: "I can help with your calendar and alarms.",
+        }),
+      }),
+    );
+    const responder = createResponder({ fetch });
+
+    await responder.respond("What are your capabilities?", state, context);
+
+    const body = readRequestBody(fetch);
+    const messages = body.input as Array<{
+      content: Array<{ text: string; type: string }>;
+      role: string;
+    }>;
+    const systemPrompt = messages[0]?.content[0]?.text ?? "";
+
+    expect(systemPrompt).toContain("spoken aloud");
+    expect(systemPrompt).toContain("Avoid bullets");
+    expect(systemPrompt).toContain("Do not mention internal capability names");
+    expect(systemPrompt).toContain("alarm.list");
+  });
+
   it("rejects missing API keys before calling the provider", async () => {
     const fetch = vi.fn();
     const responder = createResponder({
