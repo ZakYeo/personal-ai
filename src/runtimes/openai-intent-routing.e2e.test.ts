@@ -43,6 +43,11 @@ const liveRoutingScenarios = [
     text: "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?",
   },
   {
+    capability: "calendar.search_events",
+    parameters: {},
+    text: "Hey Jarvis, can you check my calendar please? What upcoming events do I have?",
+  },
+  {
     capability: "messaging.draft_reply",
     parameters: {},
     text: "Hey Jarvis, draft a generic WhatsApp reply for me.",

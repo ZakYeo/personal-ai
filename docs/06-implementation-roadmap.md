@@ -474,7 +474,8 @@ Acceptance criteria:
 Implemented structure:
 
 - `calendar.search_events` now runs through an application-owned calendar search
-  port; the deterministic fixture data lives behind a mock calendar adapter.
+  port with optional query and date-range criteria; the deterministic fixture
+  data lives behind a mock calendar adapter.
 - `google` can be selected as the calendar feature adapter through local runtime
   config while the checked-in default config remains mock and deterministic.
 - The Google Calendar adapter calls the read-only events list API through

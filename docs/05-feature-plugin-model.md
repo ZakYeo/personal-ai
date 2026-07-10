@@ -183,12 +183,13 @@ Example command:
 
 ```text
 Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?
+Hey Jarvis, can you check my calendar please? What upcoming events do I have?
 ```
 
 Expected behavior:
 
 ```text
-Search mock calendar events and return the matching date.
+Search mock calendar events by optional query and optional date range, or list upcoming events when no query is provided.
 ```
 
 ### Messaging

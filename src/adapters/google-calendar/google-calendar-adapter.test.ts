@@ -35,7 +35,10 @@ describe("createGoogleCalendarAdapter", () => {
     const calendar = createAdapter({ fetch });
 
     await expect(
-      calendar.searchEvents("upcoming wedding", { now: deterministicTestNow }),
+      calendar.searchEvents(
+        { query: "upcoming wedding" },
+        { now: deterministicTestNow },
+      ),
     ).resolves.toEqual([
       {
         id: "event-1",
@@ -66,8 +69,46 @@ describe("createGoogleCalendarAdapter", () => {
     });
 
     await expect(
-      calendar.searchEvents("dentist", { now: deterministicTestNow }),
+      calendar.searchEvents(
+        { query: "dentist" },
+        { now: deterministicTestNow },
+      ),
     ).resolves.toEqual([]);
+  });
+
+  it("omits the Google text query for generic upcoming event searches", async () => {
+    const fetch = createFetchStub(jsonResponse({ items: [] }));
+    const calendar = createAdapter({ fetch });
+
+    await expect(
+      calendar.searchEvents({}, { now: deterministicTestNow }),
+    ).resolves.toEqual([]);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://calendar.example.test/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=2026-06-26T09%3A00%3A00.000Z&maxResults=10",
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
+  });
+
+  it("uses explicit date bounds for Google Calendar searches", async () => {
+    const fetch = createFetchStub(jsonResponse({ items: [] }));
+    const calendar = createAdapter({ fetch });
+
+    await expect(
+      calendar.searchEvents(
+        { endDate: "2026-08-31", startDate: "2026-08-01" },
+        { now: deterministicTestNow },
+      ),
+    ).resolves.toEqual([]);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://calendar.example.test/v3/calendars/primary/events?singleEvents=true&orderBy=startTime&timeMin=2026-08-01T00%3A00%3A00.000Z&timeMax=2026-08-31T23%3A59%3A59.999Z&maxResults=10",
+      expect.objectContaining({
+        method: "GET",
+      }),
+    );
   });
 
   it("rejects missing access tokens before calling the provider", async () => {
@@ -78,7 +119,10 @@ describe("createGoogleCalendarAdapter", () => {
     });
 
     await expect(
-      calendar.searchEvents("upcoming wedding", { now: deterministicTestNow }),
+      calendar.searchEvents(
+        { query: "upcoming wedding" },
+        { now: deterministicTestNow },
+      ),
     ).rejects.toThrow(
       "Google Calendar access token environment variable GOOGLE_CALENDAR_ACCESS_TOKEN is not set.",
     );
@@ -97,7 +141,10 @@ describe("createGoogleCalendarAdapter", () => {
     });
 
     await expect(
-      calendar.searchEvents("upcoming wedding", { now: deterministicTestNow }),
+      calendar.searchEvents(
+        { query: "upcoming wedding" },
+        { now: deterministicTestNow },
+      ),
     ).rejects.toMatchObject({
       message: "Google Calendar events request failed with status 401.",
       responseBody: '{"error":{"message":"invalid token"}}',
@@ -111,7 +158,10 @@ describe("createGoogleCalendarAdapter", () => {
     });
 
     await expect(
-      calendar.searchEvents("upcoming wedding", { now: deterministicTestNow }),
+      calendar.searchEvents(
+        { query: "upcoming wedding" },
+        { now: deterministicTestNow },
+      ),
     ).rejects.toMatchObject({
       message: "Google Calendar events response body was not valid JSON.",
       responseBody: "{not-json",
@@ -135,7 +185,10 @@ describe("createGoogleCalendarAdapter", () => {
     });
 
     await expect(
-      calendar.searchEvents("upcoming wedding", { now: deterministicTestNow }),
+      calendar.searchEvents(
+        { query: "upcoming wedding" },
+        { now: deterministicTestNow },
+      ),
     ).rejects.toThrow(
       "Google Calendar event start date must be a non-empty string.",
     );
@@ -148,7 +201,10 @@ describe("createGoogleCalendarAdapter", () => {
     });
 
     await expect(
-      calendar.searchEvents("upcoming wedding", { now: deterministicTestNow }),
+      calendar.searchEvents(
+        { query: "upcoming wedding" },
+        { now: deterministicTestNow },
+      ),
     ).rejects.toBe(error);
   });
 
@@ -159,7 +215,10 @@ describe("createGoogleCalendarAdapter", () => {
     });
 
     await expect(
-      calendar.searchEvents("upcoming wedding", { now: deterministicTestNow }),
+      calendar.searchEvents(
+        { query: "upcoming wedding" },
+        { now: deterministicTestNow },
+      ),
     ).rejects.toThrow("Google Calendar events request timed out after 1ms.");
   });
 });

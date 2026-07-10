@@ -29,7 +29,8 @@ Implemented today:
 - Focused runtime config resolvers for assistant policy, intent providers,
   conversation providers, voice adapter IDs, and desktop voice command settings.
 - Opt-in OpenAI intent and conversation adapters behind the existing ports.
-- Opt-in Google Calendar adapter behind the calendar search port.
+- Opt-in Google Calendar adapter behind the calendar search and upcoming-events
+  port.
 - Provider adapter contract helpers for deterministic credentials, transport,
   provider response, timeout, and diagnostic tests.
 - Mock calendar and messaging features.
@@ -250,7 +251,7 @@ deterministic and network-free.
 Run the CLI with a local Google Calendar feature config:
 
 ```bash
-GOOGLE_CALENDAR_ACCESS_TOKEN=... npm run cli -- ask --config path/to/google-calendar-config.json "Hey Jarvis, check my calendar for the upcoming wedding"
+GOOGLE_CALENDAR_ACCESS_TOKEN=... npm run cli -- ask --config path/to/google-calendar-config.json "Hey Jarvis, what upcoming events do I have?"
 ```
 
 ## Scripts

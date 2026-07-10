@@ -17,7 +17,9 @@ describe("createCalendarFeature", () => {
       name: "calendar.search_events",
       risk: "low",
       parameters: {
-        query: { type: "string", required: true },
+        endDate: { type: "string" },
+        query: { type: "string" },
+        startDate: { type: "string" },
       },
     });
   });
@@ -47,6 +49,33 @@ describe("createCalendarFeature", () => {
     );
   });
 
+  it("returns upcoming events when no query is provided", async () => {
+    await expectDecodedFeatureExecution(
+      createFeature(),
+      "calendar.search_events",
+      {},
+      {
+        text: "Your upcoming calendar events are: Upcoming wedding on 2026-09-12.",
+        data: {
+          eventCount: 1,
+        },
+      },
+      context,
+    );
+  });
+
+  it("returns a deterministic no-upcoming-events response", async () => {
+    await expectDecodedFeatureExecution(
+      createFeature(),
+      "calendar.search_events",
+      { endDate: "2026-08-31", startDate: "2026-08-01" },
+      {
+        text: "I could not find any upcoming calendar events.",
+      },
+      context,
+    );
+  });
+
   it("returns a deterministic no-match response", async () => {
     await expectDecodedFeatureExecution(
       createFeature(),
@@ -62,17 +91,20 @@ describe("createCalendarFeature", () => {
 
 function createFakeCalendar(): CalendarSearchPort {
   return {
-    searchEvents: (query) =>
+    searchEvents: (criteria) =>
       Promise.resolve(
-        query === "upcoming wedding"
-          ? [
-              {
-                id: "wedding-2026",
-                startDate: "2026-09-12",
-                title: "Upcoming wedding",
-              },
-            ]
-          : [],
+        criteria.endDate === "2026-08-31"
+          ? []
+          : criteria.query === undefined ||
+              criteria.query === "upcoming wedding"
+            ? [
+                {
+                  id: "wedding-2026",
+                  startDate: "2026-09-12",
+                  title: "Upcoming wedding",
+                },
+              ]
+            : [],
       ),
   };
 }

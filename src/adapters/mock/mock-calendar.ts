@@ -1,5 +1,6 @@
 import type {
   CalendarEvent,
+  CalendarSearchCriteria,
   CalendarSearchPort,
 } from "../../ports/calendar.js";
 
@@ -13,11 +14,35 @@ const calendarEvents: CalendarEvent[] = [
 
 export function createMockCalendar(): CalendarSearchPort {
   return {
-    searchEvents: (query: string) =>
+    searchEvents: (criteria, options) =>
       Promise.resolve(
         calendarEvents.filter((event) =>
-          event.title.toLowerCase().includes(query.toLowerCase()),
+          matchesCriteria(event, criteria, options.now),
         ),
       ),
   };
+}
+
+function matchesCriteria(
+  event: CalendarEvent,
+  criteria: CalendarSearchCriteria,
+  now: Date,
+): boolean {
+  const query = criteria.query?.trim().toLowerCase();
+  const startDate = criteria.startDate ?? now.toISOString().slice(0, 10);
+  const endDate = criteria.endDate;
+
+  if (query && !event.title.toLowerCase().includes(query)) {
+    return false;
+  }
+
+  if (event.startDate < startDate) {
+    return false;
+  }
+
+  if (endDate && event.startDate > endDate) {
+    return false;
+  }
+
+  return true;
 }

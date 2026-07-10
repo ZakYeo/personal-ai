@@ -1,13 +1,16 @@
-import type { GoogleCalendarConfig } from "../../ports/calendar.js";
+import type {
+  CalendarSearchCriteria,
+  GoogleCalendarConfig,
+} from "../../ports/calendar.js";
 import { fetchProviderJson, trimTrailingSlash } from "../http-json-client.js";
 import { GoogleCalendarError } from "./google-calendar-error.js";
 
 interface FetchGoogleCalendarEventsOptions {
   accessToken: string;
   config: GoogleCalendarConfig;
+  criteria: CalendarSearchCriteria;
   fetch: typeof fetch;
   now: Date;
-  query: string;
 }
 
 export async function fetchGoogleCalendarEvents(
@@ -35,8 +38,8 @@ export async function fetchGoogleCalendarEvents(
 
 function createEventsUrl({
   config,
+  criteria,
   now,
-  query,
 }: FetchGoogleCalendarEventsOptions): string {
   const url = new URL(
     `${trimTrailingSlash(config.baseUrl)}/calendars/${encodeURIComponent(
@@ -44,11 +47,33 @@ function createEventsUrl({
     )}/events`,
   );
 
-  url.searchParams.set("q", query);
+  const query = criteria.query?.trim();
+
+  if (query) {
+    url.searchParams.set("q", query);
+  }
+
   url.searchParams.set("singleEvents", "true");
   url.searchParams.set("orderBy", "startTime");
-  url.searchParams.set("timeMin", now.toISOString());
+  url.searchParams.set("timeMin", formatTimeMin(criteria.startDate, now));
+
+  if (criteria.endDate) {
+    url.searchParams.set("timeMax", formatEndOfDay(criteria.endDate));
+  }
+
   url.searchParams.set("maxResults", String(config.maxResults));
 
   return url.toString();
+}
+
+function formatTimeMin(startDate: string | undefined, now: Date): string {
+  return startDate ? formatStartOfDay(startDate) : now.toISOString();
+}
+
+function formatStartOfDay(date: string): string {
+  return `${date}T00:00:00.000Z`;
+}
+
+function formatEndOfDay(date: string): string {
+  return `${date}T23:59:59.999Z`;
 }

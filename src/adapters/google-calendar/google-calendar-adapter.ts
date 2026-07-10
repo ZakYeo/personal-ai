@@ -1,5 +1,6 @@
 import type {
   CalendarEvent,
+  CalendarSearchCriteria,
   CalendarSearchOptions,
   CalendarSearchPort,
   GoogleCalendarConfig,
@@ -20,13 +21,13 @@ export function createGoogleCalendarAdapter(
   options: GoogleCalendarAdapterOptions,
 ): CalendarSearchPort {
   return {
-    searchEvents: (query, searchOptions) =>
-      searchEvents(query, searchOptions, options),
+    searchEvents: (criteria, searchOptions) =>
+      searchEvents(criteria, searchOptions, options),
   };
 }
 
 async function searchEvents(
-  query: string,
+  criteria: CalendarSearchCriteria,
   searchOptions: CalendarSearchOptions,
   options: GoogleCalendarAdapterOptions,
 ): Promise<CalendarEvent[]> {
@@ -42,9 +43,9 @@ async function searchEvents(
     await fetchGoogleCalendarEvents({
       accessToken,
       config: options.config,
+      criteria,
       fetch: options.fetch,
       now: searchOptions.now,
-      query,
     }),
   );
 }

@@ -6,9 +6,15 @@ export interface CalendarEvent {
 
 export interface CalendarSearchPort {
   searchEvents(
-    query: string,
+    criteria: CalendarSearchCriteria,
     options: CalendarSearchOptions,
   ): Promise<CalendarEvent[]>;
+}
+
+export interface CalendarSearchCriteria {
+  endDate?: string;
+  query?: string;
+  startDate?: string;
 }
 
 export interface CalendarSearchOptions {

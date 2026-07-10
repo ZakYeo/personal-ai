@@ -53,13 +53,16 @@ describe("OpenAIIntentInterpreter", () => {
           capability: {
             name: "calendar.search_events",
             parameters: {
-              query: { type: "string", required: true },
+              endDate: { type: "string" },
+              query: { type: "string" },
+              startDate: { type: "string" },
             },
             risk: "low",
           },
           featureId: "calendar",
           featureName: "Mock Calendar",
-          parameterText: "query: string (required)",
+          parameterText:
+            "endDate: string (optional); query: string (optional); startDate: string (optional)",
         },
       ],
       fetch,
@@ -122,7 +125,7 @@ describe("OpenAIIntentInterpreter", () => {
     });
     expect(body.text.format.schema).not.toHaveProperty("anyOf");
     expect(JSON.stringify(body.input)).toContain("calendar.search_events");
-    expect(JSON.stringify(body.input)).toContain("query: string (required)");
+    expect(JSON.stringify(body.input)).toContain("query: string (optional)");
   });
 
   it("returns a conversation classification from structured provider output", async () => {
