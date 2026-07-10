@@ -57,6 +57,85 @@ describe("createAssistant", () => {
     );
   });
 
+  it("rewrites successful command responses when a response rewriter is configured", async () => {
+    const command = createCommand("test.echo", { message: "hello" });
+    const rewrite = vi.fn(() =>
+      Promise.resolve({ text: "Handled naturally." }),
+    );
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [
+        createFeature({
+          capability: {
+            name: "test.echo",
+            risk: "low",
+            parameters: {
+              message: { type: "string", required: true },
+            },
+          },
+          execute: () => Promise.resolve({ text: "Handled on 2026-09-12." }),
+        }),
+      ],
+      intentInterpreter: createInterpreter(command),
+      responseRewriter: { rewrite },
+    });
+
+    await expect(assistant.handleText("hello")).resolves.toEqual({
+      status: "ok",
+      text: "Handled naturally.",
+    });
+    expect(rewrite).toHaveBeenCalledWith(
+      {
+        capability: "test.echo",
+        command,
+        originalText: "hello",
+        response: {
+          status: "ok",
+          text: "Handled on 2026-09-12.",
+        },
+      },
+      {
+        clock,
+        config,
+      },
+    );
+  });
+
+  it("keeps the original command response when response rewriting fails", async () => {
+    const rewriteError = new Error("rewrite provider failure");
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [
+        createFeature({
+          execute: () => Promise.resolve({ text: "Handled on 2026-09-12." }),
+        }),
+      ],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+      responseRewriter: {
+        rewrite: () => Promise.reject(rewriteError),
+      },
+    });
+
+    await expect(assistant.handleTextWithDiagnostics("hello")).resolves.toEqual(
+      {
+        response: {
+          status: "ok",
+          text: "Handled on 2026-09-12.",
+        },
+        diagnostics: [
+          {
+            category: "response_rewrite_failure",
+            capability: "test.echo",
+            cause: rewriteError,
+            message: "rewrite provider failure",
+          },
+        ],
+      },
+    );
+  });
+
   it("returns the interpreter response for unknown intent", async () => {
     const assistant = createAssistant({
       clock,

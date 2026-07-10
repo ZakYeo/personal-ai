@@ -27,10 +27,12 @@ Implemented today:
 - Config-driven adapter selection for intent, features, and voice components.
 - Explicit nested feature adapter registration for mock/local feature adapters.
 - Focused runtime config resolvers for assistant policy, intent providers,
-  conversation providers, voice adapter IDs, and desktop voice command settings.
+  conversation providers, response rewriters, voice adapter IDs, and desktop
+  voice command settings.
 - Opt-in OpenAI intent and conversation adapters behind the existing ports.
+- Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events
-  port.
+  port, with refresh-token OAuth support.
 - Provider adapter contract helpers for deterministic credentials, transport,
   provider response, timeout, and diagnostic tests.
 - Mock calendar and messaging features.
@@ -87,10 +89,13 @@ The development CLI loads `.env` when present with Node's
 `--env-file-if-exists` support. The opt-in OpenAI E2E test also loads `.env`;
 both use the `OPENAI_API_KEY` variable name.
 
-Google Calendar experiments need a local config file that selects
-`features.calendar.adapter: "google"` and an OAuth access token in the
-configured environment variable. Do not store Google tokens in repository
-config files.
+The default desktop OpenAI voice service config used by `npm start` selects the
+Google Calendar adapter and OpenAI response rewriter. Google Calendar access
+requires local OAuth credentials in `.env`: `GOOGLE_CALENDAR_CLIENT_ID`,
+`GOOGLE_CALENDAR_CLIENT_SECRET`, and `GOOGLE_CALENDAR_REFRESH_TOKEN`. If you
+already have the client ID and secret, run `npm run setup:google-calendar` to
+approve read-only calendar access and print the refresh-token line to add to
+`.env`. Do not store Google tokens in repository config files.
 
 ## Quick Start
 
@@ -248,10 +253,16 @@ the currently enabled feature capabilities, uses `gpt-5.4-nano`, and may
 consume API quota. It is not part of `npm run check`; normal validation remains
 deterministic and network-free.
 
+Generate a local Google Calendar refresh token:
+
+```bash
+npm run setup:google-calendar
+```
+
 Run the CLI with a local Google Calendar feature config:
 
 ```bash
-GOOGLE_CALENDAR_ACCESS_TOKEN=... npm run cli -- ask --config path/to/google-calendar-config.json "Hey Jarvis, what upcoming events do I have?"
+npm run cli -- ask --config path/to/google-calendar-config.json "Hey Jarvis, what upcoming events do I have?"
 ```
 
 ## Scripts
@@ -267,6 +278,8 @@ Common development commands:
 - `npm run format:check` - check Prettier formatting.
 - `npm run typecheck` - run TypeScript without emitting files.
 - `npm run build` - compile production JavaScript.
+- `npm run setup:google-calendar` - run the local OAuth loopback helper and
+  print a `GOOGLE_CALENDAR_REFRESH_TOKEN` line for `.env`.
 - `npm run setup:openwakeword` - create or update `.venv` with the Python
   `openwakeword` dependency used by the default desktop voice service.
 - `npm start` - run the default desktop OpenAI voice service with

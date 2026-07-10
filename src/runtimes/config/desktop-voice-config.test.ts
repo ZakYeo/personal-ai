@@ -71,6 +71,9 @@ describe("desktop voice config parsing", () => {
           },
           provider: "disabled",
         },
+        responseRewriter: {
+          provider: "disabled",
+        },
       },
     );
   });

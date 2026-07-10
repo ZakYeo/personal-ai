@@ -56,6 +56,9 @@ export const runtimeFailureConfig: LoadedRuntimeConfig = {
     },
     provider: "disabled",
   },
+  responseRewriter: {
+    provider: "disabled",
+  },
   features: {},
 };
 

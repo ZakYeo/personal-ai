@@ -5,6 +5,7 @@ import {
   createRuntimeConfigWithGoogleCalendarAdapter,
   createRuntimeConfigWithOpenAIConversationProvider,
   createRuntimeConfigWithOpenAIIntentProvider,
+  createRuntimeConfigWithOpenAIResponseRewriter,
   createRuntimeConfigWithUnknownConversationProvider,
   createRuntimeConfigWithMissingFeatureAdapter,
   createRuntimeConfigWithUnknownFeatureAdapter,
@@ -213,6 +214,38 @@ describe("createConfiguredTextRuntime", () => {
       text: "I am doing well today.",
     });
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("wires OpenAI response rewriters into command responses", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          output_text: JSON.stringify({
+            text: "The upcoming wedding is on 12th September 2026.",
+          }),
+        }),
+        { status: 200 },
+      ),
+    );
+    const assistant = await createConfiguredTextRuntimeHarness({
+      config: createRuntimeConfigWithOpenAIResponseRewriter(),
+      env: { OPENAI_API_KEY: "test-openai-key" },
+      fetch,
+    });
+
+    await expect(
+      assistant.handleText(deterministicScenarios.calendarWedding.text),
+    ).resolves.toEqual({
+      status: "ok",
+      text: "The upcoming wedding is on 12th September 2026.",
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://api.openai.test/v1/responses",
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
   });
 
   it("wires Google Calendar adapters into the assistant", async () => {

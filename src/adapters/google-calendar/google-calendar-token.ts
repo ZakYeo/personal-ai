@@ -23,14 +23,14 @@ export async function fetchGoogleCalendarAccessToken(
       nonOkMessage: (status) =>
         `Google Calendar token request failed with status ${status}.`,
       request: {
-        body: JSON.stringify({
+        body: new URLSearchParams({
           client_id: options.clientId,
           client_secret: options.clientSecret,
           grant_type: "refresh_token",
           refresh_token: options.refreshToken,
         }),
         headers: {
-          "content-type": "application/json",
+          "content-type": "application/x-www-form-urlencoded",
         },
         method: "POST",
       },

@@ -479,9 +479,12 @@ Implemented structure:
 - `google` can be selected as the calendar feature adapter through local runtime
   config while the checked-in default config remains mock and deterministic.
 - The Google Calendar adapter calls the read-only events list API through
-  injected `fetch`, reads its OAuth access token from a configured environment
-  variable, validates provider output from `unknown`, and preserves provider
-  failures as diagnostics.
+  injected `fetch`, reads a configured OAuth access token or exchanges configured
+  refresh-token credentials for one, validates provider output from `unknown`,
+  and preserves provider failures as diagnostics.
+- The optional OpenAI command response rewriter can post-process successful
+  command responses into spoken-friendly wording while preserving the original
+  safe feature response if rewriting fails.
 
 Ongoing hardening themes to keep checking during future provider work:
 

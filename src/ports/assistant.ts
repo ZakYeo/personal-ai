@@ -23,6 +23,7 @@ export type AssistantDiagnosticCategory =
   | "confirmation_required"
   | "unsupported"
   | "feature_failure"
+  | "response_rewrite_failure"
   | "conversation_failure"
   | "unexpected";
 

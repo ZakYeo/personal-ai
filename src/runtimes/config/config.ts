@@ -5,6 +5,7 @@ import { parseDesktopVoiceConfig } from "./desktop-voice-config.js";
 import { parseConversationConfig } from "./conversation-config.js";
 import { parseFeaturesConfig } from "./feature-config.js";
 import { parseIntentConfig } from "./intent-config.js";
+import { parseResponseRewriterConfig } from "./response-rewriter-config.js";
 import type { LoadedRuntimeConfig } from "./runtime-config.js";
 import { parseVoiceConfig } from "./voice-config.js";
 
@@ -69,6 +70,7 @@ export function parseAssistantConfig(value: unknown): LoadedRuntimeConfig {
       wakePhrases: assistant.wakePhrases,
     },
     conversation: parseConversationConfig(value.conversation),
+    responseRewriter: parseResponseRewriterConfig(value.responseRewriter),
     ...parseDesktopVoiceConfig(value.desktopVoice),
     ...parseVoiceConfig(value.voice),
     intent: parseIntentConfig(intent),

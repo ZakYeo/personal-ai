@@ -292,14 +292,26 @@ conversation:
     baseUrl: https://api.openai.com/v1
     timeoutMs: 30000
 
+responseRewriter:
+  provider: disabled
+  openai:
+    model: gpt-5.5
+    apiKeyEnv: OPENAI_API_KEY
+    baseUrl: https://api.openai.com/v1
+    timeoutMs: 30000
+
 features:
   calendar:
     enabled: true
     adapter: mock
     google:
       accessTokenEnv: GOOGLE_CALENDAR_ACCESS_TOKEN
+      clientIdEnv: GOOGLE_CALENDAR_CLIENT_ID
+      clientSecretEnv: GOOGLE_CALENDAR_CLIENT_SECRET
+      refreshTokenEnv: GOOGLE_CALENDAR_REFRESH_TOKEN
       calendarId: primary
       baseUrl: https://www.googleapis.com/calendar/v3
+      tokenUrl: https://oauth2.googleapis.com/token
       timeoutMs: 30000
       maxResults: 10
   messaging:
@@ -313,10 +325,12 @@ features:
 The final format can be JSON, YAML, TOML, or TypeScript config. The configured
 text runtime currently uses JSON with `intent.provider`, optional
 `intent.openai` settings, `conversation.provider`, optional
-`conversation.openai` settings, `voice` adapter IDs, optional `desktopVoice`
-command settings, and per-feature `adapter` IDs. Deterministic behavior is one
-selected intent provider, not a separate runtime identity. The important rule is
-that provider, conversation, voice, and feature selection must be
+`conversation.openai` settings, `responseRewriter.provider`, optional
+`responseRewriter.openai` settings, `voice` adapter IDs, optional
+`desktopVoice` command settings, and per-feature `adapter` IDs. Deterministic
+behavior is one selected intent provider, not a separate runtime identity. The
+important rule is that provider, conversation, response rewriting, voice, and
+feature selection must be
 configuration-driven. Text-only runtimes may ignore the `voice` and
 `desktopVoice` sections, but voice runtimes must reject missing or unregistered
 voice adapter IDs during composition.
@@ -357,14 +371,25 @@ user/assistant turns, the configured compactor replaces older turns with a
 summary. The default compaction threshold is 5. OpenAI conversation responses
 return strict JSON containing safe response text and `expectsFollowUp`; raw
 provider output stays inside adapter diagnostics.
+The command response rewriter is selected separately with
+`responseRewriter.provider`. The default provider is `disabled`, so
+deterministic configs remain network-free. The `openai` response rewriter
+requires `responseRewriter.openai.model` and uses the same environment
+credential defaults as the OpenAI intent provider. It post-processes successful
+command responses into spoken-friendly wording, preserving command facts and
+falling back to the original safe response while logging diagnostics if
+rewriting fails.
 The `google` calendar adapter is opt-in and selected with
-`features.calendar.adapter: google`. It requires an OAuth access token from the
-configured environment variable, defaulting to
-`GOOGLE_CALENDAR_ACCESS_TOKEN`; `calendarId`, `baseUrl`, `timeoutMs`, and
-`maxResults` default to `primary`, `https://www.googleapis.com/calendar/v3`,
-`30000`, and `10`. Google credentials must stay out of repository config files,
-and the checked-in default config continues to use the deterministic mock
-calendar adapter.
+`features.calendar.adapter: google`. It can use a legacy OAuth access token from
+`GOOGLE_CALENDAR_ACCESS_TOKEN`, or exchange `GOOGLE_CALENDAR_CLIENT_ID`,
+`GOOGLE_CALENDAR_CLIENT_SECRET`, and `GOOGLE_CALENDAR_REFRESH_TOKEN` for an
+access token at `https://oauth2.googleapis.com/token`. `calendarId`, `baseUrl`,
+`timeoutMs`, and `maxResults` default to `primary`,
+`https://www.googleapis.com/calendar/v3`, `30000`, and `10`. Google credentials
+must stay out of repository config files, and the checked-in default config
+continues to use the deterministic mock calendar adapter. The local desktop
+OpenAI config selects the Google adapter and therefore fails clearly until local
+OAuth credentials are present.
 Intent provider selection and feature adapter selection are runtime composition
 policy, owned by shared runtime selector helpers so missing IDs, unknown IDs,
 and provider-specific construction rules do not drift between runtimes. Runtime

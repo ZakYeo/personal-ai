@@ -62,6 +62,9 @@ export function createLoadedRuntimeConfig(
     intent: {
       provider: "deterministic",
     },
+    responseRewriter: {
+      provider: "disabled",
+    },
     features,
   };
 }

@@ -5,6 +5,7 @@ export type AppErrorCategory =
   | "confirmation_required"
   | "unsupported"
   | "feature_failure"
+  | "response_rewrite_failure"
   | "conversation_failure"
   | "unexpected";
 
@@ -43,6 +44,11 @@ export function mapAppErrorToResponse(error: AppError): AssistantResponse {
       return {
         status: "error",
         text: error.publicMessage ?? "I could not complete that command.",
+      };
+    case "response_rewrite_failure":
+      return {
+        status: "error",
+        text: error.publicMessage ?? "I could not prepare that response.",
       };
     case "conversation_failure":
       return {

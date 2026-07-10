@@ -21,6 +21,9 @@ describe("loadConfig", () => {
         },
         provider: "disabled",
       },
+      responseRewriter: {
+        provider: "disabled",
+      },
       voice: {
         input: "mock",
         wakeWord: "mock",
@@ -74,6 +77,9 @@ describe("loadConfig", () => {
         },
         provider: "disabled",
       },
+      responseRewriter: {
+        provider: "disabled",
+      },
       features: {
         calendar: { enabled: false },
       },
@@ -96,6 +102,22 @@ describe("loadConfig", () => {
       expect(config.voice?.streamingSpeechToText).toBe("openai-realtime");
       expect(config.voice?.wakeActivation).toBe("openwakeword-command");
     }
+  });
+
+  it("loads the local desktop OpenAI response rewriter config", async () => {
+    const config = await loadConfig({
+      configPath: "config/local-desktop-voice-openai.json",
+    });
+
+    expect(config.responseRewriter).toEqual({
+      openai: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "https://api.openai.com/v1",
+        model: "gpt-5.4-nano",
+        timeoutMs: 30_000,
+      },
+      provider: "openai",
+    });
   });
 
   it("ends desktop OpenAI command capture on trailing silence", async () => {
@@ -183,6 +205,9 @@ describe("parseAssistantConfig", () => {
         },
         provider: "disabled",
       },
+      responseRewriter: {
+        provider: "disabled",
+      },
       features: {
         alarms: {
           enabled: true,
@@ -230,6 +255,9 @@ describe("parseAssistantConfig", () => {
         history: {
           maxTurnsBeforeCompaction: 5,
         },
+        provider: "disabled",
+      },
+      responseRewriter: {
         provider: "disabled",
       },
     });

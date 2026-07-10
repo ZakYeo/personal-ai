@@ -22,6 +22,7 @@
 - General conversation support is selected with `conversation.provider`; keep chat history in the assistant instance unless a persistence milestone explicitly changes that boundary.
 - Conversation history compacts after `conversation.history.maxTurnsBeforeCompaction` completed user/assistant turns; the current default is 5.
 - Conversation providers that can ask a user-facing follow-up should return the diagnostic-safe `AssistantResponse.expectsFollowUp` signal; voice runtimes use that signal to capture the next utterance without another wake word before returning to normal wake listening.
+- Command response rewriting is selected with `responseRewriter.provider`; keep it post-processing only, preserve feature facts, and fall back to the original safe feature response with internal diagnostics if rewriting fails.
 - Capability awareness must be generated from enabled feature metadata. Keep capability `summary`/`description` fields current, use the shared provider-facing catalog for prompts, and keep the built-in assistant capability catalog feature backed by that same metadata.
 - Spoken capability answers should be concise and human-facing: avoid bullets, semicolon-delimited lists, and internal capability names such as `alarm.list` unless the user explicitly asks for technical detail.
 - Keep process state, clocks, IO streams, and network clients injectable at runtime/composition boundaries; avoid direct `process.env`, `globalThis.fetch`, `new Date()`, stdout, or stderr access in core, feature, or adapter internals.
@@ -33,7 +34,7 @@
 - Prefer a neutral runtime factory when two runtimes differ mostly by adapter construction.
 - Keep shared user-facing matching semantics, such as wake phrase normalization, in one helper so mock and real runtimes do not drift.
 - Real provider adapters must remain opt-in through config, keep credentials in environment variables instead of repository config files, and test provider calls with deterministic `adapter-contract` helpers by default. Live provider smoke tests must be explicit opt-in E2E commands and stay out of the default validation gate.
-- The Google Calendar adapter is read-only, selected with `features.calendar.adapter: "google"`, and must keep OAuth access tokens in environment variables such as `GOOGLE_CALENDAR_ACCESS_TOKEN`.
+- The Google Calendar adapter is read-only, selected with `features.calendar.adapter: "google"`, and must keep OAuth credentials in environment variables such as `GOOGLE_CALENDAR_ACCESS_TOKEN` or `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, and `GOOGLE_CALENDAR_REFRESH_TOKEN`.
 - The next planned product milestone is persistent local assistant state, starting with a file-backed alarm store behind `AlarmStore`; keep file paths in local runtime config, parse persisted data from `unknown`, preserve diagnostics internally, and keep `config/default.json` deterministic.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Keep adapter/config selection policy canonical; do not add new missing-config, adapter-ID lookup, or unregistered-adapter branches without checking for an existing selector or extracting a shared one.

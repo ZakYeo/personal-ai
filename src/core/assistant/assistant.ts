@@ -1,5 +1,6 @@
 import type {
   AssistantPolicyConfig,
+  AssistantCommand,
   AssistantContext,
   AssistantDiagnostic,
   AssistantOutcome,
@@ -8,6 +9,7 @@ import type {
 } from "../../ports/assistant.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
+import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import {
   createAppError,
   mapAppErrorToResponse,
@@ -27,6 +29,7 @@ export interface AssistantDependencies {
   conversation?: ConversationSessionDependencies;
   features: FeaturePlugin[];
   intentInterpreter: IntentInterpreterPort;
+  responseRewriter?: ResponseRewriterPort;
 }
 
 export interface Assistant {
@@ -153,12 +156,18 @@ async function handleTextInternal(
       context,
     );
 
-    return {
-      response: {
-        status: "ok",
-        text: result.text,
-      },
+    const response: AssistantResponse = {
+      status: "ok",
+      text: result.text,
     };
+
+    return rewriteCommandResponse({
+      command,
+      context,
+      dependencies,
+      response,
+      text: normalizedText,
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown feature error";
@@ -170,6 +179,54 @@ async function handleTextInternal(
         cause: error,
         message,
       }),
+    );
+  }
+}
+
+async function rewriteCommandResponse(input: {
+  command: AssistantCommand;
+  context: AssistantContext;
+  dependencies: AssistantDependencies;
+  response: AssistantResponse;
+  text: string;
+}): Promise<AssistantOutcome> {
+  const rewriter = input.dependencies.responseRewriter;
+
+  if (!rewriter) {
+    return {
+      response: input.response,
+    };
+  }
+
+  try {
+    const rewrite = await rewriter.rewrite(
+      {
+        capability: input.command.capability,
+        command: input.command,
+        originalText: input.text,
+        response: input.response,
+      },
+      input.context,
+    );
+
+    return {
+      response: {
+        ...input.response,
+        text: rewrite.text,
+      },
+    };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown response rewrite error";
+
+    return outcomeFromError(
+      createAppError({
+        category: "response_rewrite_failure",
+        capability: input.command.capability,
+        cause: error,
+        message,
+      }),
+      input.response,
     );
   }
 }
@@ -208,9 +265,12 @@ async function handleConversation(
   }
 }
 
-function outcomeFromError(error: AppError): AssistantOutcome {
+function outcomeFromError(
+  error: AppError,
+  response: AssistantResponse = mapAppErrorToResponse(error),
+): AssistantOutcome {
   const outcome: AssistantOutcome = {
-    response: mapAppErrorToResponse(error),
+    response,
   };
 
   if (

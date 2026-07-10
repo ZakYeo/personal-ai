@@ -18,6 +18,12 @@
       "model": "gpt-5.4-nano"
     }
   },
+  "responseRewriter": {
+    "provider": "openai",
+    "openai": {
+      "model": "gpt-5.4-nano"
+    }
+  },
   "voice": {
     "input": "sox-rec",
     "streamingAudioInput": "sox-rec-stream",
@@ -161,7 +167,8 @@
   "features": {
     "calendar": {
       "enabled": true,
-      "adapter": "mock"
+      "adapter": "google",
+      "google": {}
     },
     "messaging": {
       "enabled": true,

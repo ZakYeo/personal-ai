@@ -6,6 +6,7 @@ import { toAssistantPolicyConfig } from "./config/assistant-policy-config.js";
 import { createConfiguredConversation } from "./conversation-provider-selection.js";
 import { createConfiguredFeatureSelection } from "./feature-adapter-selection.js";
 import { createConfiguredIntentInterpreter } from "./intent-provider-selection.js";
+import { createConfiguredResponseRewriter } from "./response-rewriter-selection.js";
 
 export interface ConfiguredTextRuntimeOptions {
   config?: LoadedRuntimeConfig;
@@ -40,6 +41,10 @@ export async function createConfiguredTextRuntime(
       fetch,
     },
   );
+  const responseRewriter = createConfiguredResponseRewriter(config, {
+    env,
+    fetch,
+  });
 
   return createAssistant({
     clock,
@@ -47,6 +52,7 @@ export async function createConfiguredTextRuntime(
       enabledFeatureIds: featureSelection.features.map((feature) => feature.id),
     }),
     ...(conversation ? { conversation } : {}),
+    ...(responseRewriter ? { responseRewriter } : {}),
     features: featureSelection.features,
     intentInterpreter: createConfiguredIntentInterpreter(
       config,

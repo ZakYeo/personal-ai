@@ -28,6 +28,7 @@
     "package:sort": "sort-package-json",
     "package:sort:check": "sort-package-json --check",
     "secrets:check": "secretlint \"**/*\"",
+    "setup:google-calendar": "node --env-file-if-exists=.env scripts/setup-google-calendar-oauth.mjs",
     "setup:openwakeword": "bash scripts/setup-openwakeword-venv.sh",
     "smoke:desktop-voice:openai": "PERSONAL_AI_RUN_DESKTOP_VOICE_OPENAI_SMOKE=1 node --env-file-if-exists=.env ./node_modules/vitest/vitest.mjs --run src/runtimes/desktop-voice-openai-smoke.e2e.test.ts",
     "smoke:pi:qemu": "tsx src/runtimes/pi/pi-qemu-smoke.ts",

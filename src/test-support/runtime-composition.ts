@@ -68,6 +68,21 @@ export function createRuntimeConfigWithOpenAIConversationProvider(): LoadedRunti
   };
 }
 
+export function createRuntimeConfigWithOpenAIResponseRewriter(): LoadedRuntimeConfig {
+  return {
+    ...enabledDeterministicConfig,
+    responseRewriter: {
+      openai: {
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "https://api.openai.test/v1",
+        model: "gpt-5.5",
+        timeoutMs: 30_000,
+      },
+      provider: "openai",
+    },
+  };
+}
+
 export function createRuntimeConfigWithUnknownConversationProvider(): LoadedRuntimeConfig {
   return {
     ...enabledDeterministicConfig,
@@ -90,7 +105,11 @@ export function createRuntimeConfigWithGoogleCalendarAdapter(): LoadedRuntimeCon
           accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
           baseUrl: "https://calendar.example.test/v3",
           calendarId: "primary",
+          clientIdEnv: "GOOGLE_CALENDAR_CLIENT_ID",
+          clientSecretEnv: "GOOGLE_CALENDAR_CLIENT_SECRET",
           maxResults: 10,
+          refreshTokenEnv: "GOOGLE_CALENDAR_REFRESH_TOKEN",
+          tokenUrl: "https://oauth2.googleapis.com/token",
           timeoutMs: 30_000,
         },
       },

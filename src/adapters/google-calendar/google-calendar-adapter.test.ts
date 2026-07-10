@@ -151,14 +151,14 @@ describe("createGoogleCalendarAdapter", () => {
       1,
       "https://oauth2.googleapis.com/token",
       expect.objectContaining({
-        body: JSON.stringify({
+        body: new URLSearchParams({
           client_id: "test-client-id",
           client_secret: "test-client-secret",
           grant_type: "refresh_token",
           refresh_token: "test-refresh-token",
         }),
         headers: {
-          "content-type": "application/json",
+          "content-type": "application/x-www-form-urlencoded",
         },
         method: "POST",
       }),
