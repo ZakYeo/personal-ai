@@ -13,18 +13,26 @@ export interface ParsedVoiceConfig {
   wakeWord?: string;
 }
 
-export interface ResolvedVoiceConfig {
+interface ResolvedVoiceBaseConfig {
   audioOutput: string;
   input: string;
   speechToText: string;
-  streamingAudioInput?: string;
-  streamingAudioOutput?: string;
-  streamingSpeechToText?: string;
-  streamingTextToSpeech?: string;
   textToSpeech: string;
   wakeActivation?: string;
   wakeWord: string;
 }
+
+type ResolvedStreamingInputConfig =
+  | { streamingAudioInput: string; streamingSpeechToText: string }
+  | { streamingAudioInput?: never; streamingSpeechToText?: never };
+
+type ResolvedStreamingOutputConfig =
+  | { streamingAudioOutput: string; streamingTextToSpeech: string }
+  | { streamingAudioOutput?: never; streamingTextToSpeech?: never };
+
+export type ResolvedVoiceConfig = ResolvedVoiceBaseConfig &
+  ResolvedStreamingInputConfig &
+  ResolvedStreamingOutputConfig;
 
 export function parseVoiceConfig(value: unknown): {
   voice?: ParsedVoiceConfig;
@@ -64,18 +72,16 @@ export function requireVoiceConfig(config: {
 }): ResolvedVoiceConfig {
   return {
     input: requireVoiceAdapterConfig(config, "input"),
-    ...(config.voice?.streamingAudioInput
-      ? { streamingAudioInput: config.voice.streamingAudioInput }
-      : {}),
-    ...(config.voice?.streamingAudioOutput
-      ? { streamingAudioOutput: config.voice.streamingAudioOutput }
-      : {}),
-    ...(config.voice?.streamingSpeechToText
-      ? { streamingSpeechToText: config.voice.streamingSpeechToText }
-      : {}),
-    ...(config.voice?.streamingTextToSpeech
-      ? { streamingTextToSpeech: config.voice.streamingTextToSpeech }
-      : {}),
+    ...resolveStreamingPair(
+      config.voice,
+      "streamingAudioInput",
+      "streamingSpeechToText",
+    ),
+    ...resolveStreamingPair(
+      config.voice,
+      "streamingAudioOutput",
+      "streamingTextToSpeech",
+    ),
     ...(config.voice?.wakeActivation
       ? { wakeActivation: config.voice.wakeActivation }
       : {}),
@@ -88,7 +94,7 @@ export function requireVoiceConfig(config: {
 
 function requireVoiceAdapterConfig(
   config: { voice?: ParsedVoiceConfig },
-  key: keyof ResolvedVoiceConfig,
+  key: keyof ParsedVoiceConfig,
 ): string {
   const adapterId = config.voice?.[key];
 
@@ -97,6 +103,40 @@ function requireVoiceAdapterConfig(
   }
 
   return adapterId;
+}
+
+type ResolvedStreamingPair<
+  TFirst extends keyof ParsedVoiceConfig,
+  TSecond extends keyof ParsedVoiceConfig,
+> =
+  | ({ [TKey in TFirst | TSecond]: string } & Record<never, never>)
+  | { [TKey in TFirst | TSecond]?: never };
+
+function resolveStreamingPair<
+  TFirst extends keyof ParsedVoiceConfig,
+  TSecond extends keyof ParsedVoiceConfig,
+>(
+  voice: ParsedVoiceConfig | undefined,
+  firstKey: TFirst,
+  secondKey: TSecond,
+): ResolvedStreamingPair<TFirst, TSecond> {
+  const firstAdapterId = voice?.[firstKey];
+  const secondAdapterId = voice?.[secondKey];
+
+  if (firstAdapterId === undefined && secondAdapterId === undefined) {
+    return {};
+  }
+
+  if (firstAdapterId === undefined || secondAdapterId === undefined) {
+    throw new Error(
+      `Config voice.${firstKey} and voice.${secondKey} must be configured together.`,
+    );
+  }
+
+  return {
+    [firstKey]: firstAdapterId,
+    [secondKey]: secondAdapterId,
+  } as { [TKey in TFirst | TSecond]: string };
 }
 
 function parseVoiceAdapter<TKey extends keyof ParsedVoiceConfig>(

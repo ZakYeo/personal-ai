@@ -27,19 +27,6 @@ export function resolveDesktopVoiceAdapterConfig(
     desktopVoice?: ParsedDesktopVoiceConfig;
   },
 ): ResolvedDesktopVoiceAdapterConfig {
-  requireStreamingPair(
-    voice.streamingAudioInput,
-    voice.streamingSpeechToText,
-    "streamingAudioInput",
-    "streamingSpeechToText",
-  );
-  requireStreamingPair(
-    voice.streamingTextToSpeech,
-    voice.streamingAudioOutput,
-    "streamingTextToSpeech",
-    "streamingAudioOutput",
-  );
-
   return {
     audioInput: resolveDesktopVoiceSlotConfig(
       voice,
@@ -231,21 +218,6 @@ export function createDesktopVoiceServiceAdapters(
       await adapters.cleanup?.();
     },
   };
-}
-
-function requireStreamingPair(
-  firstAdapterId: string | undefined,
-  secondAdapterId: string | undefined,
-  firstKey: string,
-  secondKey: string,
-): void {
-  if (Boolean(firstAdapterId) === Boolean(secondAdapterId)) {
-    return;
-  }
-
-  throw new Error(
-    `Config voice.${firstKey} and voice.${secondKey} must be configured together.`,
-  );
 }
 
 function requireStreamingSpeechToTextProvider(config: {

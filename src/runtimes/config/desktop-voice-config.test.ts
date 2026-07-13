@@ -98,6 +98,25 @@ describe("desktop voice config parsing", () => {
 });
 
 describe("desktop voice config resolvers", () => {
+  it("rejects half-configured streaming pairs at the resolved voice boundary", () => {
+    const config = parseAssistantConfig(
+      createMinimalConfig({
+        voice: {
+          audioOutput: "sox-play",
+          input: "sox-rec",
+          speechToText: "command",
+          streamingAudioInput: "sox-rec-stream",
+          textToSpeech: "command",
+          wakeWord: "text-prefix",
+        },
+      }),
+    );
+
+    expect(() => requireVoiceConfig(config)).toThrow(
+      "Config voice.streamingAudioInput and voice.streamingSpeechToText must be configured together.",
+    );
+  });
+
   it("resolves selected desktop streaming adapter config into required bundles", () => {
     const config = createDesktopStreamingRuntimeConfig({
       desktopVoice: {

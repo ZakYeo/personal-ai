@@ -162,6 +162,9 @@ Desktop streaming provider entries follow the same boundary: they parse their
 selected raw desktop section and capture provider-specific construction and test
 dependencies. Common desktop config retains command settings and neutral
 resolved factories, not OpenAI fields or transport types.
+Resolved voice config encodes streaming capture/transcription and
+synthesis/playback adapter IDs as complete pairs; half-configured raw IDs fail
+at the voice resolver before adapter selection.
 Intent, conversation, and response-rewriter provider entries also parse their
 selected raw provider section and capture typed construction at config load
 time. Central operation config must not accumulate provider-specific optional
