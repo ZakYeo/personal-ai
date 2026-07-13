@@ -1,6 +1,7 @@
 import {
   createAbortingFetchStub,
   createFetchStub,
+  createGoogleCalendarConfig,
   createMissingProviderCredentialEnv,
   createProviderCredentialEnv,
   createProviderTransportFailureFetchStub,
@@ -312,17 +313,9 @@ interface CreateAdapterOptions {
 
 function createAdapter(options: CreateAdapterOptions = {}) {
   return createGoogleCalendarAdapter({
-    config: {
-      accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-      baseUrl: "https://calendar.example.test/v3",
-      calendarId: "primary",
-      clientIdEnv: "GOOGLE_CALENDAR_CLIENT_ID",
-      clientSecretEnv: "GOOGLE_CALENDAR_CLIENT_SECRET",
-      maxResults: 10,
-      refreshTokenEnv: "GOOGLE_CALENDAR_REFRESH_TOKEN",
-      tokenUrl: "https://oauth2.googleapis.com/token",
+    config: createGoogleCalendarConfig({
       timeoutMs: options.timeoutMs ?? 30_000,
-    },
+    }),
     env:
       options.env ??
       createProviderCredentialEnv(

@@ -417,7 +417,9 @@ must stay out of repository config files, and the checked-in default config
 continues to use the deterministic mock calendar adapter. The local desktop
 OpenAI config selects the Google adapter and therefore fails clearly until local
 OAuth credentials are present, with startup guidance to run
-`npm run setup:google-calendar`. When a Google OAuth app remains in external
+`npm run setup:google-calendar`. Startup preflight and request-time token
+acquisition share one adapter-owned resolver, so access-token precedence and
+refresh credential completeness cannot drift. When a Google OAuth app remains in external
 testing mode, the setup helper can only authorize accounts listed as test users
 for that Google Cloud project; add the local operator account in Google Auth
 Platform > Audience > Test users before rerunning the helper.

@@ -6,7 +6,7 @@ import type {
 } from "../../ports/calendar.js";
 import type { GoogleCalendarConfig } from "./google-calendar-config.js";
 import { fetchGoogleCalendarEvents } from "./google-calendar-client.js";
-import { GoogleCalendarError } from "./google-calendar-error.js";
+import { resolveGoogleCalendarCredentials } from "./google-calendar-credentials.js";
 import { fetchGoogleCalendarAccessToken } from "./google-calendar-token.js";
 import { parseGoogleCalendarEvents } from "./google-calendar-events-parser.js";
 
@@ -48,38 +48,17 @@ async function searchEvents(
 async function resolveAccessToken(
   options: GoogleCalendarAdapterOptions,
 ): Promise<string> {
-  const accessToken = options.env[options.config.accessTokenEnv];
+  const credentials = resolveGoogleCalendarCredentials(options);
 
-  if (accessToken) {
-    return accessToken;
+  if (credentials.kind === "access-token") {
+    return credentials.accessToken;
   }
-
-  const clientId = requireEnv(options, "clientIdEnv", "client ID");
-  const clientSecret = requireEnv(options, "clientSecretEnv", "client secret");
-  const refreshToken = requireEnv(options, "refreshTokenEnv", "refresh token");
 
   return fetchGoogleCalendarAccessToken({
-    clientId,
-    clientSecret,
+    clientId: credentials.clientId,
+    clientSecret: credentials.clientSecret,
     config: options.config,
     fetch: options.fetch,
-    refreshToken,
+    refreshToken: credentials.refreshToken,
   });
-}
-
-function requireEnv(
-  options: GoogleCalendarAdapterOptions,
-  configKey: "clientIdEnv" | "clientSecretEnv" | "refreshTokenEnv",
-  label: string,
-): string {
-  const envName = options.config[configKey];
-  const value = options.env[envName];
-
-  if (!value) {
-    throw new GoogleCalendarError(
-      `Google Calendar ${label} environment variable ${envName} is not set.`,
-    );
-  }
-
-  return value;
 }

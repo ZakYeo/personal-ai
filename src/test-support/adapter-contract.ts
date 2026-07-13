@@ -1,4 +1,5 @@
 import type { DesktopCommandConfig } from "../adapters/desktop/desktop-command-config.js";
+import type { GoogleCalendarConfig } from "../adapters/google-calendar/google-calendar-config.js";
 import type {
   CapturedAudio,
   SpeechTranscript,
@@ -18,6 +19,23 @@ export function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
     status: init.status ?? 200,
     ...(init.statusText ? { statusText: init.statusText } : {}),
   });
+}
+
+export function createGoogleCalendarConfig(
+  overrides: Partial<GoogleCalendarConfig> = {},
+): GoogleCalendarConfig {
+  return {
+    accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
+    baseUrl: "https://calendar.example.test/v3",
+    calendarId: "primary",
+    clientIdEnv: "GOOGLE_CALENDAR_CLIENT_ID",
+    clientSecretEnv: "GOOGLE_CALENDAR_CLIENT_SECRET",
+    maxResults: 10,
+    refreshTokenEnv: "GOOGLE_CALENDAR_REFRESH_TOKEN",
+    timeoutMs: 30_000,
+    tokenUrl: "https://oauth2.googleapis.com/token",
+    ...overrides,
+  };
 }
 
 export function providerErrorResponse(
