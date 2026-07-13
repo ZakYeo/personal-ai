@@ -107,8 +107,10 @@ async function searchEvents(
   }
 
   if (query === undefined) {
+    const eventLabel = events.length === 1 ? "event" : "events";
+
     return {
-      text: `Your upcoming calendar events are: ${formatEventList(events)}.`,
+      text: `You have ${events.length} upcoming calendar ${eventLabel}: ${formatEventList(events)}.`,
       data: {
         eventCount: events.length,
       },

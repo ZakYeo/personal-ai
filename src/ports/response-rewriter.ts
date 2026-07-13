@@ -8,7 +8,13 @@ export interface ResponseRewriteRequest {
   capability: string;
   command: AssistantCommand;
   originalText: string;
+  protectedFacts?: readonly ProtectedResponseFact[];
   response: AssistantResponse;
+}
+
+export interface ProtectedResponseFact {
+  names: readonly string[];
+  token: string;
 }
 
 export interface ResponseRewriteResult {

@@ -24,6 +24,7 @@ import {
   type ConversationSessionDependencies,
 } from "./conversation-session.js";
 import { evaluateConfirmationPolicy } from "./confirmation-policy.js";
+import { protectResponseFacts } from "./response-fact-protection.js";
 
 export interface AssistantDependencies {
   capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
@@ -160,6 +161,7 @@ async function handleTextInternal(
       command,
       context,
       dependencies,
+      facts: result.data ?? {},
       response,
       text: normalizedText,
     });
@@ -182,6 +184,7 @@ async function rewriteCommandResponse(input: {
   command: AssistantCommand;
   context: AssistantContext;
   dependencies: AssistantDependencies;
+  facts: AssistantCommand["parameters"];
   response: AssistantResponse;
   text: string;
 }): Promise<AssistantOutcome> {
@@ -194,12 +197,23 @@ async function rewriteCommandResponse(input: {
   }
 
   try {
+    const protectedResponse = protectResponseFacts(
+      input.response.text,
+      input.facts,
+      input.context.clock.now(),
+    );
     const rewrite = await rewriter.rewrite(
       {
         capability: input.command.capability,
         command: input.command,
         originalText: input.text,
-        response: input.response,
+        ...(protectedResponse.facts.length > 0
+          ? { protectedFacts: protectedResponse.facts }
+          : {}),
+        response: {
+          ...input.response,
+          text: protectedResponse.text,
+        },
       },
       input.context,
     );
@@ -207,7 +221,7 @@ async function rewriteCommandResponse(input: {
     return {
       response: {
         ...input.response,
-        text: rewrite.text,
+        text: protectedResponse.restore(rewrite.text),
       },
     };
   } catch (error) {

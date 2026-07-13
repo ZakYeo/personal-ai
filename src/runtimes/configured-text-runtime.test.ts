@@ -212,7 +212,7 @@ describe("createConfiguredTextRuntime", () => {
       new Response(
         JSON.stringify({
           output_text: JSON.stringify({
-            text: "The upcoming wedding is on 12th September 2026.",
+            text: "__ASSISTANT_PROTECTED_FACT_0__ is happening on __ASSISTANT_PROTECTED_FACT_1__.",
           }),
         }),
         { status: 200 },
@@ -228,7 +228,7 @@ describe("createConfiguredTextRuntime", () => {
       assistant.handleText(deterministicScenarios.calendarWedding.text),
     ).resolves.toEqual({
       status: "ok",
-      text: "The upcoming wedding is on 12th September 2026.",
+      text: "Upcoming wedding is happening on 12 September.",
     });
 
     expect(fetch).toHaveBeenCalledWith(

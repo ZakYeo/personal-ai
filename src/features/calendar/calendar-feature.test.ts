@@ -58,7 +58,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       {},
       {
-        text: "Your upcoming calendar events are: Upcoming wedding on 2026-09-12.",
+        text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12.",
         data: {
           eventCount: 1,
         },
@@ -100,7 +100,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       {},
       {
-        text: "Your upcoming calendar events are: Upcoming wedding on 2026-09-12.",
+        text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12.",
         data: {
           eventCount: 1,
         },

@@ -34,9 +34,15 @@ const request = {
     rawText: "Can you list my upcoming calendar events please?",
   },
   originalText: "Can you list my upcoming calendar events please?",
+  protectedFacts: [
+    {
+      names: ["date"],
+      token: "__ASSISTANT_PROTECTED_FACT_0__",
+    },
+  ],
   response: {
     status: "ok" as const,
-    text: "Your upcoming calendar events are: Dentist on 2026-09-12.",
+    text: "Your upcoming calendar events are: Dentist on __ASSISTANT_PROTECTED_FACT_0__.",
   },
 } satisfies ResponseRewriteRequest;
 
@@ -45,14 +51,14 @@ describe("OpenAIResponseRewriter", () => {
     const fetch = createFetchStub(
       jsonResponse({
         output_text: JSON.stringify({
-          text: "Your next calendar event is Dentist on 12th September 2026.",
+          text: "Your next calendar event is Dentist on __ASSISTANT_PROTECTED_FACT_0__.",
         }),
       }),
     );
     const rewriter = createRewriter({ fetch });
 
     await expect(rewriter.rewrite(request, context)).resolves.toEqual({
-      text: "Your next calendar event is Dentist on 12th September 2026.",
+      text: "Your next calendar event is Dentist on __ASSISTANT_PROTECTED_FACT_0__.",
     });
 
     const body = readRequestBody(fetch);
@@ -68,13 +74,16 @@ describe("OpenAIResponseRewriter", () => {
       "Preserve every factual claim",
     );
     expect(JSON.stringify(body.input)).toContain(
-      "make title-shaped event names conversational",
+      "Preserve every token exactly",
     );
     expect(JSON.stringify(body.input)).toContain(
-      "avoid saying the year unless the user needs it",
+      "approved exact or relative-date renderings",
     );
     expect(JSON.stringify(body.input)).toContain("Do not invent events");
-    expect(JSON.stringify(body.input)).toContain("2026-09-12");
+    expect(JSON.stringify(body.input)).toContain(
+      "__ASSISTANT_PROTECTED_FACT_0__",
+    );
+    expect(JSON.stringify(body.input)).not.toContain("2026-09-12");
     expect(JSON.stringify(body.input)).toContain("calendar.search_events");
   });
 

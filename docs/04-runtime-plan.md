@@ -410,12 +410,18 @@ The command response rewriter is selected separately with
 deterministic configs remain network-free. The `openai` response rewriter
 requires `responseRewriter.openai.model` and uses the same environment
 credential defaults as the OpenAI intent provider. It post-processes successful
-command responses into spoken-friendly wording, preserving command facts and
-falling back to the original safe response while logging diagnostics if
-rewriting fails.
+command responses into spoken-friendly wording. Before calling a rewriter, core
+replaces every feature fact expressed in the safe response with an opaque token.
+The provider may rewrite only surrounding wording and must preserve every token
+with the same multiplicity. Core then restores exact facts or an explicit
+deterministic ISO-date rendering such as `today` or `tomorrow`. Missing,
+duplicated, or invented tokens fail integrity validation and fall back to the
+original safe response while logging diagnostics.
 Calendar features return factual titles and exact provider date strings before
-this post-processing step; natural date and relative-time phrasing belongs to
-the rewriter rather than deterministic feature policy.
+this post-processing step. Internal facts absent from the safe response, such as
+provider event IDs, are not exposed merely to satisfy rewriting. Generic
+upcoming-event responses state their event count so that expressed count is also
+protected.
 The `google` calendar adapter is opt-in and selected with
 `features.calendar.adapter: google`. Generic upcoming event searches default to
 `features.calendar.upcomingWindowDays: 92`, so normal list requests stay within

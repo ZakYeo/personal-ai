@@ -162,6 +162,88 @@ describe("createAssistant", () => {
     );
   });
 
+  it("protects feature facts and restores approved date renderings", async () => {
+    const command = createCommand("test.echo");
+    const rewrite = vi.fn(() =>
+      Promise.resolve({
+        text: "__ASSISTANT_PROTECTED_FACT_0__ is __ASSISTANT_PROTECTED_FACT_1__.",
+      }),
+    );
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [
+        createFeature({
+          execute: () =>
+            Promise.resolve({
+              data: {
+                date: "2026-06-27",
+                eventId: "private-event-id",
+                title: "Zak: Dentist",
+              },
+              text: "Zak: Dentist is on 2026-06-27.",
+            }),
+        }),
+      ],
+      intentInterpreter: createInterpreter(command),
+      responseRewriter: { rewrite },
+    });
+
+    await expect(assistant.handleText("when is the dentist?")).resolves.toEqual(
+      {
+        status: "ok",
+        text: "Zak: Dentist is tomorrow.",
+      },
+    );
+    expect(rewrite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        protectedFacts: [
+          { names: ["title"], token: "__ASSISTANT_PROTECTED_FACT_0__" },
+          { names: ["date"], token: "__ASSISTANT_PROTECTED_FACT_1__" },
+        ],
+        response: {
+          status: "ok",
+          text: "__ASSISTANT_PROTECTED_FACT_0__ is on __ASSISTANT_PROTECTED_FACT_1__.",
+        },
+      }),
+      { clock, config },
+    );
+  });
+
+  it("falls back with diagnostics when a rewrite drops a protected count", async () => {
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [
+        createFeature({
+          execute: () =>
+            Promise.resolve({
+              data: { eventCount: 2 },
+              text: "There are 2 upcoming events.",
+            }),
+        }),
+      ],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+      responseRewriter: {
+        rewrite: () => Promise.resolve({ text: "There are upcoming events." }),
+      },
+    });
+
+    const outcome = await assistant.handleTextWithDiagnostics("what is next?");
+
+    expect(outcome.response).toEqual({
+      status: "ok",
+      text: "There are 2 upcoming events.",
+    });
+    expect(outcome.diagnostics).toEqual([
+      expect.objectContaining({
+        category: "response_rewrite_failure",
+        message:
+          "Response rewrite changed protected fact token __ASSISTANT_PROTECTED_FACT_0__.",
+      }),
+    ]);
+  });
+
   it("emits rewrite diagnostics when the provider rejects without a cause", async () => {
     const assistant = createAssistant({
       clock,
