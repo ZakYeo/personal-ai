@@ -367,6 +367,10 @@ Intent, conversation, and response rewriting share the provider-local OpenAI
 Responses config type and one labeled runtime parser for API key environment,
 base URL, model, and timeout fields. Application ports do not name that provider
 config.
+They also share one labeled Responses transport client for credential lookup,
+authenticated JSON POST construction, URL normalization, timeouts, HTTP
+failures, and malformed JSON. Each operation supplies its own error factory and
+keeps request construction and output validation separate.
 OpenAI adapter contract tests remain deterministic by default. A separate
 opt-in `npm run test:e2e:openai` routing E2E test may load `.env`, read the
 `OPENAI_API_KEY` variable, call the live Responses API with a weak/cheap model,

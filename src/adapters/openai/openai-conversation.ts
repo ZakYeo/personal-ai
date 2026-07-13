@@ -4,10 +4,10 @@ import type {
   ConversationResponderPort,
   ConversationState,
 } from "../../ports/conversation.js";
-import { fetchProviderJson, trimTrailingSlash } from "../http-json-client.js";
 import { extractOpenAIOutputText } from "./openai-output-extractor.js";
 import { OpenAIConversationError } from "./openai-conversation-error.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
+import { requestOpenAIResponse } from "./openai-responses-client.js";
 import {
   createOpenAIConversationCompactionRequestBody,
   createOpenAIConversationRequestBody,
@@ -75,32 +75,14 @@ async function fetchConversationOutputText(input: {
   body: unknown;
   options: OpenAIConversationOptions;
 }): Promise<string> {
-  const apiKey = input.options.env[input.options.config.apiKeyEnv];
-
-  if (!apiKey) {
-    throw new OpenAIConversationError(
-      `OpenAI API key environment variable ${input.options.config.apiKeyEnv} is not set.`,
-    );
-  }
-
-  const response = await fetchProviderJson({
+  const response = await requestOpenAIResponse({
+    body: input.body,
+    config: input.options.config,
     createError: ({ cause, message, responseBody, status }) =>
       new OpenAIConversationError(message, status, responseBody, { cause }),
+    env: input.options.env,
     fetch: input.options.fetch,
-    invalidJsonMessage: "OpenAI conversation response body was not valid JSON.",
-    nonOkMessage: (status) =>
-      `OpenAI conversation request failed with status ${status}.`,
-    request: {
-      body: JSON.stringify(input.body),
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json",
-      },
-      method: "POST",
-    },
-    timeoutMessage: `OpenAI conversation request timed out after ${input.options.config.timeoutMs}ms.`,
-    timeoutMs: input.options.config.timeoutMs,
-    url: `${trimTrailingSlash(input.options.config.baseUrl)}/responses`,
+    operation: "conversation",
   });
 
   return extractOpenAIOutputText(response, {

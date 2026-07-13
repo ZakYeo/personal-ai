@@ -332,6 +332,8 @@ Implemented structure:
 - The OpenAI adapter calls the Responses API through injected `fetch`, requests
   structured JSON intent output, validates the returned command or response
   shape, and preserves provider failures as diagnostics.
+- Intent, conversation, and rewriting use one labeled Responses transport
+  client while retaining operation-specific error classes and diagnostics.
 - Tests mock HTTP and environment dependencies; the checked-in default config
   remains deterministic.
 - `npm run test:e2e:openai` provides opt-in live Responses API routing coverage

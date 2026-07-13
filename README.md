@@ -36,6 +36,8 @@ Implemented today:
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Shared OpenAI Responses configuration parsing with provider-local config
   types rather than provider details in application ports.
+- Shared labeled OpenAI Responses transport policy for credentials, JSON POSTs,
+  timeouts, provider failures, and malformed responses.
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events
   port, with a three-month default upcoming window and refresh-token OAuth
   support.
