@@ -422,6 +422,9 @@ policy, owned by shared runtime selector helpers so missing IDs and unknown IDs
 do not drift between runtimes. Selected feature registry entries parse and
 capture their provider config during runtime config loading, then own typed
 construction and startup preflight without widening common feature config.
+Selected desktop streaming provider entries likewise parse and capture their
+typed config and provider-specific transport factory during config loading;
+later desktop composition receives only provider-neutral constructors.
 Assistant policy projection, intent provider resolution, voice adapter ID
 resolution, and desktop voice command resolution remain focused boundaries.
 Provider-facing capability catalog construction is shared by runtime composition

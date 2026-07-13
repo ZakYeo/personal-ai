@@ -17,6 +17,7 @@ import {
   type ServiceTurnContext,
   type ServiceTurnFailureContext,
 } from "./service-runtime.js";
+import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-registry.js";
 
 interface ConfiguredServiceCompositionOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -28,6 +29,7 @@ interface ConfiguredServiceCompositionOptions extends Pick<
   processSignals?: ServiceProcessSignals;
   retryAfterFailure?: (context: ServiceTurnFailureContext) => Promise<void>;
   shutdownHooks?: Array<(context: ServiceShutdownContext) => Promise<void>>;
+  desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
 }
 
 interface ConfiguredServiceTurnContext extends ServiceTurnContext {
@@ -103,7 +105,13 @@ function loadServiceConfig(
     return Promise.resolve(options.config);
   }
 
-  return loadConfig(
-    options.configPath ? { configPath: options.configPath } : undefined,
-  );
+  return loadConfig({
+    ...(options.configPath ? { configPath: options.configPath } : {}),
+    ...(options.desktopVoiceProviderAdapterRegistry
+      ? {
+          desktopVoiceProviderAdapterRegistry:
+            options.desktopVoiceProviderAdapterRegistry,
+        }
+      : {}),
+  });
 }

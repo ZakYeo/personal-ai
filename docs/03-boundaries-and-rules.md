@@ -154,6 +154,10 @@ Feature registry entries parse their selected raw section once, capture that
 typed value for construction and startup preflight, and expose only neutral
 resolved operations to later runtime composition. Provider fields must not
 accumulate on the common parsed feature type.
+Desktop streaming provider entries follow the same boundary: they parse their
+selected raw desktop section and capture provider-specific construction and test
+dependencies. Common desktop config retains command settings and neutral
+resolved factories, not OpenAI fields or transport types.
 If adapter config differs by adapter ID, model that relationship in a resolved
 discriminated type or in the registry entry itself. Loaded runtime config should
 not retain raw adapter config bags for later hidden reparsing; selected adapter

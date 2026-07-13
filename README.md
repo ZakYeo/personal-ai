@@ -31,7 +31,8 @@ Implemented today:
   conversation providers, response rewriters, voice adapter IDs, and desktop
   voice command settings.
 - Provider-neutral desktop streaming voice selections whose registry entries
-  capture their own typed provider config and constructor.
+  parse and capture their own typed provider config, constructor, and
+  provider-specific test dependencies.
 - Opt-in OpenAI intent and conversation adapters behind the existing ports.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Shared OpenAI Responses configuration parsing with provider-local config

@@ -184,7 +184,9 @@ export async function runOpenAIConversationStreamingActivationSmoke(options: {
   webSocketFactory: RealtimeSocketFactory;
 }): Promise<Awaited<ReturnType<typeof runDesktopVoiceServiceRuntime>>> {
   return runDesktopVoiceServiceRuntime({
-    config: createOpenAIConversationStreamingServiceConfig(),
+    config: createOpenAIConversationStreamingServiceConfig(
+      options.webSocketFactory,
+    ),
     env: { OPENAI_API_KEY: "test-api-key" },
     fetch: options.fetch,
     io: {
@@ -204,7 +206,6 @@ export async function runOpenAIConversationStreamingActivationSmoke(options: {
 
       return result;
     },
-    webSocketFactory: options.webSocketFactory,
   });
 }
 

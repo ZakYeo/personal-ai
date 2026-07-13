@@ -31,13 +31,14 @@ describe("desktop voice service OpenAI streaming", () => {
 
     await expect(
       runDesktopVoiceServiceRuntime({
-        config: createOpenAIStreamingServiceConfig(),
+        config: createOpenAIStreamingServiceConfig({
+          webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
+        }),
         env: { OPENAI_API_KEY: "test-api-key" },
         fetch,
         io: { fallbackOutput, progressOutput, stderr },
         processSignals: signals,
         retryAfterFailure: () => Promise.resolve(),
-        webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
       }),
     ).resolves.toEqual({
       status: "stopped",
@@ -139,7 +140,10 @@ describe("desktop voice service OpenAI streaming", () => {
 
     await expect(
       runDesktopVoiceServiceRuntime({
-        config: createOpenAIStreamingServiceConfig({ timeoutMs: 100 }),
+        config: createOpenAIStreamingServiceConfig({
+          timeoutMs: 100,
+          webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
+        }),
         env: { OPENAI_API_KEY: "test-api-key" },
         fetch,
         io: { fallbackOutput, progressOutput, stderr },
@@ -149,7 +153,6 @@ describe("desktop voice service OpenAI streaming", () => {
 
           return Promise.resolve();
         },
-        webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
       }),
     ).resolves.toEqual({
       status: "stopped",
@@ -194,6 +197,7 @@ describe("desktop voice service OpenAI streaming", () => {
           desktopVoice: {
             streamingAudioInput: createSleepingStreamingAudioConfig(),
           },
+          webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
         }),
         env: { OPENAI_API_KEY: "test-api-key" },
         fetch: vi.fn(() => {
@@ -208,7 +212,6 @@ describe("desktop voice service OpenAI streaming", () => {
 
           return Promise.resolve();
         },
-        webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
       }),
     ).resolves.toEqual({
       status: "stopped",

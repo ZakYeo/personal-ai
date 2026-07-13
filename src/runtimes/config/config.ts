@@ -10,6 +10,8 @@ import type { LoadedRuntimeConfig } from "./runtime-config.js";
 import { parseVoiceConfig } from "./voice-config.js";
 import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
 import type { FeatureAdapterRegistry } from "../feature-adapter-registry.js";
+import { createDesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-entries.js";
+import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-registry.js";
 
 export type { LoadedRuntimeConfig } from "./runtime-config.js";
 
@@ -20,10 +22,12 @@ const defaultConfigPath = fileURLToPath(
 interface LoadConfigOptions {
   configPath?: string;
   featureAdapterRegistry?: FeatureAdapterRegistry;
+  desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
 }
 
 interface ParseAssistantConfigOptions {
   featureAdapterRegistry?: FeatureAdapterRegistry;
+  desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
 }
 
 export async function loadConfig(
@@ -74,6 +78,8 @@ export function parseAssistantConfig(
     throw new Error("Config intent.provider must be a non-empty string.");
   }
 
+  const parsedVoice = parseVoiceConfig(value.voice);
+
   return {
     assistant: {
       name: assistant.name,
@@ -81,8 +87,13 @@ export function parseAssistantConfig(
     },
     conversation: parseConversationConfig(value.conversation),
     responseRewriter: parseResponseRewriterConfig(value.responseRewriter),
-    ...parseDesktopVoiceConfig(value.desktopVoice),
-    ...parseVoiceConfig(value.voice),
+    ...parseDesktopVoiceConfig(
+      value.desktopVoice,
+      parsedVoice.voice,
+      options.desktopVoiceProviderAdapterRegistry ??
+        createDesktopVoiceProviderAdapterRegistry(),
+    ),
+    ...parsedVoice,
     intent: parseIntentConfig(intent),
     features: parseFeaturesConfig(
       features,

@@ -5,7 +5,6 @@ import type { VoiceTempFilePort } from "../../ports/voice.js";
 import {
   createDesktopVoiceSlotAdapter,
   desktopVoiceSlotTopology,
-  resolveDesktopVoiceProviderSlot,
   resolveDesktopVoiceSlotConfig,
 } from "./desktop-voice-slot-topology.js";
 import { createNodeVoiceTempFiles } from "./voice-temp-files.js";
@@ -65,11 +64,7 @@ export function resolveDesktopVoiceAdapterConfig(
               desktopVoiceSlotTopology.streamingAudioInput,
               config,
             ),
-            transcription: resolveDesktopVoiceProviderSlot(
-              voice,
-              desktopVoiceSlotTopology.streamingSpeechToText,
-              config,
-            ),
+            transcription: requireStreamingSpeechToTextProvider(config),
           },
         }
       : {}),
@@ -81,11 +76,7 @@ export function resolveDesktopVoiceAdapterConfig(
               desktopVoiceSlotTopology.streamingAudioOutput,
               config,
             ),
-            speech: resolveDesktopVoiceProviderSlot(
-              voice,
-              desktopVoiceSlotTopology.streamingTextToSpeech,
-              config,
-            ),
+            speech: requireStreamingTextToSpeechProvider(config),
           },
         }
       : {}),
@@ -251,4 +242,32 @@ function requireStreamingPair(
   throw new Error(
     `Config voice.${firstKey} and voice.${secondKey} must be configured together.`,
   );
+}
+
+function requireStreamingSpeechToTextProvider(config: {
+  desktopVoice?: ParsedDesktopVoiceConfig;
+}) {
+  const provider = config.desktopVoice?.streamingSpeechToTextProvider;
+
+  if (!provider) {
+    throw new Error(
+      "Config voice.streamingSpeechToText must resolve a provider adapter.",
+    );
+  }
+
+  return provider;
+}
+
+function requireStreamingTextToSpeechProvider(config: {
+  desktopVoice?: ParsedDesktopVoiceConfig;
+}) {
+  const provider = config.desktopVoice?.streamingTextToSpeechProvider;
+
+  if (!provider) {
+    throw new Error(
+      "Config voice.streamingTextToSpeech must resolve a provider adapter.",
+    );
+  }
+
+  return provider;
 }

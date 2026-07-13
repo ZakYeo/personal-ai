@@ -95,9 +95,9 @@ describe("loadConfig", () => {
     });
 
     for (const config of [desktopConfig, piConfig]) {
-      expect(config.desktopVoice?.openAIRealtimeTranscription).toMatchObject({
-        model: "gpt-realtime-whisper",
-      });
+      expect(
+        typeof config.desktopVoice?.streamingSpeechToTextProvider?.create,
+      ).toBe("function");
       expect(config.desktopVoice?.streamingAudioInput?.args).toContain("24000");
       expect(config.voice?.streamingSpeechToText).toBe("openai-realtime");
       expect(config.voice?.wakeActivation).toBe("openwakeword-command");
@@ -249,18 +249,28 @@ describe("parseAssistantConfig", () => {
       audioOutput: "mock",
     };
 
-    expect(parseAssistantConfig(createMinimalConfig({ voice }))).toEqual({
-      ...createMinimalConfig({ voice }),
-      conversation: {
-        history: {
-          maxTurnsBeforeCompaction: 5,
+    const config = parseAssistantConfig(
+      createMinimalConfig({
+        desktopVoice: {
+          openAIRealtimeTranscription: {
+            model: "gpt-realtime-whisper",
+          },
+          openAIStreamingSpeech: {
+            model: "gpt-4o-mini-tts",
+            voice: "coral",
+          },
         },
-        provider: "disabled",
-      },
-      responseRewriter: {
-        provider: "disabled",
-      },
-    });
+        voice,
+      }),
+    );
+
+    expect(config.voice).toEqual(voice);
+    expect(
+      typeof config.desktopVoice?.streamingSpeechToTextProvider?.create,
+    ).toBe("function");
+    expect(
+      typeof config.desktopVoice?.streamingTextToSpeechProvider?.create,
+    ).toBe("function");
   });
 
   it("rejects invalid voice adapter IDs", () => {

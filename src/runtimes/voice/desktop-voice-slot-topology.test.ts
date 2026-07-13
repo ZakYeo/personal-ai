@@ -1,49 +1,59 @@
-import type { StreamingSpeechToTextPort } from "../../ports/voice.js";
-import type { ResolvedVoiceConfig } from "../config/voice-config.js";
-import {
-  defineDesktopVoiceProviderAdapter,
-  type DesktopVoiceProviderSlotDescriptor,
-} from "./desktop-voice-adapter-types.js";
-import { resolveDesktopVoiceProviderSlot } from "./desktop-voice-slot-topology.js";
+import { defineDesktopVoiceProviderAdapter } from "./desktop-voice-provider-adapter-registry.js";
+import { parseAssistantConfig } from "../config/config.js";
 
 describe("desktop voice provider slot topology", () => {
-  it("allows registry entries in one slot to own different config types", () => {
-    const descriptor: DesktopVoiceProviderSlotDescriptor<StreamingSpeechToTextPort> =
+  it("lets selected registry entries parse different provider config types", () => {
+    const config = parseAssistantConfig(
       {
-        registry: {
-          alternate: defineDesktopVoiceProviderAdapter({
-            create: (config: { locale: string }) => ({
-              transcribeStream: () => Promise.resolve({ text: config.locale }),
-            }),
-            resolveConfig: () => ({ locale: "en-GB" }),
-          }),
-          numeric: defineDesktopVoiceProviderAdapter({
-            create: (config: { sampleRate: number }) => ({
-              transcribeStream: () =>
-                Promise.resolve({ text: String(config.sampleRate) }),
-            }),
-            resolveConfig: () => ({ sampleRate: 24_000 }),
-          }),
+        assistant: { name: "Jarvis", wakePhrases: ["hey jarvis"] },
+        desktopVoice: {
+          alternate: { locale: "en-GB" },
         },
-        voiceKey: "streamingSpeechToText",
-      };
-    const selected = resolveDesktopVoiceProviderSlot(
-      createVoiceConfig("alternate"),
-      descriptor,
-      {},
+        features: {},
+        intent: { provider: "deterministic" },
+        voice: { streamingSpeechToText: "alternate" },
+      },
+      {
+        desktopVoiceProviderAdapterRegistry: {
+          streamingSpeechToText: {
+            alternate: defineDesktopVoiceProviderAdapter({
+              configKey: "alternate",
+              create: (config: { locale: string }) => ({
+                transcribeStream: () =>
+                  Promise.resolve({ text: config.locale }),
+              }),
+              parseConfig: (value) => {
+                if (
+                  typeof value !== "object" ||
+                  value === null ||
+                  !("locale" in value) ||
+                  typeof value.locale !== "string"
+                ) {
+                  throw new Error("alternate locale required");
+                }
+
+                return { locale: value.locale };
+              },
+            }),
+          },
+          streamingTextToSpeech: {},
+        },
+      },
     );
 
-    expect(selected.adapterId).toBe("alternate");
+    const provider = config.desktopVoice?.streamingSpeechToTextProvider;
+
+    expect(provider).toBeDefined();
+    expect(provider).not.toHaveProperty("adapterId");
+    const adapter = provider?.create({
+      dependencies: {
+        env: {},
+        fetch: vi.fn() as typeof fetch,
+        processControl: { kill: vi.fn(), platform: "linux" },
+      },
+      tempFiles: { cleanup: vi.fn(), createFile: vi.fn() },
+    } satisfies Parameters<NonNullable<typeof provider>["create"]>[0]);
+
+    expect(typeof adapter?.transcribeStream).toBe("function");
   });
 });
-
-function createVoiceConfig(streamingSpeechToText: string): ResolvedVoiceConfig {
-  return {
-    audioOutput: "mock",
-    input: "mock",
-    speechToText: "mock",
-    streamingSpeechToText,
-    textToSpeech: "mock",
-    wakeWord: "mock",
-  };
-}

@@ -1,5 +1,6 @@
 import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import type { RealtimeSocketFactory } from "../adapters/openai/openai-realtime-transcription.js";
+import { createDesktopVoiceProviderAdapterRegistry } from "../runtimes/voice/desktop-voice-provider-adapter-entries.js";
 import { TestRealtimeSocket } from "./adapter-contract.js";
 import {
   createDesktopVoiceCommand,
@@ -10,8 +11,31 @@ export function createOpenAIStreamingServiceConfig(
   options: {
     desktopVoice?: LoadedRuntimeConfig["desktopVoice"];
     timeoutMs?: number;
+    webSocketFactory?: RealtimeSocketFactory;
   } = {},
 ): LoadedRuntimeConfig {
+  const rawProviderConfig = {
+    openAIRealtimeTranscription: {
+      apiKeyEnv: "OPENAI_API_KEY",
+      baseUrl: "wss://api.openai.test/v1/realtime",
+      model: "gpt-realtime-whisper",
+      timeoutMs: options.timeoutMs ?? 30_000,
+    },
+    openAIStreamingSpeech: {
+      apiKeyEnv: "OPENAI_API_KEY",
+      baseUrl: "https://api.openai.test/v1",
+      instructions: "Speak clearly.",
+      model: "gpt-4o-mini-tts",
+      responseFormat: "pcm",
+      voice: "coral",
+    },
+  };
+  const providerRegistry = createDesktopVoiceProviderAdapterRegistry({
+    ...(options.webSocketFactory
+      ? { openAIRealtimeWebSocketFactory: options.webSocketFactory }
+      : {}),
+  });
+
   return createDesktopVoiceConfig("", {
     desktopVoice: {
       streamingAudioInput: createDesktopVoiceCommand("printf command-audio"),
@@ -19,20 +43,14 @@ export function createOpenAIStreamingServiceConfig(
       wakeActivation: createDesktopVoiceCommand(
         `printf '%s\\n' '{"type":"wake","phrase":"hey jarvis"}'`,
       ),
-      openAIRealtimeTranscription: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "wss://api.openai.test/v1/realtime",
-        model: "gpt-realtime-whisper",
-        timeoutMs: options.timeoutMs ?? 30_000,
-      },
-      openAIStreamingSpeech: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.test/v1",
-        instructions: "Speak clearly.",
-        model: "gpt-4o-mini-tts",
-        responseFormat: "pcm",
-        voice: "coral",
-      },
+      streamingSpeechToTextProvider:
+        providerRegistry.streamingSpeechToText["openai-realtime"]!.resolve(
+          rawProviderConfig,
+        ),
+      streamingTextToSpeechProvider:
+        providerRegistry.streamingTextToSpeech["openai-streaming"]!.resolve(
+          rawProviderConfig,
+        ),
       ...options.desktopVoice,
     },
     voice: {
@@ -45,7 +63,9 @@ export function createOpenAIStreamingServiceConfig(
   });
 }
 
-export function createOpenAIConversationStreamingServiceConfig(): LoadedRuntimeConfig {
+export function createOpenAIConversationStreamingServiceConfig(
+  webSocketFactory?: RealtimeSocketFactory,
+): LoadedRuntimeConfig {
   const openAIConfig = {
     apiKeyEnv: "OPENAI_API_KEY",
     baseUrl: "https://api.openai.test/v1",
@@ -54,7 +74,9 @@ export function createOpenAIConversationStreamingServiceConfig(): LoadedRuntimeC
   };
 
   return {
-    ...createOpenAIStreamingServiceConfig(),
+    ...createOpenAIStreamingServiceConfig({
+      ...(webSocketFactory ? { webSocketFactory } : {}),
+    }),
     conversation: {
       history: {
         maxTurnsBeforeCompaction: 5,

@@ -39,43 +39,30 @@ describe("desktop voice config parsing", () => {
       },
     };
 
-    expect(parseAssistantConfig(createMinimalConfig({ desktopVoice }))).toEqual(
-      {
-        ...createMinimalConfig({
-          desktopVoice: {
-            wakeAudioInput: desktopVoice.wakeAudioInput,
-            wakeActivation: desktopVoice.wakeActivation,
-            streamingAudioInput: desktopVoice.streamingAudioInput,
-            streamingAudioOutput: desktopVoice.streamingAudioOutput,
-            speechToText: desktopVoice.speechToText,
-            textToSpeech: desktopVoice.textToSpeech,
-            openAIRealtimeTranscription: {
-              apiKeyEnv: "OPENAI_API_KEY",
-              baseUrl: "wss://api.openai.com/v1/realtime",
-              model: "gpt-realtime-whisper",
-              timeoutMs: 30_000,
-            },
-            openAIStreamingSpeech: {
-              apiKeyEnv: "OPENAI_API_KEY",
-              baseUrl: "https://api.openai.com/v1",
-              instructions: "Speak clearly and concisely.",
-              model: "gpt-4o-mini-tts",
-              responseFormat: "pcm",
-              voice: "coral",
-            },
-          },
-        }),
-        conversation: {
-          history: {
-            maxTurnsBeforeCompaction: 5,
-          },
-          provider: "disabled",
+    const config = parseAssistantConfig(
+      createMinimalConfig({
+        desktopVoice,
+        voice: {
+          streamingSpeechToText: "openai-realtime",
+          streamingTextToSpeech: "openai-streaming",
         },
-        responseRewriter: {
-          provider: "disabled",
-        },
-      },
+      }),
     );
+
+    expect(config.desktopVoice).toMatchObject({
+      wakeAudioInput: desktopVoice.wakeAudioInput,
+      wakeActivation: desktopVoice.wakeActivation,
+      streamingAudioInput: desktopVoice.streamingAudioInput,
+      streamingAudioOutput: desktopVoice.streamingAudioOutput,
+      speechToText: desktopVoice.speechToText,
+      textToSpeech: desktopVoice.textToSpeech,
+    });
+    expect(
+      typeof config.desktopVoice?.streamingSpeechToTextProvider?.create,
+    ).toBe("function");
+    expect(
+      typeof config.desktopVoice?.streamingTextToSpeechProvider?.create,
+    ).toBe("function");
   });
 
   it("rejects invalid desktop voice command config", () => {
@@ -139,15 +126,11 @@ describe("desktop voice config resolvers", () => {
     expect(resolved).toMatchObject({
       streamingSpeechToText: {
         audioInput: { command: "fake-stream-rec" },
-        transcription: {
-          adapterId: "openai-realtime",
-        },
+        transcription: {},
       },
       streamingTextToSpeech: {
         audioOutput: { command: "fake-stream-play" },
-        speech: {
-          adapterId: "openai-streaming",
-        },
+        speech: {},
       },
       wakeActivation: { command: "fake-wake" },
     });
@@ -160,24 +143,18 @@ describe("desktop voice config resolvers", () => {
   });
 
   it("rejects missing selected desktop streaming provider config at the config boundary", () => {
-    const config = createDesktopStreamingRuntimeConfig();
-
-    expect(() =>
-      resolveDesktopVoiceAdapterConfig(requireVoiceConfig(config), config),
-    ).toThrow(
+    expect(() => createDesktopStreamingRuntimeConfig()).toThrow(
       "Config desktopVoice.openAIRealtimeTranscription must be configured.",
     );
   });
 
   it("rejects unknown selected desktop streaming adapters before provider config requirements", () => {
-    const config = createDesktopStreamingRuntimeConfig({
-      voice: {
-        streamingSpeechToText: "unknown",
-      },
-    });
-
     expect(() =>
-      resolveDesktopVoiceAdapterConfig(requireVoiceConfig(config), config),
+      createDesktopStreamingRuntimeConfig({
+        voice: {
+          streamingSpeechToText: "unknown",
+        },
+      }),
     ).toThrow(
       'Config voice.streamingSpeechToText "unknown" is not registered.',
     );
