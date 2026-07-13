@@ -115,6 +115,21 @@ describe("createAlarmFeature", () => {
       context,
     );
   });
+
+  it("waits for store failures instead of reporting success early", async () => {
+    const failure = new Error("persistent alarm write failed");
+    const store = createTestAlarmStore();
+    store.add = () => Promise.reject(failure);
+
+    await expect(
+      executeFeature(
+        createAlarmFeature(store),
+        "alarm.create",
+        { label: "ping me", minutesFromNow: 10 },
+        context,
+      ),
+    ).rejects.toBe(failure);
+  });
 });
 
 function createTestAlarmStore(idPrefix = "alarm"): AlarmStore {
@@ -129,8 +144,8 @@ function createTestAlarmStore(idPrefix = "alarm"): AlarmStore {
 
       alarms.push(storedAlarm);
 
-      return storedAlarm;
+      return Promise.resolve(storedAlarm);
     },
-    list: () => [...alarms],
+    list: () => Promise.resolve([...alarms]),
   };
 }

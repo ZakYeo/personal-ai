@@ -696,6 +696,8 @@ Included:
 
 - A JSON-file-backed alarm store adapter selected through
   `features.alarms.adapter`.
+- Asynchronous `AlarmStore` operations so feature success is returned only
+  after persistence completes.
 - Runtime config for the local alarm store file path.
 - Field-by-field parsing and validation of stored alarm data from `unknown`.
 - Atomic or failure-aware write behavior documented and tested at the adapter
@@ -717,6 +719,8 @@ Acceptance criteria:
 - The in-memory alarm store remains available.
 - A configured file-backed alarm store preserves alarms across adapter
   instances.
+- Alarm creation and listing await persistence and surface store failures
+  through the existing diagnostic-safe feature failure boundary.
 - Malformed or missing persisted data fails safely with internal diagnostics and
   no raw file system details in human-facing responses.
 - Tests cover persistence, invalid persisted data, write failure diagnostics,

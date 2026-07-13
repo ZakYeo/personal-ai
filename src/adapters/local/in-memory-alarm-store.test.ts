@@ -1,7 +1,7 @@
 import { createInMemoryAlarmStore } from "./in-memory-alarm-store.js";
 
 describe("createInMemoryAlarmStore", () => {
-  it("stores alarms and returns defensive list copies", () => {
+  it("stores alarms and returns defensive list copies", async () => {
     const store = createInMemoryAlarmStore();
     const alarm = {
       id: "alarm-1",
@@ -9,16 +9,16 @@ describe("createInMemoryAlarmStore", () => {
       scheduledFor: "2026-06-26T09:10:00.000Z",
     };
 
-    expect(
+    await expect(
       store.add({ label: alarm.label, scheduledFor: alarm.scheduledFor }),
-    ).toEqual(alarm);
-    const listedAlarms = store.list();
+    ).resolves.toEqual(alarm);
+    const listedAlarms = await store.list();
     listedAlarms.push({
       id: "alarm-2",
       label: "mutated copy",
       scheduledFor: "2026-06-26T09:20:00.000Z",
     });
 
-    expect(store.list()).toEqual([alarm]);
+    await expect(store.list()).resolves.toEqual([alarm]);
   });
 });

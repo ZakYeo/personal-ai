@@ -12,8 +12,8 @@ export function createInMemoryAlarmStore(): AlarmStore {
 
       alarms.push(storedAlarm);
 
-      return storedAlarm;
+      return Promise.resolve(storedAlarm);
     },
-    list: () => [...alarms],
+    list: () => Promise.resolve([...alarms]),
   };
 }

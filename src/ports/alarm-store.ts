@@ -7,6 +7,6 @@ export interface AlarmRecord {
 export type NewAlarmRecord = Omit<AlarmRecord, "id">;
 
 export interface AlarmStore {
-  add(alarm: NewAlarmRecord): AlarmRecord;
-  list(): AlarmRecord[];
+  add(alarm: NewAlarmRecord): Promise<AlarmRecord>;
+  list(): Promise<AlarmRecord[]>;
 }

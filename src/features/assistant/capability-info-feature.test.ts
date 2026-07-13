@@ -111,7 +111,7 @@ function createFeature() {
 
 function createTestAlarmStore(): AlarmStore {
   return {
-    add: (alarm) => ({ ...alarm, id: "alarm-1" }),
-    list: () => [],
+    add: (alarm) => Promise.resolve({ ...alarm, id: "alarm-1" }),
+    list: () => Promise.resolve([]),
   };
 }

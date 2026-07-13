@@ -83,16 +83,16 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
   );
 }
 
-function createAlarm(
+async function createAlarm(
   args: AlarmCreateArgs,
   context: AssistantContext,
   store: AlarmStore,
-): FeatureResult {
+): Promise<FeatureResult> {
   const label = args.label ?? "alarm";
   const scheduledFor = new Date(
     context.clock.now().getTime() + args.minutesFromNow * 60_000,
   ).toISOString();
-  const alarm = store.add({
+  const alarm = await store.add({
     label,
     scheduledFor,
   });
@@ -107,8 +107,8 @@ function createAlarm(
   };
 }
 
-function listAlarms(store: AlarmStore): FeatureResult {
-  const alarms = store.list();
+async function listAlarms(store: AlarmStore): Promise<FeatureResult> {
+  const alarms = await store.list();
 
   if (alarms.length === 0) {
     return {
