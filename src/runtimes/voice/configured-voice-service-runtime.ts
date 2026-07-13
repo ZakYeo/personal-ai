@@ -84,17 +84,11 @@ export function runConfiguredVoiceServiceRuntime(
             audioOutput: adapters.audioOutput,
             commandAudioInput: adapters.audioInput,
             speechToText: adapters.speechToText,
-            ...(adapters.streamingAudioInput
-              ? { streamingAudioInput: adapters.streamingAudioInput }
+            ...(adapters.streamingInput
+              ? { streamingInput: adapters.streamingInput }
               : {}),
-            ...(adapters.streamingAudioOutput
-              ? { streamingAudioOutput: adapters.streamingAudioOutput }
-              : {}),
-            ...(adapters.streamingSpeechToText
-              ? { streamingSpeechToText: adapters.streamingSpeechToText }
-              : {}),
-            ...(adapters.streamingTextToSpeech
-              ? { streamingTextToSpeech: adapters.streamingTextToSpeech }
+            ...(adapters.streamingOutput
+              ? { streamingOutput: adapters.streamingOutput }
               : {}),
             textToSpeech: adapters.textToSpeech,
             turnConfig: {

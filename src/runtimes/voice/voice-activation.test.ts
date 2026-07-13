@@ -314,17 +314,19 @@ describe("voice activation", () => {
     await expect(
       runVoiceActivation({
         ...dependencies,
-        streamingAudioOutput: {
-          playStream: async (chunks) => {
-            streamedAudio.push(await readChunksAsText(chunks));
+        streamingOutput: {
+          audioOutput: {
+            playStream: async (chunks) => {
+              streamedAudio.push(await readChunksAsText(chunks));
+            },
           },
-        },
-        streamingTextToSpeech: {
-          synthesizeStream: (text) =>
-            Promise.resolve({
-              chunks: chunksFromText(`stream:${text}`),
-              text,
-            }),
+          textToSpeech: {
+            synthesizeStream: (text) =>
+              Promise.resolve({
+                chunks: chunksFromText(`stream:${text}`),
+                text,
+              }),
+          },
         },
         textToSpeech: {
           synthesize: (text) => {
@@ -364,17 +366,19 @@ describe("voice activation", () => {
               return Promise.resolve({ text: "batch command" });
             },
           },
-          streamingAudioInput: {
-            captureStream: () =>
-              Promise.resolve({ chunks: chunksFromText("audio") }),
-          },
-          streamingSpeechToText: {
-            transcribeStream: async (_audio, events) => {
-              await Promise.resolve();
-              events?.onTranscriptDelta?.("list ");
-              events?.onTranscriptDelta?.("alarms");
+          streamingInput: {
+            audioInput: {
+              captureStream: () =>
+                Promise.resolve({ chunks: chunksFromText("audio") }),
+            },
+            speechToText: {
+              transcribeStream: async (_audio, events) => {
+                await Promise.resolve();
+                events?.onTranscriptDelta?.("list ");
+                events?.onTranscriptDelta?.("alarms");
 
-              return { text: deterministicScenarios.alarmListEmpty.text };
+                return { text: deterministicScenarios.alarmListEmpty.text };
+              },
             },
           },
         },
@@ -398,15 +402,17 @@ describe("voice activation", () => {
     await expect(
       runVoiceActivation({
         ...dependencies,
-        streamingAudioInput: {
-          captureStream: () =>
-            Promise.resolve({ chunks: chunksFromText("audio") }),
-        },
-        streamingSpeechToText: {
-          transcribeStream: () =>
-            Promise.resolve({
-              text: deterministicScenarios.alarmListEmpty.text,
-            }),
+        streamingInput: {
+          audioInput: {
+            captureStream: () =>
+              Promise.resolve({ chunks: chunksFromText("audio") }),
+          },
+          speechToText: {
+            transcribeStream: () =>
+              Promise.resolve({
+                text: deterministicScenarios.alarmListEmpty.text,
+              }),
+          },
         },
         timing: {
           nowMs: createScriptedClock([

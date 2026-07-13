@@ -3,10 +3,6 @@ import type {
   AudioInputPort,
   AudioOutputPort,
   SpeechToTextPort,
-  StreamingAudioInputPort,
-  StreamingAudioOutputPort,
-  StreamingSpeechToTextPort,
-  StreamingTextToSpeechPort,
   TextToSpeechPort,
   WakeActivationPort,
   WakeWordPort,
@@ -25,6 +21,10 @@ import {
   type VoiceTurnInstrumentation,
 } from "./voice-timings.js";
 import type { VoiceTurnResult } from "./voice-turn-result.js";
+import type {
+  StreamingVoiceInput,
+  StreamingVoiceOutput,
+} from "./streaming-voice.js";
 
 interface VoicePipelineConfig {
   initialCommandSource: "command-capture" | "wake-transcript";
@@ -37,10 +37,8 @@ interface VoicePipelineDependencies {
   audioOutput: AudioOutputPort;
   commandAudioInput: AudioInputPort;
   speechToText: SpeechToTextPort;
-  streamingAudioInput?: StreamingAudioInputPort;
-  streamingAudioOutput?: StreamingAudioOutputPort;
-  streamingSpeechToText?: StreamingSpeechToTextPort;
-  streamingTextToSpeech?: StreamingTextToSpeechPort;
+  streamingInput?: StreamingVoiceInput;
+  streamingOutput?: StreamingVoiceOutput;
   textToSpeech: TextToSpeechPort;
   timing?: VoiceTimingOptions;
   turnConfig: VoicePipelineConfig;
@@ -201,14 +199,14 @@ async function transcribeCommand(
   io: VoiceRuntimeIo,
   instrumentation: VoiceTurnInstrumentation,
 ): Promise<{ text: string }> {
-  if (dependencies.streamingAudioInput && dependencies.streamingSpeechToText) {
-    const { streamingAudioInput, streamingSpeechToText } = dependencies;
+  if (dependencies.streamingInput) {
+    const { audioInput, speechToText } = dependencies.streamingInput;
     const audio = await instrumentation.measure("command stream setup", () =>
-      streamingAudioInput.captureStream(),
+      audioInput.captureStream(),
     );
 
     return instrumentation.measure("command transcription", () =>
-      streamingSpeechToText.transcribeStream(audio, {
+      speechToText.transcribeStream(audio, {
         onTranscriptDelta: (delta) => {
           io.progressOutput?.write(delta);
         },

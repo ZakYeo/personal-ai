@@ -153,26 +153,30 @@ function createDesktopVoiceAdaptersWithTempFiles(
     ),
     ...(desktopVoice.streamingSpeechToText
       ? {
-          streamingAudioInput: createDesktopVoiceSlotAdapter(
-            voice,
-            desktopVoiceSlotTopology.streamingAudioInput,
-            desktopVoice.streamingSpeechToText.audioInput,
-            context,
-          ),
-          streamingSpeechToText:
-            desktopVoice.streamingSpeechToText.transcription.create(context),
+          streamingInput: {
+            audioInput: createDesktopVoiceSlotAdapter(
+              voice,
+              desktopVoiceSlotTopology.streamingAudioInput,
+              desktopVoice.streamingSpeechToText.audioInput,
+              context,
+            ),
+            speechToText:
+              desktopVoice.streamingSpeechToText.transcription.create(context),
+          },
         }
       : {}),
     ...(desktopVoice.streamingTextToSpeech
       ? {
-          streamingAudioOutput: createDesktopVoiceSlotAdapter(
-            voice,
-            desktopVoiceSlotTopology.streamingAudioOutput,
-            desktopVoice.streamingTextToSpeech.audioOutput,
-            context,
-          ),
-          streamingTextToSpeech:
-            desktopVoice.streamingTextToSpeech.speech.create(context),
+          streamingOutput: {
+            audioOutput: createDesktopVoiceSlotAdapter(
+              voice,
+              desktopVoiceSlotTopology.streamingAudioOutput,
+              desktopVoice.streamingTextToSpeech.audioOutput,
+              context,
+            ),
+            textToSpeech:
+              desktopVoice.streamingTextToSpeech.speech.create(context),
+          },
         }
       : {}),
     textToSpeech: createDesktopVoiceSlotAdapter(

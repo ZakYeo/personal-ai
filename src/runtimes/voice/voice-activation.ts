@@ -2,10 +2,6 @@ import type {
   AudioInputPort,
   AudioOutputPort,
   SpeechToTextPort,
-  StreamingAudioInputPort,
-  StreamingAudioOutputPort,
-  StreamingSpeechToTextPort,
-  StreamingTextToSpeechPort,
   TextToSpeechPort,
   WakeActivationPort,
   WakeWordPort,
@@ -17,16 +13,18 @@ import {
 } from "./voice-pipeline.js";
 import type { VoiceTimingOptions } from "./voice-timings.js";
 import type { VoiceRuntimeIo, VoiceTurnConfig } from "./voice-turn.js";
+import type {
+  StreamingVoiceInput,
+  StreamingVoiceOutput,
+} from "./streaming-voice.js";
 
 export interface VoiceActivationDependencies {
   assistant: Assistant;
   audioOutput: AudioOutputPort;
   commandAudioInput: AudioInputPort;
   speechToText: SpeechToTextPort;
-  streamingAudioInput?: StreamingAudioInputPort;
-  streamingAudioOutput?: StreamingAudioOutputPort;
-  streamingSpeechToText?: StreamingSpeechToTextPort;
-  streamingTextToSpeech?: StreamingTextToSpeechPort;
+  streamingInput?: StreamingVoiceInput;
+  streamingOutput?: StreamingVoiceOutput;
   textToSpeech: TextToSpeechPort;
   timing?: VoiceTimingOptions;
   turnConfig: VoiceTurnConfig;

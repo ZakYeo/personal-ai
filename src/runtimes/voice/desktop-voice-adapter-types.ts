@@ -17,6 +17,10 @@ import type {
   DesktopVoiceAdapterContext,
   ResolvedDesktopVoiceProviderAdapter,
 } from "./desktop-voice-provider-adapter-registry.js";
+import type {
+  StreamingVoiceInput,
+  StreamingVoiceOutput,
+} from "./streaming-voice.js";
 
 export type {
   DesktopVoiceAdapterContext,
@@ -27,10 +31,8 @@ export interface DesktopVoiceAdapters {
   audioInput: AudioInputPort;
   audioOutput: AudioOutputPort;
   speechToText: SpeechToTextPort;
-  streamingAudioInput?: StreamingAudioInputPort;
-  streamingAudioOutput?: StreamingAudioOutputPort;
-  streamingSpeechToText?: StreamingSpeechToTextPort;
-  streamingTextToSpeech?: StreamingTextToSpeechPort;
+  streamingInput?: StreamingVoiceInput;
+  streamingOutput?: StreamingVoiceOutput;
   textToSpeech: TextToSpeechPort;
   wakeActivation?: WakeActivationPort;
   wakeWord: WakeWordPort;

@@ -158,8 +158,12 @@ keeps the service from waiting for the full capture window after the user has
 finished speaking while still bounding command capture if silence detection is
 unreliable.
 If streaming adapters are not configured, the runtime falls back to the existing
-batch capture, STT, TTS, and playback adapters. Pre-wake activation failures are
-logged internally and retried by the neutral service loop. After wake detection,
+batch capture, STT, TTS, and playback adapters.
+Runtime composition carries streaming input as one capture/transcription path
+and streaming output as one synthesis/playback path, preventing partially
+constructed streaming pairs from reaching the voice loop.
+Pre-wake activation failures are logged internally and retried by the neutral
+service loop. After wake detection,
 final command capture, transcription, assistant, speech, and playback failures
 produce the same safe voice fallback as one-turn voice runtimes whenever
 possible. Startup still fails closed for missing selected voice adapter IDs or
