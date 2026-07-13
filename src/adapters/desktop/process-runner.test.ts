@@ -4,6 +4,7 @@ import {
   createSuccessfulCommandScript,
 } from "../../test-support/adapter-contract.js";
 import type {
+  CommandAbortError,
   CommandExecutionError,
   CommandSpawnError,
   CommandTimeoutError,
@@ -142,11 +143,12 @@ describe("runCommand", () => {
           timeoutMs: 10,
         }),
       ).rejects.toMatchObject({
-        message: expect.stringContaining(
-          "did not exit after termination signals",
-        ) as string,
-        name: "CommandTerminationError",
+        cause: expect.objectContaining({
+          name: "CommandTerminationError",
+        }) as Error,
+        name: "CommandTimeoutError",
         stdout: "ready",
+        timeoutMs: 10,
       });
 
       expect(signals).toEqual(["SIGTERM", "SIGKILL"]);
@@ -181,16 +183,25 @@ describe("runCommand", () => {
     };
 
     const result = runCommand({
-      args: ["-c", "printf 'partial transcript'; sleep 1"],
+      args: [
+        "-c",
+        "printf 'partial transcript'; printf 'partial diagnostic' >&2; sleep 1",
+      ],
       command: "/bin/sh",
       processControl,
       signal: controller.signal,
       timeoutMs: 1_000,
     });
 
-    controller.abort(new Error("shutdown requested"));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const reason = new Error("shutdown requested");
+    controller.abort(reason);
 
-    await expect(result).rejects.toThrow("shutdown requested");
+    await expect(result).rejects.toMatchObject({
+      reason,
+      stderr: "partial diagnostic",
+      stdout: "partial transcript",
+    } satisfies Partial<CommandAbortError>);
     expect(killedProcessGroups).toHaveLength(1);
     expect(killedProcessGroups[0]).toBeLessThan(0);
   });
@@ -275,10 +286,51 @@ describe("runCommandWritableStream", () => {
     expect(killedProcessGroups).toHaveLength(1);
     expect(killedProcessGroups[0]).toBeLessThan(0);
   });
+
+  it("preserves the input failure when command termination also fails", async () => {
+    const processGroups: number[] = [];
+    const processControl: ProcessControl = {
+      kill: (pid) => {
+        processGroups.push(pid);
+      },
+      platform: "linux",
+    };
+    const inputFailure = new Error("input stream failed");
+
+    try {
+      await expect(
+        runCommandWritableStream(
+          {
+            args: ["-c", "while true; do sleep 1; done"],
+            command: "/bin/sh",
+            processControl,
+            terminationGraceMs: 10,
+            timeoutMs: 1_000,
+          },
+          createFailingInputChunks(inputFailure),
+        ),
+      ).rejects.toSatisfy((error: unknown) => {
+        expect(error).toBe(inputFailure);
+        expect(error).toMatchObject({
+          cause: expect.objectContaining({
+            name: "CommandTerminationError",
+          }) as Error,
+        });
+
+        return true;
+      });
+    } finally {
+      if (processGroups[0] !== undefined) {
+        process.kill(processGroups[0], "SIGKILL");
+      }
+    }
+  });
 });
 
-async function* createFailingInputChunks(): AsyncIterable<Uint8Array> {
+async function* createFailingInputChunks(
+  failure: Error = new Error("input stream failed"),
+): AsyncIterable<Uint8Array> {
   await Promise.resolve();
   yield Buffer.from("partial audio", "utf8");
-  throw new Error("input stream failed");
+  throw failure;
 }

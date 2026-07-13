@@ -61,7 +61,6 @@ export async function runCommandWritableStream(
     await commandProcess.waitForSuccess();
   } catch (error) {
     commandProcess.endStdinBestEffort();
-    await commandProcess.terminateAndWait();
-    throw toError(error);
+    await commandProcess.terminatePreserving(toError(error));
   }
 }

@@ -244,10 +244,12 @@ mode. Non-zero exits, spawn failures where available, and timeouts should keep
 captured stdout/stderr internally so human-facing boundaries can log useful
 operator diagnostics while returning safe fallback text.
 Timeout, abort, and cleanup must track process close separately from the public
-command result. Termination waits for child exit and escalates from `SIGTERM` to
+command result. Aborts use a diagnostic-bearing command error that retains the
+abort reason and final stdout/stderr. Termination waits for child exit and escalates from `SIGTERM` to
 `SIGKILL` after a bounded grace period so child or process-group resources do
 not outlive runtime cleanup; final captured output remains on the diagnostic
-error. Failed process-group signals fall back to direct-child signals, and the
+error. A cleanup failure is attached to the primary timeout, abort, or stream
+failure instead of replacing it. Failed process-group signals fall back to direct-child signals, and the
 post-`SIGKILL` close wait is also bounded so cleanup cannot wait forever.
 
 Assistant diagnostic emission is an exhaustive policy over the public

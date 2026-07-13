@@ -33,9 +33,22 @@ export class CommandTimeoutError extends Error {
     readonly timeoutMs: number,
     readonly stderr: string,
     readonly stdout: string,
+    cause?: unknown,
   ) {
-    super(message);
+    super(message, cause === undefined ? undefined : { cause });
     this.name = "CommandTimeoutError";
+  }
+}
+
+export class CommandAbortError extends Error {
+  constructor(
+    message: string,
+    readonly reason: unknown,
+    readonly stderr: string,
+    readonly stdout: string,
+  ) {
+    super(message, { cause: reason });
+    this.name = "CommandAbortError";
   }
 }
 
@@ -187,6 +200,18 @@ class CommandProcess {
     );
   }
 
+  async terminatePreserving(error: unknown): Promise<never> {
+    const primaryError = toError(error);
+
+    try {
+      await this.terminateAndWait();
+    } catch (terminationError) {
+      attachSecondaryCause(primaryError, terminationError);
+    }
+
+    throw primaryError;
+  }
+
   waitForSuccess(): Promise<RunCommandResult> {
     return this.completion;
   }
@@ -266,26 +291,39 @@ class CommandProcess {
 
       const timer = setTimeout(() => {
         settle(() => {
-          void this.terminateAndWait().then(() => {
-            const output = this.output();
-
+          void this.createFailureAfterTermination((output, cleanupError) =>
             reject(
               new CommandTimeoutError(
                 `Command "${this.request.command}" timed out after ${timeoutMs}ms.`,
                 timeoutMs,
                 output.stderr,
                 output.stdout,
+                cleanupError,
               ),
-            );
-          }, reject);
+            ),
+          );
         });
       }, timeoutMs);
 
       const onAbort = (): void => {
         settle(() => {
-          void this.terminateAndWait().then(() => {
-            reject(toError(this.request.signal?.reason ?? "Command aborted."));
-          }, reject);
+          const signalReason = this.request.signal?.reason as unknown;
+          const reason = signalReason ?? "Command aborted.";
+
+          void this.createFailureAfterTermination((output, cleanupError) => {
+            const error = new CommandAbortError(
+              toError(reason).message,
+              reason,
+              output.stderr,
+              output.stdout,
+            );
+
+            reject(
+              cleanupError === undefined
+                ? error
+                : attachSecondaryCause(error, cleanupError),
+            );
+          });
         });
       };
 
@@ -334,6 +372,20 @@ class CommandProcess {
     return this.request.terminationGraceMs ?? defaultTerminationGraceMs;
   }
 
+  private async createFailureAfterTermination(
+    create: (output: RunCommandResult, cleanupError?: unknown) => void,
+  ): Promise<void> {
+    let cleanupError: unknown;
+
+    try {
+      await this.terminateAndWait();
+    } catch (error) {
+      cleanupError = error;
+    }
+
+    create(this.output(), cleanupError);
+  }
+
   private waitForCloseWithin(timeoutMs: number): Promise<boolean> {
     return new Promise((resolve) => {
       const timer = setTimeout(() => resolve(false), timeoutMs);
@@ -348,6 +400,27 @@ class CommandProcess {
 
 export function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
+}
+
+function attachSecondaryCause<TError extends Error>(
+  primaryError: TError,
+  secondaryError: unknown,
+): TError {
+  const existingCause = primaryError.cause;
+  const cause =
+    existingCause === undefined
+      ? secondaryError
+      : new AggregateError(
+          [existingCause, secondaryError],
+          "Primary failure and command cleanup both failed.",
+        );
+
+  Object.defineProperty(primaryError, "cause", {
+    configurable: true,
+    value: cause,
+  });
+
+  return primaryError;
 }
 
 function terminateProcess(
