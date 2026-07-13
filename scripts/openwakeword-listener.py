@@ -31,7 +31,7 @@ def audio_frames(rec_command: str, frame_ms: int) -> Iterable[bytes]:
     process = subprocess.Popen(
         shlex.split(rec_command),
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=None,
     )
 
     if process.stdout is None:
@@ -45,7 +45,13 @@ def audio_frames(rec_command: str, frame_ms: int) -> Iterable[bytes]:
 
             yield frame
     finally:
-        process.terminate()
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=1.0)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
 
 
 def pcm16_samples(frame: bytes):

@@ -4,6 +4,62 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 
 describe("openwakeword-listener.py", () => {
+  // cspell:ignore kwargs Popen popen
+  it("drains recorder stderr and reaps a recorder that ignores termination", async () => {
+    const harness = String.raw`
+import importlib.util
+import pathlib
+import subprocess
+
+repo_root = pathlib.Path.cwd()
+listener_path = repo_root / "scripts" / "openwakeword-listener.py"
+spec = importlib.util.spec_from_file_location("openwakeword_listener", listener_path)
+listener = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(listener)
+
+events = []
+
+class FakeStdout:
+    def read(self, _size):
+        return b"\1\0"
+
+class FakeProcess:
+    stdout = FakeStdout()
+
+    def poll(self):
+        return None
+
+    def terminate(self):
+        events.append("terminate")
+
+    def wait(self, timeout=None):
+        events.append(("wait", timeout))
+        if timeout is not None:
+            raise subprocess.TimeoutExpired("rec", timeout)
+        return 0
+
+    def kill(self):
+        events.append("kill")
+
+def fake_popen(*args, **kwargs):
+    assert kwargs["stdout"] is subprocess.PIPE
+    assert kwargs["stderr"] is None
+    return FakeProcess()
+
+listener.subprocess.Popen = fake_popen
+frames = listener.audio_frames("fake-rec", 80)
+assert next(frames) == b"\1\0"
+frames.close()
+assert events == ["terminate", ("wait", 1.0), "kill", ("wait", None)]
+`;
+
+    await expect(
+      execFileAsync("python3", ["-B", "-c", harness], {
+        cwd: process.cwd(),
+      }),
+    ).resolves.toMatchObject({ stderr: "" });
+  });
+
   it("loads the normalized pretrained model path and emits the configured wake phrase", async () => {
     const harness = String.raw`
 import contextlib

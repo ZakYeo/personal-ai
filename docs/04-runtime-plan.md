@@ -481,6 +481,9 @@ Command completion and process close are separate lifecycle signals. Timeout,
 abort, and cleanup paths wait for close and escalate from `SIGTERM` to
 `SIGKILL` after a bounded grace period while preserving output captured through
 final exit.
+The openWakeWord Python sidecar inherits recorder stderr for operator
+diagnostics and reaps the recorder in `finally`, escalating from terminate to
+kill when the bounded wait expires.
 
 ## Process Lifecycle
 
