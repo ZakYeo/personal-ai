@@ -77,6 +77,7 @@ export async function runServiceRuntime(
       (reason, signal) => {
         state.requestShutdown(reason, signal);
       },
+      options.io ?? {},
     );
 
     const assistant = await options.createAssistant();
@@ -143,9 +144,7 @@ export async function runServiceRuntime(
       );
     }
 
-    for (const unregister of unregisterSignals) {
-      unregister();
-    }
+    unregisterSignalsBestEffort(unregisterSignals, options.io ?? {});
   }
 }
 
@@ -184,6 +183,7 @@ function createServiceState() {
 function registerShutdownSignals(
   processSignals: ServiceProcessSignals | undefined,
   requestShutdown: (reason?: string, signal?: ServiceSignal) => void,
+  io: ServiceRuntimeIo,
 ): Array<() => void> {
   if (!processSignals) {
     return [];
@@ -200,14 +200,25 @@ function registerShutdownSignals(
       );
     }
   } catch (error) {
-    for (const unregister of unregisterSignals) {
-      unregister();
-    }
+    unregisterSignalsBestEffort(unregisterSignals, io);
 
     throw error;
   }
 
   return unregisterSignals;
+}
+
+function unregisterSignalsBestEffort(
+  unregisterSignals: Array<() => void>,
+  io: ServiceRuntimeIo,
+): void {
+  for (const unregister of unregisterSignals) {
+    try {
+      unregister();
+    } catch (error) {
+      logRuntimeFailure(error, io);
+    }
+  }
 }
 
 async function retryAfterTurnFailure(

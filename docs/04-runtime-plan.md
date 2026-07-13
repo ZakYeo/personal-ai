@@ -520,8 +520,10 @@ transcription input can terminate promptly instead of waiting for a wake phrase
 or command timeout.
 Once assistant startup succeeds, shutdown hooks run from lifecycle cleanup for
 normal stops and fatal turn or retry failures alike. Signal handlers are still
-removed in the outer `finally`; pre-start failures do not invoke post-start
-hooks.
+removed best-effort in the outer `finally`; one removal failure is logged
+without skipping later handlers or replacing the service result. Partial signal
+registration rollback follows the same policy while preserving the original
+registration error. Pre-start failures do not invoke post-start hooks.
 
 The Raspberry Pi service command builds on this service boundary. It validates
 the required voice and desktop command config during startup, runs configured

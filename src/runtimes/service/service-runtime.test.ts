@@ -30,7 +30,9 @@ describe("runServiceRuntime", () => {
   });
 
   it("returns a safe startup failure outcome and cleans up when signal registration fails", async () => {
-    const unregister = vi.fn();
+    const unregister = vi.fn(() => {
+      throw new Error("raw unregister rollback failure");
+    });
     const processSignals: ServiceProcessSignals = {
       onSignal(signal: ServiceSignal) {
         if (signal === "SIGTERM") {
@@ -55,6 +57,9 @@ describe("runServiceRuntime", () => {
     expect(unregister).toHaveBeenCalledTimes(1);
     expect(harness.stderr.writes).toContain(
       line("Runtime failure: raw signal registration failure"),
+    );
+    expect(harness.stderr.writes).toContain(
+      line("Runtime failure: raw unregister rollback failure"),
     );
     expect(runTurn).not.toHaveBeenCalled();
   });
@@ -186,6 +191,35 @@ describe("runServiceRuntime", () => {
       signal: "SIGTERM",
     });
     expect(harness.stderr.writes).toEqual([]);
+  });
+
+  it("preserves a graceful result when signal handler removal fails", async () => {
+    const unregisterSecond = vi.fn();
+    const processSignals: ServiceProcessSignals = {
+      onSignal(signal) {
+        return signal === "SIGINT"
+          ? () => {
+              throw new Error("raw unregister failure");
+            }
+          : unregisterSecond;
+      },
+    };
+    const harness = createServiceRuntimeHarness({
+      processSignals,
+      runTurn: vi.fn().mockImplementation((context: ServiceTurnContext) => {
+        context.requestShutdown("test complete");
+        return Promise.resolve();
+      }),
+    });
+
+    await expect(harness.run()).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 1,
+    });
+    expect(unregisterSecond).toHaveBeenCalledTimes(1);
+    expect(harness.stderr.writes).toContain(
+      line("Runtime failure: raw unregister failure"),
+    );
   });
 
   it("aborts an active turn after an injected shutdown signal", async () => {
