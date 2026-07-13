@@ -324,8 +324,10 @@ default continues to use the deterministic in-memory adapter.
 ```
 
 The file store creates a missing state file on the first successful alarm
-write. Existing malformed or unsupported state fails safely: human-facing
-responses remain generic while runtime diagnostics retain the underlying cause.
+write. It synchronizes the temporary contents before atomic replacement and
+synchronizes the containing directory before reporting success. Existing
+malformed or unsupported state fails safely: human-facing responses remain
+generic while runtime diagnostics retain the underlying cause.
 
 ## Scripts
 
