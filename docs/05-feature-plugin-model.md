@@ -78,6 +78,9 @@ Higher-risk examples:
 - Modify external state.
 
 Higher-risk actions should support confirmation before execution. The exact confirmation model can be implemented later, but the feature contract should leave room for it.
+Generated capability summaries describe this policy in feature-neutral language
+because any registered capability can be high risk or explicitly require
+confirmation.
 
 Milestone 1.5 intentionally uses a thin confirmation policy. If a capability requires confirmation, the assistant stops before feature execution and returns a yes/no confirmation prompt. It does not yet persist pending commands or resume them in a later turn.
 

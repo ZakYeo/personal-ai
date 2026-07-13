@@ -27,6 +27,7 @@
 - Deterministic calendar responses should preserve exact provider date strings; conversational title, date, and relative-time phrasing belongs to the optional response rewriter.
 - Capability awareness must be generated from enabled feature metadata. Keep capability `summary`/`description` fields current, use the shared provider-facing catalog for prompts, and keep the built-in assistant capability catalog feature backed by that same metadata.
 - Spoken capability answers should be concise and human-facing: avoid bullets, semicolon-delimited lists, and internal capability names such as `alarm.list` unless the user explicitly asks for technical detail.
+- Capability summaries must describe confirmation policy generically when multiple feature types can require it; do not hard-code one feature's action into catalog-wide wording.
 - Keep process state, clocks, IO streams, and network clients injectable at runtime/composition boundaries; avoid direct `process.env`, `globalThis.fetch`, `new Date()`, stdout, or stderr access in core, feature, or adapter internals.
 - When one runtime factory composes another runtime or assistant factory, forward the same injectable environment, network, clock, and IO dependencies instead of letting nested composition fall back to globals.
 - Parse config, provider responses, command output, and other external data from `unknown` with field-by-field validation before casting to application types.

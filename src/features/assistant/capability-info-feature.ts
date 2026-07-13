@@ -96,7 +96,7 @@ function listCapabilities(catalog: CapabilityCatalog): FeatureResult {
       featureId !== "assistant" &&
       (capability.requiresConfirmation === true || capability.risk === "high"),
   )
-    ? " I will ask before creating an alarm."
+    ? " I will ask before high-risk actions."
     : "";
 
   return {
