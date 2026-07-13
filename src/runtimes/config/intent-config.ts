@@ -1,4 +1,5 @@
 import type { FeaturePlugin } from "../../ports/feature.js";
+import type { CapabilityCatalog } from "../../ports/capability-catalog.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import {
   resolveConfiguredRuntimeProvider,
@@ -13,6 +14,7 @@ export interface IntentProviderDependencies {
 }
 
 export interface IntentProviderContext {
+  capabilityCatalog: CapabilityCatalog;
   dependencies: IntentProviderDependencies;
   features: FeaturePlugin[];
 }

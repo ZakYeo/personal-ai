@@ -38,6 +38,7 @@ describe("conversation config parsing", () => {
     ).conversation;
 
     conversation.resolvedProvider.create({
+      capabilityCatalog: [],
       dependencies: { env: {}, fetch: vi.fn() as typeof fetch },
       features: [],
       history: conversation.history,

@@ -5,6 +5,7 @@ import {
 import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
 import type { OpenAIResponsesConfig } from "../adapters/openai/openai-responses-config.js";
 import type { FeaturePlugin } from "../ports/feature.js";
+import type { CapabilityCatalog } from "../ports/capability-catalog.js";
 import { getDeterministicFeatureRules } from "../ports/deterministic-feature-rules.js";
 import type { IntentInterpreterPort } from "../ports/intent.js";
 import type {
@@ -13,7 +14,6 @@ import type {
   ParsedIntentConfig,
 } from "./config/intent-config.js";
 import { parseOpenAIResponsesConfig } from "./config/openai-responses-config.js";
-import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
 import {
   defineConfiglessRuntimeProvider,
   defineRuntimeProvider,
@@ -22,9 +22,14 @@ import {
 export function createConfiguredIntentInterpreter(
   config: { intent: ParsedIntentConfig },
   features: FeaturePlugin[],
+  capabilityCatalog: CapabilityCatalog,
   dependencies: IntentProviderDependencies,
 ): IntentInterpreterPort {
-  return config.intent.resolvedProvider.create({ dependencies, features });
+  return config.intent.resolvedProvider.create({
+    capabilityCatalog,
+    dependencies,
+    features,
+  });
 }
 
 export function createDefaultIntentProviderRegistry(): IntentProviderRegistry {
@@ -38,10 +43,10 @@ export function createDefaultIntentProviderRegistry(): IntentProviderRegistry {
       configKey: "openai",
       create: (
         providerConfig: OpenAIResponsesConfig,
-        { dependencies, features },
+        { capabilityCatalog, dependencies },
       ) =>
         new OpenAIIntentInterpreter({
-          capabilityCatalog: createProviderCapabilityCatalog(features),
+          capabilityCatalog,
           config: providerConfig,
           env: dependencies.env,
           fetch: dependencies.fetch,

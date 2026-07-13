@@ -437,11 +437,11 @@ fields, its provider ID, and a captured neutral factory rather than
 provider-specific config fields.
 Assistant policy projection, intent provider resolution, voice adapter ID
 resolution, and desktop voice command resolution remain focused boundaries.
-Provider-facing capability catalog construction is shared by runtime composition
-so future intent and conversation providers can reuse the same feature metadata
-projection. Capability summaries and descriptions are generated from enabled
-feature metadata and also back the built-in assistant capability catalog
-feature.
+Runtime composition compiles enabled feature metadata into one validated
+capability-to-feature routing index. Duplicate stable capability names fail
+startup instead of depending on feature array order. Intent and conversation
+providers, assistant execution, and the built-in capability catalog consume
+that same index and its provider-facing catalog.
 Voice-facing answers should present this capability metadata in natural spoken
 language. Normal user-facing responses should avoid bullets, semicolon-delimited
 lists, and internal capability names such as `alarm.list` unless the user asks

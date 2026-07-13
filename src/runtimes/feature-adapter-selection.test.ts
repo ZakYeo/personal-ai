@@ -140,6 +140,34 @@ describe("createConfiguredFeatures", () => {
     );
   });
 
+  it("rejects feature capabilities already owned by the built-in assistant", () => {
+    const registry: FeatureAdapterRegistry = {
+      notes: {
+        adapters: {
+          mock: defineFeatureAdapterEntry({
+            create: () =>
+              createTestFeature("notes", "assistant.capabilities.list"),
+            parseConfig: () => ({}),
+          }),
+        },
+      },
+    };
+    const config = parseAssistantConfig(
+      createMinimalFeatureConfig({
+        notes: { adapter: "mock", enabled: true },
+      }),
+      { featureAdapterRegistry: registry },
+    );
+
+    expect(() =>
+      createConfiguredFeatures(config, {
+        dependencies: featureAdapterDependencies,
+      }),
+    ).toThrow(
+      'Capability "assistant.capabilities.list" is declared by both "notes" and "assistant".',
+    );
+  });
+
   it("does not expose registry-level deterministic rules", () => {
     const selection = createConfiguredFeatureSelection(disabledCalendarConfig, {
       dependencies: featureAdapterDependencies,
@@ -222,12 +250,15 @@ describe("createConfiguredFeatures", () => {
   });
 });
 
-function createTestFeature(id: string): FeaturePlugin {
+function createTestFeature(
+  id: string,
+  capabilityName = "test.noop",
+): FeaturePlugin {
   return defineFeature({
     id,
     displayName: "Test Feature",
     capabilities: {
-      "test.noop": defineCapability({
+      [capabilityName]: defineCapability({
         risk: "low",
         parameters: {},
         execute: () => ({ text: "ok" }),

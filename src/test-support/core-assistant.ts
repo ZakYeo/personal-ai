@@ -21,6 +21,7 @@ import type {
   FeatureResult,
 } from "../ports/feature.js";
 import { defineCapability, defineFeature } from "../ports/feature.js";
+import { createCapabilityRoutingIndex } from "../ports/capability-catalog.js";
 import type {
   IntentInterpretation,
   IntentInterpreterPort,
@@ -225,11 +226,13 @@ export function createAssistantHarness(
     conversation: AssistantDependencies["conversation"];
   }> = {},
 ): ReturnType<typeof createAssistant> {
+  const features = overrides.features ?? [createFeature()];
+
   return createAssistant({
+    capabilityRouting: createCapabilityRoutingIndex(features),
     clock: overrides.clock ?? createFixedClock(),
     config: overrides.config ?? createAssistantConfig(),
     ...(overrides.conversation ? { conversation: overrides.conversation } : {}),
-    features: overrides.features ?? [createFeature()],
     intentInterpreter:
       overrides.intentInterpreter ??
       createInterpreter(overrides.interpretation ?? createCommand()),

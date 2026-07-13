@@ -1,8 +1,9 @@
+import { createCapabilityInfoFeature } from "../features/assistant/capability-info-feature.js";
 import {
-  createCapabilityInfoCatalogFeature,
-  createCapabilityInfoFeature,
-} from "../features/assistant/capability-info-feature.js";
-import { createCapabilityCatalog } from "../ports/capability-catalog.js";
+  createCapabilityRoutingIndex,
+  type CapabilityCatalog,
+  type CapabilityRoutingIndex,
+} from "../ports/capability-catalog.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import type { FeatureAdapterDependencies } from "./feature-adapter-registry.js";
@@ -14,6 +15,7 @@ export {
 } from "./feature-adapter-registry.js";
 
 interface ConfiguredFeatureSelection {
+  capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
   features: FeaturePlugin[];
 }
 
@@ -32,18 +34,17 @@ export function createConfiguredFeatureSelection(
   config: LoadedRuntimeConfig,
   options: CreateConfiguredFeaturesOptions,
 ): ConfiguredFeatureSelection {
-  const configuredFeatures = createAdapterBackedFeatures(
-    config,
-    options,
-  ).features;
-  const catalog = createCapabilityCatalog([
-    ...configuredFeatures,
-    createCapabilityInfoCatalogFeature(),
-  ]);
+  const configuredFeatures = createAdapterBackedFeatures(config, options);
+  const catalog: CapabilityCatalog = [];
   const capabilityInfoFeature = createCapabilityInfoFeature(catalog);
+  const features = [...configuredFeatures, capabilityInfoFeature];
+  const capabilityRouting = createCapabilityRoutingIndex(features);
+
+  catalog.push(...capabilityRouting.catalog);
 
   return {
-    features: [...configuredFeatures, capabilityInfoFeature],
+    capabilityRouting,
+    features,
   };
 }
 
@@ -61,21 +62,19 @@ export function validateConfiguredFeatureAdapters(
 function createAdapterBackedFeatures(
   config: LoadedRuntimeConfig,
   options: CreateConfiguredFeaturesOptions,
-): ConfiguredFeatureSelection {
-  return {
-    features: Object.entries(config.features).flatMap(
-      ([featureId, featureConfig]) =>
-        featureConfig.enabled
-          ? [
-              selectConfiguredFeatureAdapter(
-                featureId,
-                featureConfig,
-                options.dependencies,
-              ),
-            ]
-          : [],
-    ),
-  };
+): FeaturePlugin[] {
+  return Object.entries(config.features).flatMap(
+    ([featureId, featureConfig]) =>
+      featureConfig.enabled
+        ? [
+            selectConfiguredFeatureAdapter(
+              featureId,
+              featureConfig,
+              options.dependencies,
+            ),
+          ]
+        : [],
+  );
 }
 
 function selectConfiguredFeatureAdapter(

@@ -9,13 +9,13 @@ import type {
   ConversationState,
 } from "../ports/conversation.js";
 import type { FeaturePlugin } from "../ports/feature.js";
+import type { CapabilityCatalog } from "../ports/capability-catalog.js";
 import type {
   ConversationProviderDependencies,
   ConversationProviderRegistry,
   ParsedConversationConfig,
 } from "./config/conversation-config.js";
 import { parseOpenAIResponsesConfig } from "./config/openai-responses-config.js";
-import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
 import {
   defineConfiglessRuntimeProvider,
   defineRuntimeProvider,
@@ -24,9 +24,11 @@ import {
 export function createConfiguredConversation(
   config: { conversation: ParsedConversationConfig },
   features: FeaturePlugin[],
+  capabilityCatalog: CapabilityCatalog,
   dependencies: ConversationProviderDependencies,
 ) {
   return config.conversation.resolvedProvider.create({
+    capabilityCatalog,
     dependencies,
     features,
     history: config.conversation.history,
@@ -47,10 +49,10 @@ export function createDefaultConversationProviderRegistry(): ConversationProvide
       configKey: "openai",
       create: (
         providerConfig: OpenAIResponsesConfig,
-        { dependencies, features, history },
+        { capabilityCatalog, dependencies, history },
       ) => {
         const options = {
-          capabilityCatalog: createProviderCapabilityCatalog(features),
+          capabilityCatalog,
           config: providerConfig,
           env: dependencies.env,
           fetch: dependencies.fetch,

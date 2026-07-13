@@ -9,6 +9,7 @@ import type {
   ClockPort,
 } from "../../ports/assistant.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
+import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import {
@@ -25,10 +26,10 @@ import {
 import { evaluateConfirmationPolicy } from "./confirmation-policy.js";
 
 export interface AssistantDependencies {
+  capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
   clock: ClockPort;
   config: AssistantPolicyConfig;
   conversation?: ConversationSessionDependencies;
-  features: FeaturePlugin[];
   intentInterpreter: IntentInterpreterPort;
   responseRewriter?: ResponseRewriterPort;
 }
@@ -100,14 +101,15 @@ async function handleTextInternal(
   }
 
   const command = interpretation.command;
-  const feature = dependencies.features.find(
-    (candidate) =>
-      isFeatureEnabled(candidate, dependencies.config) &&
-      declaresCapability(candidate, command.capability) &&
-      candidate.canHandle?.(command, context) !== false,
-  );
+  const route = dependencies.capabilityRouting.get(command.capability);
+  const feature = route?.feature;
 
-  if (!feature) {
+  if (
+    !route ||
+    !feature ||
+    !isFeatureEnabled(feature, dependencies.config) ||
+    feature.canHandle?.(command, context) === false
+  ) {
     return outcomeFromError(
       createAppError({
         category: "unsupported",
@@ -118,19 +120,7 @@ async function handleTextInternal(
   }
 
   try {
-    const capability = feature.capabilities.find(
-      (candidate) => candidate.name === command.capability,
-    );
-
-    if (!capability) {
-      return outcomeFromError(
-        createAppError({
-          category: "unsupported",
-          capability: command.capability,
-          message: `${feature.id} does not declare ${command.capability}.`,
-        }),
-      );
-    }
+    const capability = route.capability;
 
     const decodedCommand = decodeCommandForCapability(command, capability);
 
@@ -305,13 +295,4 @@ function isFeatureEnabled(
   config: AssistantPolicyConfig,
 ): boolean {
   return config.features[feature.id]?.enabled === true;
-}
-
-function declaresCapability(
-  feature: FeaturePlugin,
-  capabilityName: string,
-): boolean {
-  return feature.capabilities.some(
-    (capability) => capability.name === capabilityName,
-  );
 }

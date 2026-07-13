@@ -49,7 +49,7 @@ describe("createConfiguredIntentInterpreter", () => {
     );
 
     expect(
-      createConfiguredIntentInterpreter(config, [], {
+      createConfiguredIntentInterpreter(config, [], [], {
         env: {},
         fetch: vi.fn(),
       }),

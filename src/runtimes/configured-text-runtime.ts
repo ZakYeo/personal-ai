@@ -36,6 +36,7 @@ export async function createConfiguredTextRuntime(
   const conversation = createConfiguredConversation(
     config,
     featureSelection.features,
+    featureSelection.capabilityRouting.catalog,
     {
       env,
       fetch,
@@ -47,16 +48,17 @@ export async function createConfiguredTextRuntime(
   });
 
   return createAssistant({
+    capabilityRouting: featureSelection.capabilityRouting,
     clock,
     config: toAssistantPolicyConfig(config, {
       enabledFeatureIds: featureSelection.features.map((feature) => feature.id),
     }),
     ...(conversation ? { conversation } : {}),
     ...(responseRewriter ? { responseRewriter } : {}),
-    features: featureSelection.features,
     intentInterpreter: createConfiguredIntentInterpreter(
       config,
       featureSelection.features,
+      featureSelection.capabilityRouting.catalog,
       {
         env,
         fetch,

@@ -21,7 +21,7 @@ interface FeaturePlugin {
 }
 ```
 
-The exact TypeScript shape can change, but each feature should declare what it can do and expose execution through a consistent interface. Declared capabilities are the canonical routing table. `canHandle` is optional and should only be used for contextual checks that cannot be expressed in static capability metadata.
+The exact TypeScript shape can change, but each feature should declare what it can do and expose execution through a consistent interface. Runtime composition compiles declared capabilities into the canonical routing table and rejects duplicate stable names. `canHandle` is optional and should only be used for contextual checks that cannot be expressed in static capability metadata.
 
 ## Capabilities
 

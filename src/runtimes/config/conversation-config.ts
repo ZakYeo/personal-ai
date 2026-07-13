@@ -3,6 +3,7 @@ import type {
   ConversationResponderPort,
 } from "../../ports/conversation.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
+import type { CapabilityCatalog } from "../../ports/capability-catalog.js";
 import {
   resolveConfiguredRuntimeProvider,
   type ResolvedRuntimeProvider,
@@ -23,6 +24,7 @@ export interface ConversationProviderDependencies {
 }
 
 export interface ConversationProviderContext {
+  capabilityCatalog: CapabilityCatalog;
   dependencies: ConversationProviderDependencies;
   features: FeaturePlugin[];
   history: ConversationHistoryRuntimeConfig;
