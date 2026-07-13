@@ -2,7 +2,7 @@ import type { Assistant } from "../../core/assistant/index.js";
 import type { AssistantResponse } from "../../ports/assistant.js";
 import { createConfiguredTextRuntime } from "../configured-text-runtime.js";
 import {
-  logFeatureDiagnostics,
+  logAssistantDiagnostics,
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
@@ -93,7 +93,7 @@ async function handleRuntimeCommand(
     const runtime = await createRuntime(buildRuntimeOptions(parsed, io.env));
     const outcome = await handleRuntimeText(runtime, parsed.commandText);
 
-    logFeatureDiagnostics(outcome.diagnostics ?? [], io);
+    logAssistantDiagnostics(outcome.diagnostics ?? [], io);
 
     return outcome.response;
   } catch (error) {

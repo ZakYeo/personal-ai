@@ -1,5 +1,6 @@
 import type {
   AssistantDiagnostic,
+  AssistantDiagnosticCategory,
   AssistantResponse,
 } from "../ports/assistant.js";
 
@@ -12,23 +13,32 @@ export const safeRuntimeFallbackResponse: AssistantResponse = {
   text: "I hit a problem and could not complete that.",
 };
 
-export function logFeatureDiagnostics(
+const assistantDiagnosticLabels: Record<AssistantDiagnosticCategory, string> = {
+  confirmation_required: "Confirmation required diagnostic",
+  conversation_failure: "Conversation failure",
+  feature_failure: "Feature failure",
+  response_rewrite_failure: "Response rewrite failure",
+  unexpected: "Unexpected assistant failure",
+  unsupported: "Unsupported diagnostic",
+  validation: "Validation diagnostic",
+};
+
+export function logAssistantDiagnostics(
   diagnostics: AssistantDiagnostic[],
   io: HumanBoundaryIo,
 ): void {
   for (const diagnostic of diagnostics) {
-    if (diagnostic.category === "feature_failure") {
-      const capability = diagnostic.capability
-        ? ` in ${diagnostic.capability}`
-        : "";
+    const label = assistantDiagnosticLabels[diagnostic.category];
+    const capability = diagnostic.capability
+      ? ` in ${diagnostic.capability}`
+      : "";
 
-      io.stderr?.write(`Feature failure${capability}: ${diagnostic.message}\n`);
+    io.stderr?.write(`${label}${capability}: ${diagnostic.message}\n`);
 
-      if (diagnostic.cause !== undefined) {
-        io.stderr?.write(
-          `Feature failure cause${capability}: ${formatDiagnosticCause(diagnostic.cause)}\n`,
-        );
-      }
+    if (diagnostic.cause !== undefined) {
+      io.stderr?.write(
+        `${label} cause${capability}: ${formatDiagnosticCause(diagnostic.cause)}\n`,
+      );
     }
   }
 }

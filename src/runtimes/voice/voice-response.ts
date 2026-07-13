@@ -7,7 +7,7 @@ import type {
   TextToSpeechPort,
 } from "../../ports/voice.js";
 import {
-  logFeatureDiagnostics,
+  logAssistantDiagnostics,
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
@@ -34,7 +34,7 @@ export async function handleAssistantText(
   try {
     const outcome = await assistant.handleTextWithDiagnostics(text);
 
-    logFeatureDiagnostics(outcome.diagnostics ?? [], io);
+    logAssistantDiagnostics(outcome.diagnostics ?? [], io);
 
     return outcome.response;
   } catch (error) {

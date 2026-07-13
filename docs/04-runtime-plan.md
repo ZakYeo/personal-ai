@@ -521,7 +521,7 @@ turn or retry outcome by accident.
 
 Runtimes are the last line of defense before a failure reaches a human. Lower-level code may throw, but runtime control loops should catch unhandled errors, preserve diagnostic detail in logs, and return a safe response such as "I hit a problem and could not complete that." Core-level feature failures should also preserve diagnostic causes while returning safe public text rather than raw exception messages.
 
-Runtime code should prefer the assistant's diagnostic-aware outcome method over the response-only method. The CLI logs preserved feature diagnostics, including available causes or stacks, to stderr; writes only the safe response to stdout; and routes even executable entrypoint rejections through the same graceful fallback text with diagnostics logged separately.
+Runtime code should prefer the assistant's diagnostic-aware outcome method over the response-only method. CLI and voice boundaries log every preserved assistant diagnostic category, including available causes or stacks, to stderr; write only the safe response to human-facing output; and route even executable entrypoint rejections through the same graceful fallback text with diagnostics logged separately.
 
 For voice runtimes, producing some response is more important than preserving the exact internal error message. If command handling fails, the runtime should attempt a spoken fallback. If speech output fails, it should fall back to text or logs rather than silently ending the interaction.
 
