@@ -60,6 +60,58 @@ assert events == ["terminate", ("wait", 1.0), "kill", ("wait", None)]
     ).resolves.toMatchObject({ stderr: "" });
   });
 
+  it("tolerates the recorder exiting between the poll and terminate calls", async () => {
+    const harness = String.raw`
+import importlib.util
+import pathlib
+import subprocess
+
+repo_root = pathlib.Path.cwd()
+listener_path = repo_root / "scripts" / "openwakeword-listener.py"
+spec = importlib.util.spec_from_file_location("openwakeword_listener", listener_path)
+listener = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(listener)
+
+events = []
+
+class FakeStdout:
+    def read(self, _size):
+        return b"\1\0"
+
+class FakeProcess:
+    stdout = FakeStdout()
+
+    def poll(self):
+        return None
+
+    def terminate(self):
+        events.append("terminate")
+        raise ProcessLookupError()
+
+    def wait(self, timeout=None):
+        events.append(("wait", timeout))
+        return 0
+
+    def kill(self):
+        raise AssertionError("an exited recorder must not be killed")
+
+def fake_popen(*args, **kwargs):
+    return FakeProcess()
+
+listener.subprocess.Popen = fake_popen
+frames = listener.audio_frames("fake-rec", 80)
+assert next(frames) == b"\1\0"
+frames.close()
+assert events == ["terminate", ("wait", 1.0)]
+`;
+
+    await expect(
+      execFileAsync("python3", ["-B", "-c", harness], {
+        cwd: process.cwd(),
+      }),
+    ).resolves.toMatchObject({ stderr: "" });
+  });
+
   it("loads the normalized pretrained model path and emits the configured wake phrase", async () => {
     const harness = String.raw`
 import contextlib

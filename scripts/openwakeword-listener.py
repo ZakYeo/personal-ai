@@ -46,11 +46,17 @@ def audio_frames(rec_command: str, frame_ms: int) -> Iterable[bytes]:
             yield frame
     finally:
         if process.poll() is None:
-            process.terminate()
+            try:
+                process.terminate()
+            except ProcessLookupError:
+                pass
             try:
                 process.wait(timeout=1.0)
             except subprocess.TimeoutExpired:
-                process.kill()
+                try:
+                    process.kill()
+                except ProcessLookupError:
+                    pass
                 process.wait()
 
 
