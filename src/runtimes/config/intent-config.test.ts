@@ -1,7 +1,20 @@
 import { parseAssistantConfig } from "./config.js";
-import { requireIntentConfig } from "./intent-config.js";
+import { createDefaultIntentProviderRegistry } from "../intent-provider-selection.js";
+import { parseIntentConfig, requireIntentConfig } from "./intent-config.js";
 
 describe("intent config parsing", () => {
+  it("rejects non-object intent config at the intent parser boundary", () => {
+    expect(() =>
+      parseIntentConfig(undefined, createDefaultIntentProviderRegistry()),
+    ).toThrow("Config intent section must be a JSON object.");
+  });
+
+  it("rejects missing providers at the intent parser boundary", () => {
+    expect(() =>
+      parseIntentConfig({}, createDefaultIntentProviderRegistry()),
+    ).toThrow("Config intent.provider must be a non-empty string.");
+  });
+
   it("parses OpenAI intent config with defaults", () => {
     const intent = parseAssistantConfig(
       createMinimalConfig({

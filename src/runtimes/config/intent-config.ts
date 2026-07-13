@@ -5,6 +5,7 @@ import {
   type ResolvedRuntimeProvider,
   type RuntimeProviderEntry,
 } from "../runtime-provider-registry.js";
+import { isRecord } from "./config-parse-utils.js";
 
 export interface IntentProviderDependencies {
   env: Record<string, string | undefined>;
@@ -30,17 +31,23 @@ export interface ParsedIntentConfig {
 }
 
 export function parseIntentConfig(
-  intent: Record<string, unknown>,
+  value: unknown,
   registry: IntentProviderRegistry,
 ): ParsedIntentConfig {
-  const provider = intent.provider as string;
+  if (!isRecord(value)) {
+    throw new Error("Config intent section must be a JSON object.");
+  }
+
+  if (typeof value.provider !== "string" || value.provider.length === 0) {
+    throw new Error("Config intent.provider must be a non-empty string.");
+  }
 
   return {
-    provider,
+    provider: value.provider,
     resolvedProvider: resolveConfiguredRuntimeProvider({
-      configuredId: provider,
+      configuredId: value.provider,
       operationName: "intent",
-      rawOperationConfig: intent,
+      rawOperationConfig: value,
       registry,
     }),
   };

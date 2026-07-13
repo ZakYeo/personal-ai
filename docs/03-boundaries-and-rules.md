@@ -169,7 +169,9 @@ Intent, conversation, and response-rewriter provider entries also parse their
 selected raw provider section and capture typed construction at config load
 time. Central operation config must not accumulate provider-specific optional
 fields or discriminated provider unions; conversation history remains a common
-central field.
+central field. Each operation parser accepts `unknown` and owns its section and
+provider validation rather than relying on operation-specific branches in the
+aggregate config parser.
 If adapter config differs by adapter ID, model that relationship in a resolved
 discriminated type or in the registry entry itself. Loaded runtime config should
 not retain raw adapter config bags for later hidden reparsing; selected adapter

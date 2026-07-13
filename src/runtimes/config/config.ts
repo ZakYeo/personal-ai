@@ -60,7 +60,6 @@ export function parseAssistantConfig(
   }
 
   const assistant = value.assistant;
-  const intent = value.intent;
   const features = value.features;
 
   if (!isRecord(assistant)) {
@@ -80,14 +79,6 @@ export function parseAssistantConfig(
 
   if (!isRecord(features)) {
     throw new Error("Config features section must be a JSON object.");
-  }
-
-  if (!isRecord(intent)) {
-    throw new Error("Config intent section must be a JSON object.");
-  }
-
-  if (typeof intent.provider !== "string" || intent.provider.length === 0) {
-    throw new Error("Config intent.provider must be a non-empty string.");
   }
 
   const parsedVoice = parseVoiceConfig(value.voice);
@@ -115,7 +106,7 @@ export function parseAssistantConfig(
     ),
     ...parsedVoice,
     intent: parseIntentConfig(
-      intent,
+      value.intent,
       options.intentProviderRegistry ?? createDefaultIntentProviderRegistry(),
     ),
     features: parseFeaturesConfig(
