@@ -1,100 +1,91 @@
-import type { OpenAIResponsesConfig } from "../../adapters/openai/openai-responses-config.js";
-import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
+import type {
+  ConversationCompactorPort,
+  ConversationResponderPort,
+} from "../../ports/conversation.js";
+import type { FeaturePlugin } from "../../ports/feature.js";
+import {
+  resolveConfiguredRuntimeProvider,
+  type ResolvedRuntimeProvider,
+  type RuntimeProviderEntry,
+} from "../runtime-provider-registry.js";
 import {
   isRecord,
   parseOptionalPositiveInteger,
 } from "./config-parse-utils.js";
-import { parseOptionalOpenAIResponsesConfig } from "./openai-responses-config.js";
-
-export type ResolvedConversationConfig =
-  | {
-      history: ConversationHistoryRuntimeConfig;
-      provider: "disabled";
-    }
-  | {
-      history: ConversationHistoryRuntimeConfig;
-      provider: "deterministic";
-    }
-  | {
-      history: ConversationHistoryRuntimeConfig;
-      openai: OpenAIResponsesConfig;
-      provider: "openai";
-    };
 
 export interface ConversationHistoryRuntimeConfig {
   maxTurnsBeforeCompaction: number;
 }
 
+export interface ConversationProviderDependencies {
+  env: Record<string, string | undefined>;
+  fetch: typeof fetch;
+}
+
+export interface ConversationProviderContext {
+  dependencies: ConversationProviderDependencies;
+  features: FeaturePlugin[];
+  history: ConversationHistoryRuntimeConfig;
+}
+
+export interface ConfiguredConversation {
+  compactor: ConversationCompactorPort;
+  history: ConversationHistoryRuntimeConfig;
+  responder: ConversationResponderPort;
+}
+
+export type ConversationProviderRegistry = Record<
+  string,
+  RuntimeProviderEntry<
+    ConversationProviderContext,
+    ConfiguredConversation | undefined
+  >
+>;
+
 export interface ParsedConversationConfig {
   history: ConversationHistoryRuntimeConfig;
-  openai?: OpenAIResponsesConfig;
   provider: string;
+  resolvedProvider: ResolvedRuntimeProvider<
+    ConversationProviderContext,
+    ConfiguredConversation | undefined
+  >;
 }
 
 export function parseConversationConfig(
   value: unknown,
+  registry: ConversationProviderRegistry,
 ): ParsedConversationConfig {
-  if (value === undefined) {
-    return {
-      history: { maxTurnsBeforeCompaction: 5 },
-      provider: "disabled",
-    };
-  }
+  const rawConversation = value ?? { provider: "disabled" };
 
-  if (!isRecord(value)) {
+  if (!isRecord(rawConversation)) {
     throw new Error("Config conversation must be a JSON object.");
   }
 
-  if (typeof value.provider !== "string" || value.provider.length === 0) {
+  if (
+    typeof rawConversation.provider !== "string" ||
+    rawConversation.provider.length === 0
+  ) {
     throw new Error("Config conversation.provider must be a non-empty string.");
   }
 
-  const openai = parseOptionalOpenAIResponsesConfig(
-    value.openai,
-    "Config conversation.openai",
-  );
+  const history = parseConversationHistoryConfig(rawConversation.history);
 
   return {
-    history: parseConversationHistoryConfig(value.history),
-    provider: value.provider,
-    ...(openai ? { openai } : {}),
+    history,
+    provider: rawConversation.provider,
+    resolvedProvider: resolveConfiguredRuntimeProvider({
+      configuredId: rawConversation.provider,
+      operationName: "conversation",
+      rawOperationConfig: rawConversation,
+      registry,
+    }),
   };
 }
 
 export function requireConversationConfig(config: {
   conversation: ParsedConversationConfig;
-}): ResolvedConversationConfig {
-  const resolveConversation = selectConfiguredRuntimeEntry({
-    configuredId: config.conversation.provider,
-    missingMessage: "Config conversation.provider must be configured.",
-    registry: {
-      deterministic: () =>
-        ({
-          history: config.conversation.history,
-          provider: "deterministic",
-        }) as const,
-      disabled: () =>
-        ({
-          history: config.conversation.history,
-          provider: "disabled",
-        }) as const,
-      openai: () => {
-        if (!config.conversation.openai) {
-          throw new Error("Config conversation.openai must be configured.");
-        }
-
-        return {
-          history: config.conversation.history,
-          openai: config.conversation.openai,
-          provider: "openai",
-        } as const;
-      },
-    },
-    unknownMessage: (provider) =>
-      `Config conversation.provider "${provider}" is not registered.`,
-  });
-
-  return resolveConversation();
+}): ParsedConversationConfig {
+  return config.conversation;
 }
 
 function parseConversationHistoryConfig(

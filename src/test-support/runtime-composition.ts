@@ -10,6 +10,7 @@ import {
 import { writeTempJsonFile } from "./primitives.js";
 import type { OpenAIResponsesConfig } from "../adapters/openai/openai-responses-config.js";
 import { createDefaultIntentProviderRegistry } from "../runtimes/intent-provider-selection.js";
+import { createDefaultConversationProviderRegistry } from "../runtimes/conversation-provider-selection.js";
 import { resolveConfiguredRuntimeProvider } from "../runtimes/runtime-provider-registry.js";
 
 type ConfiguredTextRuntimeHarnessOptions = Partial<{
@@ -59,19 +60,12 @@ export function createRuntimeConfigWithOpenAIIntentProvider(): LoadedRuntimeConf
 }
 
 export function createRuntimeConfigWithOpenAIConversationProvider(): LoadedRuntimeConfig {
-  return {
-    ...enabledDeterministicConfig,
-    conversation: {
-      history: enabledDeterministicConfig.conversation.history,
-      openai: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.test/v1",
-        model: "gpt-5.5",
-        timeoutMs: 30_000,
-      },
-      provider: "openai",
-    },
-  };
+  return withConversationProvider("openai", {
+    apiKeyEnv: "OPENAI_API_KEY",
+    baseUrl: "https://api.openai.test/v1",
+    model: "gpt-5.5",
+    timeoutMs: 30_000,
+  });
 }
 
 export function createRuntimeConfigWithOpenAIResponseRewriter(): LoadedRuntimeConfig {
@@ -90,11 +84,30 @@ export function createRuntimeConfigWithOpenAIResponseRewriter(): LoadedRuntimeCo
 }
 
 export function createRuntimeConfigWithUnknownConversationProvider(): LoadedRuntimeConfig {
+  return withConversationProvider("unknown");
+}
+
+export function withConversationProvider(
+  provider: string,
+  openai?: OpenAIResponsesConfig,
+  config: LoadedRuntimeConfig = enabledDeterministicConfig,
+): LoadedRuntimeConfig {
+  const rawConversation = {
+    ...(openai ? { openai } : {}),
+    provider,
+  };
+
   return {
-    ...enabledDeterministicConfig,
+    ...config,
     conversation: {
-      history: enabledDeterministicConfig.conversation.history,
-      provider: "unknown",
+      history: config.conversation.history,
+      provider,
+      resolvedProvider: resolveConfiguredRuntimeProvider({
+        configuredId: provider,
+        operationName: "conversation",
+        rawOperationConfig: rawConversation,
+        registry: createDefaultConversationProviderRegistry(),
+      }),
     },
   };
 }

@@ -425,9 +425,9 @@ construction and startup preflight without widening common feature config.
 Selected desktop streaming provider entries likewise parse and capture their
 typed config and provider-specific transport factory during config loading;
 later desktop composition receives only provider-neutral constructors.
-Intent selection follows the same registry-owned parsing boundary, leaving the
-loaded intent config with its provider ID and a captured neutral interpreter
-factory rather than provider-specific config fields.
+Intent and conversation selection follow the same registry-owned parsing
+boundary, leaving loaded operation config with common fields, its provider ID,
+and a captured neutral factory rather than provider-specific config fields.
 Assistant policy projection, intent provider resolution, voice adapter ID
 resolution, and desktop voice command resolution remain focused boundaries.
 Provider-facing capability catalog construction is shared by runtime composition

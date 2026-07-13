@@ -14,6 +14,8 @@ import { createDesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voic
 import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-registry.js";
 import type { IntentProviderRegistry } from "./intent-config.js";
 import { createDefaultIntentProviderRegistry } from "../intent-provider-selection.js";
+import type { ConversationProviderRegistry } from "./conversation-config.js";
+import { createDefaultConversationProviderRegistry } from "../conversation-provider-selection.js";
 
 export type { LoadedRuntimeConfig } from "./runtime-config.js";
 
@@ -26,12 +28,14 @@ interface LoadConfigOptions {
   featureAdapterRegistry?: FeatureAdapterRegistry;
   desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
   intentProviderRegistry?: IntentProviderRegistry;
+  conversationProviderRegistry?: ConversationProviderRegistry;
 }
 
 interface ParseAssistantConfigOptions {
   featureAdapterRegistry?: FeatureAdapterRegistry;
   desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
   intentProviderRegistry?: IntentProviderRegistry;
+  conversationProviderRegistry?: ConversationProviderRegistry;
 }
 
 export async function loadConfig(
@@ -89,7 +93,11 @@ export function parseAssistantConfig(
       name: assistant.name,
       wakePhrases: assistant.wakePhrases,
     },
-    conversation: parseConversationConfig(value.conversation),
+    conversation: parseConversationConfig(
+      value.conversation,
+      options.conversationProviderRegistry ??
+        createDefaultConversationProviderRegistry(),
+    ),
     responseRewriter: parseResponseRewriterConfig(value.responseRewriter),
     ...parseDesktopVoiceConfig(
       value.desktopVoice,

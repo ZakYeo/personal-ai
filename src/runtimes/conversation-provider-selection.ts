@@ -2,94 +2,80 @@ import {
   OpenAIConversationCompactor,
   OpenAIConversationResponder,
 } from "../adapters/openai/openai-conversation.js";
-import type { AssistantDependencies } from "../core/assistant/index.js";
+import type { OpenAIResponsesConfig } from "../adapters/openai/openai-responses-config.js";
 import type {
   ConversationCompactorPort,
   ConversationResponderPort,
   ConversationState,
 } from "../ports/conversation.js";
 import type { FeaturePlugin } from "../ports/feature.js";
-import type { LoadedRuntimeConfig } from "./config/config.js";
-import {
-  requireConversationConfig,
-  type ResolvedConversationConfig,
+import type {
+  ConversationProviderDependencies,
+  ConversationProviderRegistry,
+  ParsedConversationConfig,
 } from "./config/conversation-config.js";
+import { parseOpenAIResponsesConfig } from "./config/openai-responses-config.js";
 import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
-
-interface ConversationProviderDependencies {
-  env: Record<string, string | undefined>;
-  fetch: typeof fetch;
-}
-
-type ConversationFactory<TConversation extends ResolvedConversationConfig> =
-  (context: {
-    config: LoadedRuntimeConfig;
-    conversation: TConversation;
-    dependencies: ConversationProviderDependencies;
-    features: FeaturePlugin[];
-  }) => AssistantDependencies["conversation"];
-
-type ConversationProviderRegistry = {
-  [TConversation in ResolvedConversationConfig as TConversation["provider"]]?: ConversationFactory<TConversation>;
-};
-
-interface CreateConfiguredConversationOptions {
-  registry?: ConversationProviderRegistry;
-}
+import { defineRuntimeProvider } from "./runtime-provider-registry.js";
 
 export function createConfiguredConversation(
-  config: LoadedRuntimeConfig,
+  config: { conversation: ParsedConversationConfig },
   features: FeaturePlugin[],
   dependencies: ConversationProviderDependencies,
-  options: CreateConfiguredConversationOptions = {},
-): AssistantDependencies["conversation"] {
-  const conversation = requireConversationConfig(config);
-  const registry =
-    options.registry ?? createDefaultConversationProviderRegistry();
-  const factory = registry[conversation.provider] as
-    | ConversationFactory<typeof conversation>
-    | undefined;
-
-  if (!factory) {
-    throw new Error(
-      `Conversation provider "${conversation.provider}" does not have a registered factory.`,
-    );
-  }
-
-  return factory({
-    config,
-    conversation,
+) {
+  return config.conversation.resolvedProvider.create({
     dependencies,
     features,
+    history: config.conversation.history,
   });
 }
 
-function createDefaultConversationProviderRegistry(): Required<ConversationProviderRegistry> {
+export function createDefaultConversationProviderRegistry(): ConversationProviderRegistry {
   return {
-    deterministic: ({ conversation }) => ({
-      compactor: new DeterministicConversationCompactor(),
-      history: conversation.history,
-      responder: new DeterministicConversationResponder(),
-    }),
-    disabled: () => noConversation,
-    openai: ({ conversation, dependencies, features }) => {
-      const options = {
-        capabilityCatalog: createProviderCapabilityCatalog(features),
-        config: conversation.openai,
-        env: dependencies.env,
-        fetch: dependencies.fetch,
-      };
+    deterministic: defineRuntimeProvider({
+      create: (providerConfig: void, { history }) => {
+        void providerConfig;
 
-      return {
-        compactor: new OpenAIConversationCompactor(options),
-        history: conversation.history,
-        responder: new OpenAIConversationResponder(options),
-      };
-    },
+        return {
+          compactor: new DeterministicConversationCompactor(),
+          history,
+          responder: new DeterministicConversationResponder(),
+        };
+      },
+      parseConfig: () => {},
+    }),
+    disabled: defineRuntimeProvider({
+      create: (providerConfig: void): undefined => {
+        void providerConfig;
+
+        return;
+      },
+      parseConfig: () => {},
+    }),
+    openai: defineRuntimeProvider({
+      configKey: "openai",
+      create: (
+        providerConfig: OpenAIResponsesConfig,
+        { dependencies, features, history },
+      ) => {
+        const options = {
+          capabilityCatalog: createProviderCapabilityCatalog(features),
+          config: providerConfig,
+          env: dependencies.env,
+          fetch: dependencies.fetch,
+        };
+
+        return {
+          compactor: new OpenAIConversationCompactor(options),
+          history,
+          responder: new OpenAIConversationResponder(options),
+        };
+      },
+      parseConfig: (value) =>
+        parseOpenAIResponsesConfig(value, "Config conversation.openai"),
+    }),
   };
 }
-
-const noConversation: AssistantDependencies["conversation"] = undefined;
 
 class DeterministicConversationResponder implements ConversationResponderPort {
   respond(input: string, state: ConversationState) {

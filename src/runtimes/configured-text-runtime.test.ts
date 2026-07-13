@@ -11,6 +11,7 @@ import {
   createRuntimeConfigWithUnknownFeature,
   createRuntimeConfigWithUnknownFeatureAdapter,
   createRuntimeConfigWithUnknownIntentProvider,
+  withConversationProvider,
   writeRuntimeHarnessConfig,
 } from "../test-support/runtime-composition.js";
 
@@ -89,12 +90,8 @@ describe("createConfiguredTextRuntime", () => {
     );
   });
 
-  it("rejects unknown conversation providers during composition", async () => {
-    await expect(
-      createConfiguredTextRuntimeHarness({
-        config: createRuntimeConfigWithUnknownConversationProvider(),
-      }),
-    ).rejects.toThrow(
+  it("rejects unknown conversation providers at the config boundary", () => {
+    expect(() => createRuntimeConfigWithUnknownConversationProvider()).toThrow(
       'Config conversation.provider "unknown" is not registered.',
     );
   });
@@ -150,12 +147,7 @@ describe("createConfiguredTextRuntime", () => {
     const assistant = await createConfiguredTextRuntimeHarness({
       config: {
         ...createRuntimeConfigWithOpenAIIntentProvider(),
-        conversation: {
-          history: {
-            maxTurnsBeforeCompaction: 5,
-          },
-          provider: "deterministic",
-        },
+        conversation: withConversationProvider("deterministic").conversation,
       },
       env: { OPENAI_API_KEY: "test-api-key" },
       fetch,

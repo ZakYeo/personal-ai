@@ -16,6 +16,7 @@ import {
 } from "../../test-support/voice-runtime.js";
 import {
   createRuntimeConfigWithOpenAIIntentProvider,
+  withConversationProvider,
   withVoiceAdapterId,
 } from "../../test-support/runtime-composition.js";
 import { line } from "../../test-support/primitives.js";
@@ -87,10 +88,11 @@ describe("mock voice runtime", () => {
     const runtime = await createMockVoiceRuntime({
       config: {
         ...config,
-        conversation: {
-          history: config.conversation.history,
-          provider: "deterministic",
-        },
+        conversation: withConversationProvider(
+          "deterministic",
+          undefined,
+          config,
+        ).conversation,
         voice: mockVoiceConfig,
       },
       env: { OPENAI_API_KEY: "test-api-key" },
