@@ -6,6 +6,7 @@ export interface RunCommandRequest {
   command: string;
   processControl?: ProcessControl;
   signal?: AbortSignal;
+  terminationGraceMs?: number;
   timeoutMs?: number;
 }
 
@@ -51,6 +52,7 @@ export class CommandSpawnError extends Error {
 }
 
 const defaultTimeoutMs = 30_000;
+const defaultTerminationGraceMs = 1_000;
 
 const nodeProcessControl: ProcessControl = {
   kill: (pid, signal) => process.kill(pid, signal),
@@ -75,11 +77,12 @@ export function startCommandProcess(
 
 class CommandProcess {
   private readonly child: ReturnType<typeof spawn>;
+  private readonly close: Promise<{ code: number | null; error?: unknown }>;
   private readonly completion: Promise<RunCommandResult>;
   private readonly processControl: ProcessControl;
   private readonly stderrChunks: Buffer[] = [];
   private readonly stdoutChunks: Buffer[] = [];
-  private terminationRequested = false;
+  private closed = false;
 
   constructor(
     private readonly request: RunCommandRequest,
@@ -92,7 +95,8 @@ class CommandProcess {
     });
 
     this.captureOutput(options);
-    this.completion = this.waitForClose();
+    this.close = this.createClosePromise();
+    this.completion = this.waitForResult();
     this.completion.catch(() => {});
   }
 
@@ -129,25 +133,34 @@ class CommandProcess {
 
   terminate(): void {
     if (
-      this.terminationRequested ||
+      this.closed ||
       this.child.exitCode !== null ||
       this.child.signalCode !== null
     ) {
       return;
     }
 
-    this.terminationRequested = true;
-    terminateProcess(this.child, this.processControl);
+    terminateProcess(this.child, this.processControl, "SIGTERM");
   }
 
   async terminateAndWait(): Promise<void> {
-    this.terminate();
+    try {
+      this.terminate();
+    } catch {
+      // Cleanup still waits for close or escalates below.
+    }
+
+    if (await this.waitForCloseWithin(this.terminationGraceMs())) {
+      return;
+    }
 
     try {
-      await this.waitForSuccess();
+      terminateProcess(this.child, this.processControl, "SIGKILL");
     } catch {
-      // Expected termination is best-effort cleanup; callers keep the primary result.
+      // A concurrent exit can make the escalation target disappear.
     }
+
+    await this.close;
   }
 
   waitForSuccess(): Promise<RunCommandResult> {
@@ -185,7 +198,33 @@ class CommandProcess {
     });
   }
 
-  private waitForClose(): Promise<RunCommandResult> {
+  private createClosePromise(): Promise<{
+    code: number | null;
+    error?: unknown;
+  }> {
+    return new Promise((resolve) => {
+      let spawnError: unknown;
+
+      this.child.on("error", (error) => {
+        spawnError = error;
+
+        if (this.child.pid === undefined) {
+          this.closed = true;
+          resolve({ code: null, error });
+        }
+      });
+
+      this.child.on("close", (code) => {
+        this.closed = true;
+        resolve({
+          code,
+          ...(spawnError !== undefined ? { error: spawnError } : {}),
+        });
+      });
+    });
+  }
+
+  private waitForResult(): Promise<RunCommandResult> {
     return new Promise((resolve, reject) => {
       const timeoutMs = this.request.timeoutMs ?? defaultTimeoutMs;
       let settled = false;
@@ -203,24 +242,26 @@ class CommandProcess {
 
       const timer = setTimeout(() => {
         settle(() => {
-          this.terminate();
-          const output = this.output();
+          void this.terminateAndWait().then(() => {
+            const output = this.output();
 
-          reject(
-            new CommandTimeoutError(
-              `Command "${this.request.command}" timed out after ${timeoutMs}ms.`,
-              timeoutMs,
-              output.stderr,
-              output.stdout,
-            ),
-          );
+            reject(
+              new CommandTimeoutError(
+                `Command "${this.request.command}" timed out after ${timeoutMs}ms.`,
+                timeoutMs,
+                output.stderr,
+                output.stdout,
+              ),
+            );
+          });
         });
       }, timeoutMs);
 
       const onAbort = (): void => {
         settle(() => {
-          this.terminate();
-          reject(toError(this.request.signal?.reason ?? "Command aborted."));
+          void this.terminateAndWait().then(() => {
+            reject(toError(this.request.signal?.reason ?? "Command aborted."));
+          });
         });
       };
 
@@ -231,24 +272,21 @@ class CommandProcess {
 
       this.request.signal?.addEventListener("abort", onAbort, { once: true });
 
-      this.child.on("error", (error) => {
+      void this.close.then(({ code, error }) => {
         settle(() => {
           const output = this.output();
 
-          reject(
-            new CommandSpawnError(
-              `Command "${this.request.command}" failed to start.`,
-              error,
-              output.stderr,
-              output.stdout,
-            ),
-          );
-        });
-      });
-
-      this.child.on("close", (code) => {
-        settle(() => {
-          const output = this.output();
+          if (error !== undefined) {
+            reject(
+              new CommandSpawnError(
+                `Command "${this.request.command}" failed to start.`,
+                error,
+                output.stderr,
+                output.stdout,
+              ),
+            );
+            return;
+          }
 
           if (code !== 0) {
             reject(
@@ -267,6 +305,21 @@ class CommandProcess {
       });
     });
   }
+
+  private terminationGraceMs(): number {
+    return this.request.terminationGraceMs ?? defaultTerminationGraceMs;
+  }
+
+  private waitForCloseWithin(timeoutMs: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(false), timeoutMs);
+
+      void this.close.then(() => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+    });
+  }
 }
 
 export function toError(error: unknown): Error {
@@ -276,10 +329,11 @@ export function toError(error: unknown): Error {
 function terminateProcess(
   child: ReturnType<typeof spawn>,
   processControl: ProcessControl,
+  signal: NodeJS.Signals,
 ): void {
   if (canUseProcessGroups(processControl) && child.pid !== undefined) {
     try {
-      processControl.kill(-child.pid, "SIGTERM");
+      processControl.kill(-child.pid, signal);
       return;
     } catch (error) {
       if (!isMissingProcessError(error)) {
@@ -288,7 +342,7 @@ function terminateProcess(
     }
   }
 
-  child.kill("SIGTERM");
+  child.kill(signal);
 }
 
 function canUseProcessGroups(processControl: ProcessControl): boolean {

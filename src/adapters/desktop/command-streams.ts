@@ -33,13 +33,7 @@ function createCommandReadableIterator(
   return {
     next: () => stdoutIterator.next(),
     return: async () => {
-      commandProcess.terminate();
-
-      try {
-        await commandProcess.waitForSuccess();
-      } catch {
-        // Iterator cancellation is best-effort; callers keep the primary failure.
-      }
+      await commandProcess.terminateAndWait();
 
       await stdoutIterator.return?.();
 

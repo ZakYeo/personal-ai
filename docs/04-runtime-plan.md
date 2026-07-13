@@ -477,6 +477,10 @@ timeout, capture stdout and stderr for diagnostics, preserve captured output on
 non-zero exits, spawn failures where available, and timeout failures, and let
 the runtime boundary decide what safe response or fallback output reaches the
 human.
+Command completion and process close are separate lifecycle signals. Timeout,
+abort, and cleanup paths wait for close and escalate from `SIGTERM` to
+`SIGKILL` after a bounded grace period while preserving output captured through
+final exit.
 
 ## Process Lifecycle
 

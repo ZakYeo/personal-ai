@@ -58,6 +58,35 @@ describe("runCommand", () => {
     } satisfies Partial<CommandTimeoutError>);
   });
 
+  it("escalates timed-out commands that ignore SIGTERM and waits for exit", async () => {
+    const signals: NodeJS.Signals[] = [];
+    const processControl: ProcessControl = {
+      kill: (pid, signal) => {
+        signals.push(signal);
+        process.kill(pid, signal);
+      },
+      platform: "linux",
+    };
+
+    await expect(
+      runCommand({
+        args: [
+          "-c",
+          "trap '' TERM; printf ready; while true; do sleep 1; done",
+        ],
+        command: "/bin/sh",
+        processControl,
+        terminationGraceMs: 10,
+        timeoutMs: 50,
+      }),
+    ).rejects.toMatchObject({
+      stdout: "ready",
+      timeoutMs: 50,
+    } satisfies Partial<CommandTimeoutError>);
+
+    expect(signals).toEqual(["SIGTERM", "SIGKILL"]);
+  });
+
   it("rejects spawn failures with preserved diagnostics", async () => {
     await expect(
       runCommand({
@@ -100,9 +129,12 @@ describe("runCommand", () => {
 describe("runCommandUntilStdoutLine", () => {
   it("terminates the selected process group through injected process control", async () => {
     const killedProcessGroups: number[] = [];
+    const signals: NodeJS.Signals[] = [];
     const processControl: ProcessControl = {
-      kill: (pid) => {
+      kill: (pid, signal) => {
         killedProcessGroups.push(pid);
+        signals.push(signal);
+        process.kill(pid, signal);
       },
       platform: "linux",
     };
@@ -122,6 +154,7 @@ describe("runCommandUntilStdoutLine", () => {
     expect(result.line).toEqual({ type: "ready" });
     expect(killedProcessGroups).toHaveLength(1);
     expect(killedProcessGroups[0]).toBeLessThan(0);
+    expect(signals).toEqual(["SIGTERM"]);
   });
 });
 

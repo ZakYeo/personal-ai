@@ -20,7 +20,7 @@ export async function runCommand(
 ): Promise<RunCommandResult> {
   const commandProcess = startCommandProcess(request, {
     captureStdout: true,
-    detached: false,
+    detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
 

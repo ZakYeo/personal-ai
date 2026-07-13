@@ -231,6 +231,11 @@ Command-based adapters should preserve diagnostics for every final failure
 mode. Non-zero exits, spawn failures where available, and timeouts should keep
 captured stdout/stderr internally so human-facing boundaries can log useful
 operator diagnostics while returning safe fallback text.
+Timeout, abort, and cleanup must track process close separately from the public
+command result. Termination waits for child exit and escalates from `SIGTERM` to
+`SIGKILL` after a bounded grace period so child or process-group resources do
+not outlive runtime cleanup; final captured output remains on the diagnostic
+error.
 
 Provider adapters should follow the same boundary discipline. Every real
 provider adapter must be opt-in through runtime configuration, receive network
