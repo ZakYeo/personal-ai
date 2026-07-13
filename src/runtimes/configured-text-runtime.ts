@@ -7,12 +7,14 @@ import { createConfiguredConversation } from "./conversation-provider-selection.
 import { createConfiguredFeatureSelection } from "./feature-adapter-selection.js";
 import { createConfiguredIntentInterpreter } from "./intent-provider-selection.js";
 import { createConfiguredResponseRewriter } from "./response-rewriter-selection.js";
+import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
 
 export interface ConfiguredTextRuntimeOptions {
   config?: LoadedRuntimeConfig;
   configPath?: string;
   env?: Record<string, string | undefined>;
   fetch?: typeof fetch;
+  featureAdapterRegistry?: FeatureAdapterRegistry;
   now?: () => Date;
 }
 
@@ -21,9 +23,12 @@ export async function createConfiguredTextRuntime(
 ): Promise<Assistant> {
   const config =
     options.config ??
-    (await loadConfig(
-      options.configPath ? { configPath: options.configPath } : undefined,
-    ));
+    (await loadConfig({
+      ...(options.configPath ? { configPath: options.configPath } : {}),
+      ...(options.featureAdapterRegistry
+        ? { featureAdapterRegistry: options.featureAdapterRegistry }
+        : {}),
+    }));
   const clock = createClock(options.now);
   const env = options.env ?? process.env;
   const fetch = options.fetch ?? globalThis.fetch;

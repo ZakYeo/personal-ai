@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
 import { createConfiguredTextRuntime } from "../configured-text-runtime.js";
 import { parseAssistantConfig } from "../config/config.js";
+import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
+import type { AlarmStoreFileSystem } from "../../adapters/local/file-alarm-store.js";
 
 describe("alarm feature adapters", () => {
   it("requires a nested state path for the file adapter", () => {
@@ -88,6 +90,48 @@ describe("alarm feature adapters", () => {
     expect(diagnostic.cause.message).toBe(
       "Alarm state file contains invalid JSON.",
     );
+  });
+
+  it("accepts narrow alarm state IO from configured runtime composition", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-config-"));
+    const configPath = join(directory, "config.json");
+    await writeFile(
+      configPath,
+      JSON.stringify(
+        rawAlarmConfig({
+          adapter: "file",
+          enabled: true,
+          state: { path: "/state/alarms.json" },
+        }),
+      ),
+    );
+    const stateFailure = new Error("controlled state read failure");
+    const fileSystem: AlarmStoreFileSystem = {
+      mkdir: () => Promise.resolve(),
+      readFile: () => Promise.reject(stateFailure),
+      replaceFile: () => Promise.resolve(),
+    };
+    const assistant = await createConfiguredTextRuntime({
+      configPath,
+      featureAdapterRegistry: createDefaultFeatureAdapterRegistry({
+        alarmStore: { fileSystem },
+      }),
+    });
+
+    const outcome = await assistant.handleTextWithDiagnostics(
+      "Hey Jarvis, list my alarms",
+    );
+
+    expect(outcome.response).toEqual({
+      status: "error",
+      text: "I could not complete that command.",
+    });
+    const storeError = outcome.diagnostics?.[0]?.cause;
+    expect(storeError).toBeInstanceOf(Error);
+    if (!(storeError instanceof Error)) {
+      throw new TypeError("Expected a configured alarm store failure.");
+    }
+    expect(storeError.cause).toBe(stateFailure);
   });
 });
 

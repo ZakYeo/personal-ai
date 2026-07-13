@@ -1,4 +1,7 @@
-import { createFileAlarmStore } from "../../adapters/local/file-alarm-store.js";
+import {
+  createFileAlarmStore,
+  type FileAlarmStoreDependencies,
+} from "../../adapters/local/file-alarm-store.js";
 import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
 import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
 import { isRecord } from "../config/config-parse-utils.js";
@@ -7,13 +10,18 @@ import {
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 
-export function createAlarmFeatureRegistryEntry(): FeatureRegistryEntry {
+export function createAlarmFeatureRegistryEntry(
+  dependencies: FileAlarmStoreDependencies = {},
+): FeatureRegistryEntry {
   return {
     adapters: {
       file: defineFeatureAdapterEntry({
         create: ({ adapterConfig }) =>
           createAlarmFeature(
-            createFileAlarmStore({ filePath: adapterConfig.filePath }),
+            createFileAlarmStore({
+              ...dependencies,
+              filePath: adapterConfig.filePath,
+            }),
           ),
         parseConfig: parseFileAlarmStoreConfig,
       }),

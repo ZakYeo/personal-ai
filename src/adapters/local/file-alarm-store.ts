@@ -28,6 +28,11 @@ interface FileAlarmStoreOptions {
   fileSystem?: AlarmStoreFileSystem;
 }
 
+export type FileAlarmStoreDependencies = Pick<
+  FileAlarmStoreOptions,
+  "createId" | "fileSystem"
+>;
+
 interface AlarmStateDocument {
   alarms: AlarmRecord[];
   version: 1;
