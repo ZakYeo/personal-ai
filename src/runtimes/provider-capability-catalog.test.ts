@@ -56,4 +56,22 @@ describe("createProviderCapabilityCatalog", () => {
       },
     ]);
   });
+
+  it("rejects duplicate capability ownership", () => {
+    const first = createFeature("calendar", "shared.lookup");
+    const second = createFeature("messaging", "shared.lookup");
+
+    expect(() => createProviderCapabilityCatalog([first, second])).toThrow(
+      'Capability "shared.lookup" is declared by both "calendar" and "messaging".',
+    );
+  });
 });
+
+function createFeature(id: string, capabilityName: string): FeaturePlugin {
+  return {
+    capabilities: [{ name: capabilityName, risk: "low" }],
+    displayName: id,
+    execute: vi.fn(),
+    id,
+  };
+}
