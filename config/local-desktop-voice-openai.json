@@ -118,7 +118,8 @@
       "model": "gpt-4o-mini-tts",
       "voice": "coral",
       "instructions": "Speak clearly and concisely.",
-      "responseFormat": "pcm"
+      "responseFormat": "pcm",
+      "timeoutMs": 30000
     },
     "audioInput": {
       "command": "rec",

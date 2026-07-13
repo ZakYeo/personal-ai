@@ -45,6 +45,9 @@ export function createDesktopVoiceProviderAdapterRegistry(
             config,
             env: dependencies.env,
             fetch: dependencies.fetch,
+            ...(dependencies.shutdownSignal
+              ? { shutdownSignal: dependencies.shutdownSignal }
+              : {}),
           }),
         parseConfig: parseDesktopOpenAIStreamingSpeechConfig,
       }),

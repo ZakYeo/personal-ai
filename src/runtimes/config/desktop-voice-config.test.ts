@@ -219,6 +219,30 @@ describe("desktop voice config resolvers", () => {
     );
   });
 
+  it("rejects invalid selected OpenAI streaming speech timeout at the config boundary", () => {
+    expect(() =>
+      createDesktopStreamingRuntimeConfig({
+        desktopVoice: {
+          openAIRealtimeTranscription: {
+            model: "gpt-realtime-whisper",
+          },
+          openAIStreamingSpeech: {
+            model: "gpt-4o-mini-tts",
+            timeoutMs: 0,
+            voice: "coral",
+          },
+          streamingAudioOutput: { command: "fake-stream-play" },
+        },
+        voice: {
+          streamingAudioOutput: "sox-play-stream",
+          streamingTextToSpeech: "openai-streaming",
+        },
+      }),
+    ).toThrow(
+      "Config desktopVoice.openAIStreamingSpeech.timeoutMs must be a positive integer.",
+    );
+  });
+
   it("rejects non-realtime selected models for OpenAI realtime transcription at the config boundary", () => {
     expect(() =>
       createDesktopStreamingRuntimeConfig({

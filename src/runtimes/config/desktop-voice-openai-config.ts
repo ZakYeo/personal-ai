@@ -83,6 +83,11 @@ export function parseDesktopOpenAIStreamingSpeechConfig(
       "Config desktopVoice.openAIStreamingSpeech.responseFormat must be a non-empty string.",
       "pcm",
     ),
+    timeoutMs: parseOptionalPositiveInteger(
+      value.timeoutMs,
+      "Config desktopVoice.openAIStreamingSpeech.timeoutMs must be a positive integer.",
+      30_000,
+    ),
     voice: parseRequiredString(
       value.voice,
       "desktopVoice.openAIStreamingSpeech.voice",

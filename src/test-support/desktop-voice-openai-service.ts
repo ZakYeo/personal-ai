@@ -29,6 +29,7 @@ export function createOpenAIStreamingServiceConfig(
       instructions: "Speak clearly.",
       model: "gpt-4o-mini-tts",
       responseFormat: "pcm",
+      timeoutMs: 30_000,
       voice: "coral",
     },
   };

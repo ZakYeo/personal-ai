@@ -11,5 +11,6 @@ export interface OpenAIStreamingSpeechConfig {
   instructions: string;
   model: string;
   responseFormat: string;
+  timeoutMs: number;
   voice: string;
 }

@@ -152,6 +152,10 @@ Desktop streaming STT and TTS provider entries resolve and capture their own
 typed configuration. The neutral slot topology returns the selected adapter ID
 and constructor without naming OpenAI config types, so another provider is a
 registry-only extension.
+OpenAI streaming speech has a configured request/body timeout, receives the
+active service shutdown signal, and keeps that abort scope alive until audio
+iteration finishes. Early consumers cancel the response reader so stalled
+provider bodies cannot outlive a turn.
 The default desktop OpenAI command capture keeps an eight-second maximum trim
 guard but also uses SoX trailing-silence detection after wake activation. That
 keeps the service from waiting for the full capture window after the user has
