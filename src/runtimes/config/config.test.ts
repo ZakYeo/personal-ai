@@ -109,15 +109,10 @@ describe("loadConfig", () => {
       configPath: "config/local-desktop-voice-openai.json",
     });
 
-    expect(config.responseRewriter).toEqual({
-      openai: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.com/v1",
-        model: "gpt-5.4-nano",
-        timeoutMs: 30_000,
-      },
-      provider: "openai",
-    });
+    expect(config.responseRewriter.provider).toBe("openai");
+    expect(typeof config.responseRewriter.resolvedProvider.create).toBe(
+      "function",
+    );
   });
 
   it("ends desktop OpenAI command capture on trailing silence", async () => {

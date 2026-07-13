@@ -49,9 +49,7 @@ export const runtimeFailureConfig: LoadedRuntimeConfig = {
   },
   intent: enabledDeterministicConfig.intent,
   conversation: enabledDeterministicConfig.conversation,
-  responseRewriter: {
-    provider: "disabled",
-  },
+  responseRewriter: enabledDeterministicConfig.responseRewriter,
   features: {},
 };
 

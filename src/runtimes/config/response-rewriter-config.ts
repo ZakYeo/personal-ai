@@ -1,77 +1,64 @@
-import type { OpenAIResponsesConfig } from "../../adapters/openai/openai-responses-config.js";
-import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
+import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
+import {
+  resolveConfiguredRuntimeProvider,
+  type ResolvedRuntimeProvider,
+  type RuntimeProviderEntry,
+} from "../runtime-provider-registry.js";
 import { isRecord } from "./config-parse-utils.js";
-import { parseOptionalOpenAIResponsesConfig } from "./openai-responses-config.js";
 
-export type ResolvedResponseRewriterConfig =
-  | {
-      provider: "disabled";
-    }
-  | {
-      openai: OpenAIResponsesConfig;
-      provider: "openai";
-    };
+export interface ResponseRewriterProviderDependencies {
+  env: Record<string, string | undefined>;
+  fetch: typeof fetch;
+}
+
+export type ResponseRewriterProviderRegistry = Record<
+  string,
+  RuntimeProviderEntry<
+    ResponseRewriterProviderDependencies,
+    ResponseRewriterPort | undefined
+  >
+>;
 
 export interface ParsedResponseRewriterConfig {
-  openai?: OpenAIResponsesConfig;
   provider: string;
+  resolvedProvider: ResolvedRuntimeProvider<
+    ResponseRewriterProviderDependencies,
+    ResponseRewriterPort | undefined
+  >;
 }
 
 export function parseResponseRewriterConfig(
   value: unknown,
+  registry: ResponseRewriterProviderRegistry,
 ): ParsedResponseRewriterConfig {
-  if (value === undefined) {
-    return {
-      provider: "disabled",
-    };
-  }
+  const rawResponseRewriter = value ?? { provider: "disabled" };
 
-  if (!isRecord(value)) {
+  if (!isRecord(rawResponseRewriter)) {
     throw new Error("Config responseRewriter must be a JSON object.");
   }
 
-  if (typeof value.provider !== "string" || value.provider.length === 0) {
+  if (
+    typeof rawResponseRewriter.provider !== "string" ||
+    rawResponseRewriter.provider.length === 0
+  ) {
     throw new Error(
       "Config responseRewriter.provider must be a non-empty string.",
     );
   }
 
-  const openai = parseOptionalOpenAIResponsesConfig(
-    value.openai,
-    "Config responseRewriter.openai",
-  );
-
   return {
-    provider: value.provider,
-    ...(openai ? { openai } : {}),
+    provider: rawResponseRewriter.provider,
+    resolvedProvider: resolveConfiguredRuntimeProvider({
+      configuredId: rawResponseRewriter.provider,
+      operationName: "responseRewriter",
+      rawOperationConfig: rawResponseRewriter,
+      registry,
+    }),
   };
 }
 
 export function requireResponseRewriterConfig(config: {
   responseRewriter: ParsedResponseRewriterConfig;
-}): ResolvedResponseRewriterConfig {
-  const resolveResponseRewriter = selectConfiguredRuntimeEntry({
-    configuredId: config.responseRewriter.provider,
-    missingMessage: "Config responseRewriter.provider must be configured.",
-    registry: {
-      disabled: () =>
-        ({
-          provider: "disabled",
-        }) as const,
-      openai: () => {
-        if (!config.responseRewriter.openai) {
-          throw new Error("Config responseRewriter.openai must be configured.");
-        }
-
-        return {
-          openai: config.responseRewriter.openai,
-          provider: "openai",
-        } as const;
-      },
-    },
-    unknownMessage: (provider) =>
-      `Config responseRewriter.provider "${provider}" is not registered.`,
-  });
-
-  return resolveResponseRewriter();
+}): ParsedResponseRewriterConfig {
+  return config.responseRewriter;
 }

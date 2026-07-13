@@ -1,66 +1,43 @@
 import { OpenAIResponseRewriter } from "../adapters/openai/openai-response-rewriter.js";
-import type { AssistantDependencies } from "../core/assistant/index.js";
-import type { LoadedRuntimeConfig } from "./config/config.js";
-import {
-  requireResponseRewriterConfig,
-  type ResolvedResponseRewriterConfig,
+import type { OpenAIResponsesConfig } from "../adapters/openai/openai-responses-config.js";
+import type {
+  ParsedResponseRewriterConfig,
+  ResponseRewriterProviderDependencies,
+  ResponseRewriterProviderRegistry,
 } from "./config/response-rewriter-config.js";
-
-interface ResponseRewriterDependencies {
-  env: Record<string, string | undefined>;
-  fetch: typeof fetch;
-}
-
-type ResponseRewriterFactory<
-  TResponseRewriter extends ResolvedResponseRewriterConfig,
-> = (context: {
-  config: LoadedRuntimeConfig;
-  dependencies: ResponseRewriterDependencies;
-  responseRewriter: TResponseRewriter;
-}) => AssistantDependencies["responseRewriter"];
-
-type ResponseRewriterRegistry = {
-  [TResponseRewriter in ResolvedResponseRewriterConfig as TResponseRewriter["provider"]]?: ResponseRewriterFactory<TResponseRewriter>;
-};
-
-interface CreateConfiguredResponseRewriterOptions {
-  registry?: ResponseRewriterRegistry;
-}
+import { parseOpenAIResponsesConfig } from "./config/openai-responses-config.js";
+import { defineRuntimeProvider } from "./runtime-provider-registry.js";
 
 export function createConfiguredResponseRewriter(
-  config: LoadedRuntimeConfig,
-  dependencies: ResponseRewriterDependencies,
-  options: CreateConfiguredResponseRewriterOptions = {},
-): AssistantDependencies["responseRewriter"] {
-  const responseRewriter = requireResponseRewriterConfig(config);
-  const registry = options.registry ?? createDefaultResponseRewriterRegistry();
-  const factory = registry[responseRewriter.provider] as
-    | ResponseRewriterFactory<typeof responseRewriter>
-    | undefined;
-
-  if (!factory) {
-    throw new Error(
-      `Response rewriter provider "${responseRewriter.provider}" does not have a registered factory.`,
-    );
-  }
-
-  return factory({
-    config,
-    dependencies,
-    responseRewriter,
-  });
+  config: { responseRewriter: ParsedResponseRewriterConfig },
+  dependencies: ResponseRewriterProviderDependencies,
+) {
+  return config.responseRewriter.resolvedProvider.create(dependencies);
 }
 
-function createDefaultResponseRewriterRegistry(): Required<ResponseRewriterRegistry> {
+export function createDefaultResponseRewriterProviderRegistry(): ResponseRewriterProviderRegistry {
   return {
-    disabled: () => noResponseRewriter,
-    openai: ({ dependencies, responseRewriter }) =>
-      new OpenAIResponseRewriter({
-        config: responseRewriter.openai,
-        env: dependencies.env,
-        fetch: dependencies.fetch,
-      }),
+    disabled: defineRuntimeProvider({
+      create: (providerConfig: void): undefined => {
+        void providerConfig;
+
+        return;
+      },
+      parseConfig: () => {},
+    }),
+    openai: defineRuntimeProvider({
+      configKey: "openai",
+      create: (
+        providerConfig: OpenAIResponsesConfig,
+        dependencies: ResponseRewriterProviderDependencies,
+      ) =>
+        new OpenAIResponseRewriter({
+          config: providerConfig,
+          env: dependencies.env,
+          fetch: dependencies.fetch,
+        }),
+      parseConfig: (value) =>
+        parseOpenAIResponsesConfig(value, "Config responseRewriter.openai"),
+    }),
   };
 }
-
-const noResponseRewriter: AssistantDependencies["responseRewriter"] = undefined;

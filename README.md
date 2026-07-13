@@ -33,8 +33,9 @@ Implemented today:
 - Provider-neutral desktop streaming voice selections whose registry entries
   parse and capture their own typed provider config, constructor, and
   provider-specific test dependencies.
-- Extensible intent and conversation provider entries that parse selected
-  provider config and capture neutral factories during runtime config loading.
+- Extensible intent, conversation, and response-rewriter provider entries that
+  parse selected provider config and capture neutral factories during runtime
+  config loading.
 - Opt-in OpenAI intent and conversation adapters behind the existing ports.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Shared OpenAI Responses configuration parsing with provider-local config

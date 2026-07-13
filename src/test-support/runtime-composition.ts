@@ -11,6 +11,7 @@ import { writeTempJsonFile } from "./primitives.js";
 import type { OpenAIResponsesConfig } from "../adapters/openai/openai-responses-config.js";
 import { createDefaultIntentProviderRegistry } from "../runtimes/intent-provider-selection.js";
 import { createDefaultConversationProviderRegistry } from "../runtimes/conversation-provider-selection.js";
+import { createDefaultResponseRewriterProviderRegistry } from "../runtimes/response-rewriter-selection.js";
 import { resolveConfiguredRuntimeProvider } from "../runtimes/runtime-provider-registry.js";
 
 type ConfiguredTextRuntimeHarnessOptions = Partial<{
@@ -69,16 +70,21 @@ export function createRuntimeConfigWithOpenAIConversationProvider(): LoadedRunti
 }
 
 export function createRuntimeConfigWithOpenAIResponseRewriter(): LoadedRuntimeConfig {
+  const openai = {
+    apiKeyEnv: "OPENAI_API_KEY",
+    baseUrl: "https://api.openai.test/v1",
+    model: "gpt-5.5",
+    timeoutMs: 30_000,
+  };
+
   return {
     ...enabledDeterministicConfig,
     responseRewriter: {
-      openai: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.test/v1",
-        model: "gpt-5.5",
-        timeoutMs: 30_000,
-      },
       provider: "openai",
+      resolvedProvider:
+        createDefaultResponseRewriterProviderRegistry().openai!.resolve({
+          openai,
+        }),
     },
   };
 }
