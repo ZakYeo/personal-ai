@@ -1,4 +1,4 @@
-import type { VoiceCommandConfig } from "../../ports/assistant.js";
+import type { DesktopCommandConfig } from "../../adapters/desktop/desktop-command-config.js";
 import { isRecord } from "./config-parse-utils.js";
 import type {
   DesktopVoiceProviderAdapterRegistry,
@@ -13,27 +13,27 @@ import type { ParsedVoiceConfig } from "./voice-config.js";
 import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
 
 export interface ParsedDesktopVoiceConfig {
-  audioInput?: VoiceCommandConfig;
-  audioOutput?: VoiceCommandConfig;
-  speechToText?: VoiceCommandConfig;
-  streamingAudioInput?: VoiceCommandConfig;
-  streamingAudioOutput?: VoiceCommandConfig;
-  textToSpeech?: VoiceCommandConfig;
-  wakeActivation?: VoiceCommandConfig;
-  wakeAudioInput?: VoiceCommandConfig;
+  audioInput?: DesktopCommandConfig;
+  audioOutput?: DesktopCommandConfig;
+  speechToText?: DesktopCommandConfig;
+  streamingAudioInput?: DesktopCommandConfig;
+  streamingAudioOutput?: DesktopCommandConfig;
+  textToSpeech?: DesktopCommandConfig;
+  wakeActivation?: DesktopCommandConfig;
+  wakeAudioInput?: DesktopCommandConfig;
   streamingSpeechToTextProvider?: ResolvedDesktopVoiceProviderAdapter<StreamingSpeechToTextPort>;
   streamingTextToSpeechProvider?: ResolvedDesktopVoiceProviderAdapter<StreamingTextToSpeechPort>;
 }
 
 interface ResolvedDesktopVoiceConfig {
-  audioInput: VoiceCommandConfig;
-  audioOutput: VoiceCommandConfig;
-  speechToText: VoiceCommandConfig;
-  streamingAudioInput?: VoiceCommandConfig;
-  streamingAudioOutput?: VoiceCommandConfig;
-  textToSpeech: VoiceCommandConfig;
-  wakeActivation?: VoiceCommandConfig;
-  wakeAudioInput?: VoiceCommandConfig;
+  audioInput: DesktopCommandConfig;
+  audioOutput: DesktopCommandConfig;
+  speechToText: DesktopCommandConfig;
+  streamingAudioInput?: DesktopCommandConfig;
+  streamingAudioOutput?: DesktopCommandConfig;
+  textToSpeech: DesktopCommandConfig;
+  wakeActivation?: DesktopCommandConfig;
+  wakeAudioInput?: DesktopCommandConfig;
 }
 
 type ParsedDesktopVoiceCommandKey =
@@ -150,7 +150,7 @@ export function requireDesktopVoiceConfig(config: {
 function requireDesktopVoiceCommand(
   config: { desktopVoice?: ParsedDesktopVoiceConfig },
   key: ParsedDesktopVoiceCommandKey,
-): VoiceCommandConfig {
+): DesktopCommandConfig {
   const command = config.desktopVoice?.[key];
 
   if (!command) {
@@ -163,7 +163,7 @@ function requireDesktopVoiceCommand(
 export function requireDesktopVoiceCommandConfig(
   config: { desktopVoice?: ParsedDesktopVoiceConfig },
   key: ParsedDesktopVoiceCommandKey,
-): VoiceCommandConfig {
+): DesktopCommandConfig {
   return requireDesktopVoiceCommand(config, key);
 }
 

@@ -10,7 +10,7 @@ import {
   CommandStreamingAudioInput,
   CommandStreamingAudioOutput,
 } from "../../adapters/desktop/desktop-streaming-voice-adapters.js";
-import type { VoiceCommandConfig } from "../../ports/assistant.js";
+import type { DesktopCommandConfig } from "../../adapters/desktop/desktop-command-config.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -30,7 +30,7 @@ import {
 export const desktopVoiceCommandAdapterEntries = {
   audioOutput: {
     "sox-play": defineDesktopVoiceAdapter({
-      create: (command: VoiceCommandConfig, context) =>
+      create: (command: DesktopCommandConfig, context) =>
         new SoxAudioOutput(command, context.dependencies.processControl),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "audioOutput"),
@@ -38,7 +38,7 @@ export const desktopVoiceCommandAdapterEntries = {
   },
   input: {
     "sox-rec": defineDesktopVoiceAdapter({
-      create: (command: VoiceCommandConfig, context) =>
+      create: (command: DesktopCommandConfig, context) =>
         new SoxAudioInput(
           command,
           context.tempFiles,
@@ -51,7 +51,7 @@ export const desktopVoiceCommandAdapterEntries = {
   },
   speechToText: {
     command: defineDesktopVoiceAdapter({
-      create: (command: VoiceCommandConfig, context) =>
+      create: (command: DesktopCommandConfig, context) =>
         new CommandSpeechToText(
           command,
           context.dependencies.processControl,
@@ -63,7 +63,7 @@ export const desktopVoiceCommandAdapterEntries = {
   },
   streamingAudioInput: {
     "sox-rec-stream": defineDesktopVoiceAdapter({
-      create: (command: VoiceCommandConfig, context) =>
+      create: (command: DesktopCommandConfig, context) =>
         new CommandStreamingAudioInput(
           command,
           context.dependencies.processControl,
@@ -75,7 +75,7 @@ export const desktopVoiceCommandAdapterEntries = {
   },
   streamingAudioOutput: {
     "sox-play-stream": defineDesktopVoiceAdapter({
-      create: (command: VoiceCommandConfig, context) =>
+      create: (command: DesktopCommandConfig, context) =>
         new CommandStreamingAudioOutput(
           command,
           context.dependencies.processControl,
@@ -86,7 +86,7 @@ export const desktopVoiceCommandAdapterEntries = {
   },
   textToSpeech: {
     command: defineDesktopVoiceAdapter({
-      create: (command: VoiceCommandConfig, context) =>
+      create: (command: DesktopCommandConfig, context) =>
         new CommandTextToSpeech(
           command,
           context.tempFiles,
@@ -98,7 +98,7 @@ export const desktopVoiceCommandAdapterEntries = {
   },
   wakeActivation: {
     "openwakeword-command": defineDesktopVoiceAdapter({
-      create: (command: VoiceCommandConfig, context) =>
+      create: (command: DesktopCommandConfig, context) =>
         new CommandWakeActivation(
           command,
           context.dependencies.processControl,
@@ -117,31 +117,31 @@ export const desktopVoiceCommandAdapterEntries = {
 } satisfies {
   audioOutput: Record<
     string,
-    DesktopVoiceAdapterEntry<VoiceCommandConfig, AudioOutputPort>
+    DesktopVoiceAdapterEntry<DesktopCommandConfig, AudioOutputPort>
   >;
   input: Record<
     string,
-    DesktopVoiceAdapterEntry<VoiceCommandConfig, AudioInputPort>
+    DesktopVoiceAdapterEntry<DesktopCommandConfig, AudioInputPort>
   >;
   speechToText: Record<
     string,
-    DesktopVoiceAdapterEntry<VoiceCommandConfig, SpeechToTextPort>
+    DesktopVoiceAdapterEntry<DesktopCommandConfig, SpeechToTextPort>
   >;
   streamingAudioInput: Record<
     string,
-    DesktopVoiceAdapterEntry<VoiceCommandConfig, StreamingAudioInputPort>
+    DesktopVoiceAdapterEntry<DesktopCommandConfig, StreamingAudioInputPort>
   >;
   streamingAudioOutput: Record<
     string,
-    DesktopVoiceAdapterEntry<VoiceCommandConfig, StreamingAudioOutputPort>
+    DesktopVoiceAdapterEntry<DesktopCommandConfig, StreamingAudioOutputPort>
   >;
   textToSpeech: Record<
     string,
-    DesktopVoiceAdapterEntry<VoiceCommandConfig, TextToSpeechPort>
+    DesktopVoiceAdapterEntry<DesktopCommandConfig, TextToSpeechPort>
   >;
   wakeActivation: Record<
     string,
-    DesktopVoiceAdapterEntry<VoiceCommandConfig, WakeActivationPort>
+    DesktopVoiceAdapterEntry<DesktopCommandConfig, WakeActivationPort>
   >;
   wakeWord: Record<string, DesktopVoiceAdapterEntry<void, WakeWordPort>>;
 };

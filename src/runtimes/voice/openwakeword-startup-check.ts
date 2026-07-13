@@ -1,4 +1,4 @@
-import type { VoiceCommandConfig } from "../../ports/assistant.js";
+import type { DesktopCommandConfig } from "../../adapters/desktop/desktop-command-config.js";
 import { runCommand } from "../../adapters/desktop/process-runner.js";
 import type { ResolvedDesktopVoiceServiceAdapterConfig } from "./desktop-voice-adapter-types.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
@@ -32,6 +32,6 @@ export async function validateOpenWakeWordStartup(
   }
 }
 
-function usesLocalOpenWakeWordListener(config: VoiceCommandConfig): boolean {
+function usesLocalOpenWakeWordListener(config: DesktopCommandConfig): boolean {
   return (config.args ?? []).includes(localOpenWakeWordListener);
 }

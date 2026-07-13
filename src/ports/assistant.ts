@@ -64,12 +64,6 @@ export interface AssistantPolicyConfig {
   >;
 }
 
-export interface VoiceCommandConfig {
-  args?: string[];
-  command: string;
-  timeoutMs?: number;
-}
-
 export interface AssistantContext {
   config: AssistantPolicyConfig;
   clock: ClockPort;

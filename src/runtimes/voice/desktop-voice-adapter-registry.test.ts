@@ -1,4 +1,4 @@
-import type { VoiceCommandConfig } from "../../ports/assistant.js";
+import type { DesktopCommandConfig } from "../../adapters/desktop/desktop-command-config.js";
 import type { ProcessControl } from "../../ports/process-control.js";
 import type {
   StreamingSpeechToTextPort,
@@ -124,7 +124,7 @@ function createDesktopVoiceServiceConfig(): ResolvedDesktopVoiceServiceAdapterCo
   };
 }
 
-function createVoiceCommand(command: string): VoiceCommandConfig {
+function createVoiceCommand(command: string): DesktopCommandConfig {
   return { command };
 }
 

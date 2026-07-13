@@ -1,4 +1,4 @@
-import type { VoiceCommandConfig } from "../../ports/assistant.js";
+import type { DesktopCommandConfig } from "../../adapters/desktop/desktop-command-config.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -44,27 +44,27 @@ export interface DesktopVoiceServiceAdapters extends DesktopVoiceAdapters {
 }
 
 export interface ResolvedDesktopStreamingSpeechToTextConfig {
-  audioInput: VoiceCommandConfig;
+  audioInput: DesktopCommandConfig;
   transcription: ResolvedDesktopVoiceProviderAdapter<StreamingSpeechToTextPort>;
 }
 
 export interface ResolvedDesktopStreamingTextToSpeechConfig {
-  audioOutput: VoiceCommandConfig;
+  audioOutput: DesktopCommandConfig;
   speech: ResolvedDesktopVoiceProviderAdapter<StreamingTextToSpeechPort>;
 }
 
 export interface ResolvedDesktopVoiceAdapterConfig {
-  audioInput: VoiceCommandConfig;
-  audioOutput: VoiceCommandConfig;
-  speechToText: VoiceCommandConfig;
+  audioInput: DesktopCommandConfig;
+  audioOutput: DesktopCommandConfig;
+  speechToText: DesktopCommandConfig;
   streamingSpeechToText?: ResolvedDesktopStreamingSpeechToTextConfig;
   streamingTextToSpeech?: ResolvedDesktopStreamingTextToSpeechConfig;
-  textToSpeech: VoiceCommandConfig;
-  wakeActivation?: VoiceCommandConfig;
+  textToSpeech: DesktopCommandConfig;
+  wakeActivation?: DesktopCommandConfig;
 }
 
 export interface ResolvedDesktopVoiceServiceAdapterConfig extends ResolvedDesktopVoiceAdapterConfig {
-  wakeAudioInput: VoiceCommandConfig;
+  wakeAudioInput: DesktopCommandConfig;
 }
 
 export interface DesktopVoiceAdapterEntry<TConfig, TAdapter> {
@@ -78,26 +78,29 @@ export interface DesktopVoiceSlotDescriptor<TConfig, TAdapter> {
 }
 
 export interface DesktopVoiceSlotTopology {
-  audioInput: DesktopVoiceSlotDescriptor<VoiceCommandConfig, AudioInputPort>;
-  audioOutput: DesktopVoiceSlotDescriptor<VoiceCommandConfig, AudioOutputPort>;
+  audioInput: DesktopVoiceSlotDescriptor<DesktopCommandConfig, AudioInputPort>;
+  audioOutput: DesktopVoiceSlotDescriptor<
+    DesktopCommandConfig,
+    AudioOutputPort
+  >;
   speechToText: DesktopVoiceSlotDescriptor<
-    VoiceCommandConfig,
+    DesktopCommandConfig,
     SpeechToTextPort
   >;
   streamingAudioInput: DesktopVoiceSlotDescriptor<
-    VoiceCommandConfig,
+    DesktopCommandConfig,
     StreamingAudioInputPort
   >;
   streamingAudioOutput: DesktopVoiceSlotDescriptor<
-    VoiceCommandConfig,
+    DesktopCommandConfig,
     StreamingAudioOutputPort
   >;
   textToSpeech: DesktopVoiceSlotDescriptor<
-    VoiceCommandConfig,
+    DesktopCommandConfig,
     TextToSpeechPort
   >;
   wakeActivation: DesktopVoiceSlotDescriptor<
-    VoiceCommandConfig,
+    DesktopCommandConfig,
     WakeActivationPort
   >;
   wakeWord: DesktopVoiceSlotDescriptor<void, WakeWordPort>;

@@ -1,4 +1,4 @@
-import type { VoiceCommandConfig } from "../ports/assistant.js";
+import type { DesktopCommandConfig } from "../adapters/desktop/desktop-command-config.js";
 import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import { enabledDeterministicConfig } from "./deterministic-runtime-fixtures.js";
 import {
@@ -9,7 +9,7 @@ import {
 export function createDesktopVoiceCommand(
   script: string,
   ...args: string[]
-): VoiceCommandConfig {
+): DesktopCommandConfig {
   return createShellCommand(script, ...args);
 }
 

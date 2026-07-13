@@ -1,4 +1,4 @@
-import type { VoiceCommandConfig } from "../../ports/assistant.js";
+import type { DesktopCommandConfig } from "./desktop-command-config.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -18,7 +18,7 @@ import { runCommand, runCommandUntilStdoutLine } from "./process-runner.js";
 
 export class SoxAudioInput implements AudioInputPort {
   constructor(
-    private readonly commandConfig: VoiceCommandConfig,
+    private readonly commandConfig: DesktopCommandConfig,
     private readonly tempFiles: VoiceTempFilePort,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
@@ -45,7 +45,7 @@ export class SoxAudioInput implements AudioInputPort {
 
 export class CommandSpeechToText implements SpeechToTextPort {
   constructor(
-    private readonly commandConfig: VoiceCommandConfig,
+    private readonly commandConfig: DesktopCommandConfig,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
   ) {}
@@ -75,7 +75,7 @@ export class TextPrefixWakeWordDetector implements WakeWordPort {
 
 export class CommandWakeActivation implements WakeActivationPort {
   constructor(
-    private readonly commandConfig: VoiceCommandConfig,
+    private readonly commandConfig: DesktopCommandConfig,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
   ) {}
@@ -98,7 +98,7 @@ export class CommandWakeActivation implements WakeActivationPort {
 
 export class CommandTextToSpeech implements TextToSpeechPort {
   constructor(
-    private readonly commandConfig: VoiceCommandConfig,
+    private readonly commandConfig: DesktopCommandConfig,
     private readonly tempFiles: VoiceTempFilePort,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
@@ -170,7 +170,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export class SoxAudioOutput implements AudioOutputPort {
   constructor(
-    private readonly commandConfig: VoiceCommandConfig,
+    private readonly commandConfig: DesktopCommandConfig,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
   ) {}
@@ -189,7 +189,7 @@ export class SoxAudioOutput implements AudioOutputPort {
 }
 
 async function runConfiguredCommand(
-  config: VoiceCommandConfig,
+  config: DesktopCommandConfig,
   replacements: Record<string, string>,
   processControl?: ProcessControl,
   signal?: AbortSignal,

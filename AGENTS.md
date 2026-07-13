@@ -33,7 +33,7 @@
 - Keep raw config parsing and runtime-specific config resolution separate: parse external shape once, then let one focused resolver own each required provider, adapter, or command invariant.
 - Treat diagnostic-aware assistant outcomes as a stable runtime boundary contract rather than making runtime helpers depend on private core error implementation details.
 - Split real provider adapters when transport, request construction, response extraction, provider-output parsing, and application validation start accumulating in one module.
-- Keep shared provider config types adapter-local and parse repeated external provider shapes through one labeled runtime parser; application ports must not export concrete provider config.
+- Keep provider and device command config types adapter-local and parse repeated external provider shapes through one labeled runtime parser; application ports must not export concrete implementation config.
 - Reuse one labeled provider transport client when operations share credentials, endpoint, timeout, HTTP, and JSON policy; inject operation-specific error factories rather than duplicating transport setup.
 - Prefer a neutral runtime factory when two runtimes differ mostly by adapter construction.
 - Keep shared user-facing matching semantics, such as wake phrase normalization, in one helper so mock and real runtimes do not drift.

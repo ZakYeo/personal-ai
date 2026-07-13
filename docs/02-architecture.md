@@ -89,6 +89,9 @@ The core must not know whether input came from a microphone, CLI, test fixture, 
 ## Ports
 
 Ports are interfaces owned by the application. They describe what the core needs without naming any specific provider or device.
+Provider credentials, transport settings, and device command execution config
+belong with their adapters even when runtime config parsing consumes those
+types.
 Provider configuration types belong with their adapters and runtime config
 parsers, not in application port modules.
 

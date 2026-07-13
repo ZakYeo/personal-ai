@@ -1,4 +1,4 @@
-import type { VoiceCommandConfig } from "../../ports/assistant.js";
+import type { DesktopCommandConfig } from "./desktop-command-config.js";
 import type {
   CapturedAudioStream,
   StreamingAudioInputPort,
@@ -12,7 +12,7 @@ import {
 
 export class CommandStreamingAudioInput implements StreamingAudioInputPort {
   constructor(
-    private readonly commandConfig: VoiceCommandConfig,
+    private readonly commandConfig: DesktopCommandConfig,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
   ) {}
@@ -30,7 +30,7 @@ export class CommandStreamingAudioInput implements StreamingAudioInputPort {
 
 export class CommandStreamingAudioOutput implements StreamingAudioOutputPort {
   constructor(
-    private readonly commandConfig: VoiceCommandConfig,
+    private readonly commandConfig: DesktopCommandConfig,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
   ) {}

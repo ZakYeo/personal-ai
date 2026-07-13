@@ -1,4 +1,4 @@
-import type { VoiceCommandConfig } from "../ports/assistant.js";
+import type { DesktopCommandConfig } from "../adapters/desktop/desktop-command-config.js";
 import type {
   CapturedAudio,
   SpeechTranscript,
@@ -97,7 +97,7 @@ export function readJsonRequestBody<TBody>(
 export function createShellCommand(
   script: string,
   ...args: string[]
-): VoiceCommandConfig {
+): DesktopCommandConfig {
   return {
     args: ["-c", script, "sh", ...args],
     command: "/bin/sh",
