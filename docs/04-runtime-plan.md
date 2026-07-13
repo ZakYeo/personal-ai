@@ -363,6 +363,10 @@ The OpenAI adapter keeps request construction, Responses API transport,
 provider-output text extraction, and assistant intent-output parsing in separate
 adapter-local modules, with the interpreter class only orchestrating those
 pieces.
+Intent, conversation, and response rewriting share the provider-local OpenAI
+Responses config type and one labeled runtime parser for API key environment,
+base URL, model, and timeout fields. Application ports do not name that provider
+config.
 OpenAI adapter contract tests remain deterministic by default. A separate
 opt-in `npm run test:e2e:openai` routing E2E test may load `.env`, read the
 `OPENAI_API_KEY` variable, call the live Responses API with a weak/cheap model,

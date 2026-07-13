@@ -326,6 +326,9 @@ Implemented structure:
 - `openai` can be selected as an intent provider through local runtime config.
 - OpenAI intent config requires an explicit model and reads credentials from a
   configured environment variable, defaulting to `OPENAI_API_KEY`.
+- Intent, conversation, and response rewriting reuse one provider-local OpenAI
+  Responses config type and one labeled runtime parser; application ports stay
+  provider-neutral.
 - The OpenAI adapter calls the Responses API through injected `fetch`, requests
   structured JSON intent output, validates the returned command or response
   shape, and preserves provider failures as diagnostics.

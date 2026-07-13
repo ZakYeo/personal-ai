@@ -1,15 +1,13 @@
-import type {
-  AssistantContext,
-  OpenAIIntentConfig,
-} from "../../ports/assistant.js";
+import type { AssistantContext } from "../../ports/assistant.js";
 import type { CapabilityCatalogEntry } from "../../ports/capability-catalog.js";
+import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 
 export type OpenAIIntentCapability = CapabilityCatalogEntry;
 
 export function createOpenAIIntentRequestBody(
   text: string,
   context: AssistantContext,
-  config: OpenAIIntentConfig,
+  config: OpenAIResponsesConfig,
   capabilityCatalog: OpenAIIntentCapability[],
 ) {
   return {

@@ -1,7 +1,4 @@
-import type {
-  AssistantContext,
-  OpenAIIntentConfig,
-} from "../../ports/assistant.js";
+import type { AssistantContext } from "../../ports/assistant.js";
 import type {
   ResponseRewriteRequest,
   ResponseRewriterPort,
@@ -9,11 +6,12 @@ import type {
 import { fetchProviderJson, trimTrailingSlash } from "../http-json-client.js";
 import { extractOpenAIOutputText } from "./openai-output-extractor.js";
 import { OpenAIResponseRewriterError } from "./openai-response-rewriter-error.js";
+import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 import { parseOpenAIResponseRewrite } from "./openai-response-rewriter-output-parser.js";
 import { createOpenAIResponseRewriteRequestBody } from "./openai-response-rewriter-request.js";
 
 interface OpenAIResponseRewriterOptions {
-  config: OpenAIIntentConfig;
+  config: OpenAIResponsesConfig;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
 }

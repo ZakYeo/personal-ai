@@ -236,6 +236,11 @@ as explicit opt-in E2E commands; they must stay out of the default validation
 gate, keep credentials in environment variables, and avoid checking API key
 values into code or docs.
 
+Configuration shared by several operations of one provider should have one
+provider-local type and one runtime-owned external-data parser. Callers may
+supply their config path so validation remains precise without duplicating the
+same field checks across intent, conversation, and rewriting concerns.
+
 Tests should prefer focused harness and one-change fixture helpers over broad
 inline object spreads. When a test changes one adapter ID, provider ID, missing
 config key, clock, or IO behavior, use or add a helper that makes that single

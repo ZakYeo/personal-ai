@@ -1,13 +1,11 @@
-import type {
-  AssistantContext,
-  OpenAIIntentConfig,
-} from "../../ports/assistant.js";
+import type { AssistantContext } from "../../ports/assistant.js";
 import type { ResponseRewriteRequest } from "../../ports/response-rewriter.js";
+import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 
 export function createOpenAIResponseRewriteRequestBody(
   request: ResponseRewriteRequest,
   context: AssistantContext,
-  config: OpenAIIntentConfig,
+  config: OpenAIResponsesConfig,
 ) {
   return {
     input: [

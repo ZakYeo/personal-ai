@@ -1,12 +1,10 @@
-import type {
-  AssistantContext,
-  OpenAIIntentConfig,
-} from "../../ports/assistant.js";
+import type { AssistantContext } from "../../ports/assistant.js";
 import type {
   IntentInterpretation,
   IntentInterpreterPort,
 } from "../../ports/intent.js";
 import { OpenAIIntentError } from "./openai-intent-error.js";
+import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 import { parseOpenAIIntentOutput } from "./openai-intent-output-parser.js";
 import { createOpenAIIntentRequestBody } from "./openai-intent-request.js";
 import type { OpenAIIntentCapability } from "./openai-intent-request.js";
@@ -18,7 +16,7 @@ export type { OpenAIIntentCapability } from "./openai-intent-request.js";
 
 interface OpenAIIntentInterpreterOptions {
   capabilityCatalog?: OpenAIIntentCapability[];
-  config: OpenAIIntentConfig;
+  config: OpenAIResponsesConfig;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
 }

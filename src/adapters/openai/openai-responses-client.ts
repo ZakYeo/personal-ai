@@ -1,11 +1,11 @@
-import type { OpenAIIntentConfig } from "../../ports/assistant.js";
 import { fetchProviderJson, trimTrailingSlash } from "../http-json-client.js";
 import { OpenAIIntentError } from "./openai-intent-error.js";
+import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 
 interface FetchOpenAIResponseOptions {
   apiKey: string;
   body: unknown;
-  config: OpenAIIntentConfig;
+  config: OpenAIResponsesConfig;
   fetch: typeof fetch;
 }
 

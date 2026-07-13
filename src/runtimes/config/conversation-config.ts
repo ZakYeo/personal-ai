@@ -1,10 +1,10 @@
-import type { OpenAIIntentConfig } from "../../ports/assistant.js";
+import type { OpenAIResponsesConfig } from "../../adapters/openai/openai-responses-config.js";
 import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
 import {
   isRecord,
-  parseOptionalNonEmptyString,
   parseOptionalPositiveInteger,
 } from "./config-parse-utils.js";
+import { parseOptionalOpenAIResponsesConfig } from "./openai-responses-config.js";
 
 export type ResolvedConversationConfig =
   | {
@@ -17,7 +17,7 @@ export type ResolvedConversationConfig =
     }
   | {
       history: ConversationHistoryRuntimeConfig;
-      openai: OpenAIIntentConfig;
+      openai: OpenAIResponsesConfig;
       provider: "openai";
     };
 
@@ -27,7 +27,7 @@ export interface ConversationHistoryRuntimeConfig {
 
 export interface ParsedConversationConfig {
   history: ConversationHistoryRuntimeConfig;
-  openai?: OpenAIIntentConfig;
+  openai?: OpenAIResponsesConfig;
   provider: string;
 }
 
@@ -49,10 +49,15 @@ export function parseConversationConfig(
     throw new Error("Config conversation.provider must be a non-empty string.");
   }
 
+  const openai = parseOptionalOpenAIResponsesConfig(
+    value.openai,
+    "Config conversation.openai",
+  );
+
   return {
     history: parseConversationHistoryConfig(value.history),
     provider: value.provider,
-    ...parseOpenAIConversationConfig(value.openai),
+    ...(openai ? { openai } : {}),
   };
 }
 
@@ -109,44 +114,5 @@ function parseConversationHistoryConfig(
       "Config conversation.history.maxTurnsBeforeCompaction must be a positive integer.",
       5,
     ),
-  };
-}
-
-function parseOpenAIConversationConfig(
-  value: unknown,
-): Pick<ParsedConversationConfig, "openai"> {
-  if (value === undefined) {
-    return {};
-  }
-
-  if (!isRecord(value)) {
-    throw new Error("Config conversation.openai must be a JSON object.");
-  }
-
-  if (typeof value.model !== "string" || value.model.length === 0) {
-    throw new Error(
-      "Config conversation.openai.model must be a non-empty string.",
-    );
-  }
-
-  return {
-    openai: {
-      apiKeyEnv: parseOptionalNonEmptyString(
-        value.apiKeyEnv,
-        "Config conversation.openai.apiKeyEnv must be a non-empty string.",
-        "OPENAI_API_KEY",
-      ),
-      baseUrl: parseOptionalNonEmptyString(
-        value.baseUrl,
-        "Config conversation.openai.baseUrl must be a non-empty string.",
-        "https://api.openai.com/v1",
-      ),
-      model: value.model,
-      timeoutMs: parseOptionalPositiveInteger(
-        value.timeoutMs,
-        "Config conversation.openai.timeoutMs must be a positive integer.",
-        30_000,
-      ),
-    },
   };
 }

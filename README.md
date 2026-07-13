@@ -34,6 +34,8 @@ Implemented today:
   capture their own typed provider config and constructor.
 - Opt-in OpenAI intent and conversation adapters behind the existing ports.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
+- Shared OpenAI Responses configuration parsing with provider-local config
+  types rather than provider details in application ports.
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events
   port, with a three-month default upcoming window and refresh-token OAuth
   support.

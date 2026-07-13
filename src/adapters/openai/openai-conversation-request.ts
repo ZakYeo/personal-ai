@@ -1,7 +1,4 @@
-import type {
-  AssistantContext,
-  OpenAIIntentConfig,
-} from "../../ports/assistant.js";
+import type { AssistantContext } from "../../ports/assistant.js";
 import type {
   ConversationState,
   ConversationTurn,
@@ -10,12 +7,13 @@ import {
   formatOpenAICapabilities,
   type OpenAIIntentCapability,
 } from "./openai-intent-request.js";
+import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 
 export function createOpenAIConversationRequestBody(
   input: string,
   state: ConversationState,
   context: AssistantContext,
-  config: OpenAIIntentConfig,
+  config: OpenAIResponsesConfig,
   capabilityCatalog: OpenAIIntentCapability[] = [],
 ) {
   return {
@@ -65,7 +63,7 @@ export function createOpenAIConversationRequestBody(
 export function createOpenAIConversationCompactionRequestBody(
   state: ConversationState,
   context: AssistantContext,
-  config: OpenAIIntentConfig,
+  config: OpenAIResponsesConfig,
 ) {
   return {
     input: [

@@ -64,13 +64,6 @@ export interface AssistantPolicyConfig {
   >;
 }
 
-export interface OpenAIIntentConfig {
-  apiKeyEnv: string;
-  baseUrl: string;
-  model: string;
-  timeoutMs: number;
-}
-
 export interface VoiceCommandConfig {
   args?: string[];
   command: string;

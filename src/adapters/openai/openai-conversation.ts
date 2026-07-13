@@ -1,7 +1,4 @@
-import type {
-  AssistantContext,
-  OpenAIIntentConfig,
-} from "../../ports/assistant.js";
+import type { AssistantContext } from "../../ports/assistant.js";
 import type {
   ConversationCompactorPort,
   ConversationResponderPort,
@@ -10,6 +7,7 @@ import type {
 import { fetchProviderJson, trimTrailingSlash } from "../http-json-client.js";
 import { extractOpenAIOutputText } from "./openai-output-extractor.js";
 import { OpenAIConversationError } from "./openai-conversation-error.js";
+import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 import {
   createOpenAIConversationCompactionRequestBody,
   createOpenAIConversationRequestBody,
@@ -22,7 +20,7 @@ import {
 
 interface OpenAIConversationOptions {
   capabilityCatalog?: OpenAIIntentCapability[];
-  config: OpenAIIntentConfig;
+  config: OpenAIResponsesConfig;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
 }

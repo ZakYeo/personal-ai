@@ -1,22 +1,19 @@
-import type { OpenAIIntentConfig } from "../../ports/assistant.js";
+import type { OpenAIResponsesConfig } from "../../adapters/openai/openai-responses-config.js";
 import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
-import {
-  isRecord,
-  parseOptionalNonEmptyString,
-  parseOptionalPositiveInteger,
-} from "./config-parse-utils.js";
+import { isRecord } from "./config-parse-utils.js";
+import { parseOptionalOpenAIResponsesConfig } from "./openai-responses-config.js";
 
 export type ResolvedResponseRewriterConfig =
   | {
       provider: "disabled";
     }
   | {
-      openai: OpenAIIntentConfig;
+      openai: OpenAIResponsesConfig;
       provider: "openai";
     };
 
 export interface ParsedResponseRewriterConfig {
-  openai?: OpenAIIntentConfig;
+  openai?: OpenAIResponsesConfig;
   provider: string;
 }
 
@@ -39,9 +36,14 @@ export function parseResponseRewriterConfig(
     );
   }
 
+  const openai = parseOptionalOpenAIResponsesConfig(
+    value.openai,
+    "Config responseRewriter.openai",
+  );
+
   return {
     provider: value.provider,
-    ...parseOpenAIResponseRewriterConfig(value.openai),
+    ...(openai ? { openai } : {}),
   };
 }
 
@@ -72,43 +74,4 @@ export function requireResponseRewriterConfig(config: {
   });
 
   return resolveResponseRewriter();
-}
-
-function parseOpenAIResponseRewriterConfig(
-  value: unknown,
-): Pick<ParsedResponseRewriterConfig, "openai"> {
-  if (value === undefined) {
-    return {};
-  }
-
-  if (!isRecord(value)) {
-    throw new Error("Config responseRewriter.openai must be a JSON object.");
-  }
-
-  if (typeof value.model !== "string" || value.model.length === 0) {
-    throw new Error(
-      "Config responseRewriter.openai.model must be a non-empty string.",
-    );
-  }
-
-  return {
-    openai: {
-      apiKeyEnv: parseOptionalNonEmptyString(
-        value.apiKeyEnv,
-        "Config responseRewriter.openai.apiKeyEnv must be a non-empty string.",
-        "OPENAI_API_KEY",
-      ),
-      baseUrl: parseOptionalNonEmptyString(
-        value.baseUrl,
-        "Config responseRewriter.openai.baseUrl must be a non-empty string.",
-        "https://api.openai.com/v1",
-      ),
-      model: value.model,
-      timeoutMs: parseOptionalPositiveInteger(
-        value.timeoutMs,
-        "Config responseRewriter.openai.timeoutMs must be a positive integer.",
-        30_000,
-      ),
-    },
-  };
 }
