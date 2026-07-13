@@ -41,7 +41,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       { query: "upcoming wedding" },
       {
-        text: "Upcoming wedding is on September 12, in about three months.",
+        text: "Upcoming wedding is on 2026-09-12.",
         data: {
           eventId: "wedding-2026",
           date: "2026-09-12",
@@ -58,7 +58,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       {},
       {
-        text: "Your upcoming calendar events are: Upcoming wedding on September 12, in about three months.",
+        text: "Your upcoming calendar events are: Upcoming wedding on 2026-09-12.",
         data: {
           eventCount: 1,
         },
@@ -100,7 +100,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       {},
       {
-        text: "Your upcoming calendar events are: Upcoming wedding on September 12, in about three months.",
+        text: "Your upcoming calendar events are: Upcoming wedding on 2026-09-12.",
         data: {
           eventCount: 1,
         },
@@ -128,7 +128,7 @@ describe("createCalendarFeature", () => {
     expect(calls).toEqual([{ endDate: "2026-08-31", startDate: "2026-08-01" }]);
   });
 
-  it("describes near upcoming events with relative timing", async () => {
+  it("returns exact provider dates without conversational timing policy", async () => {
     await expectDecodedFeatureExecution(
       createCalendarFeature(
         createFakeCalendar(undefined, {
@@ -140,7 +140,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       { query: "interview" },
       {
-        text: "Zak - Onsite Interview - Agentic Engineer is on July 6, in just over a week.",
+        text: "Zak - Onsite Interview - Agentic Engineer is on 2026-07-06.",
         data: {
           eventId: "interview-2026",
           date: "2026-07-06",

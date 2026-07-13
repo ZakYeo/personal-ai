@@ -396,6 +396,9 @@ credential defaults as the OpenAI intent provider. It post-processes successful
 command responses into spoken-friendly wording, preserving command facts and
 falling back to the original safe response while logging diagnostics if
 rewriting fails.
+Calendar features return factual titles and exact provider date strings before
+this post-processing step; natural date and relative-time phrasing belongs to
+the rewriter rather than deterministic feature policy.
 The `google` calendar adapter is opt-in and selected with
 `features.calendar.adapter: google`. Generic upcoming event searches default to
 `features.calendar.upcomingWindowDays: 92`, so normal list requests stay within

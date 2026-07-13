@@ -115,6 +115,8 @@ the setup command again. Do not store Google tokens in repository config files.
 Generic upcoming calendar requests default to a 92-day window through
 `features.calendar.upcomingWindowDays`, which prevents long-running recurring
 events from filling normal spoken answers.
+Deterministic calendar text preserves exact ISO provider dates; the optional
+response rewriter owns conversational title and date phrasing for speech.
 
 ## Quick Start
 

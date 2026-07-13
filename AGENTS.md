@@ -23,6 +23,7 @@
 - Conversation history compacts after `conversation.history.maxTurnsBeforeCompaction` completed user/assistant turns; the current default is 5.
 - Conversation providers that can ask a user-facing follow-up should return the diagnostic-safe `AssistantResponse.expectsFollowUp` signal; voice runtimes use that signal to capture the next utterance without another wake word before returning to normal wake listening.
 - Command response rewriting is selected with `responseRewriter.provider`; keep it post-processing only, preserve feature facts, and fall back to the original safe feature response with internal diagnostics if rewriting fails.
+- Deterministic calendar responses should preserve exact provider date strings; conversational title, date, and relative-time phrasing belongs to the optional response rewriter.
 - Capability awareness must be generated from enabled feature metadata. Keep capability `summary`/`description` fields current, use the shared provider-facing catalog for prompts, and keep the built-in assistant capability catalog feature backed by that same metadata.
 - Spoken capability answers should be concise and human-facing: avoid bullets, semicolon-delimited lists, and internal capability names such as `alarm.list` unless the user explicitly asks for technical detail.
 - Keep process state, clocks, IO streams, and network clients injectable at runtime/composition boundaries; avoid direct `process.env`, `globalThis.fetch`, `new Date()`, stdout, or stderr access in core, feature, or adapter internals.
