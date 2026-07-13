@@ -19,7 +19,7 @@ import {
 } from "./openai-conversation-output-parser.js";
 
 interface OpenAIConversationOptions {
-  capabilityCatalog?: OpenAIIntentCapability[];
+  capabilityCatalog?: readonly OpenAIIntentCapability[];
   config: OpenAIResponsesConfig;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;

@@ -8,7 +8,7 @@ export function createOpenAIIntentRequestBody(
   text: string,
   context: AssistantContext,
   config: OpenAIResponsesConfig,
-  capabilityCatalog: OpenAIIntentCapability[],
+  capabilityCatalog: readonly OpenAIIntentCapability[],
 ) {
   return {
     input: [
@@ -105,7 +105,7 @@ const intentInterpretationSchema = {
 };
 
 export function formatOpenAICapabilities(
-  catalog: OpenAIIntentCapability[],
+  catalog: readonly OpenAIIntentCapability[],
 ): string {
   if (catalog.length === 0) {
     return "No capabilities are enabled.";

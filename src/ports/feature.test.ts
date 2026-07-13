@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { defineCapability, defineFeature } from "./feature.js";
-import type { AssistantContext } from "./assistant.js";
-import type { FeatureExecutionRequest, FeaturePlugin } from "./feature.js";
+import type {
+  FeatureExecutionContext,
+  FeatureExecutionRequest,
+  FeaturePlugin,
+} from "./feature.js";
 import { defineDeterministicFeatureRules } from "./deterministic-feature-rules.js";
 
-const context: AssistantContext = {
+const context: FeatureExecutionContext = {
+  capabilityCatalog: [],
   clock: {
     now: () => new Date("2026-06-26T09:00:00.000Z"),
   },

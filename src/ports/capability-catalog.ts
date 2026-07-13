@@ -1,4 +1,19 @@
-import type { FeatureCapability } from "./feature.js";
+export interface FeatureCapability {
+  name: string;
+  risk: "low" | "high";
+  summary?: string;
+  spokenSummary?: string;
+  description?: string;
+  requiresConfirmation?: boolean;
+  parameters?: Record<string, FeatureCapabilityParameter>;
+}
+
+export interface FeatureCapabilityParameter {
+  type: "string" | "number" | "boolean";
+  required?: boolean;
+  minimum?: number;
+  positive?: boolean;
+}
 
 export interface CapabilityCatalogFeature {
   capabilities: FeatureCapability[];
@@ -13,7 +28,7 @@ export interface CapabilityCatalogEntry {
   parameterText: string;
 }
 
-export type CapabilityCatalog = CapabilityCatalogEntry[];
+export type CapabilityCatalog = readonly CapabilityCatalogEntry[];
 
 export interface CapabilityRoute<
   TFeature extends CapabilityCatalogFeature = CapabilityCatalogFeature,
@@ -38,7 +53,7 @@ export function createCapabilityCatalog(
 export function createCapabilityRoutingIndex<
   TFeature extends CapabilityCatalogFeature,
 >(features: readonly TFeature[]): CapabilityRoutingIndex<TFeature> {
-  const catalog: CapabilityCatalog = [];
+  const catalog: CapabilityCatalogEntry[] = [];
   const routes = new Map<string, CapabilityRoute<TFeature>>();
 
   for (const feature of features) {
@@ -52,19 +67,39 @@ export function createCapabilityRoutingIndex<
       }
 
       routes.set(capability.name, { capability, feature });
-      catalog.push({
-        capability,
-        featureId: feature.id,
-        featureName: feature.displayName,
-        parameterText: formatCapabilityParameters(capability),
-      });
+      catalog.push(
+        Object.freeze({
+          capability: freezeCapability(capability),
+          featureId: feature.id,
+          featureName: feature.displayName,
+          parameterText: formatCapabilityParameters(capability),
+        }),
+      );
     }
   }
 
   return {
-    catalog,
+    catalog: Object.freeze(catalog),
     get: (capabilityName) => routes.get(capabilityName),
   };
+}
+
+function freezeCapability(capability: FeatureCapability): FeatureCapability {
+  const parameters = capability.parameters
+    ? Object.freeze(
+        Object.fromEntries(
+          Object.entries(capability.parameters).map(([name, parameter]) => [
+            name,
+            Object.freeze({ ...parameter }),
+          ]),
+        ),
+      )
+    : undefined;
+
+  return Object.freeze({
+    ...capability,
+    ...(parameters ? { parameters } : {}),
+  });
 }
 
 function formatCapabilityParameters(capability: FeatureCapability): string {

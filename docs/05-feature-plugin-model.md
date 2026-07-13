@@ -138,7 +138,10 @@ selection policy into feature modules.
 The runtime also adds a built-in `assistant` feature that lists or describes the
 enabled capability catalog. It is runtime-owned rather than user-configured, and
 it must stay backed by the same generated feature metadata used by provider
-prompts. Its normal list response should be phrased for speech and avoid
+prompts. Composition freezes the compiled routing catalog and supplies that
+same immutable artifact through feature execution context, so the built-in
+feature does not capture a catalog that is populated later. Its normal list
+response should be phrased for speech and avoid
 internal capability names unless the user asks for technical detail.
 Adapter-specific configuration is parsed as part of selecting the adapter, not
 retained in the common loaded feature shape or passed as an untyped generic

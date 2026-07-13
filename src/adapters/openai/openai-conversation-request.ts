@@ -14,7 +14,7 @@ export function createOpenAIConversationRequestBody(
   state: ConversationState,
   context: AssistantContext,
   config: OpenAIResponsesConfig,
-  capabilityCatalog: OpenAIIntentCapability[] = [],
+  capabilityCatalog: readonly OpenAIIntentCapability[] = [],
 ) {
   return {
     input: [

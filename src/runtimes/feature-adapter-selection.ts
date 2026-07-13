@@ -1,7 +1,6 @@
 import { createCapabilityInfoFeature } from "../features/assistant/capability-info-feature.js";
 import {
   createCapabilityRoutingIndex,
-  type CapabilityCatalog,
   type CapabilityRoutingIndex,
 } from "../ports/capability-catalog.js";
 import type { FeaturePlugin } from "../ports/feature.js";
@@ -35,12 +34,9 @@ export function createConfiguredFeatureSelection(
   options: CreateConfiguredFeaturesOptions,
 ): ConfiguredFeatureSelection {
   const configuredFeatures = createAdapterBackedFeatures(config, options);
-  const catalog: CapabilityCatalog = [];
-  const capabilityInfoFeature = createCapabilityInfoFeature(catalog);
+  const capabilityInfoFeature = createCapabilityInfoFeature();
   const features = [...configuredFeatures, capabilityInfoFeature];
   const capabilityRouting = createCapabilityRoutingIndex(features);
-
-  catalog.push(...capabilityRouting.catalog);
 
   return {
     capabilityRouting,

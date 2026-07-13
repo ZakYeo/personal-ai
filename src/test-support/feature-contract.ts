@@ -1,12 +1,12 @@
 import type {
   AssistantCommand,
   AssistantPolicyConfig,
-  AssistantContext,
   AssistantCommandParameters,
 } from "../ports/assistant.js";
 import type {
   FeatureArguments,
   FeatureCapability,
+  FeatureExecutionContext,
   FeatureExecutionRequest,
   FeaturePlugin,
   FeatureResult,
@@ -17,8 +17,10 @@ export const featureContractNow = deterministicTestNow;
 
 export function createFeatureContext(
   config: AssistantPolicyConfig = createFeatureConfig(),
-): AssistantContext {
+  capabilityCatalog: FeatureExecutionContext["capabilityCatalog"] = [],
+): FeatureExecutionContext {
   return {
+    capabilityCatalog,
     clock: {
       now: () => featureContractNow,
     },
@@ -95,7 +97,7 @@ export async function expectFeatureExecution(
   command: AssistantCommand,
   args: FeatureArguments,
   expected: FeatureResult,
-  context: AssistantContext = createFeatureContext(),
+  context: FeatureExecutionContext = createFeatureContext(),
 ): Promise<void> {
   await expect(
     feature.execute(createFeatureExecutionRequest(command, args), context),
@@ -107,7 +109,7 @@ export async function expectFeatureRejects(
   command: AssistantCommand,
   args: FeatureArguments,
   expectedMessage: string,
-  context: AssistantContext = createFeatureContext(),
+  context: FeatureExecutionContext = createFeatureContext(),
 ): Promise<void> {
   await expect(
     feature.execute(createFeatureExecutionRequest(command, args), context),
@@ -121,7 +123,7 @@ export async function executeFeature<
   feature: FeaturePlugin,
   capability: TCapability,
   args: TArgs,
-  context: AssistantContext = createFeatureContext(),
+  context: FeatureExecutionContext = createFeatureContext(),
   rawText = "feature command",
 ): Promise<FeatureResult> {
   return feature.execute(
@@ -141,7 +143,7 @@ export async function expectDecodedFeatureExecution<
   capability: TCapability,
   args: TArgs,
   expected: FeatureResult,
-  context: AssistantContext = createFeatureContext(),
+  context: FeatureExecutionContext = createFeatureContext(),
   rawText = "feature command",
 ): Promise<void> {
   await expect(

@@ -12,16 +12,23 @@ import {
   expectFeatureHandles,
 } from "../../test-support/feature-contract.js";
 
-const context = createFeatureContext({
-  assistant: {
-    name: "Jarvis",
-    wakePhrases: ["hey jarvis"],
+const catalog = createCapabilityCatalog([
+  createAlarmFeature(createTestAlarmStore()),
+  createCapabilityInfoCatalogFeature(),
+]);
+const context = createFeatureContext(
+  {
+    assistant: {
+      name: "Jarvis",
+      wakePhrases: ["hey jarvis"],
+    },
+    features: {
+      alarms: { enabled: true },
+      assistant: { enabled: true },
+    },
   },
-  features: {
-    alarms: { enabled: true },
-    assistant: { enabled: true },
-  },
-});
+  catalog,
+);
 
 describe("createCapabilityInfoFeature", () => {
   it("declares capability catalog metadata", () => {
@@ -99,14 +106,7 @@ describe("createCapabilityInfoFeature", () => {
 });
 
 function createFeature() {
-  const alarmFeature = createAlarmFeature(createTestAlarmStore());
-  const catalog = createCapabilityCatalog([
-    alarmFeature,
-    createCapabilityInfoCatalogFeature(),
-  ]);
-  const capabilityInfoFeature = createCapabilityInfoFeature(catalog);
-
-  return capabilityInfoFeature;
+  return createCapabilityInfoFeature();
 }
 
 function createTestAlarmStore(): AlarmStore {

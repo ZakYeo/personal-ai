@@ -3,22 +3,19 @@ import type {
   AssistantContext,
   AssistantCommandParameters,
 } from "./assistant.js";
+import type {
+  CapabilityCatalog,
+  FeatureCapability,
+  FeatureCapabilityParameter,
+} from "./capability-catalog.js";
 
-export interface FeatureCapability {
-  name: string;
-  risk: "low" | "high";
-  summary?: string;
-  spokenSummary?: string;
-  description?: string;
-  requiresConfirmation?: boolean;
-  parameters?: Record<string, FeatureCapabilityParameter>;
-}
+export type {
+  FeatureCapability,
+  FeatureCapabilityParameter,
+} from "./capability-catalog.js";
 
-export interface FeatureCapabilityParameter {
-  type: "string" | "number" | "boolean";
-  required?: boolean;
-  minimum?: number;
-  positive?: boolean;
+export interface FeatureExecutionContext extends AssistantContext {
+  capabilityCatalog: CapabilityCatalog;
 }
 
 export type FeatureCapabilityParameters = Record<
@@ -52,7 +49,7 @@ export interface FeaturePlugin<
   canHandle?(command: AssistantCommand, context: AssistantContext): boolean;
   execute(
     request: TExecutionRequest,
-    context: AssistantContext,
+    context: FeatureExecutionContext,
   ): Promise<FeatureResult>;
 }
 
@@ -99,7 +96,7 @@ type DefinedCapability<
       string,
       FeatureArgsFromParameters<TParameters>
     >,
-    context: AssistantContext,
+    context: FeatureExecutionContext,
   ): MaybePromise<FeatureResult>;
 };
 
@@ -121,7 +118,7 @@ type CapabilityHandlerForRequest<TRequest extends FeatureExecutionRequest> =
         execute(
           this: void,
           request: FeatureExecutionRequest<TCapability, TArgs>,
-          context: AssistantContext,
+          context: FeatureExecutionContext,
         ): MaybePromise<FeatureResult>;
       }
     : never;
@@ -201,7 +198,7 @@ function executeSelectedCapability<TRequest extends FeatureExecutionRequest>(
   featureId: string,
   handler: AnyDefinedCapability | undefined,
   request: TRequest,
-  context: AssistantContext,
+  context: FeatureExecutionContext,
 ): MaybePromise<FeatureResult> {
   if (!handler) {
     throw new Error(`${featureId} cannot execute ${request.capability}.`);

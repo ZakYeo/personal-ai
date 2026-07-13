@@ -15,7 +15,7 @@ export { OpenAIIntentError } from "./openai-intent-error.js";
 export type { OpenAIIntentCapability } from "./openai-intent-request.js";
 
 interface OpenAIIntentInterpreterOptions {
-  capabilityCatalog?: OpenAIIntentCapability[];
+  capabilityCatalog?: readonly OpenAIIntentCapability[];
   config: OpenAIResponsesConfig;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;

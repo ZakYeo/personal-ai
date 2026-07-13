@@ -65,6 +65,21 @@ describe("createProviderCapabilityCatalog", () => {
       'Capability "shared.lookup" is declared by both "calendar" and "messaging".',
     );
   });
+
+  it("returns an immutable compiled catalog", () => {
+    const catalog = createProviderCapabilityCatalog([
+      createFeature("calendar", "calendar.list"),
+    ]);
+
+    expect(Object.isFrozen(catalog)).toBe(true);
+    expect(Object.isFrozen(catalog[0])).toBe(true);
+    expect(Object.isFrozen(catalog[0]?.capability)).toBe(true);
+    expect(() => {
+      (catalog as unknown[]).push({
+        capability: { name: "calendar.delete", risk: "high" },
+      });
+    }).toThrow();
+  });
 });
 
 function createFeature(id: string, capabilityName: string): FeaturePlugin {

@@ -370,7 +370,7 @@ describe("OpenAIIntentInterpreter", () => {
 });
 
 interface CreateInterpreterOptions {
-  capabilityCatalog?: OpenAIIntentCapability[];
+  capabilityCatalog?: readonly OpenAIIntentCapability[];
   env?: Record<string, string | undefined>;
   fetch?: typeof fetch;
   timeoutMs?: number;

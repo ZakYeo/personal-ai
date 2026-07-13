@@ -82,6 +82,10 @@ async function handleTextInternal(
     clock: dependencies.clock,
     config: dependencies.config,
   };
+  const executionContext = {
+    ...context,
+    capabilityCatalog: dependencies.capabilityRouting.catalog,
+  };
   const interpretation = await dependencies.intentInterpreter.interpret(
     normalizedText,
     context,
@@ -144,7 +148,7 @@ async function handleTextInternal(
         command,
         args: decodedCommand.args,
       },
-      context,
+      executionContext,
     );
 
     const response: AssistantResponse = {

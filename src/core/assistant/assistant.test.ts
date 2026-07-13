@@ -69,6 +69,14 @@ describe("createAssistant", () => {
         args: { message: "hello" },
       },
       {
+        capabilityCatalog: [
+          {
+            capability: feature.capabilities[0],
+            featureId: "test",
+            featureName: "Test",
+            parameterText: "message: string (required)",
+          },
+        ],
         clock,
         config,
       },

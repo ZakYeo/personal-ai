@@ -44,9 +44,7 @@ const capabilityInfoDeterministicRules = [
   },
 ] as const satisfies readonly DeterministicFeatureRule[];
 
-export function createCapabilityInfoFeature(
-  catalog: CapabilityCatalog,
-): FeaturePlugin {
+export function createCapabilityInfoFeature(): FeaturePlugin {
   return defineDeterministicFeatureRules(
     defineFeature({
       id: "assistant",
@@ -58,7 +56,8 @@ export function createCapabilityInfoFeature(
           risk: "low",
           summary: "List enabled assistant capabilities.",
           parameters: capabilityListParameters,
-          execute: () => listCapabilities(catalog),
+          execute: (_request, context) =>
+            listCapabilities(context.capabilityCatalog),
         }),
         "assistant.capabilities.describe": defineCapability({
           description:
@@ -66,7 +65,8 @@ export function createCapabilityInfoFeature(
           risk: "low",
           summary: "Describe one enabled assistant capability.",
           parameters: capabilityDescribeParameters,
-          execute: (request) => describeCapability(catalog, request.args),
+          execute: (request, context) =>
+            describeCapability(context.capabilityCatalog, request.args),
         }),
       },
     }),
@@ -79,7 +79,7 @@ export function createCapabilityInfoCatalogFeature(): {
   displayName: string;
   id: string;
 } {
-  return createCapabilityInfoFeature([] satisfies CapabilityCatalog);
+  return createCapabilityInfoFeature();
 }
 
 function listCapabilities(catalog: CapabilityCatalog): FeatureResult {
