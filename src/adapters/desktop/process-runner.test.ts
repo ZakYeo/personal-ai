@@ -87,6 +87,40 @@ describe("runCommand", () => {
     expect(signals).toEqual(["SIGTERM", "SIGKILL"]);
   });
 
+  it("falls back to direct child signaling when process-group signaling fails", async () => {
+    const signals: NodeJS.Signals[] = [];
+    const processControl: ProcessControl = {
+      kill: (_pid, signal) => {
+        signals.push(signal);
+        throw Object.assign(new Error("group signal denied"), {
+          code: "EPERM",
+        });
+      },
+      platform: "linux",
+    };
+
+    await expect(
+      Promise.race([
+        runCommand({
+          args: ["-c", "exec sleep 10"],
+          command: "/bin/sh",
+          processControl,
+          terminationGraceMs: 50,
+          timeoutMs: 10,
+        }),
+        new Promise((_, reject) => {
+          setTimeout(
+            () => reject(new Error("termination did not settle")),
+            500,
+          );
+        }),
+      ]),
+    ).rejects.toMatchObject({
+      timeoutMs: 10,
+    } satisfies Partial<CommandTimeoutError>);
+    expect(signals).toEqual(["SIGTERM"]);
+  });
+
   it("rejects spawn failures with preserved diagnostics", async () => {
     await expect(
       runCommand({

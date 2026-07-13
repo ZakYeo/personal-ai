@@ -239,7 +239,8 @@ Timeout, abort, and cleanup must track process close separately from the public
 command result. Termination waits for child exit and escalates from `SIGTERM` to
 `SIGKILL` after a bounded grace period so child or process-group resources do
 not outlive runtime cleanup; final captured output remains on the diagnostic
-error.
+error. Failed process-group signals fall back to direct-child signals, and the
+post-`SIGKILL` close wait is also bounded so cleanup cannot wait forever.
 
 Provider adapters should follow the same boundary discipline. Every real
 provider adapter must be opt-in through runtime configuration, receive network

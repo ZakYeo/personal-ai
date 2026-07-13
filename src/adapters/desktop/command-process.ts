@@ -51,6 +51,18 @@ export class CommandSpawnError extends Error {
   }
 }
 
+class CommandTerminationError extends Error {
+  constructor(
+    message: string,
+    readonly cause: unknown,
+    readonly stderr: string,
+    readonly stdout: string,
+  ) {
+    super(message, { cause });
+    this.name = "CommandTerminationError";
+  }
+}
+
 const defaultTimeoutMs = 30_000;
 const defaultTerminationGraceMs = 1_000;
 
@@ -144,10 +156,12 @@ class CommandProcess {
   }
 
   async terminateAndWait(): Promise<void> {
+    const errors: unknown[] = [];
+
     try {
       this.terminate();
-    } catch {
-      // Cleanup still waits for close or escalates below.
+    } catch (error) {
+      errors.push(error);
     }
 
     if (await this.waitForCloseWithin(this.terminationGraceMs())) {
@@ -156,11 +170,21 @@ class CommandProcess {
 
     try {
       terminateProcess(this.child, this.processControl, "SIGKILL");
-    } catch {
-      // A concurrent exit can make the escalation target disappear.
+    } catch (error) {
+      errors.push(error);
     }
 
-    await this.close;
+    if (await this.waitForCloseWithin(this.terminationGraceMs())) {
+      return;
+    }
+
+    const output = this.output();
+    throw new CommandTerminationError(
+      `Command "${this.request.command}" did not exit after termination signals.`,
+      new AggregateError(errors, "Command termination failed."),
+      output.stderr,
+      output.stdout,
+    );
   }
 
   waitForSuccess(): Promise<RunCommandResult> {
@@ -253,7 +277,7 @@ class CommandProcess {
                 output.stdout,
               ),
             );
-          });
+          }, reject);
         });
       }, timeoutMs);
 
@@ -261,7 +285,7 @@ class CommandProcess {
         settle(() => {
           void this.terminateAndWait().then(() => {
             reject(toError(this.request.signal?.reason ?? "Command aborted."));
-          });
+          }, reject);
         });
       };
 
@@ -331,18 +355,32 @@ function terminateProcess(
   processControl: ProcessControl,
   signal: NodeJS.Signals,
 ): void {
+  let groupError: unknown;
+
   if (canUseProcessGroups(processControl) && child.pid !== undefined) {
     try {
       processControl.kill(-child.pid, signal);
       return;
     } catch (error) {
-      if (!isMissingProcessError(error)) {
-        throw error;
+      if (isMissingProcessError(error)) {
+        return;
       }
+
+      groupError = error;
     }
   }
 
-  child.kill(signal);
+  try {
+    if (!child.kill(signal)) {
+      throw new Error(`Direct child ${signal} signal was not delivered.`);
+    }
+  } catch (error) {
+    throw new AggregateError(
+      groupError === undefined ? [error] : [groupError, error],
+      `Failed to deliver ${signal} to command process.`,
+      { cause: error },
+    );
+  }
 }
 
 function canUseProcessGroups(processControl: ProcessControl): boolean {
