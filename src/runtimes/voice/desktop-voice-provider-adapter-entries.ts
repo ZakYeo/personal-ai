@@ -30,6 +30,9 @@ export function createDesktopVoiceProviderAdapterRegistry(
           new OpenAIRealtimeTranscription({
             config,
             env: dependencies.env,
+            ...(dependencies.shutdownSignal
+              ? { shutdownSignal: dependencies.shutdownSignal }
+              : {}),
             webSocketFactory:
               options.openAIRealtimeWebSocketFactory ??
               createOpenAIRealtimeWebSocketFactory,

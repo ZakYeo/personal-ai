@@ -225,11 +225,56 @@ describe("OpenAIRealtimeTranscription", () => {
     expect(socket.closed).toBe(true);
     expect(socket.sentMessages).toEqual([]);
   });
+
+  it("closes a pending realtime socket when shutdown is requested", async () => {
+    const socket = new TestRealtimeSocket();
+    const shutdown = new AbortController();
+    const adapter = createRealtimeTranscriptionAdapter({
+      shutdownSignal: shutdown.signal,
+      socket,
+    });
+    const transcriptPromise = adapter.transcribeStream({
+      chunks: chunksFromText("audio"),
+    });
+
+    shutdown.abort(new Error("service shutdown requested"));
+
+    await expect(transcriptPromise).rejects.toMatchObject({
+      cause: expect.objectContaining({
+        message: "service shutdown requested",
+      }) as Error,
+      message: "Realtime transcription was aborted.",
+    });
+    expect(socket.closed).toBe(true);
+    expect(socket.sentMessages).toEqual([]);
+  });
+
+  it("closes the realtime socket when shutdown interrupts transcription", async () => {
+    const socket = new TestRealtimeSocket();
+    const shutdown = new AbortController();
+    const adapter = createRealtimeTranscriptionAdapter({
+      shutdownSignal: shutdown.signal,
+      socket,
+    });
+    const transcriptPromise = adapter.transcribeStream({
+      chunks: chunksFromText("audio"),
+    });
+
+    socket.emitOpen();
+    await socket.waitForSentType("input_audio_buffer.commit");
+    shutdown.abort(new Error("service shutdown requested"));
+
+    await expect(transcriptPromise).rejects.toThrow(
+      "Realtime transcription was aborted.",
+    );
+    expect(socket.closed).toBe(true);
+  });
 });
 
 function createRealtimeTranscriptionAdapter(options: {
   env?: Record<string, string | undefined>;
   socket?: TestRealtimeSocket;
+  shutdownSignal?: AbortSignal;
   timeoutMs?: number;
   webSocketFactory?: ConstructorParameters<
     typeof OpenAIRealtimeTranscription
@@ -245,6 +290,9 @@ function createRealtimeTranscriptionAdapter(options: {
       timeoutMs: options.timeoutMs ?? 30_000,
     },
     env: options.env ?? { OPENAI_API_KEY: "test-key" },
+    ...(options.shutdownSignal
+      ? { shutdownSignal: options.shutdownSignal }
+      : {}),
     webSocketFactory: options.webSocketFactory ?? (() => socket),
   });
 }

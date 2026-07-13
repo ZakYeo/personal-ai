@@ -189,6 +189,42 @@ describe("desktop voice service OpenAI streaming", () => {
     ]);
   });
 
+  it("closes active realtime transcription when the service shuts down", async () => {
+    const signals = createServiceSignalController();
+    const progressOutput = createCapturedWriter();
+    const fallbackOutput = createCapturedWriter();
+    const stderr = createCapturedWriter();
+    const socket = new TestRealtimeSocket({ autoOpen: true });
+    const runtime = runDesktopVoiceServiceRuntime({
+      config: createOpenAIStreamingServiceConfig({
+        webSocketFactory: (() => socket) satisfies RealtimeSocketFactory,
+      }),
+      env: { OPENAI_API_KEY: "test-api-key" },
+      fetch: vi
+        .fn()
+        .mockResolvedValue(new Response(Buffer.from("fallback spoken audio"))),
+      io: { fallbackOutput, progressOutput, stderr },
+      processSignals: signals,
+      retryAfterFailure: () => Promise.resolve(),
+    });
+
+    await socket.waitForSentType("input_audio_buffer.commit");
+    signals.emit("SIGTERM");
+
+    await expect(runtime).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 1,
+    });
+    expect(socket.closed).toBe(true);
+    expect(fallbackOutput.writes).toEqual([
+      safeRuntimeFallbackResponse.text + "\n",
+    ]);
+    expect(stderr.writes).toEqual([
+      line("Runtime failure: Realtime transcription was aborted."),
+      line("Runtime failure: OpenAI speech request was aborted."),
+    ]);
+  });
+
   it("cleans up streaming command audio when realtime transcription fails before audio is read", async () => {
     const signals = createServiceSignalController();
     const progressOutput = createCapturedWriter();

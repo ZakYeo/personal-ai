@@ -23,11 +23,13 @@ export type RealtimeSocketFactory = (
 export function waitForSocketOpen(
   socket: RealtimeSocket,
   timeoutMs: number,
+  shutdownSignal?: AbortSignal,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const settle = createRealtimeSettlement({
       reject,
       resolve,
+      ...(shutdownSignal ? { shutdownSignal } : {}),
       timeoutMs,
     });
 
@@ -44,6 +46,7 @@ export function waitForTranscript(
   socket: RealtimeSocket,
   events: StreamingSpeechToTextEvents,
   timeoutMs: number,
+  shutdownSignal?: AbortSignal,
 ): Promise<SpeechTranscript> {
   let text = "";
 
@@ -51,6 +54,7 @@ export function waitForTranscript(
     const settle = createRealtimeSettlement({
       reject,
       resolve,
+      ...(shutdownSignal ? { shutdownSignal } : {}),
       timeoutMs,
     });
 
@@ -102,12 +106,18 @@ export function waitForTranscript(
 function createRealtimeSettlement<T>(options: {
   reject(error: Error): void;
   resolve(value: T): void;
+  shutdownSignal?: AbortSignal;
   timeoutMs: number;
 }): {
   reject(error: Error): void;
   resolve(value: T): void;
 } {
   let settled = false;
+  const onAbort = (): void => {
+    settle(() =>
+      options.reject(createRealtimeAbortError(options.shutdownSignal)),
+    );
+  };
 
   const settle = (complete: () => void): void => {
     if (settled) {
@@ -116,12 +126,19 @@ function createRealtimeSettlement<T>(options: {
 
     settled = true;
     clearTimeout(timer);
+    options.shutdownSignal?.removeEventListener("abort", onAbort);
     complete();
   };
 
   const timer = setTimeout(() => {
     settle(() => options.reject(createRealtimeTimeoutError(options.timeoutMs)));
   }, options.timeoutMs);
+
+  if (options.shutdownSignal?.aborted) {
+    onAbort();
+  } else {
+    options.shutdownSignal?.addEventListener("abort", onAbort, { once: true });
+  }
 
   return {
     reject: (error) => {
@@ -142,4 +159,11 @@ function createRealtimeSocketError(event: unknown): Error {
 
 function createRealtimeTimeoutError(timeoutMs: number): Error {
   return new Error(`Realtime transcription timed out after ${timeoutMs}ms.`);
+}
+
+function createRealtimeAbortError(signal: AbortSignal | undefined): Error {
+  return createOpenAIVoiceProviderError({
+    cause: signal?.reason as unknown,
+    message: "Realtime transcription was aborted.",
+  });
 }

@@ -26,6 +26,7 @@ export type {
 interface OpenAIRealtimeTranscriptionOptions {
   config: OpenAIRealtimeTranscriptionConfig;
   env: Record<string, string | undefined>;
+  shutdownSignal?: AbortSignal;
   webSocketFactory: RealtimeSocketFactory;
 }
 
@@ -44,13 +45,18 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
     });
 
     try {
-      await waitForSocketOpen(socket, this.options.config.timeoutMs);
+      await waitForSocketOpen(
+        socket,
+        this.options.config.timeoutMs,
+        this.options.shutdownSignal,
+      );
       socket.send(createTranscriptionSessionUpdateMessage(this.options.config));
 
       const transcriptPromise = waitForTranscript(
         socket,
         events,
         this.options.config.timeoutMs,
+        this.options.shutdownSignal,
       );
 
       await streamAudioToSocket(socket, audio.chunks, transcriptPromise);

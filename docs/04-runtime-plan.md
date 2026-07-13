@@ -148,6 +148,9 @@ not when the stream object is created, so short file-fed inputs and command
 processes cannot finish before the realtime socket is ready to read them.
 Runtime cleanup terminates owned streaming input processes best-effort when
 realtime setup, transcription, or provider events fail.
+The realtime adapter also receives the active service shutdown signal; pending
+socket-open and transcript settlement reject immediately and the adapter closes
+the socket instead of waiting for the provider timeout.
 Desktop streaming STT and TTS provider entries resolve and capture their own
 typed configuration. The neutral slot topology returns the selected adapter ID
 and constructor without naming OpenAI config types, so another provider is a
