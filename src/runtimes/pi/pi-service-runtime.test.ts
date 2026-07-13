@@ -2,7 +2,11 @@ import type { CapturedAudio } from "../../ports/voice.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import { createDesktopVoiceConfig } from "../../test-support/desktop-voice-runtime.js";
-import { createCapturedWriter, line } from "../../test-support/primitives.js";
+import {
+  createCapturedWriter,
+  line,
+  writeTempJsonFile,
+} from "../../test-support/primitives.js";
 import { createServiceSignalController } from "../../test-support/service-runtime.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
 import type {
@@ -11,6 +15,8 @@ import type {
 } from "../voice/voice-activation.js";
 import type { VoiceRuntimeIo } from "../voice/voice-turn.js";
 import { runPiServiceRuntime } from "./pi-service-runtime.js";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 
 describe("runPiServiceRuntime", () => {
   it("runs a configured command voice turn through the service loop", async () => {
@@ -57,6 +63,60 @@ describe("runPiServiceRuntime", () => {
     expect(signals.listenerCount("SIGTERM")).toBe(0);
     expect(stderr.writes).toEqual([]);
     expect(fallbackOutput.writes).toEqual([]);
+  });
+
+  it("resolves persistent alarm state relative to the Pi config", async () => {
+    const config = createDesktopVoiceConfig(
+      deterministicScenarios.alarmListEmpty.text,
+    );
+    const configPath = await writeTempJsonFile({
+      ...config,
+      features: {
+        ...config.features,
+        alarms: {
+          adapter: "file",
+          enabled: true,
+          state: { path: "state/alarms.json" },
+        },
+      },
+    });
+    const stateDirectory = join(dirname(configPath), "state");
+    await mkdir(stateDirectory);
+    await writeFile(
+      join(stateDirectory, "alarms.json"),
+      JSON.stringify({
+        alarms: [
+          {
+            id: "pi-alarm",
+            label: "tea",
+            scheduledFor: "2026-07-13T17:00:00.000Z",
+          },
+        ],
+        version: 1,
+      }),
+    );
+    const signals = createServiceSignalController();
+
+    await expect(
+      runPiServiceRuntime({
+        configPath,
+        processSignals: signals,
+        retryAfterFailure: () => Promise.resolve(),
+        runVoiceActivation: async ({ assistant }) => {
+          const response = await assistant.handleText(
+            deterministicScenarios.alarmListEmpty.text,
+          );
+          expect(response.text).toContain("pi-alarm");
+          signals.emit("SIGTERM");
+
+          return {
+            response,
+            status: "spoken",
+            textOutputWritten: false,
+          };
+        },
+      }),
+    ).resolves.toMatchObject({ status: "stopped" });
   });
 
   it("keeps running after a recoverable voice turn failure", async () => {

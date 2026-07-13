@@ -29,7 +29,7 @@ import { validateOpenWakeWordStartup } from "./openwakeword-startup-check.js";
 
 export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,
-  "env" | "fetch" | "now"
+  "configDirectory" | "env" | "featureAdapterRegistry" | "fetch" | "now"
 > {
   config?: LoadedRuntimeConfig;
   configPath?: string;

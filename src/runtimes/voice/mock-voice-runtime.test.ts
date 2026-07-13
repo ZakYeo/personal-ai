@@ -19,7 +19,9 @@ import {
   withConversationProvider,
   withVoiceAdapterId,
 } from "../../test-support/runtime-composition.js";
-import { line } from "../../test-support/primitives.js";
+import { line, writeTempJsonFile } from "../../test-support/primitives.js";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 
 describe("mock voice runtime", () => {
   it("runs a simulated voice command through the assistant core", async () => {
@@ -37,6 +39,43 @@ describe("mock voice runtime", () => {
       transcript: deterministicScenarios.calendarWedding.text,
       wakePhrase: "hey jarvis",
     });
+  });
+
+  it("forwards the loaded config directory to persistent alarm storage", async () => {
+    const configPath = await writeTempJsonFile({
+      ...voiceEnabledDeterministicConfig,
+      features: {
+        ...voiceEnabledDeterministicConfig.features,
+        alarms: {
+          adapter: "file",
+          enabled: true,
+          state: { path: "state/alarms.json" },
+        },
+      },
+    });
+    const stateDirectory = join(dirname(configPath), "state");
+    await mkdir(stateDirectory);
+    await writeFile(
+      join(stateDirectory, "alarms.json"),
+      JSON.stringify({
+        alarms: [
+          {
+            id: "voice-alarm",
+            label: "tea",
+            scheduledFor: "2026-07-13T17:00:00.000Z",
+          },
+        ],
+        version: 1,
+      }),
+    );
+
+    const runtime = await createMockVoiceRuntime({
+      configPath,
+      utterance: deterministicScenarios.alarmListEmpty.text,
+    });
+    const result = await runtime.runOnce();
+
+    expect(result.response.text).toContain("voice-alarm");
   });
 
   it("passes provider dependencies into composed text assistant", async () => {

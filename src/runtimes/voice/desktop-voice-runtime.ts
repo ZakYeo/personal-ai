@@ -14,7 +14,7 @@ import type { ProcessControl } from "../../ports/process-control.js";
 
 interface DesktopVoiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,
-  "env" | "fetch" | "now"
+  "configDirectory" | "env" | "featureAdapterRegistry" | "fetch" | "now"
 > {
   config?: LoadedRuntimeConfig;
   configPath?: string;
@@ -32,9 +32,15 @@ export async function createDesktopVoiceRuntime(
 
   return createVoiceRuntime({
     ...(options.config ? { config: options.config } : {}),
+    ...(options.configDirectory
+      ? { configDirectory: options.configDirectory }
+      : {}),
     ...(options.configPath ? { configPath: options.configPath } : {}),
     env,
     fetch,
+    ...(options.featureAdapterRegistry
+      ? { featureAdapterRegistry: options.featureAdapterRegistry }
+      : {}),
     ...(options.io ? { io: options.io } : {}),
     ...(options.now ? { now: options.now } : {}),
     resolveAdapters: (config, voiceConfig) =>

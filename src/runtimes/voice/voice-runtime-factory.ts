@@ -2,7 +2,10 @@ import {
   createConfiguredTextRuntime,
   type ConfiguredTextRuntimeOptions,
 } from "../configured-text-runtime.js";
-import { loadConfig, type LoadedRuntimeConfig } from "../config/config.js";
+import {
+  loadConfigWithSource,
+  type LoadedRuntimeConfig,
+} from "../config/config.js";
 import {
   requireVoiceConfig,
   type ResolvedVoiceConfig,
@@ -37,7 +40,7 @@ interface VoiceAdapters {
 
 interface VoiceRuntimeFactoryOptions extends Pick<
   ConfiguredTextRuntimeOptions,
-  "env" | "fetch" | "now"
+  "configDirectory" | "env" | "featureAdapterRegistry" | "fetch" | "now"
 > {
   config?: LoadedRuntimeConfig;
   configPath?: string;
@@ -51,17 +54,29 @@ interface VoiceRuntimeFactoryOptions extends Pick<
 export async function createVoiceRuntime(
   options: VoiceRuntimeFactoryOptions,
 ): Promise<VoiceRuntime> {
-  const config =
-    options.config ??
-    (await loadConfig(
-      options.configPath ? { configPath: options.configPath } : undefined,
-    ));
+  const configSource = options.config
+    ? {
+        config: options.config,
+        ...(options.configDirectory
+          ? { configDirectory: options.configDirectory }
+          : {}),
+      }
+    : await loadConfigWithSource({
+        ...(options.configPath ? { configPath: options.configPath } : {}),
+        ...(options.featureAdapterRegistry
+          ? { featureAdapterRegistry: options.featureAdapterRegistry }
+          : {}),
+      });
+  const { config } = configSource;
   const voiceConfig = requireVoiceConfig(config);
   const voiceAdapters = options.resolveAdapters(config, voiceConfig);
 
   const dependencies: VoiceRuntimeDependencies = {
     assistant: await createConfiguredTextRuntime({
       config,
+      ...(configSource.configDirectory
+        ? { configDirectory: configSource.configDirectory }
+        : {}),
       ...(options.env ? { env: options.env } : {}),
       ...(options.fetch ? { fetch: options.fetch } : {}),
       ...(options.now ? { now: options.now } : {}),

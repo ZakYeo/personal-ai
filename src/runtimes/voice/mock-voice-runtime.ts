@@ -9,7 +9,7 @@ import {
 
 interface MockVoiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,
-  "env" | "fetch" | "now"
+  "configDirectory" | "env" | "featureAdapterRegistry" | "fetch" | "now"
 > {
   config?: LoadedRuntimeConfig;
   configPath?: string;
@@ -26,9 +26,15 @@ export async function createMockVoiceRuntime(
 
   return createVoiceRuntime({
     ...(options.config ? { config: options.config } : {}),
+    ...(options.configDirectory
+      ? { configDirectory: options.configDirectory }
+      : {}),
     ...(options.configPath ? { configPath: options.configPath } : {}),
     ...(options.env ? { env: options.env } : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
+    ...(options.featureAdapterRegistry
+      ? { featureAdapterRegistry: options.featureAdapterRegistry }
+      : {}),
     ...(options.io ? { io: options.io } : {}),
     ...(options.now ? { now: options.now } : {}),
     resolveAdapters: (_config, voiceConfig) =>

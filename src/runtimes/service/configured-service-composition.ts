@@ -3,7 +3,11 @@ import {
   createConfiguredTextRuntime,
   type ConfiguredTextRuntimeOptions,
 } from "../configured-text-runtime.js";
-import { loadConfig, type LoadedRuntimeConfig } from "../config/config.js";
+import {
+  loadConfigWithSource,
+  type LoadedConfigSource,
+  type LoadedRuntimeConfig,
+} from "../config/config.js";
 import {
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
@@ -21,7 +25,7 @@ import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice
 
 interface ConfiguredServiceCompositionOptions extends Pick<
   ConfiguredTextRuntimeOptions,
-  "env" | "fetch" | "now"
+  "configDirectory" | "env" | "featureAdapterRegistry" | "fetch" | "now"
 > {
   config?: LoadedRuntimeConfig;
   configPath?: string;
@@ -85,11 +89,15 @@ async function createConfiguredServiceStartup(
   options: ConfiguredServiceCompositionOptions,
   validateConfig: (config: LoadedRuntimeConfig) => Promise<void> | void,
 ): Promise<{ assistant: Assistant; config: LoadedRuntimeConfig }> {
-  const config = await loadServiceConfig(options);
+  const configSource = await loadServiceConfig(options);
+  const { config } = configSource;
   await validateConfig(config);
 
   const assistant = await createConfiguredTextRuntime({
     config,
+    ...(configSource.configDirectory
+      ? { configDirectory: configSource.configDirectory }
+      : {}),
     ...(options.env ? { env: options.env } : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(options.now ? { now: options.now } : {}),
@@ -100,18 +108,32 @@ async function createConfiguredServiceStartup(
 
 function loadServiceConfig(
   options: ConfiguredServiceCompositionOptions,
-): Promise<LoadedRuntimeConfig> {
+): Promise<
+  | LoadedConfigSource
+  | {
+      config: LoadedRuntimeConfig;
+      configDirectory?: string;
+    }
+> {
   if (options.config) {
-    return Promise.resolve(options.config);
+    return Promise.resolve({
+      config: options.config,
+      ...(options.configDirectory
+        ? { configDirectory: options.configDirectory }
+        : {}),
+    });
   }
 
-  return loadConfig({
+  return loadConfigWithSource({
     ...(options.configPath ? { configPath: options.configPath } : {}),
     ...(options.desktopVoiceProviderAdapterRegistry
       ? {
           desktopVoiceProviderAdapterRegistry:
             options.desktopVoiceProviderAdapterRegistry,
         }
+      : {}),
+    ...(options.featureAdapterRegistry
+      ? { featureAdapterRegistry: options.featureAdapterRegistry }
       : {}),
   });
 }
