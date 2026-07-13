@@ -114,12 +114,6 @@ export async function runServiceRuntime(
       }
     }
 
-    await runShutdownHooks(
-      options.shutdownHooks ?? [],
-      state.shutdownContext,
-      options.io ? { io: options.io } : {},
-    );
-
     return {
       status: "stopped",
       turnsCompleted,
@@ -141,6 +135,14 @@ export async function runServiceRuntime(
       turnsCompleted,
     };
   } finally {
+    if (started) {
+      await runShutdownHooks(
+        options.shutdownHooks ?? [],
+        state.shutdownContext,
+        options.io ? { io: options.io } : {},
+      );
+    }
+
     for (const unregister of unregisterSignals) {
       unregister();
     }

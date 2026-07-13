@@ -150,6 +150,19 @@ describe("runServiceRuntime", () => {
     );
   });
 
+  it("runs shutdown hooks after a fatal post-start failure", async () => {
+    const shutdownHook = vi.fn().mockResolvedValue(undefined);
+    const harness = createServiceRuntimeHarness({
+      retryAfterFailure: vi.fn().mockRejectedValue(new Error("fatal retry")),
+      runTurn: vi.fn().mockRejectedValue(new Error("fatal turn")),
+      shutdownHooks: [shutdownHook],
+    });
+
+    await expect(harness.run()).resolves.toMatchObject({ status: "failed" });
+
+    expect(shutdownHook).toHaveBeenCalledExactlyOnceWith({});
+  });
+
   it("handles injected shutdown signals and runs shutdown hooks", async () => {
     const signals = createServiceSignalController();
     const shutdownHook = vi.fn().mockResolvedValue(undefined);

@@ -512,6 +512,10 @@ graceful shutdown before unregistering. Shutdown signals also abort the active
 service turn so long-running command-backed wake activation, capture, or
 transcription input can terminate promptly instead of waiting for a wake phrase
 or command timeout.
+Once assistant startup succeeds, shutdown hooks run from lifecycle cleanup for
+normal stops and fatal turn or retry failures alike. Signal handlers are still
+removed in the outer `finally`; pre-start failures do not invoke post-start
+hooks.
 
 The Raspberry Pi service command builds on this service boundary. It validates
 the required voice and desktop command config during startup, runs configured
