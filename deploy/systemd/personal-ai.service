@@ -1,0 +1,40 @@
+[Unit]
+Description=Personal AI Raspberry Pi voice service
+Wants=network-online.target
+After=network-online.target sound.target
+ConditionPathExists=/etc/personal-ai/config.json
+
+[Service]
+Type=simple
+User=personal-ai
+Group=personal-ai
+SupplementaryGroups=audio
+WorkingDirectory=/opt/personal-ai
+Environment=NODE_ENV=production
+EnvironmentFile=-/etc/personal-ai/environment
+ExecStart=/usr/bin/node /opt/personal-ai/dist/runtimes/cli/main.js pi-service --config /etc/personal-ai/config.json
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+KillMode=mixed
+
+StateDirectory=personal-ai
+StateDirectoryMode=0750
+UMask=0027
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/etc/personal-ai
+ReadWritePaths=/var/lib/personal-ai
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
