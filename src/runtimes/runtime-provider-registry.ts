@@ -34,6 +34,14 @@ export function defineRuntimeProvider<TConfig, TContext, TResult>(
   };
 }
 
+export function defineConfiglessRuntimeProvider<TContext, TResult>(
+  create: (context: TContext) => TResult,
+): RuntimeProviderEntry<TContext, TResult> {
+  return {
+    resolve: () => ({ create }),
+  };
+}
+
 export function resolveConfiguredRuntimeProvider<TContext, TResult>(options: {
   configuredId: string;
   operationName: string;

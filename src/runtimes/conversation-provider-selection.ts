@@ -16,7 +16,10 @@ import type {
 } from "./config/conversation-config.js";
 import { parseOpenAIResponsesConfig } from "./config/openai-responses-config.js";
 import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
-import { defineRuntimeProvider } from "./runtime-provider-registry.js";
+import {
+  defineConfiglessRuntimeProvider,
+  defineRuntimeProvider,
+} from "./runtime-provider-registry.js";
 
 export function createConfiguredConversation(
   config: { conversation: ParsedConversationConfig },
@@ -32,26 +35,14 @@ export function createConfiguredConversation(
 
 export function createDefaultConversationProviderRegistry(): ConversationProviderRegistry {
   return {
-    deterministic: defineRuntimeProvider({
-      create: (providerConfig: void, { history }) => {
-        void providerConfig;
-
-        return {
-          compactor: new DeterministicConversationCompactor(),
-          history,
-          responder: new DeterministicConversationResponder(),
-        };
-      },
-      parseConfig: () => {},
+    deterministic: defineConfiglessRuntimeProvider(({ history }) => {
+      return {
+        compactor: new DeterministicConversationCompactor(),
+        history,
+        responder: new DeterministicConversationResponder(),
+      };
     }),
-    disabled: defineRuntimeProvider({
-      create: (providerConfig: void): undefined => {
-        void providerConfig;
-
-        return;
-      },
-      parseConfig: () => {},
-    }),
+    disabled: defineConfiglessRuntimeProvider((): undefined => undefined),
     openai: defineRuntimeProvider({
       configKey: "openai",
       create: (

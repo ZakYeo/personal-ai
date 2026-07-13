@@ -172,6 +172,9 @@ fields or discriminated provider unions; conversation history remains a common
 central field. Each operation parser accepts `unknown` and owns its section and
 provider validation rather than relying on operation-specific branches in the
 aggregate config parser.
+Deterministic and disabled providers use explicit configless registry entries,
+so their factories receive only construction context and do not emulate config
+parsing with `void` values.
 If adapter config differs by adapter ID, model that relationship in a resolved
 discriminated type or in the registry entry itself. Loaded runtime config should
 not retain raw adapter config bags for later hidden reparsing; selected adapter

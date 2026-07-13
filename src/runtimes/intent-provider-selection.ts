@@ -14,7 +14,10 @@ import type {
 } from "./config/intent-config.js";
 import { parseOpenAIResponsesConfig } from "./config/openai-responses-config.js";
 import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
-import { defineRuntimeProvider } from "./runtime-provider-registry.js";
+import {
+  defineConfiglessRuntimeProvider,
+  defineRuntimeProvider,
+} from "./runtime-provider-registry.js";
 
 export function createConfiguredIntentInterpreter(
   config: { intent: ParsedIntentConfig },
@@ -26,15 +29,10 @@ export function createConfiguredIntentInterpreter(
 
 export function createDefaultIntentProviderRegistry(): IntentProviderRegistry {
   return {
-    deterministic: defineRuntimeProvider({
-      create: (config: void, { features }) => {
-        void config;
-
-        return new DeterministicIntentInterpreter(
-          createDeterministicIntentRules(features),
-        );
-      },
-      parseConfig: () => {},
+    deterministic: defineConfiglessRuntimeProvider(({ features }) => {
+      return new DeterministicIntentInterpreter(
+        createDeterministicIntentRules(features),
+      );
     }),
     openai: defineRuntimeProvider({
       configKey: "openai",

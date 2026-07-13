@@ -16,6 +16,7 @@
     "AppError",
     "Alexa",
     "Commitlint",
+    "configless",
     "contextlib",
     "Knip",
     "LLM",

@@ -6,7 +6,10 @@ import type {
   ResponseRewriterProviderRegistry,
 } from "./config/response-rewriter-config.js";
 import { parseOpenAIResponsesConfig } from "./config/openai-responses-config.js";
-import { defineRuntimeProvider } from "./runtime-provider-registry.js";
+import {
+  defineConfiglessRuntimeProvider,
+  defineRuntimeProvider,
+} from "./runtime-provider-registry.js";
 
 export function createConfiguredResponseRewriter(
   config: { responseRewriter: ParsedResponseRewriterConfig },
@@ -17,14 +20,7 @@ export function createConfiguredResponseRewriter(
 
 export function createDefaultResponseRewriterProviderRegistry(): ResponseRewriterProviderRegistry {
   return {
-    disabled: defineRuntimeProvider({
-      create: (providerConfig: void): undefined => {
-        void providerConfig;
-
-        return;
-      },
-      parseConfig: () => {},
-    }),
+    disabled: defineConfiglessRuntimeProvider((): undefined => undefined),
     openai: defineRuntimeProvider({
       configKey: "openai",
       create: (
