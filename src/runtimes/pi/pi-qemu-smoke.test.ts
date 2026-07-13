@@ -29,7 +29,7 @@ describe("runPiQemuSmoke", () => {
 
     expect(spawn).not.toHaveBeenCalled();
     expect(stdout.writes).toEqual([
-      'qemu-system-aarch64 -machine raspi3b -m 1024 -smp 4 -kernel kernel8.img -dtb bcm2710-rpi-3-b-plus.dtb -drive file=pi-os.img,format=raw,if=sd -append "rw root=/dev/mmcblk0p2 rootwait console=ttyAMA0,115200" -serial stdio -netdev user,id=net0,hostfwd=tcp::2222-:22 -device usb-net,netdev=net0\n',
+      "qemu-system-aarch64 -machine raspi3b -m 1024 -smp 4 -kernel kernel8.img -dtb bcm2710-rpi-3-b-plus.dtb -drive file=pi-os.img,format=raw,if=sd -append 'rw root=/dev/mmcblk0p2 rootwait console=ttyAMA0,115200' -serial stdio -netdev user,id=net0,hostfwd=tcp::2222-:22 -device usb-net,netdev=net0\n",
       "After the guest boots, run: npm run cli -- pi-service --config pi-config.json\n",
     ]);
   });
@@ -69,6 +69,42 @@ describe("runPiQemuSmoke", () => {
       "/opt/qemu/bin/qemu-system-aarch64 -machine raspi3b -m 2048 -smp 2",
     );
     expect(stdout.writes[0]).toContain("hostfwd=tcp::2200-:22");
+  });
+
+  it("shell-quotes every unsafe value in printed commands", async () => {
+    const stdout = createWriter();
+
+    await runPiQemuSmoke(
+      [
+        "--config",
+        "config $(touch injected).json",
+        "--image",
+        "pi's image; reboot.img",
+        "--kernel",
+        "kernel `whoami`.img",
+        "--dtb",
+        "device tree.dtb",
+        "--qemu-binary",
+        "qemu binary",
+      ],
+      {
+        commandExists: () => true,
+        fileExists: () => true,
+        spawn: vi.fn(),
+        stderr: createWriter(),
+        stdout,
+      },
+    );
+
+    expect(stdout.writes[0]).toContain("'qemu binary'");
+    expect(stdout.writes[0]).toContain("'kernel `whoami`.img'");
+    expect(stdout.writes[0]).toContain("'device tree.dtb'");
+    expect(stdout.writes[0]).toContain(
+      "'file=pi'\\''s image; reboot.img,format=raw,if=sd'",
+    );
+    expect(stdout.writes[1]).toBe(
+      "After the guest boots, run: npm run cli -- pi-service --config 'config $(touch injected).json'\n",
+    );
   });
 
   it("runs QEMU only when --run is explicit", async () => {

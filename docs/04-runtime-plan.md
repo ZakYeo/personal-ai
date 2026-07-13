@@ -583,6 +583,9 @@ npm run smoke:pi:qemu -- \
 
 By default, this validates required local artifacts and prints the QEMU command
 without spawning a VM. Passing `--run` starts QEMU with the printed arguments.
+Dry-run QEMU and follow-up service commands shell-quote operator-provided paths
+so the printed form remains reproducible without evaluating embedded shell
+syntax.
 The command does not download Raspberry Pi OS images, kernels, or DTBs, does not
 provision `systemd`, and is not part of the deterministic `npm run check` gate.
 The executable wrapper owns process argv/env, exit code, filesystem lookup, and

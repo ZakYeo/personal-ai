@@ -45,7 +45,7 @@ export async function runPiQemuSmokeCore(
         `${formatCommand(options.qemuBinary, qemuArgs)}\n`,
       );
       dependencies.stdout.write(
-        `After the guest boots, run: npm run cli -- pi-service --config ${options.configPath}\n`,
+        `After the guest boots, run: npm run cli -- pi-service --config ${quoteShellArg(options.configPath)}\n`,
       );
 
       return 0;
@@ -211,5 +211,5 @@ function quoteShellArg(value: string): string {
     return value;
   }
 
-  return `"${value.replaceAll('"', '\\"')}"`;
+  return `'${value.replaceAll("'", "'\\''")}'`;
 }

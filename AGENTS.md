@@ -115,6 +115,7 @@
 - `npm run cli -- desktop-voice-service --config path/to/desktop-config.json` - run the always-listening desktop voice service loop with local command-based voice config.
 - `npm run cli -- pi-service --config path/to/pi-config.json` - run the Raspberry Pi service loop with local command-based voice config.
 - `npm run smoke:pi:qemu -- --config path/to/pi-config.json --image path/to/raspios.img --kernel path/to/kernel8.img --dtb path/to/pi.dtb` - print an opt-in Raspberry Pi OS QEMU smoke command; add `--run` only when intentionally spawning QEMU with local operator-provided artifacts.
+- Commands printed for later shell execution must quote every operator-provided argument safely, including whitespace, substitutions, shell operators, and apostrophes.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.
 - `npm run package:sort:check` - check deterministic `package.json` ordering.
