@@ -169,7 +169,7 @@ function renderFact(value: string, now: Date): string {
   const date = parseIsoDate(value);
 
   if (!date) {
-    return value;
+    return renderLocalTime(value) ?? value;
   }
 
   const dateDay = Date.UTC(date.year, date.month - 1, date.day);
@@ -196,13 +196,14 @@ function renderFact(value: string, now: Date): string {
     const currentWeekday = now.getUTCDay();
     const daysUntilNextMonday = (8 - currentWeekday) % 7 || 7;
     const weekday = weekdayNames[new Date(dateDay).getUTCDay()];
+    const ordinalDay = formatOrdinal(date.day);
 
     if (weekday && dayDifference < daysUntilNextMonday) {
-      return `this ${weekday}`;
+      return `this ${weekday} the ${ordinalDay}`;
     }
 
     if (weekday && dayDifference < daysUntilNextMonday + 7) {
-      return `next ${weekday}`;
+      return `next ${weekday} the ${ordinalDay}`;
     }
   }
 
@@ -211,6 +212,51 @@ function renderFact(value: string, now: Date): string {
   return date.year === now.getUTCFullYear()
     ? `${date.day} ${month}`
     : `${date.day} ${month} ${date.year}`;
+}
+
+function renderLocalTime(value: string): string | undefined {
+  const match = /^(?<hour>[01]\d|2[0-3]):(?<minute>[0-5]\d)$/u.exec(value);
+
+  if (!match?.groups) {
+    return undefined;
+  }
+
+  const hour = Number(match.groups.hour);
+  const minute = Number(match.groups.minute);
+
+  if (hour === 0 && minute === 0) {
+    return "midnight";
+  }
+
+  if (hour === 12 && minute === 0) {
+    return "noon";
+  }
+
+  const spokenHour = hour % 12 || 12;
+  const spokenMinute =
+    minute === 0 ? "" : `:${String(minute).padStart(2, "0")}`;
+  const period = hour < 12 ? "am" : "pm";
+
+  return `${spokenHour}${spokenMinute}${period}`;
+}
+
+function formatOrdinal(value: number): string {
+  const finalTwoDigits = value % 100;
+
+  if (finalTwoDigits >= 11 && finalTwoDigits <= 13) {
+    return `${value}th`;
+  }
+
+  const suffix =
+    value % 10 === 1
+      ? "st"
+      : value % 10 === 2
+        ? "nd"
+        : value % 10 === 3
+          ? "rd"
+          : "th";
+
+  return `${value}${suffix}`;
 }
 
 function parseIsoDate(

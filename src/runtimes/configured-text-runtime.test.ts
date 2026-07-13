@@ -293,7 +293,7 @@ describe("createConfiguredTextRuntime", () => {
     expect(outcome).toEqual({
       response: {
         status: "ok",
-        text: "You have 2 upcoming calendar events: .CLAY Studios: Gents Haircut on this Friday, and Zak - Onsite Interview - Agentic Engineer on next Monday.",
+        text: "You have 2 upcoming calendar events: .CLAY Studios: Gents Haircut on this Friday the 17th, and Zak - Onsite Interview - Agentic Engineer on next Monday the 20th.",
       },
     });
     expect(outcome.response.text).not.toMatch(/\b\d{4}-\d{2}-\d{2}\b/u);

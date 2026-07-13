@@ -415,8 +415,9 @@ replaces every feature fact expressed in the safe response with an opaque token.
 The provider may rewrite only surrounding wording and must preserve every token
 with the same multiplicity. Core then restores exact facts or an explicit
 deterministic UTC ISO-date rendering such as `today`, `tomorrow`,
-`this Friday`, or `next Monday`; dates beyond the following calendar week use
-an absolute spoken date. Missing,
+`this Friday the 17th`, or `next Monday the 20th`; dates beyond the following
+calendar week use an absolute spoken date. Protected event-local times use
+natural 12-hour renderings such as `11am`, `11:30am`, `noon`, or `midnight`. Missing,
 duplicated, or invented tokens fail integrity validation and fall back to the
 original safe response while logging diagnostics.
 Calendar features return factual titles and exact provider date strings before
