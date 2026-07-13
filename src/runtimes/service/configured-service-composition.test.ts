@@ -84,4 +84,28 @@ describe("runConfiguredServiceRuntime", () => {
       },
     );
   });
+
+  it("passes the loaded config context to startup validation", async () => {
+    const configPath = await writeRuntimeHarnessConfig(
+      enabledDeterministicConfig,
+    );
+
+    await expect(
+      runConfiguredServiceRuntime(
+        {
+          configPath,
+          retryAfterFailure: () => Promise.resolve(),
+        },
+        {
+          validateConfig: (_config, dependencies) => {
+            expect(dependencies.configDirectory).toBe(dirname(configPath));
+          },
+          runTurn: (context) => {
+            context.requestShutdown("test complete");
+            return Promise.resolve();
+          },
+        },
+      ),
+    ).resolves.toMatchObject({ status: "stopped" });
+  });
 });

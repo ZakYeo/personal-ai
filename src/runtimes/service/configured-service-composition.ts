@@ -25,6 +25,7 @@ import {
   type ServiceTurnFailureContext,
 } from "./service-runtime.js";
 import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-registry.js";
+import type { FeatureAdapterDependencies } from "../feature-adapter-registry.js";
 
 interface ConfiguredServiceCompositionOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -45,7 +46,10 @@ interface ConfiguredServiceTurnContext extends ServiceTurnContext {
 
 interface ConfiguredServiceRuntimeCallbacks {
   runTurn(context: ConfiguredServiceTurnContext): Promise<void>;
-  validateConfig(config: LoadedRuntimeConfig): Promise<void> | void;
+  validateConfig(
+    config: LoadedRuntimeConfig,
+    dependencies: FeatureAdapterDependencies,
+  ): Promise<void> | void;
 }
 
 export async function runConfiguredServiceRuntime(
@@ -55,8 +59,9 @@ export async function runConfiguredServiceRuntime(
   let startup: { assistant: Assistant; config: LoadedRuntimeConfig };
 
   try {
-    startup = await createConfiguredServiceStartup(options, (config) =>
-      callbacks.validateConfig(config),
+    startup = await createConfiguredServiceStartup(
+      options,
+      (config, dependencies) => callbacks.validateConfig(config, dependencies),
     );
   } catch (error) {
     logRuntimeFailure(error, options.io ?? {});
@@ -90,16 +95,26 @@ export async function runConfiguredServiceRuntime(
 
 async function createConfiguredServiceStartup(
   options: ConfiguredServiceCompositionOptions,
-  validateConfig: (config: LoadedRuntimeConfig) => Promise<void> | void,
+  validateConfig: (
+    config: LoadedRuntimeConfig,
+    dependencies: FeatureAdapterDependencies,
+  ) => Promise<void> | void,
 ): Promise<{ assistant: Assistant; config: LoadedRuntimeConfig }> {
   const configSource = await loadServiceConfig(options);
   const { config } = configSource;
-  await validateConfig(config);
+  const featureAdapterDependencies: FeatureAdapterDependencies = {
+    env: options.env ?? process.env,
+    fetch: options.fetch ?? globalThis.fetch,
+    ...(configSource.configDirectory
+      ? { configDirectory: configSource.configDirectory }
+      : {}),
+  };
+  await validateConfig(config, featureAdapterDependencies);
 
   const assistant = await createConfiguredTextRuntime({
     ...configSource,
-    ...(options.env ? { env: options.env } : {}),
-    ...(options.fetch ? { fetch: options.fetch } : {}),
+    env: featureAdapterDependencies.env,
+    fetch: featureAdapterDependencies.fetch,
     ...(options.now ? { now: options.now } : {}),
   });
 

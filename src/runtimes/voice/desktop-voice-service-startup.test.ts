@@ -1,16 +1,24 @@
 import { chmod, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { createOpenWakeWordServiceConfig } from "../../test-support/desktop-voice-service.js";
 import {
   createDesktopVoiceConfig,
   withoutDesktopWakeAudioInput,
 } from "../../test-support/desktop-voice-runtime.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
-import { createCapturedWriter, line } from "../../test-support/primitives.js";
+import {
+  createCapturedWriter,
+  line,
+  writeTempJsonFile,
+} from "../../test-support/primitives.js";
 import { createRuntimeConfigWithGoogleCalendarAdapter } from "../../test-support/runtime-composition.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
+import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
+import { defineFeatureAdapterEntry } from "../feature-adapter-registry.js";
+import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
+import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
 
 describe("desktop voice service startup", () => {
   it("returns a safe startup failure outcome when wake audio config is missing", async () => {
@@ -103,6 +111,46 @@ describe("desktop voice service startup", () => {
       line(
         'Runtime failure: Google Calendar is selected but GOOGLE_CALENDAR_REFRESH_TOKEN is not set. Run "npm run setup:google-calendar" first, add the printed GOOGLE_CALENDAR_REFRESH_TOKEN line to .env, then start the service again.',
       ),
+    );
+  });
+
+  it("uses the loaded config directory for feature startup validation", async () => {
+    const config = createDesktopVoiceConfig(
+      deterministicScenarios.alarmListEmpty.text,
+    );
+    const configPath = await writeTempJsonFile({
+      ...config,
+      features: {
+        ...config.features,
+        alarms: { adapter: "context-check", enabled: true },
+      },
+    });
+    const validateStartup = vi.fn();
+    const defaultRegistry = createDefaultFeatureAdapterRegistry();
+
+    await expect(
+      runDesktopVoiceServiceRuntime({
+        configPath,
+        featureAdapterRegistry: {
+          ...defaultRegistry,
+          alarms: {
+            adapters: {
+              "context-check": defineFeatureAdapterEntry({
+                create: () => createAlarmFeature(createInMemoryAlarmStore()),
+                parseConfig: () => ({}),
+                validateStartup: ({ dependencies }) => {
+                  validateStartup(dependencies);
+                  throw new Error("stop after validation");
+                },
+              }),
+            },
+          },
+        },
+        retryAfterFailure: () => Promise.resolve(),
+      }),
+    ).resolves.toMatchObject({ status: "startup_failed" });
+    expect(validateStartup).toHaveBeenCalledWith(
+      expect.objectContaining({ configDirectory: dirname(configPath) }),
     );
   });
 

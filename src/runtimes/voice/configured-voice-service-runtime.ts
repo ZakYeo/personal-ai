@@ -26,6 +26,7 @@ import {
 } from "./voice-activation.js";
 import type { VoiceRuntimeIo } from "./voice-turn.js";
 import { validateOpenWakeWordStartup } from "./openwakeword-startup-check.js";
+import type { FeatureAdapterDependencies } from "../feature-adapter-registry.js";
 
 export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -61,7 +62,8 @@ export function runConfiguredVoiceServiceRuntime(
     options.processControl ?? createNodeProcessControl(process);
 
   return runConfiguredServiceRuntime(options, {
-    validateConfig: (config) => validateVoiceServiceConfig(config, env, fetch),
+    validateConfig: (config, dependencies) =>
+      validateVoiceServiceConfig(config, dependencies),
     runTurn: async ({ assistant, config, shutdownSignal }) => {
       const voiceConfig = requireVoiceConfig(config);
       const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
@@ -111,8 +113,7 @@ export function runConfiguredVoiceServiceRuntime(
 
 async function validateVoiceServiceConfig(
   config: LoadedRuntimeConfig,
-  env: Record<string, string | undefined>,
-  fetch: typeof globalThis.fetch,
+  featureAdapterDependencies: FeatureAdapterDependencies,
 ): Promise<void> {
   const voiceConfig = requireVoiceConfig(config);
   const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
@@ -121,8 +122,5 @@ async function validateVoiceServiceConfig(
   );
 
   await validateOpenWakeWordStartup(voiceConfig, desktopVoiceConfig);
-  validateConfiguredFeatureAdapters(config, {
-    env,
-    fetch,
-  });
+  validateConfiguredFeatureAdapters(config, featureAdapterDependencies);
 }
