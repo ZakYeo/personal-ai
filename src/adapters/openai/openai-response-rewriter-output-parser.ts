@@ -1,4 +1,5 @@
 import { OpenAIResponseRewriterError } from "./openai-response-rewriter-error.js";
+import { isRecord } from "../parsing.js";
 
 export function parseOpenAIResponseRewrite(value: string): { text: string } {
   const parsed = parseOutputText(value);
@@ -31,8 +32,4 @@ function parseOutputText(value: string): unknown {
       { cause: error },
     );
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

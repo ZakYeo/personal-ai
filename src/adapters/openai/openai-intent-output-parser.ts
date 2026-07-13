@@ -6,6 +6,7 @@ import type {
 } from "../../ports/assistant.js";
 import type { IntentInterpretation } from "../../ports/intent.js";
 import { OpenAIIntentError } from "./openai-intent-error.js";
+import { isRecord } from "../parsing.js";
 
 export function parseOpenAIIntentOutput(value: string): IntentInterpretation {
   return parseIntentInterpretation(parseOutputText(value));
@@ -191,8 +192,4 @@ function isScalarCommandParameter(
     typeof value === "boolean" ||
     value === null
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

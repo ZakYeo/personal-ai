@@ -246,7 +246,9 @@ provider adapter must be opt-in through runtime configuration, receive network
 clients and environment credentials through injection, read credentials from
 environment variables instead of repository config files, validate provider
 responses from `unknown`, and preserve useful status, body, transport, timeout,
-and parsing diagnostics internally. Tests for provider adapters should use the
+and parsing diagnostics internally. Adapter parsers should use the shared
+adapter parsing primitives for repeated structural checks such as plain record
+detection. Tests for provider adapters should use the
 shared `src/test-support/adapter-contract.ts` helpers for credential
 environments, non-OK responses, malformed JSON, transport failures, and timeout
 behavior instead of live network calls. Live provider smoke tests may exist only

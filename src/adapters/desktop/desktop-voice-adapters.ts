@@ -15,6 +15,7 @@ import type {
 import type { ProcessControl } from "../../ports/process-control.js";
 import { detectTextWakePhrase } from "../text-wake-phrase.js";
 import { runCommand, runCommandUntilStdoutLine } from "./process-runner.js";
+import { isRecord } from "../parsing.js";
 
 export class SoxAudioInput implements AudioInputPort {
   constructor(
@@ -162,10 +163,6 @@ function parseJsonLine(line: string): unknown {
       cause: error,
     });
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export class SoxAudioOutput implements AudioOutputPort {

@@ -1,6 +1,7 @@
 import { fetchProviderJson } from "../http-json-client.js";
 import type { GoogleCalendarConfig } from "./google-calendar-config.js";
 import { GoogleCalendarError } from "./google-calendar-error.js";
+import { isRecord } from "../parsing.js";
 
 interface FetchGoogleCalendarAccessTokenOptions {
   clientId: string;
@@ -58,8 +59,4 @@ function parseGoogleCalendarTokenResponse(value: unknown): string {
   }
 
   return value.access_token;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

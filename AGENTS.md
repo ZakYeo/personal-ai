@@ -31,6 +31,7 @@
 - Keep process state, clocks, IO streams, and network clients injectable at runtime/composition boundaries; avoid direct `process.env`, `globalThis.fetch`, `new Date()`, stdout, or stderr access in core, feature, or adapter internals.
 - When one runtime factory composes another runtime or assistant factory, forward the same injectable environment, network, clock, and IO dependencies instead of letting nested composition fall back to globals.
 - Parse config, provider responses, command output, and other external data from `unknown` with field-by-field validation before casting to application types.
+- Adapter response and command parsers must use the shared adapter-layer structural primitives for repeated checks such as plain-record detection.
 - Keep raw config parsing and runtime-specific config resolution separate: parse external shape once, then let one focused resolver own each required provider, adapter, or command invariant.
 - Treat diagnostic-aware assistant outcomes as a stable runtime boundary contract rather than making runtime helpers depend on private core error implementation details.
 - Split real provider adapters when transport, request construction, response extraction, provider-output parsing, and application validation start accumulating in one module.

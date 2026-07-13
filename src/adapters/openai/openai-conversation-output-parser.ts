@@ -1,4 +1,5 @@
 import { OpenAIConversationError } from "./openai-conversation-error.js";
+import { isRecord } from "../parsing.js";
 
 export function parseOpenAIConversationResponse(value: string): {
   expectsFollowUp: boolean;
@@ -59,8 +60,4 @@ function parseOutputText(value: string): unknown {
       { cause: error },
     );
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

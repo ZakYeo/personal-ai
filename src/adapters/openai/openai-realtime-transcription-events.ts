@@ -1,3 +1,5 @@
+import { isRecord } from "../parsing.js";
+
 type ParsedRealtimeEvent =
   | {
       type: "conversation.item.input_audio_transcription.completed";
@@ -87,8 +89,4 @@ function parseOptionalStringField(
   }
 
   return field;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

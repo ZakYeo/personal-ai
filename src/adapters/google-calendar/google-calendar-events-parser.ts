@@ -1,5 +1,6 @@
 import type { CalendarEvent } from "../../ports/calendar.js";
 import { GoogleCalendarError } from "./google-calendar-error.js";
+import { isRecord } from "../parsing.js";
 
 export function parseGoogleCalendarEvents(value: unknown): CalendarEvent[] {
   if (!isRecord(value)) {
@@ -61,8 +62,4 @@ function parseStartDate(value: unknown): string {
   throw new GoogleCalendarError(
     "Google Calendar event start date must be a non-empty string.",
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

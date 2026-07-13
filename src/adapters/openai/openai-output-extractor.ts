@@ -1,4 +1,5 @@
 import { OpenAIIntentError } from "./openai-intent-error.js";
+import { isRecord } from "../parsing.js";
 
 interface ExtractOpenAIOutputTextMessages {
   createError: (message: string) => Error;
@@ -47,8 +48,4 @@ function extractContentText(value: unknown): string | undefined {
   }
 
   return undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
