@@ -103,6 +103,17 @@ describe("loadConfig", () => {
     }
   });
 
+  it("loads the checked-in persistent alarm example", async () => {
+    const config = await loadConfig({
+      configPath: "config/persistent-alarms.example.json",
+    });
+
+    expect(config.features.alarms).toMatchObject({
+      adapter: "file",
+      enabled: true,
+    });
+  });
+
   it("loads the local desktop OpenAI response rewriter config", async () => {
     const config = await loadConfig({
       configPath: "config/local-desktop-voice-openai.json",

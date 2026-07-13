@@ -1,0 +1,41 @@
+{
+  "assistant": {
+    "name": "Jarvis",
+    "wakePhrases": ["hey jarvis"]
+  },
+  "intent": {
+    "provider": "deterministic"
+  },
+  "conversation": {
+    "provider": "disabled",
+    "history": {
+      "maxTurnsBeforeCompaction": 5
+    }
+  },
+  "voice": {
+    "input": "mock",
+    "wakeWord": "mock",
+    "speechToText": "mock",
+    "textToSpeech": "mock",
+    "audioOutput": "mock"
+  },
+  "features": {
+    "calendar": {
+      "enabled": true,
+      "adapter": "mock",
+      "upcomingWindowDays": 92
+    },
+    "messaging": {
+      "enabled": true,
+      "adapter": "mock"
+    },
+    "alarms": {
+      "enabled": true,
+      "adapter": "file",
+      "state": {
+        "path": "state/alarms.json"
+      },
+      "confirmationRequiredCapabilities": ["alarm.create"]
+    }
+  }
+}
