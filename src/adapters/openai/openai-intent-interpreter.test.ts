@@ -126,6 +126,12 @@ describe("OpenAIIntentInterpreter", () => {
     expect(body.text.format.schema).not.toHaveProperty("anyOf");
     expect(JSON.stringify(body.input)).toContain("calendar.search_events");
     expect(JSON.stringify(body.input)).toContain("query: string (optional)");
+    expect(JSON.stringify(body.input)).toContain(
+      "Questions about the assistant's enabled capabilities must use the enabled assistant capability that lists them when one is present.",
+    );
+    expect(JSON.stringify(body.input)).toContain(
+      "When kind is command, command must be populated",
+    );
   });
 
   it("returns a conversation classification from structured provider output", async () => {

@@ -36,6 +36,11 @@ const capabilityCatalog = createProviderCapabilityCatalog(
 
 const liveRoutingScenarios = [
   {
+    capability: "assistant.capabilities.list",
+    parameters: {},
+    text: "What are your capabilities?",
+  },
+  {
     capability: "calendar.search_events",
     parameters: {
       query: expect.stringMatching(/wedding/i) as string,
@@ -83,6 +88,7 @@ describe.skipIf(!runOpenAIE2E)("OpenAI intent routing live E2E", () => {
           >,
           rawText: expect.any(String) as string,
         },
+        kind: "command",
       });
     },
   );
