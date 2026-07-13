@@ -163,7 +163,10 @@
     },
     "alarms": {
       "enabled": true,
-      "adapter": "local",
+      "adapter": "file",
+      "state": {
+        "path": "/var/lib/personal-ai/alarms.json"
+      },
       "confirmationRequiredCapabilities": ["alarm.create"]
     }
   }

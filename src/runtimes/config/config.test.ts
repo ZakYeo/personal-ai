@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadConfig, parseAssistantConfig } from "./config.js";
@@ -101,6 +101,22 @@ describe("loadConfig", () => {
       expect(config.voice?.streamingSpeechToText).toBe("openai-realtime");
       expect(config.voice?.wakeActivation).toBe("openwakeword-command");
     }
+  });
+
+  it("keeps Pi alarm state under the systemd-owned state directory", async () => {
+    const input: unknown = JSON.parse(
+      await readFile("config/pi-voice-openai.example.json", "utf8"),
+    );
+
+    expect(input).toMatchObject({
+      features: {
+        alarms: {
+          adapter: "file",
+          enabled: true,
+          state: { path: "/var/lib/personal-ai/alarms.json" },
+        },
+      },
+    });
   });
 
   it("loads the checked-in persistent alarm example", async () => {
