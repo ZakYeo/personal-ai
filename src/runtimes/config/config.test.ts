@@ -219,20 +219,19 @@ describe("parseAssistantConfig", () => {
   });
 
   it("resolves deterministic intent config", () => {
-    expect(
-      requireIntentConfig(
-        parseAssistantConfig({
-          assistant: {
-            name: "Jarvis",
-            wakePhrases: ["hey jarvis"],
-          },
-          intent: {
-            provider: "deterministic",
-          },
-          features: {},
-        }),
-      ),
-    ).toEqual({ provider: "deterministic" });
+    const config = parseAssistantConfig({
+      assistant: {
+        name: "Jarvis",
+        wakePhrases: ["hey jarvis"],
+      },
+      intent: {
+        provider: "deterministic",
+      },
+      features: {},
+    });
+
+    expect(requireIntentConfig(config)).toBe(config.intent);
+    expect(config.intent.provider).toBe("deterministic");
   });
 
   it("parses voice adapter IDs", () => {

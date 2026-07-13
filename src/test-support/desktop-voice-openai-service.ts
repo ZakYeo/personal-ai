@@ -1,6 +1,7 @@
 import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
 import type { RealtimeSocketFactory } from "../adapters/openai/openai-realtime-transcription.js";
 import { createDesktopVoiceProviderAdapterRegistry } from "../runtimes/voice/desktop-voice-provider-adapter-entries.js";
+import { createDefaultIntentProviderRegistry } from "../runtimes/intent-provider-selection.js";
 import { TestRealtimeSocket } from "./adapter-contract.js";
 import {
   createDesktopVoiceCommand,
@@ -85,8 +86,10 @@ export function createOpenAIConversationStreamingServiceConfig(
       provider: "openai",
     },
     intent: {
-      openai: openAIConfig,
       provider: "openai",
+      resolvedProvider: createDefaultIntentProviderRegistry().openai!.resolve({
+        openai: openAIConfig,
+      }),
     },
   };
 }

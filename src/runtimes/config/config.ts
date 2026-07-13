@@ -12,6 +12,8 @@ import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-
 import type { FeatureAdapterRegistry } from "../feature-adapter-registry.js";
 import { createDesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-entries.js";
 import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-registry.js";
+import type { IntentProviderRegistry } from "./intent-config.js";
+import { createDefaultIntentProviderRegistry } from "../intent-provider-selection.js";
 
 export type { LoadedRuntimeConfig } from "./runtime-config.js";
 
@@ -23,11 +25,13 @@ interface LoadConfigOptions {
   configPath?: string;
   featureAdapterRegistry?: FeatureAdapterRegistry;
   desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
+  intentProviderRegistry?: IntentProviderRegistry;
 }
 
 interface ParseAssistantConfigOptions {
   featureAdapterRegistry?: FeatureAdapterRegistry;
   desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
+  intentProviderRegistry?: IntentProviderRegistry;
 }
 
 export async function loadConfig(
@@ -94,7 +98,10 @@ export function parseAssistantConfig(
         createDesktopVoiceProviderAdapterRegistry(),
     ),
     ...parsedVoice,
-    intent: parseIntentConfig(intent),
+    intent: parseIntentConfig(
+      intent,
+      options.intentProviderRegistry ?? createDefaultIntentProviderRegistry(),
+    ),
     features: parseFeaturesConfig(
       features,
       options.featureAdapterRegistry ?? createDefaultFeatureAdapterRegistry(),

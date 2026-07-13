@@ -47,9 +47,7 @@ export const runtimeFailureConfig: LoadedRuntimeConfig = {
     name: "",
     wakePhrases: ["hey jarvis"],
   },
-  intent: {
-    provider: "deterministic",
-  },
+  intent: enabledDeterministicConfig.intent,
   conversation: {
     history: {
       maxTurnsBeforeCompaction: 5,

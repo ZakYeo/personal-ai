@@ -40,3 +40,16 @@ export function parseOptionalOpenAIResponsesConfig(
     ),
   };
 }
+
+export function parseOpenAIResponsesConfig(
+  value: unknown,
+  path: string,
+): OpenAIResponsesConfig {
+  const config = parseOptionalOpenAIResponsesConfig(value, path);
+
+  if (!config) {
+    throw new Error(`${path} must be configured.`);
+  }
+
+  return config;
+}

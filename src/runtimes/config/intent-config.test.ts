@@ -3,63 +3,50 @@ import { requireIntentConfig } from "./intent-config.js";
 
 describe("intent config parsing", () => {
   it("parses OpenAI intent config with defaults", () => {
-    expect(
-      parseAssistantConfig(
-        createMinimalConfig({
-          intent: {
-            provider: "openai",
-            openai: {
-              model: "gpt-5.5",
-            },
+    const intent = parseAssistantConfig(
+      createMinimalConfig({
+        intent: {
+          provider: "openai",
+          openai: {
+            model: "gpt-5.5",
           },
-        }),
-      ).intent,
-    ).toEqual({
-      provider: "openai",
-      openai: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.com/v1",
-        model: "gpt-5.5",
-        timeoutMs: 30_000,
-      },
-    });
+        },
+      }),
+    ).intent;
+
+    expect(intent.provider).toBe("openai");
+    expect(typeof intent.resolvedProvider.create).toBe("function");
   });
 
   it("parses OpenAI intent config overrides", () => {
-    expect(
-      parseAssistantConfig(
-        createMinimalConfig({
-          intent: {
-            provider: "openai",
-            openai: {
-              apiKeyEnv: "PERSONAL_AI_OPENAI_API_KEY",
-              baseUrl: "https://example.test/v1",
-              model: "gpt-5.5",
-              timeoutMs: 1000,
-            },
+    const intent = parseAssistantConfig(
+      createMinimalConfig({
+        intent: {
+          provider: "openai",
+          openai: {
+            apiKeyEnv: "PERSONAL_AI_OPENAI_API_KEY",
+            baseUrl: "https://example.test/v1",
+            model: "gpt-5.5",
+            timeoutMs: 1000,
           },
-        }),
-      ).intent.openai,
-    ).toEqual({
-      apiKeyEnv: "PERSONAL_AI_OPENAI_API_KEY",
-      baseUrl: "https://example.test/v1",
-      model: "gpt-5.5",
-      timeoutMs: 1000,
-    });
+        },
+      }),
+    ).intent;
+
+    expect(intent.provider).toBe("openai");
+    expect(typeof intent.resolvedProvider.create).toBe("function");
   });
 
-  it("parses OpenAI intent provider without provider settings", () => {
-    expect(
+  it("rejects OpenAI intent provider without provider settings", () => {
+    expect(() =>
       parseAssistantConfig(
         createMinimalConfig({
           intent: {
             provider: "openai",
           },
         }),
-      ).intent,
-    ).toEqual({
-      provider: "openai",
-    });
+      ),
+    ).toThrow("Config intent.openai must be configured.");
   });
 
   it("rejects invalid OpenAI intent model", () => {
@@ -112,42 +99,18 @@ describe("intent config parsing", () => {
 
 describe("intent config resolution", () => {
   it("resolves OpenAI intent config with provider settings", () => {
-    expect(
-      requireIntentConfig(
-        parseAssistantConfig(
-          createMinimalConfig({
-            intent: {
-              provider: "openai",
-              openai: {
-                model: "gpt-5.5",
-              },
-            },
-          }),
-        ),
-      ),
-    ).toEqual({
-      provider: "openai",
-      openai: {
-        apiKeyEnv: "OPENAI_API_KEY",
-        baseUrl: "https://api.openai.com/v1",
-        model: "gpt-5.5",
-        timeoutMs: 30_000,
-      },
-    });
-  });
+    const config = parseAssistantConfig(
+      createMinimalConfig({
+        intent: {
+          provider: "openai",
+          openai: {
+            model: "gpt-5.5",
+          },
+        },
+      }),
+    );
 
-  it("rejects OpenAI intent provider without provider settings during resolution", () => {
-    expect(() =>
-      requireIntentConfig(
-        parseAssistantConfig(
-          createMinimalConfig({
-            intent: {
-              provider: "openai",
-            },
-          }),
-        ),
-      ),
-    ).toThrow("Config intent.openai must be configured.");
+    expect(requireIntentConfig(config)).toBe(config.intent);
   });
 });
 

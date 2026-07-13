@@ -1,38 +1,60 @@
 import type { IntentInterpreterPort } from "../ports/intent.js";
-import { enabledDeterministicConfig } from "../test-support/deterministic-runtime-fixtures.js";
+import { parseAssistantConfig } from "./config/config.js";
+import { defineRuntimeProvider } from "./runtime-provider-registry.js";
 import { createConfiguredIntentInterpreter } from "./intent-provider-selection.js";
 
 describe("createConfiguredIntentInterpreter", () => {
-  it("constructs resolved intent providers through the provider registry", () => {
+  it("lets a registry entry parse and construct a custom intent provider", () => {
     const interpreter: IntentInterpreterPort = {
       interpret: vi.fn(),
     };
-    const createDeterministic = vi.fn(() => interpreter);
+    const createCustom = vi.fn((config: { locale: string }) => {
+      void config;
+
+      return interpreter;
+    });
+    const config = parseAssistantConfig(
+      {
+        assistant: { name: "Jarvis", wakePhrases: ["hey jarvis"] },
+        features: {},
+        intent: {
+          custom: { locale: "en-GB" },
+          provider: "custom",
+        },
+      },
+      {
+        intentProviderRegistry: {
+          custom: defineRuntimeProvider({
+            configKey: "custom",
+            create: (config: { locale: string }) => {
+              createCustom(config);
+
+              return interpreter;
+            },
+            parseConfig: (value) => {
+              if (
+                typeof value !== "object" ||
+                value === null ||
+                !("locale" in value) ||
+                typeof value.locale !== "string"
+              ) {
+                throw new Error("custom locale required");
+              }
+
+              return { locale: value.locale };
+            },
+          }),
+        },
+      },
+    );
 
     expect(
-      createConfiguredIntentInterpreter(
-        enabledDeterministicConfig,
-        [],
-        {
-          env: {},
-          fetch: vi.fn(),
-        },
-        {
-          registry: {
-            deterministic: createDeterministic,
-          },
-        },
-      ),
+      createConfiguredIntentInterpreter(config, [], {
+        env: {},
+        fetch: vi.fn(),
+      }),
     ).toBe(interpreter);
 
-    expect(createDeterministic).toHaveBeenCalledWith({
-      config: enabledDeterministicConfig,
-      dependencies: {
-        env: {},
-        fetch: expect.any(Function) as typeof fetch,
-      },
-      features: [],
-      intent: { provider: "deterministic" },
-    });
+    expect(createCustom).toHaveBeenCalledWith({ locale: "en-GB" });
   });
 });

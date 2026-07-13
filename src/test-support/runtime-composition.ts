@@ -8,6 +8,9 @@ import {
   enabledDeterministicConfig,
 } from "./deterministic-runtime-fixtures.js";
 import { writeTempJsonFile } from "./primitives.js";
+import type { OpenAIResponsesConfig } from "../adapters/openai/openai-responses-config.js";
+import { createDefaultIntentProviderRegistry } from "../runtimes/intent-provider-selection.js";
+import { resolveConfiguredRuntimeProvider } from "../runtimes/runtime-provider-registry.js";
 
 type ConfiguredTextRuntimeHarnessOptions = Partial<{
   config: LoadedRuntimeConfig;
@@ -175,14 +178,24 @@ export function createGoogleCalendarRuntimeConfigInput(): Record<
 
 export function withIntentProvider(
   provider: string,
-  openai?: LoadedRuntimeConfig["intent"]["openai"],
+  openai?: OpenAIResponsesConfig,
   config: LoadedRuntimeConfig = enabledDeterministicConfig,
 ): LoadedRuntimeConfig {
+  const rawIntent = {
+    provider,
+    ...(openai ? { openai } : {}),
+  };
+
   return {
     ...config,
     intent: {
       provider,
-      ...(openai ? { openai } : {}),
+      resolvedProvider: resolveConfiguredRuntimeProvider({
+        configuredId: provider,
+        operationName: "intent",
+        rawOperationConfig: rawIntent,
+        registry: createDefaultIntentProviderRegistry(),
+      }),
     },
   };
 }

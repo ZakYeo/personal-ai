@@ -83,12 +83,10 @@ describe("createConfiguredTextRuntime", () => {
     ).resolves.toEqual(deterministicScenarios.capabilityList.response);
   });
 
-  it("rejects unknown intent providers during composition", async () => {
-    await expect(
-      createConfiguredTextRuntimeHarness({
-        config: createRuntimeConfigWithUnknownIntentProvider(),
-      }),
-    ).rejects.toThrow('Config intent.provider "unknown" is not registered.');
+  it("rejects unknown intent providers at the config boundary", () => {
+    expect(() => createRuntimeConfigWithUnknownIntentProvider()).toThrow(
+      'Config intent.provider "unknown" is not registered.',
+    );
   });
 
   it("rejects unknown conversation providers during composition", async () => {

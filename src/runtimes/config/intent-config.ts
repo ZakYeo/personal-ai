@@ -1,52 +1,53 @@
-import type { OpenAIResponsesConfig } from "../../adapters/openai/openai-responses-config.js";
-import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
-import { parseOptionalOpenAIResponsesConfig } from "./openai-responses-config.js";
+import type { FeaturePlugin } from "../../ports/feature.js";
+import type { IntentInterpreterPort } from "../../ports/intent.js";
+import {
+  resolveConfiguredRuntimeProvider,
+  type ResolvedRuntimeProvider,
+  type RuntimeProviderEntry,
+} from "../runtime-provider-registry.js";
 
-export type ResolvedIntentConfig =
-  | { provider: "deterministic" }
-  | { openai: OpenAIResponsesConfig; provider: "openai" };
+export interface IntentProviderDependencies {
+  env: Record<string, string | undefined>;
+  fetch: typeof fetch;
+}
+
+export interface IntentProviderContext {
+  dependencies: IntentProviderDependencies;
+  features: FeaturePlugin[];
+}
+
+export type IntentProviderRegistry = Record<
+  string,
+  RuntimeProviderEntry<IntentProviderContext, IntentInterpreterPort>
+>;
 
 export interface ParsedIntentConfig {
-  openai?: OpenAIResponsesConfig;
   provider: string;
+  resolvedProvider: ResolvedRuntimeProvider<
+    IntentProviderContext,
+    IntentInterpreterPort
+  >;
 }
 
 export function parseIntentConfig(
   intent: Record<string, unknown>,
+  registry: IntentProviderRegistry,
 ): ParsedIntentConfig {
-  const openai = parseOptionalOpenAIResponsesConfig(
-    intent.openai,
-    "Config intent.openai",
-  );
+  const provider = intent.provider as string;
 
   return {
-    provider: intent.provider as string,
-    ...(openai ? { openai } : {}),
+    provider,
+    resolvedProvider: resolveConfiguredRuntimeProvider({
+      configuredId: provider,
+      operationName: "intent",
+      rawOperationConfig: intent,
+      registry,
+    }),
   };
 }
 
 export function requireIntentConfig(config: {
   intent: ParsedIntentConfig;
-}): ResolvedIntentConfig {
-  const resolveIntent = selectConfiguredRuntimeEntry({
-    configuredId: config.intent.provider,
-    missingMessage: "Config intent.provider must be configured.",
-    registry: {
-      deterministic: () => ({ provider: "deterministic" }) as const,
-      openai: () => {
-        if (!config.intent.openai) {
-          throw new Error("Config intent.openai must be configured.");
-        }
-
-        return {
-          openai: config.intent.openai,
-          provider: "openai",
-        } as const;
-      },
-    },
-    unknownMessage: (provider) =>
-      `Config intent.provider "${provider}" is not registered.`,
-  });
-
-  return resolveIntent();
+}): ParsedIntentConfig {
+  return config.intent;
 }

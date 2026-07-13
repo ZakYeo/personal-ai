@@ -49,9 +49,9 @@ describe("runtime composition test support", () => {
   });
 
   it("creates focused invalid composition configs", () => {
-    expect(createRuntimeConfigWithUnknownIntentProvider()).toMatchObject({
-      intent: { provider: "unknown" },
-    });
+    expect(() => createRuntimeConfigWithUnknownIntentProvider()).toThrow(
+      'Config intent.provider "unknown" is not registered.',
+    );
     expect(createRuntimeConfigWithUnknownFeatureAdapter()).toMatchObject({
       features: { calendar: { enabled: true, adapter: "unknown" } },
     });
@@ -76,9 +76,9 @@ describe("runtime composition test support", () => {
   });
 
   it("creates one-change runtime config variants", () => {
-    expect(withIntentProvider("unknown")).toMatchObject({
-      intent: { provider: "unknown" },
-    });
+    expect(() => withIntentProvider("unknown")).toThrow(
+      'Config intent.provider "unknown" is not registered.',
+    );
     expect(
       withVoiceAdapterId("speechToText", "unknown", {
         ...enabledDeterministicConfig,
