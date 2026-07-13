@@ -5,11 +5,12 @@ interface OpenAIApiKeyConfig {
 export function resolveOpenAIApiKey(
   config: OpenAIApiKeyConfig,
   env: Record<string, string | undefined>,
+  createError: (message: string) => Error = (message) => new Error(message),
 ): string {
   const apiKey = env[config.apiKeyEnv];
 
   if (!apiKey) {
-    throw new Error(
+    throw createError(
       `OpenAI API key environment variable ${config.apiKeyEnv} is not set.`,
     );
   }

@@ -262,6 +262,8 @@ When those operations use the same provider endpoint and transport policy, one
 adapter-local client should own credentials, request setup, timeout, HTTP, and
 JSON parsing behavior. It should accept an operation label and concrete error
 factory so diagnostics remain operation-specific without copying transport.
+OpenAI HTTP and voice adapters also share API-key resolution and endpoint URL
+construction even where their request transports differ.
 
 Tests should prefer focused harness and one-change fixture helpers over broad
 inline object spreads. When a test changes one adapter ID, provider ID, missing

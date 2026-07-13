@@ -16,7 +16,7 @@ import {
   waitForSocketOpen,
   waitForTranscript,
 } from "./openai-realtime-transcription-session.js";
-import { resolveOpenAIApiKey } from "./openai-voice-client.js";
+import { resolveOpenAIApiKey } from "./openai-client.js";
 
 export type {
   RealtimeSocket,

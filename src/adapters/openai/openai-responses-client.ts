@@ -1,4 +1,5 @@
-import { fetchProviderJson, trimTrailingSlash } from "../http-json-client.js";
+import { fetchProviderJson } from "../http-json-client.js";
+import { createOpenAIUrl, resolveOpenAIApiKey } from "./openai-client.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 
 interface OpenAIResponsesErrorOptions {
@@ -20,13 +21,9 @@ interface RequestOpenAIResponseOptions {
 export function requestOpenAIResponse(
   options: RequestOpenAIResponseOptions,
 ): Promise<unknown> {
-  const apiKey = options.env[options.config.apiKeyEnv];
-
-  if (!apiKey) {
-    throw options.createError({
-      message: `OpenAI API key environment variable ${options.config.apiKeyEnv} is not set.`,
-    });
-  }
+  const apiKey = resolveOpenAIApiKey(options.config, options.env, (message) =>
+    options.createError({ message }),
+  );
 
   return fetchProviderJson({
     createError: (errorOptions) => options.createError(errorOptions),
@@ -44,6 +41,6 @@ export function requestOpenAIResponse(
     },
     timeoutMessage: `OpenAI ${options.operation} request timed out after ${options.config.timeoutMs}ms.`,
     timeoutMs: options.config.timeoutMs,
-    url: `${trimTrailingSlash(options.config.baseUrl)}/responses`,
+    url: createOpenAIUrl(options.config.baseUrl, "responses"),
   });
 }

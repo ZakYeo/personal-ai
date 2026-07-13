@@ -2,7 +2,7 @@ import type {
   StreamingTextToSpeechPort,
   SynthesizedSpeechStream,
 } from "../../ports/voice.js";
-import { createOpenAIUrl, resolveOpenAIApiKey } from "./openai-voice-client.js";
+import { createOpenAIUrl, resolveOpenAIApiKey } from "./openai-client.js";
 import { createOpenAIVoiceProviderError } from "./openai-voice-provider-error.js";
 
 interface OpenAIStreamingSpeechConfig {
