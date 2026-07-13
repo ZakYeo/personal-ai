@@ -114,6 +114,16 @@ describe("loadConfig", () => {
     );
   });
 
+  it("loads the more sensitive local desktop wake threshold", async () => {
+    const config = await loadConfig({
+      configPath: "config/local-desktop-voice-openai.json",
+    });
+
+    expect(config.desktopVoice?.wakeActivation?.args).toEqual(
+      expect.arrayContaining(["--threshold", "0.25"]),
+    );
+  });
+
   it("ends desktop OpenAI command capture on trailing silence", async () => {
     const config = await loadConfig({
       configPath: "config/local-desktop-voice-openai.json",

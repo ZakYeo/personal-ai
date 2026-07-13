@@ -128,8 +128,8 @@ This command runs the desktop voice stack in a long-lived service loop. When
 activation adapter before it records or streams command audio. The checked-in
 OpenAI desktop voice config uses the `openwakeword-command` adapter and the
 pretrained openWakeWord `"hey jarvis"` model, so wake detection happens locally.
-The local desktop config passes `--threshold 0.35` to the listener as a moderate
-sensitivity default. Lower values make `"Hey Jarvis"` easier to trigger but can
+The local desktop config passes `--threshold 0.25` to the listener as a more
+sensitive default. Lower values make `"Hey Jarvis"` easier to trigger but can
 increase false activations; raise the value again if the service wakes too often
 from background speech.
 After wake detection, the service streams command audio to the configured

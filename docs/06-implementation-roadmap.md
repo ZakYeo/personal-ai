@@ -649,8 +649,8 @@ or live provider dependencies to the deterministic validation gate.
 Included:
 
 - `npm start` default entrypoint for the desktop OpenAI voice service using
-  `config/local-desktop-voice-openai.json`, including a moderately sensitive
-  OpenWakeWord `--threshold 0.35` default.
+  `config/local-desktop-voice-openai.json`, including a more sensitive
+  OpenWakeWord `--threshold 0.25` default.
 - `desktop-voice-service` CLI command with an explicit local config path.
 - `npm run smoke:desktop-voice:openai` opt-in file-fed smoke for local
   openWakeWord activation plus live OpenAI realtime command transcription,
