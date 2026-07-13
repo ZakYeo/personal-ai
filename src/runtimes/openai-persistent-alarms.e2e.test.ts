@@ -1,16 +1,16 @@
 import { access } from "node:fs/promises";
-import { dirname, join } from "node:path";
 import { env } from "node:process";
 import { createFileAlarmStore } from "../adapters/local/file-alarm-store.js";
-import { writeTempJsonFile } from "../test-support/primitives.js";
+import { writePersistentAlarmRuntimeConfig } from "../test-support/runtime-composition.js";
 import { createConfiguredTextRuntime } from "./configured-text-runtime.js";
 
 const runOpenAIE2E = env.PERSONAL_AI_RUN_OPENAI_E2E === "1";
 
 describe.skipIf(!runOpenAIE2E)("OpenAI persistent alarms live E2E", () => {
   it("confirms creation and lists the durable alarm after restart", async () => {
-    const configPath = await writeTempJsonFile(createLiveAlarmConfig());
-    const statePath = join(dirname(configPath), "state", "alarms.json");
+    const { configPath, statePath } = await writePersistentAlarmRuntimeConfig(
+      createLiveAlarmConfig(),
+    );
     const createRuntime = () =>
       createConfiguredTextRuntime({
         configPath,

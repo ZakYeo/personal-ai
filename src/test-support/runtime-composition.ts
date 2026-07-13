@@ -13,6 +13,9 @@ import { createDefaultIntentProviderRegistry } from "../runtimes/intent-provider
 import { createDefaultConversationProviderRegistry } from "../runtimes/conversation-provider-selection.js";
 import { createDefaultResponseRewriterProviderRegistry } from "../runtimes/response-rewriter-selection.js";
 import { resolveConfiguredRuntimeProvider } from "../runtimes/runtime-provider-registry.js";
+import type { AlarmRecord } from "../ports/alarm-store.js";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 
 type ConfiguredTextRuntimeHarnessOptions = Partial<{
   config: LoadedRuntimeConfig;
@@ -45,6 +48,44 @@ export async function writeRuntimeHarnessConfig(
   config: unknown,
 ): Promise<string> {
   return writeTempJsonFile(config, "personal-ai-runtime-");
+}
+
+interface RuntimeConfigWithFeatures {
+  features: Record<string, unknown>;
+}
+
+interface PersistentAlarmRuntimeConfigOptions {
+  alarms?: readonly AlarmRecord[];
+  statePath?: string;
+}
+
+export async function writePersistentAlarmRuntimeConfig(
+  config: RuntimeConfigWithFeatures,
+  options: PersistentAlarmRuntimeConfigOptions = {},
+): Promise<{ configPath: string; statePath: string }> {
+  const relativeStatePath = options.statePath ?? "state/alarms.json";
+  const configPath = await writeRuntimeHarnessConfig({
+    ...config,
+    features: {
+      ...config.features,
+      alarms: {
+        adapter: "file",
+        enabled: true,
+        state: { path: relativeStatePath },
+      },
+    },
+  });
+  const statePath = join(dirname(configPath), relativeStatePath);
+
+  if (options.alarms) {
+    await mkdir(dirname(statePath), { recursive: true });
+    await writeFile(
+      statePath,
+      JSON.stringify({ alarms: options.alarms, version: 1 }),
+    );
+  }
+
+  return { configPath, statePath };
 }
 
 export function createRuntimeConfigWithUnknownIntentProvider(): LoadedRuntimeConfig {

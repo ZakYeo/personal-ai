@@ -1,10 +1,12 @@
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import { enabledDeterministicConfig } from "../../test-support/deterministic-runtime-fixtures.js";
-import { writeRuntimeHarnessConfig } from "../../test-support/runtime-composition.js";
+import {
+  writePersistentAlarmRuntimeConfig,
+  writeRuntimeHarnessConfig,
+} from "../../test-support/runtime-composition.js";
 import type { ServiceTurnContext } from "./service-runtime.js";
 import { runConfiguredServiceRuntime } from "./configured-service-composition.js";
-import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 
 describe("runConfiguredServiceRuntime", () => {
   it("composes the configured text assistant from an injected config path", async () => {
@@ -40,22 +42,9 @@ describe("runConfiguredServiceRuntime", () => {
   });
 
   it("forwards the loaded config directory to persistent alarm storage", async () => {
-    const configPath = await writeRuntimeHarnessConfig({
-      ...enabledDeterministicConfig,
-      features: {
-        ...enabledDeterministicConfig.features,
-        alarms: {
-          adapter: "file",
-          enabled: true,
-          state: { path: "state/alarms.json" },
-        },
-      },
-    });
-    const stateDirectory = join(dirname(configPath), "state");
-    await mkdir(stateDirectory);
-    await writeFile(
-      join(stateDirectory, "alarms.json"),
-      JSON.stringify({
+    const { configPath } = await writePersistentAlarmRuntimeConfig(
+      enabledDeterministicConfig,
+      {
         alarms: [
           {
             id: "service-alarm",
@@ -63,8 +52,7 @@ describe("runConfiguredServiceRuntime", () => {
             scheduledFor: "2026-07-13T17:00:00.000Z",
           },
         ],
-        version: 1,
-      }),
+      },
     );
 
     await runConfiguredServiceRuntime(

@@ -6,6 +6,7 @@ import {
   createRuntimeConfigWithUnknownIntentProvider,
   withIntentProvider,
   withoutVoiceConfigKey,
+  writePersistentAlarmRuntimeConfig,
   writeRuntimeHarnessConfig,
   withVoiceAdapterId,
 } from "./runtime-composition.js";
@@ -17,6 +18,7 @@ import {
   enabledDeterministicConfig,
   mockVoiceConfig,
 } from "./deterministic-runtime-fixtures.js";
+import { createFileAlarmStore } from "../adapters/local/file-alarm-store.js";
 
 describe("runtime composition test support", () => {
   it("creates configured text runtimes with a fixed clock by default", async () => {
@@ -106,5 +108,31 @@ describe("runtime composition test support", () => {
     ).resolves.toEqual(
       deterministicScenarios.alarmCreateNeedsConfirmation.response,
     );
+  });
+
+  it("writes focused persistent alarm config and seeded state", async () => {
+    const alarm = {
+      id: "seeded-alarm",
+      label: "tea",
+      scheduledFor: "2026-07-13T17:00:00.000Z",
+    };
+    const { configPath, statePath } = await writePersistentAlarmRuntimeConfig(
+      enabledDeterministicConfig,
+      {
+        alarms: [alarm],
+      },
+    );
+
+    await expect(loadConfig({ configPath })).resolves.toMatchObject({
+      features: {
+        alarms: {
+          adapter: "file",
+          enabled: true,
+        },
+      },
+    });
+    await expect(
+      createFileAlarmStore({ filePath: statePath }).list(),
+    ).resolves.toEqual([alarm]);
   });
 });

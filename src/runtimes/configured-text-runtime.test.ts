@@ -14,6 +14,7 @@ import {
   withConversationProvider,
   writeRuntimeHarnessConfig,
 } from "../test-support/runtime-composition.js";
+import type { Assistant } from "../core/assistant/assistant.js";
 
 describe("createConfiguredTextRuntime", () => {
   it("wires enabled features into the assistant", async () => {
@@ -43,45 +44,18 @@ describe("createConfiguredTextRuntime", () => {
   });
 
   it("requires confirmation for high-risk alarm creation", async () => {
+    expect.hasAssertions();
     const assistant = await createConfiguredTextRuntimeHarness();
-
-    await expect(
-      assistant.handleText(
-        deterministicScenarios.alarmCreateNeedsConfirmation.text,
-      ),
-    ).resolves.toEqual(
-      deterministicScenarios.alarmCreateNeedsConfirmation.response,
-    );
-    await expect(assistant.handleText("no")).resolves.toEqual({
-      status: "ok",
-      text: "Okay, I did not do that.",
-    });
-
-    await expect(
-      assistant.handleText(deterministicScenarios.alarmListEmpty.text),
-    ).resolves.toEqual(deterministicScenarios.alarmListEmpty.response);
+    await expectAlarmConfirmationCanBeCancelled(assistant);
   });
 
   it("requires confirmation for alarm creation in the default config", async () => {
+    expect.hasAssertions();
     const assistant = await createConfiguredTextRuntimeHarness({
       useRuntimeDefaultConfig: true,
     });
 
-    await expect(
-      assistant.handleText(
-        deterministicScenarios.alarmCreateNeedsConfirmation.text,
-      ),
-    ).resolves.toEqual(
-      deterministicScenarios.alarmCreateNeedsConfirmation.response,
-    );
-    await expect(assistant.handleText("no")).resolves.toEqual({
-      status: "ok",
-      text: "Okay, I did not do that.",
-    });
-
-    await expect(
-      assistant.handleText(deterministicScenarios.alarmListEmpty.text),
-    ).resolves.toEqual(deterministicScenarios.alarmListEmpty.response);
+    await expectAlarmConfirmationCanBeCancelled(assistant);
   });
 
   it("answers capability list questions from the generated catalog", async () => {
@@ -414,3 +388,22 @@ describe("createConfiguredTextRuntime", () => {
     );
   });
 });
+
+async function expectAlarmConfirmationCanBeCancelled(
+  assistant: Assistant,
+): Promise<void> {
+  await expect(
+    assistant.handleText(
+      deterministicScenarios.alarmCreateNeedsConfirmation.text,
+    ),
+  ).resolves.toEqual(
+    deterministicScenarios.alarmCreateNeedsConfirmation.response,
+  );
+  await expect(assistant.handleText("no")).resolves.toEqual({
+    status: "ok",
+    text: "Okay, I did not do that.",
+  });
+  await expect(
+    assistant.handleText(deterministicScenarios.alarmListEmpty.text),
+  ).resolves.toEqual(deterministicScenarios.alarmListEmpty.response);
+}
