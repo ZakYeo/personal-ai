@@ -46,7 +46,7 @@ export function createOpenAIIntentRequestBody(
     text: {
       format: {
         name: "intent_interpretation",
-        schema: intentInterpretationSchema,
+        schema: createIntentInterpretationSchema(capabilityCatalog),
         strict: true,
         type: "json_schema",
       },
@@ -54,57 +54,68 @@ export function createOpenAIIntentRequestBody(
   };
 }
 
-const intentInterpretationSchema = {
-  additionalProperties: false,
-  properties: {
-    command: {
-      additionalProperties: false,
-      properties: {
-        capability: { type: "string" },
-        parameters: {
-          items: {
-            additionalProperties: false,
-            properties: {
-              name: { type: "string" },
-              value: { type: ["string", "number", "boolean", "null"] },
+function createIntentInterpretationSchema(
+  capabilityCatalog: readonly OpenAIIntentCapability[],
+) {
+  const capabilityNames = capabilityCatalog.map(
+    ({ capability }) => capability.name,
+  );
+
+  return {
+    additionalProperties: false,
+    properties: {
+      command: {
+        additionalProperties: false,
+        properties: {
+          capability:
+            capabilityNames.length === 0
+              ? { type: "string" }
+              : { enum: capabilityNames, type: "string" },
+          parameters: {
+            items: {
+              additionalProperties: false,
+              properties: {
+                name: { type: "string" },
+                value: { type: ["string", "number", "boolean", "null"] },
+              },
+              required: ["name", "value"],
+              type: "object",
             },
-            required: ["name", "value"],
-            type: "object",
+            type: "array",
           },
-          type: "array",
+          rawText: { type: "string" },
         },
-        rawText: { type: "string" },
+        required: ["capability", "parameters", "rawText"],
+        type: ["object", "null"],
       },
-      required: ["capability", "parameters", "rawText"],
-      type: ["object", "null"],
-    },
-    kind: {
-      enum: ["command", "conversation", "unknown", "unsupported"],
-      type: "string",
-    },
-    response: {
-      additionalProperties: false,
-      properties: {
-        status: {
-          enum: [
-            "ok",
-            "unknown",
-            "unsupported",
-            "invalid",
-            "needs_confirmation",
-            "error",
-          ],
-          type: "string",
+      kind: {
+        enum: ["command", "conversation", "unknown", "unsupported"],
+        type: "string",
+      },
+      response: {
+        additionalProperties: false,
+        properties: {
+          status: {
+            enum: [
+              "ok",
+              "unknown",
+              "unsupported",
+              "invalid",
+              "needs_confirmation",
+              "error",
+            ],
+            type: "string",
+          },
+          text: { type: "string" },
         },
-        text: { type: "string" },
+        required: ["status", "text"],
+        type: ["object", "null"],
       },
-      required: ["status", "text"],
-      type: ["object", "null"],
     },
-  },
-  required: ["kind", "command", "response"],
-  type: "object",
-};
+    required: ["kind", "command", "response"],
+    type: "object",
+  };
+}
 
 export function formatOpenAICapabilities(
   catalog: readonly OpenAIIntentCapability[],

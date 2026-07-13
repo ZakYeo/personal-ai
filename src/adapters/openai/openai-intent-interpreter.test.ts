@@ -103,6 +103,9 @@ describe("OpenAIIntentInterpreter", () => {
         command: {
           type: ["object", "null"],
           properties: {
+            capability: {
+              enum: ["calendar.search_events"],
+            },
             parameters: {
               type: "array",
               items: {
