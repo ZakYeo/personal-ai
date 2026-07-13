@@ -490,6 +490,9 @@ Implemented structure:
 - The optional OpenAI command response rewriter can post-process successful
   command responses into spoken-friendly wording while preserving the original
   safe feature response if rewriting fails.
+- Upcoming calendar lists protect every displayed event title and date before
+  rewriting; core restores nearby ISO dates with deterministic UTC calendar-week
+  wording and uses spoken absolute dates farther out.
 
 Ongoing hardening themes to keep checking during future provider work:
 

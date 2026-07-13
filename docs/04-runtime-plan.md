@@ -414,13 +414,16 @@ command responses into spoken-friendly wording. Before calling a rewriter, core
 replaces every feature fact expressed in the safe response with an opaque token.
 The provider may rewrite only surrounding wording and must preserve every token
 with the same multiplicity. Core then restores exact facts or an explicit
-deterministic ISO-date rendering such as `today` or `tomorrow`. Missing,
+deterministic UTC ISO-date rendering such as `today`, `tomorrow`,
+`this Friday`, or `next Monday`; dates beyond the following calendar week use
+an absolute spoken date. Missing,
 duplicated, or invented tokens fail integrity validation and fall back to the
 original safe response while logging diagnostics.
 Calendar features return factual titles and exact provider date strings before
 this post-processing step. Internal facts absent from the safe response, such as
 provider event IDs, are not exposed merely to satisfy rewriting. Generic
-upcoming-event responses state their event count so that expressed count is also
+upcoming-event responses state their event count and expose every displayed
+event title and date as indexed facts so that all expressed values are
 protected.
 The `google` calendar adapter is opt-in and selected with
 `features.calendar.adapter: google`. Generic upcoming event searches default to

@@ -23,7 +23,12 @@ export function protectResponseFacts(
 
   for (const [value, names] of groupedFacts) {
     const token = createFactToken(replacements.length, text);
-    const replaced = replaceFact(protectedText, value, token);
+    const replaced = replaceFact(
+      protectedText,
+      value,
+      token,
+      replacements.map((replacement) => replacement.token),
+    );
 
     if (replaced.occurrences === 0) {
       continue;
@@ -75,6 +80,7 @@ function replaceFact(
   text: string,
   value: string,
   token: string,
+  protectedTokens: readonly string[],
 ): { occurrences: number; text: string } {
   let occurrences = 0;
   const pattern = new RegExp(
@@ -82,12 +88,36 @@ function replaceFact(
     "gu",
   );
 
-  const replacedText = text.replace(pattern, () => {
+  const replacedText = text.replace(pattern, (match, offset: number) => {
+    if (isInsideProtectedToken(text, offset, protectedTokens)) {
+      return match;
+    }
+
     occurrences += 1;
     return token;
   });
 
   return { occurrences, text: replacedText };
+}
+
+function isInsideProtectedToken(
+  text: string,
+  offset: number,
+  protectedTokens: readonly string[],
+): boolean {
+  return protectedTokens.some((token) => {
+    let tokenOffset = text.indexOf(token);
+
+    while (tokenOffset >= 0) {
+      if (offset >= tokenOffset && offset < tokenOffset + token.length) {
+        return true;
+      }
+
+      tokenOffset = text.indexOf(token, tokenOffset + token.length);
+    }
+
+    return false;
+  });
 }
 
 function restoreFacts(
@@ -162,6 +192,20 @@ function renderFact(value: string, now: Date): string {
     return "tomorrow";
   }
 
+  if (dayDifference >= 2) {
+    const currentWeekday = now.getUTCDay();
+    const daysUntilNextMonday = (8 - currentWeekday) % 7 || 7;
+    const weekday = weekdayNames[new Date(dateDay).getUTCDay()];
+
+    if (weekday && dayDifference < daysUntilNextMonday) {
+      return `this ${weekday}`;
+    }
+
+    if (weekday && dayDifference < daysUntilNextMonday + 7) {
+      return `next ${weekday}`;
+    }
+  }
+
   const month = monthNames[date.month - 1] ?? value;
 
   return date.year === now.getUTCFullYear()
@@ -207,4 +251,14 @@ const monthNames = [
   "October",
   "November",
   "December",
+] as const;
+
+const weekdayNames = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
 ] as const;

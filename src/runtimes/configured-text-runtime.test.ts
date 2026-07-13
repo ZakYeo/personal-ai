@@ -239,6 +239,66 @@ describe("createConfiguredTextRuntime", () => {
     );
   });
 
+  it("smoke-humanizes protected dates in upcoming Google Calendar lists", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: "haircut-2026",
+                summary: ".CLAY Studios: Gents Haircut",
+                start: { date: "2026-07-17" },
+              },
+              {
+                id: "interview-2026",
+                summary: "Zak - Onsite Interview - Agentic Engineer",
+                start: { date: "2026-07-20" },
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            output_text: JSON.stringify({
+              text: "You have __ASSISTANT_PROTECTED_FACT_4__ upcoming calendar events: __ASSISTANT_PROTECTED_FACT_1__ on __ASSISTANT_PROTECTED_FACT_2__, and __ASSISTANT_PROTECTED_FACT_0__ on __ASSISTANT_PROTECTED_FACT_3__.",
+            }),
+          }),
+          { status: 200 },
+        ),
+      );
+    const googleConfig = createRuntimeConfigWithGoogleCalendarAdapter();
+    const assistant = await createConfiguredTextRuntimeHarness({
+      config: {
+        ...googleConfig,
+        responseRewriter:
+          createRuntimeConfigWithOpenAIResponseRewriter().responseRewriter,
+      },
+      env: {
+        GOOGLE_CALENDAR_ACCESS_TOKEN: "test-google-token",
+        OPENAI_API_KEY: "test-openai-key",
+      },
+      fetch,
+      now: () => new Date("2026-07-13T09:00:00.000Z"),
+    });
+
+    const outcome = await assistant.handleTextWithDiagnostics(
+      deterministicScenarios.calendarUpcomingEvents.text,
+    );
+
+    expect(outcome).toEqual({
+      response: {
+        status: "ok",
+        text: "You have 2 upcoming calendar events: .CLAY Studios: Gents Haircut on this Friday, and Zak - Onsite Interview - Agentic Engineer on next Monday.",
+      },
+    });
+    expect(outcome.response.text).not.toMatch(/\b\d{4}-\d{2}-\d{2}\b/u);
+  });
+
   it("wires Google Calendar adapters into the assistant", async () => {
     const fetch = vi.fn().mockResolvedValue(
       new Response(

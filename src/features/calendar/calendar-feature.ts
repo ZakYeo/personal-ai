@@ -111,9 +111,7 @@ async function searchEvents(
 
     return {
       text: `You have ${events.length} upcoming calendar ${eventLabel}: ${formatEventList(events)}.`,
-      data: {
-        eventCount: events.length,
-      },
+      data: createUpcomingEventFacts(events),
     };
   }
 
@@ -125,6 +123,21 @@ async function searchEvents(
       title: event.title,
     },
   };
+}
+
+function createUpcomingEventFacts(
+  events: readonly { startDate: string; title: string }[],
+): Record<string, string | number> {
+  const facts: Record<string, string | number> = {
+    eventCount: events.length,
+  };
+
+  events.forEach((event, index) => {
+    facts[`event${index}Date`] = event.startDate;
+    facts[`event${index}Title`] = event.title;
+  });
+
+  return facts;
 }
 
 function normalizeQuery(query: string | undefined): string | undefined {

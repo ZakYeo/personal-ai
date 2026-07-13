@@ -204,7 +204,7 @@ Hey Jarvis, can you check my calendar please? What upcoming events do I have?
 Expected behavior:
 
 ```text
-Search mock calendar events by optional query and optional date range, or list upcoming events when no query is provided. Generic upcoming event lists default to the configured 92-day lookahead window. Deterministic calendar responses preserve exact provider date strings such as `2026-09-12`; conversational title and date phrasing belongs to the response rewriter.
+Search mock calendar events by optional query and optional date range, or list upcoming events when no query is provided. Generic upcoming event lists default to the configured 92-day lookahead window. Deterministic calendar responses preserve exact provider date strings such as `2026-09-12`; displayed list titles and dates become protected response facts, and core restores nearby dates after optional rewriting with UTC phrases such as `this Friday` or `next Monday`.
 ```
 
 ### Messaging
