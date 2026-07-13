@@ -533,10 +533,10 @@ Runtimes should own:
 
 The assistant core should expose application behavior, not process lifecycle behavior.
 
-The neutral service runtime boundary baseline has been implemented in
-preparation for Milestone 5.1. It accepts injectable assistant composition, turn
-execution, clock access, signal registration, stderr diagnostics, and shutdown
-hooks. Startup failures return a safe fallback outcome, signal registration
+The neutral service runtime boundary implements Milestone 5.1. It accepts
+injectable assistant composition, turn execution, clock access, signal
+registration, stderr diagnostics, and shutdown hooks. Startup failures return a
+safe fallback outcome, signal registration
 failures clean up partial handlers, recoverable turn failures are logged before
 the injected retry policy runs, and injected `SIGINT`/`SIGTERM` handlers request
 graceful shutdown before unregistering. Shutdown signals also abort the active

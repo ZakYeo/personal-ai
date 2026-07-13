@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Personal AI is a private, voice-activated assistant intended to feel like a smarter, configurable Alexa. It should run on a developer machine first and later deploy to a Raspberry Pi without changing the assistant core.
+Personal AI is a private, voice-activated assistant intended to feel like a smarter, configurable Alexa. It runs on a developer machine and has a dedicated Raspberry Pi service runtime without changing the assistant core. Operator-friendly Raspberry Pi installation and service management remain planned work.
 
 The assistant should support natural voice commands such as:
 
@@ -16,8 +16,9 @@ The assistant should support natural voice commands such as:
 - Allow the assistant name, wake phrase, voice, providers, and enabled features to be configured.
 - Support swappable AI/LLM providers through ports and adapters.
 - Support pluggable features such as calendar, messaging, alarms, reminders, and future integrations.
-- Run on a desktop computer during early development.
-- Run on a Raspberry Pi later through a dedicated runtime adapter.
+- Run on a desktop computer for development and daily use.
+- Run through a dedicated Raspberry Pi service runtime, with device operations
+  hardened incrementally.
 - Start with deterministic mock adapters and no external API calls.
 - Keep the assistant core independent from audio devices, cloud providers, Raspberry Pi specifics, and third-party services.
 

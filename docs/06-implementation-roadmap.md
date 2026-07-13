@@ -12,13 +12,15 @@ Google Calendar adapter, neutral service runtime, Raspberry Pi service command,
 opt-in Raspberry Pi OS QEMU smoke support, and general conversation support
 with in-memory chat history are implemented.
 
-The next product milestone should move the assistant from mostly stateless
-runtime experiments toward useful local behavior that survives restarts. Start
-with persistent local alarm state because it is small, local-first,
-Pi-relevant, and exercises the existing adapter/config boundaries without
-adding another external provider.
+The next product milestone should establish local state that survives restarts.
+Start with persistent local alarm records because they are small, local-first,
+Pi-relevant, and exercise the existing adapter/config boundaries without adding
+another external provider. Alarm scheduling and notification delivery remain
+separate product work rather than implied outcomes of the persistence milestone.
 
 ## Milestone 1: Deterministic Text Assistant
+
+Status: implemented.
 
 Goal: prove the assistant core, ports, feature plugin model, and dependency boundaries without voice or external APIs.
 
@@ -56,6 +58,8 @@ Acceptance criteria:
 
 ## Milestone 1.5: Core Safety and Extension Foundation
 
+Status: implemented.
+
 Goal: make the assistant core pipeline explicit and make future feature work mechanical before adding voice or real providers.
 
 Included:
@@ -89,6 +93,8 @@ Acceptance criteria:
 
 ## Milestone 1.6: Test Harness and Authoring Ergonomics
 
+Status: implemented.
+
 Goal: make future core, feature, runtime, and CLI work easy to test with small, localized diffs before adding more milestones.
 
 Included:
@@ -121,6 +127,8 @@ Acceptance criteria:
 
 ## Milestone 1.7: Tooling and Repository Hygiene
 
+Status: implemented.
+
 Goal: give humans and coding agents fast, local feedback before the project grows more adapters and runtimes.
 
 Included:
@@ -152,6 +160,8 @@ Acceptance criteria:
 - Tooling and hook behavior are documented in `README.md`, `AGENTS.md`, and `docs/`.
 
 ## Milestone 2: Mock Voice Loop
+
+Status: implemented.
 
 Goal: introduce the voice pipeline shape while keeping behavior deterministic.
 
@@ -684,8 +694,8 @@ Acceptance criteria:
 
 Status: planned.
 
-Goal: make local-first assistant state survive process restarts while preserving
-the existing ports-and-adapters boundaries.
+Goal: establish a persistent local-state foundation that survives process
+restarts while preserving the existing ports-and-adapters boundaries.
 
 This milestone should stay intentionally narrow. Persistent state belongs behind
 application-owned ports, is selected by runtime config, and must not push file

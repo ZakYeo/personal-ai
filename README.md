@@ -3,11 +3,11 @@
 Local-first personal assistant built with TypeScript, deterministic adapters, and
 a ports-and-adapters architecture.
 
-Personal AI is intended to become a private, voice-activated assistant that runs
-on a desktop first and can later be deployed to a Raspberry Pi. The current
-implementation keeps behavior deterministic with mock providers and local
-adapters so the core, runtimes, features, and dependency boundaries can be tested
-without external services.
+Personal AI is a private, voice-activated assistant that runs on a desktop and
+has a dedicated Raspberry Pi service runtime. The checked-in default remains
+deterministic with mock providers and local adapters, while opt-in OpenAI and
+Google Calendar integrations exercise real provider paths without making normal
+validation depend on external services.
 
 ## Status
 
@@ -20,8 +20,8 @@ Implemented today:
   local openWakeWord activation, live command transcript progress, and
   streaming speech playback. If a response explicitly asks for a reply, the
   service captures the next utterance without requiring the wake phrase again.
-- Neutral service runtime boundary baseline implemented in preparation for
-  Milestone 5.1.
+- Neutral service runtime boundary for long-running startup, retry, signal, and
+  shutdown behavior.
 - Raspberry Pi service command that runs configured command-based voice turns in
   a long-running service loop.
 - Config-driven adapter selection for intent, features, and voice components.
