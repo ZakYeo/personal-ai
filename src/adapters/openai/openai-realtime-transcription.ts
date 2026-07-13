@@ -12,9 +12,8 @@ import {
   type OpenAIRealtimeTranscriptionConfig,
 } from "./openai-realtime-transcription-request.js";
 import {
+  OpenAIRealtimeTranscriptionSession,
   type RealtimeSocketFactory,
-  waitForSocketOpen,
-  waitForTranscript,
 } from "./openai-realtime-transcription-session.js";
 import { resolveOpenAIApiKey } from "./openai-client.js";
 
@@ -43,31 +42,34 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
       apiKey,
       url: createRealtimeTranscriptionUrl(this.options.config),
     });
+    const session = new OpenAIRealtimeTranscriptionSession(
+      socket,
+      events,
+      this.options.config.timeoutMs,
+      this.options.shutdownSignal,
+    );
+    let primaryError: Error | undefined;
 
     try {
-      await waitForSocketOpen(
-        socket,
-        this.options.config.timeoutMs,
-        this.options.shutdownSignal,
-      );
+      await session.waitForOpen();
       socket.send(createTranscriptionSessionUpdateMessage(this.options.config));
 
-      const transcriptPromise = waitForTranscript(
-        socket,
-        events,
-        this.options.config.timeoutMs,
-        this.options.shutdownSignal,
-      );
-
-      await streamAudioToSocket(socket, audio.chunks, transcriptPromise);
+      await streamAudioToSocket(socket, audio.chunks, session.transcript);
 
       socket.send(createAudioCommitMessage());
 
-      const transcript = await transcriptPromise;
+      const transcript = await session.transcript;
 
       return transcript;
+    } catch (error) {
+      primaryError = toError(error);
+      throw primaryError;
     } finally {
-      socket.close();
+      session.dispose(primaryError);
     }
   }
+}
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
 }

@@ -2,6 +2,8 @@ import WebSocket, { type RawData } from "ws";
 
 import type { RealtimeSocketFactory } from "./openai-realtime-transcription-session.js";
 
+type SocketListener = (event?: unknown) => void;
+
 export const createOpenAIRealtimeWebSocketFactory: RealtimeSocketFactory = ({
   apiKey,
   url,
@@ -11,28 +13,55 @@ export const createOpenAIRealtimeWebSocketFactory: RealtimeSocketFactory = ({
       Authorization: `Bearer ${apiKey}`,
     },
   });
+  const listenerWrappers = new Map<
+    string,
+    Map<SocketListener, SocketListener>
+  >();
 
   return {
     addEventListener: (type, listener) => {
-      if (type === "message") {
-        socket.on("message", (data: RawData) => {
-          listener({ data: rawWebSocketDataToString(data) });
-        });
+      const wrapper = createListenerWrapper(type, listener);
+      const listeners =
+        listenerWrappers.get(type) ?? new Map<SocketListener, SocketListener>();
 
-        return;
-      }
-
-      socket.on(type, (event: unknown) => {
-        listener(event);
-      });
+      listeners.set(listener, wrapper);
+      listenerWrappers.set(type, listeners);
+      socket.on(type, wrapper);
     },
     close: () => {
       socket.close();
+    },
+    removeEventListener: (type, listener) => {
+      const listeners = listenerWrappers.get(type);
+      const wrapper = listeners?.get(listener);
+
+      if (!wrapper) {
+        return;
+      }
+
+      socket.off(type, wrapper);
+      listeners?.delete(listener);
+      if (listeners?.size === 0) {
+        listenerWrappers.delete(type);
+      }
     },
     send: (message) => {
       socket.send(message);
     },
   };
+
+  function createListenerWrapper(
+    type: string,
+    listener: SocketListener,
+  ): SocketListener {
+    if (type === "message") {
+      return (data?: unknown) => {
+        listener({ data: rawWebSocketDataToString(data as RawData) });
+      };
+    }
+
+    return (event?: unknown) => listener(event);
+  }
 };
 
 function rawWebSocketDataToString(data: RawData): string {

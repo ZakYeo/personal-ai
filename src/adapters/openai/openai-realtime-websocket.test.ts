@@ -29,6 +29,12 @@ const { MockWebSocket, mockWebSocketInstances } = vi.hoisted(() => {
       this.listeners[type] = [...(this.listeners[type] ?? []), listener];
     }
 
+    off(type: string, listener: MockWebSocketListener): void {
+      this.listeners[type] = (this.listeners[type] ?? []).filter(
+        (candidate) => candidate !== listener,
+      );
+    }
+
     send(message: string): void {
       this.sentMessages.push(message);
     }
@@ -58,11 +64,14 @@ describe("OpenAI realtime websocket factory", () => {
     });
     const messages: unknown[] = [];
 
-    socket.addEventListener("message", (event) => {
+    const onMessage = (event?: unknown): void => {
       messages.push(event);
-    });
+    };
+    socket.addEventListener("message", onMessage);
     socket.send("hello");
     mockWebSocketInstances[0]?.emit("message", Buffer.from("response"));
+    socket.removeEventListener("message", onMessage);
+    mockWebSocketInstances[0]?.emit("message", Buffer.from("ignored"));
     socket.close();
 
     expect(mockWebSocketInstances).toHaveLength(1);

@@ -202,13 +202,17 @@ describe("OpenAIRealtimeTranscription", () => {
     const transcriptPromise = adapter.transcribeStream({
       chunks: chunksFromText("audio"),
     });
+    const rejection = transcriptPromise.then(
+      () => null,
+      (error: unknown) => error,
+    );
 
     socket.emitOpen();
     await socket.waitForSentType("input_audio_buffer.commit");
 
-    await expect(transcriptPromise).rejects.toThrow(
-      "Realtime transcription timed out after 1ms.",
-    );
+    await expect(rejection).resolves.toMatchObject({
+      message: "Realtime transcription timed out after 1ms.",
+    });
     expect(socket.closed).toBe(true);
   });
 
@@ -268,6 +272,86 @@ describe("OpenAIRealtimeTranscription", () => {
       "Realtime transcription was aborted.",
     );
     expect(socket.closed).toBe(true);
+  });
+
+  it("rejects an unexpected socket close and removes session listeners", async () => {
+    const socket = new TestRealtimeSocket();
+    const adapter = createRealtimeTranscriptionAdapter({
+      socket,
+      timeoutMs: 5,
+    });
+    const transcription = adapter.transcribeStream({
+      chunks: createControlledAudioStream().chunks,
+    });
+
+    socket.emitOpen();
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    socket.emitClose({ code: 1006 });
+
+    await expect(transcription).rejects.toMatchObject({
+      event: { code: 1006 },
+      message: "Realtime transcription socket closed unexpectedly.",
+    });
+    expect(socket.listenerCount()).toBe(0);
+  });
+
+  it("preserves provider failure when closing the socket also fails", async () => {
+    const closeError = new Error("socket close failed");
+    const socket = new TestRealtimeSocket({ closeError });
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+    const transcription = adapter.transcribeStream({
+      chunks: createControlledAudioStream().chunks,
+    });
+
+    socket.emitOpen();
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    socket.emitError({ code: "ECONNRESET" });
+
+    await expect(transcription).rejects.toMatchObject({
+      cause: closeError,
+      event: { code: "ECONNRESET" },
+      message: "Realtime transcription socket failed.",
+    });
+    expect(socket.listenerCount()).toBe(0);
+  });
+
+  it("preserves audio failure when iterator cleanup also fails", async () => {
+    const socket = new TestRealtimeSocket();
+    const inputError = new Error("audio input failed");
+    const cleanupError = new Error("audio cleanup failed");
+    const chunks: AsyncIterable<Uint8Array> = {
+      [Symbol.asyncIterator]: () => ({
+        next: () => Promise.reject(inputError),
+        return: () => Promise.reject(cleanupError),
+      }),
+    };
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+    const transcription = adapter.transcribeStream({ chunks });
+
+    socket.emitOpen();
+
+    await expect(transcription).rejects.toMatchObject({
+      cause: cleanupError,
+      message: "audio input failed",
+    });
+  });
+
+  it("removes all session listeners after successful transcription", async () => {
+    const socket = new TestRealtimeSocket();
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+    const transcription = adapter.transcribeStream({
+      chunks: chunksFromText("audio"),
+    });
+
+    socket.emitOpen();
+    await socket.waitForSentType("input_audio_buffer.commit");
+    socket.emitMessage({
+      transcript: "list alarms",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+
+    await expect(transcription).resolves.toEqual({ text: "list alarms" });
+    expect(socket.listenerCount()).toBe(0);
   });
 });
 

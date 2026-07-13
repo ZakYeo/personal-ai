@@ -150,6 +150,7 @@ export class TestRealtimeSocket implements RealtimeSocket {
   constructor(
     private readonly options: {
       autoOpen?: boolean;
+      closeError?: Error;
       errorOnSessionUpdate?: boolean;
       transcript?: string;
     } = {},
@@ -167,6 +168,16 @@ export class TestRealtimeSocket implements RealtimeSocket {
 
   close(): void {
     this.closed = true;
+
+    if (this.options.closeError) {
+      throw this.options.closeError;
+    }
+  }
+
+  removeEventListener(type: string, listener: (event?: unknown) => void): void {
+    this.listeners[type] = (this.listeners[type] ?? []).filter(
+      (candidate) => candidate !== listener,
+    );
   }
 
   send(message: string): void {
@@ -222,6 +233,17 @@ export class TestRealtimeSocket implements RealtimeSocket {
 
   emitError(error?: unknown): void {
     this.emit("error", error);
+  }
+
+  emitClose(event?: unknown): void {
+    this.emit("close", event);
+  }
+
+  listenerCount(): number {
+    return Object.values(this.listeners).reduce(
+      (count, listeners) => count + listeners.length,
+      0,
+    );
   }
 
   async waitForSentType(type: string): Promise<void> {

@@ -23,8 +23,18 @@ export async function streamAudioToSocket(
       socket.send(createAudioAppendMessage(next.value));
     }
   } catch (error) {
-    await iterator.return?.();
-    throw error;
+    const primaryError = toError(error);
+
+    try {
+      const cleanup = iterator.return?.();
+      void cleanup?.catch((cleanupError: unknown) => {
+        attachSecondaryCause(primaryError, cleanupError);
+      });
+    } catch (cleanupError) {
+      attachSecondaryCause(primaryError, cleanupError);
+    }
+
+    throw primaryError;
   }
 }
 
@@ -58,4 +68,23 @@ async function nextAudioChunkOrTranscriptFailure(
 
 function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
+}
+
+function attachSecondaryCause(
+  primaryError: Error,
+  secondaryError: unknown,
+): void {
+  const existingCause = primaryError.cause;
+  const cause =
+    existingCause === undefined
+      ? secondaryError
+      : new AggregateError(
+          [existingCause, secondaryError],
+          "Audio streaming and iterator cleanup both failed.",
+        );
+
+  Object.defineProperty(primaryError, "cause", {
+    configurable: true,
+    value: cause,
+  });
 }

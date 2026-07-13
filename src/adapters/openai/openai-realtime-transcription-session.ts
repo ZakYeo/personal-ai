@@ -5,9 +5,12 @@ import type {
 import { createOpenAIVoiceProviderError } from "./openai-voice-provider-error.js";
 import { parseRealtimeTranscriptionEvent } from "./openai-realtime-transcription-events.js";
 
+type RealtimeSocketListener = (event?: unknown) => void;
+
 export interface RealtimeSocket {
-  addEventListener(type: string, listener: (event?: unknown) => void): void;
+  addEventListener(type: string, listener: RealtimeSocketListener): void;
   close(): void;
+  removeEventListener(type: string, listener: RealtimeSocketListener): void;
   send(message: string): void;
 }
 
@@ -20,50 +23,56 @@ export type RealtimeSocketFactory = (
   request: RealtimeSocketFactoryRequest,
 ) => RealtimeSocket;
 
-export function waitForSocketOpen(
-  socket: RealtimeSocket,
-  timeoutMs: number,
-  shutdownSignal?: AbortSignal,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const settle = createRealtimeSettlement({
-      reject,
-      resolve,
-      ...(shutdownSignal ? { shutdownSignal } : {}),
-      timeoutMs,
-    });
+export class OpenAIRealtimeTranscriptionSession {
+  readonly transcript: Promise<SpeechTranscript>;
+  private readonly failure: Promise<never>;
+  private readonly listeners: Array<{
+    listener: RealtimeSocketListener;
+    type: string;
+  }> = [];
+  private readonly opened: Promise<void>;
+  private rejectFailure: (error: Error) => void = () => {};
+  private disposed = false;
+  private readonly timer: ReturnType<typeof setTimeout>;
 
-    socket.addEventListener("open", () => {
-      settle.resolve();
-    });
-    socket.addEventListener("error", (event) => {
-      settle.reject(createRealtimeSocketError(event));
-    });
-  });
-}
+  constructor(
+    private readonly socket: RealtimeSocket,
+    events: StreamingSpeechToTextEvents,
+    private readonly timeoutMs: number,
+    private readonly shutdownSignal?: AbortSignal,
+  ) {
+    let resolveOpen: () => void = () => {};
+    let resolveTranscript: (transcript: SpeechTranscript) => void = () => {};
+    let text = "";
 
-export function waitForTranscript(
-  socket: RealtimeSocket,
-  events: StreamingSpeechToTextEvents,
-  timeoutMs: number,
-  shutdownSignal?: AbortSignal,
-): Promise<SpeechTranscript> {
-  let text = "";
-
-  return new Promise((resolve, reject) => {
-    const settle = createRealtimeSettlement({
-      reject,
-      resolve,
-      ...(shutdownSignal ? { shutdownSignal } : {}),
-      timeoutMs,
+    this.opened = new Promise<void>((resolve) => {
+      resolveOpen = resolve;
     });
+    const completed = new Promise<SpeechTranscript>((resolve) => {
+      resolveTranscript = resolve;
+    });
+    this.failure = new Promise<never>((_resolve, reject) => {
+      this.rejectFailure = reject;
+    });
+    void this.failure.catch(() => {});
+    this.transcript = Promise.race([completed, this.failure]);
+    void this.transcript.catch(() => {});
 
-    socket.addEventListener("message", (messageEvent) => {
+    this.listen("open", () => resolveOpen());
+    this.listen("error", (event) =>
+      this.fail(createRealtimeSocketError(event)),
+    );
+    this.listen("close", (event) => {
+      if (!this.disposed) {
+        this.fail(createRealtimeSocketClosedError(event));
+      }
+    });
+    this.listen("message", (messageEvent) => {
       try {
         const event = parseRealtimeTranscriptionEvent(messageEvent);
 
         if (event.type === "error") {
-          settle.reject(
+          this.fail(
             createOpenAIVoiceProviderError({
               event: event.event,
               message: "Realtime transcription failed.",
@@ -83,12 +92,10 @@ export function waitForTranscript(
         if (
           event.type === "conversation.item.input_audio_transcription.completed"
         ) {
-          settle.resolve({
-            text: event.transcript ?? text,
-          });
+          resolveTranscript({ text: event.transcript ?? text });
         }
       } catch (error) {
-        settle.reject(
+        this.fail(
           createOpenAIVoiceProviderError({
             cause: error,
             event: messageEvent,
@@ -97,63 +104,85 @@ export function waitForTranscript(
         );
       }
     });
-    socket.addEventListener("error", (event) => {
-      settle.reject(createRealtimeSocketError(event));
-    });
-  });
-}
 
-function createRealtimeSettlement<T>(options: {
-  reject(error: Error): void;
-  resolve(value: T): void;
-  shutdownSignal?: AbortSignal;
-  timeoutMs: number;
-}): {
-  reject(error: Error): void;
-  resolve(value: T): void;
-} {
-  let settled = false;
-  const onAbort = (): void => {
-    settle(() =>
-      options.reject(createRealtimeAbortError(options.shutdownSignal)),
-    );
-  };
+    this.timer = setTimeout(() => {
+      this.fail(createRealtimeTimeoutError(this.timeoutMs));
+    }, this.timeoutMs);
 
-  const settle = (complete: () => void): void => {
-    if (settled) {
+    if (this.shutdownSignal?.aborted) {
+      this.onAbort();
+    } else {
+      this.shutdownSignal?.addEventListener("abort", this.onAbort, {
+        once: true,
+      });
+    }
+  }
+
+  waitForOpen(): Promise<void> {
+    return Promise.race([this.opened, this.failure]);
+  }
+
+  dispose(primaryError?: Error): void {
+    if (this.disposed) {
       return;
     }
 
-    settled = true;
-    clearTimeout(timer);
-    options.shutdownSignal?.removeEventListener("abort", onAbort);
-    complete();
-  };
+    this.disposed = true;
+    if (primaryError) {
+      this.rejectFailure(primaryError);
+    }
+    this.removeListeners();
 
-  const timer = setTimeout(() => {
-    settle(() => options.reject(createRealtimeTimeoutError(options.timeoutMs)));
-  }, options.timeoutMs);
+    try {
+      this.socket.close();
+    } catch (error) {
+      if (!primaryError) {
+        throw toError(error);
+      }
 
-  if (options.shutdownSignal?.aborted) {
-    onAbort();
-  } else {
-    options.shutdownSignal?.addEventListener("abort", onAbort, { once: true });
+      attachSecondaryCause(primaryError, error);
+    }
   }
 
-  return {
-    reject: (error) => {
-      settle(() => options.reject(error));
-    },
-    resolve: (value) => {
-      settle(() => options.resolve(value));
-    },
+  private readonly onAbort = (): void => {
+    this.fail(createRealtimeAbortError(this.shutdownSignal));
   };
+
+  private fail(error: Error): void {
+    if (this.disposed) {
+      return;
+    }
+
+    this.rejectFailure(error);
+    this.removeListeners();
+  }
+
+  private listen(type: string, listener: RealtimeSocketListener): void {
+    this.listeners.push({ listener, type });
+    this.socket.addEventListener(type, listener);
+  }
+
+  private removeListeners(): void {
+    clearTimeout(this.timer);
+    this.shutdownSignal?.removeEventListener("abort", this.onAbort);
+
+    for (const { listener, type } of this.listeners.splice(0)) {
+      this.socket.removeEventListener(type, listener);
+    }
+  }
 }
 
 function createRealtimeSocketError(event: unknown): Error {
   return createOpenAIVoiceProviderError({
     event,
     message: "Realtime transcription socket failed.",
+  });
+}
+
+function createRealtimeSocketClosedError(event: unknown): Error {
+  return createOpenAIVoiceProviderError({
+    event,
+    message: "Realtime transcription socket closed unexpectedly.",
   });
 }
 
@@ -166,4 +195,27 @@ function createRealtimeAbortError(signal: AbortSignal | undefined): Error {
     cause: signal?.reason as unknown,
     message: "Realtime transcription was aborted.",
   });
+}
+
+function attachSecondaryCause(
+  primaryError: Error,
+  secondaryError: unknown,
+): void {
+  const existingCause = primaryError.cause;
+  const cause =
+    existingCause === undefined
+      ? secondaryError
+      : new AggregateError(
+          [existingCause, secondaryError],
+          "Realtime transcription and cleanup both failed.",
+        );
+
+  Object.defineProperty(primaryError, "cause", {
+    configurable: true,
+    value: cause,
+  });
+}
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
 }
