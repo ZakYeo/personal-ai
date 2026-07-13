@@ -355,6 +355,11 @@ should also guard against subtler boundary and abstraction drift.
 - Command-process failure wrappers should preserve available stdout and stderr
   for all final failure modes, including spawn errors, non-zero exits, and
   timeouts. A raw process error is not enough if output was captured.
+- File-backed state adapters should parse persisted JSON from `unknown`,
+  serialize in-process mutations, and replace state through a same-directory
+  temporary file. Missing state may initialize an empty store, but malformed,
+  unreadable, or unsupported existing state must fail with its cause preserved
+  for runtime diagnostics.
 - Treat duplication reports as design prompts. A small clone may be acceptable,
   but repeated control-flow or policy duplication should trigger a search for
   the canonical owner before more branches are added.

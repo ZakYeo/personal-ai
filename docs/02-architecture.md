@@ -124,7 +124,8 @@ Deterministic and local adapters include:
 - SoX-compatible desktop audio input and output adapters.
 - Mock calendar adapter.
 - Mock messaging adapter.
-- Local/in-memory alarm storage adapter implementing the alarm store port.
+- Local/in-memory and versioned JSON-file alarm storage adapters implementing
+  the alarm store port.
 
 Implemented real-provider adapters include:
 

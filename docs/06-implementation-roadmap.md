@@ -12,11 +12,11 @@ Google Calendar adapter, neutral service runtime, Raspberry Pi service command,
 opt-in Raspberry Pi OS QEMU smoke support, and general conversation support
 with in-memory chat history are implemented.
 
-The next product milestone should establish local state that survives restarts.
-Start with persistent local alarm records because they are small, local-first,
-Pi-relevant, and exercise the existing adapter/config boundaries without adding
-another external provider. Alarm scheduling and notification delivery remain
-separate product work rather than implied outcomes of the persistence milestone.
+The file-backed alarm store now establishes local state that survives restarts.
+The next slice should make config-directory-relative state paths and lifecycle
+forwarding predictable across every runtime. Alarm scheduling and notification
+delivery remain separate product work rather than implied outcomes of the
+persistence milestone.
 
 ## Milestone 1: Deterministic Text Assistant
 
@@ -692,7 +692,7 @@ Acceptance criteria:
 
 ## Milestone 6: Persistent Local Assistant State
 
-Status: planned.
+Status: in progress; Milestone 6.1 is implemented.
 
 Goal: establish a persistent local-state foundation that survives process
 restarts while preserving the existing ports-and-adapters boundaries.
@@ -703,7 +703,7 @@ system details into core or feature logic.
 
 ### Milestone 6.1: File-Backed Alarm Store
 
-Status: next.
+Status: implemented.
 
 Goal: add a persistent local alarm store adapter behind the existing
 `AlarmStore` port.
@@ -737,15 +737,16 @@ Acceptance criteria:
   instances.
 - Alarm creation and listing await persistence and surface store failures
   through the existing diagnostic-safe feature failure boundary.
-- Malformed or missing persisted data fails safely with internal diagnostics and
-  no raw file system details in human-facing responses.
+- Missing persisted data initializes an empty store. Malformed, unreadable, or
+  unsupported persisted data fails safely with internal diagnostics and no raw
+  file system details in human-facing responses.
 - Tests cover persistence, invalid persisted data, write failure diagnostics,
   and runtime config selection.
 - `npm run check` passes.
 
 ### Milestone 6.2: State Configuration and Lifecycle Hardening
 
-Status: planned.
+Status: next.
 
 Goal: make stateful local adapters predictable across CLI, desktop voice, and
 service runtimes.

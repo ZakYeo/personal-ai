@@ -338,12 +338,16 @@ features:
       tokenUrl: https://oauth2.googleapis.com/token
       timeoutMs: 30000
       maxResults: 10
+  alarms:
+    enabled: true
+    adapter: file
+    state:
+      path: /var/lib/personal-ai/alarms.json
+    confirmationRequiredCapabilities:
+      - alarm.create
   messaging:
     enabled: true
     adapter: mock
-  alarms:
-    enabled: true
-    adapter: local
 ```
 
 The final format can be JSON, YAML, TOML, or TypeScript config. The configured
@@ -351,7 +355,9 @@ text runtime currently uses JSON with `intent.provider`, optional
 `intent.openai` settings, `conversation.provider`, optional
 `conversation.openai` settings, `responseRewriter.provider`, optional
 `responseRewriter.openai` settings, `voice` adapter IDs, optional
-`desktopVoice` command settings, and per-feature `adapter` IDs. Deterministic
+`desktopVoice` command settings, and per-feature `adapter` IDs. Alarm storage
+may remain in memory with `adapter: local` or persist to the configured JSON
+file with `adapter: file` and `state.path`. Deterministic
 behavior is one selected intent provider, not a separate runtime identity. The
 important rule is that provider, conversation, response rewriting, voice, and
 feature selection must be

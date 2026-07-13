@@ -59,18 +59,19 @@ Implemented today:
   unused-code, typecheck, test, and binary validation scripts.
 
 See the [implementation roadmap](docs/06-implementation-roadmap.md) for
-milestones, completed work, and planned persistent-state, Raspberry Pi
-operations, and additional provider work.
+milestones, completed work, and planned state-lifecycle, Raspberry Pi operations,
+and additional provider work.
 
 Current roadmap position:
 
-- Milestones 1 through 5.4 are implemented in the repository, including the
+- Milestones 1 through 5.4 and 6.1 are implemented in the repository, including the
   deterministic text assistant, safety pipeline, harness hardening, tooling,
   mock and desktop voice runtimes, OpenAI intent routing, Google Calendar
   search, the neutral service runtime, the Raspberry Pi service command, opt-in
-  Raspberry Pi OS QEMU smoke support, and desktop voice service activation.
-- The next planned product milestone is persistent local assistant state,
-  starting with a file-backed alarm store behind the existing `AlarmStore` port.
+  Raspberry Pi OS QEMU smoke support, desktop voice service activation, and a
+  JSON-file-backed alarm store.
+- The next planned product milestone hardens state path resolution and lifecycle
+  behavior consistently across text, desktop voice, and Pi service runtimes.
 - Raspberry Pi `systemd` installation notes and additional real providers are
   planned follow-up milestones, not part of the default deterministic validation
   gate.
@@ -303,6 +304,28 @@ Run the CLI with a local Google Calendar feature config:
 ```bash
 npm run cli -- ask --config path/to/google-calendar-config.json "Hey Jarvis, what upcoming events do I have?"
 ```
+
+Persist alarms by selecting the file adapter in a local config. The checked-in
+default continues to use the deterministic in-memory adapter.
+
+```json
+{
+  "features": {
+    "alarms": {
+      "enabled": true,
+      "adapter": "file",
+      "state": {
+        "path": "/var/lib/personal-ai/alarms.json"
+      },
+      "confirmationRequiredCapabilities": ["alarm.create"]
+    }
+  }
+}
+```
+
+The file store creates a missing state file on the first successful alarm
+write. Existing malformed or unsupported state fails safely: human-facing
+responses remain generic while runtime diagnostics retain the underlying cause.
 
 ## Scripts
 
