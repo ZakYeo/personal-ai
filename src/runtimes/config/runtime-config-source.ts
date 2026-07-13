@@ -1,6 +1,7 @@
 import { loadConfigWithSource } from "./config.js";
 import type { LoadedConfigSource, LoadedRuntimeConfig } from "./config.js";
 import type { FeatureAdapterRegistry } from "../feature-adapter-registry.js";
+import { isAbsolute } from "node:path";
 
 export type RuntimeConfigSource =
   | LoadedConfigSource
@@ -37,17 +38,30 @@ export function resolveConfiguredRuntimeConfigSource(
   });
 }
 
-export function resolveRuntimeConfigSource(
+export async function resolveRuntimeConfigSource(
   options: ResolveRuntimeConfigSourceOptions,
 ): Promise<RuntimeConfigSource> {
   if (!options.config) {
-    return options.load();
+    return validateRuntimeConfigSource(await options.load());
   }
 
-  return Promise.resolve({
+  return validateRuntimeConfigSource({
     config: options.config,
     ...(options.configDirectory
       ? { configDirectory: options.configDirectory }
       : {}),
   });
+}
+
+function validateRuntimeConfigSource(
+  source: RuntimeConfigSource,
+): RuntimeConfigSource {
+  if (
+    source.configDirectory !== undefined &&
+    !isAbsolute(source.configDirectory)
+  ) {
+    throw new Error("Runtime config directory must be absolute.");
+  }
+
+  return source;
 }

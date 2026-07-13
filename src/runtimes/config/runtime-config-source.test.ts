@@ -28,4 +28,26 @@ describe("resolveRuntimeConfigSource", () => {
       resolveRuntimeConfigSource({ load: () => Promise.resolve(loaded) }),
     ).resolves.toBe(loaded);
   });
+
+  it("rejects a relative injected config directory", async () => {
+    await expect(
+      resolveRuntimeConfigSource({
+        config: enabledDeterministicConfig,
+        configDirectory: "config",
+        load: vi.fn(),
+      }),
+    ).rejects.toThrow("Runtime config directory must be absolute.");
+  });
+
+  it("rejects a relative directory returned by a config loader", async () => {
+    await expect(
+      resolveRuntimeConfigSource({
+        load: () =>
+          Promise.resolve({
+            config: enabledDeterministicConfig,
+            configDirectory: "config",
+          }),
+      }),
+    ).rejects.toThrow("Runtime config directory must be absolute.");
+  });
 });
