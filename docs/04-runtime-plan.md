@@ -388,8 +388,9 @@ within one adapter instance and reread current state, while cross-process locks,
 background alarm delivery, and state cleanup are outside this milestone.
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
-writing state, then lists a durably seeded alarm before and after rebuilding the
-runtime. It is deliberately excluded from `npm run check`.
+writing state, resumes the validated command after an explicit yes, asserts the
+OpenAI-derived label and delay in durable state, then lists the alarm before and
+after rebuilding the runtime. It is deliberately excluded from `npm run check`.
 Development CLI runs load `.env` when present through Node's
 `--env-file-if-exists` support, so local provider credentials can be supplied
 without prefixing each `npm run cli` invocation.

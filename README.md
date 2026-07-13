@@ -281,8 +281,9 @@ npm run test:e2e:openai
 ```
 
 This command is opt-in, calls the live OpenAI Responses API, covers routing for
-the currently enabled feature capabilities plus safe persistent-alarm creation,
-listing, and restart behavior, uses `gpt-5.4-nano`, and may consume API quota.
+the currently enabled feature capabilities plus confirmed persistent-alarm
+creation through the configured assistant, listing, and restart behavior, uses
+`gpt-5.4-nano`, and may consume API quota.
 Run `npm run test:e2e:openai:alarms` for only the persistent-alarm smoke. These
 tests are not part of `npm run check`; normal validation remains deterministic
 and network-free.

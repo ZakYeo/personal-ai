@@ -17,6 +17,7 @@
 - Keep shared human-boundary fallback and diagnostic policy in the runtimes-owned helper instead of duplicating it across CLI, voice, or service loops.
 - Human-boundary diagnostic logging must handle every category emitted through `AssistantOutcome`, including conversation and response-rewriter failures; do not filter diagnostics down to feature failures.
 - High-risk capabilities should fail closed: mark them as requiring confirmation by default unless a documented, tested exception justifies otherwise.
+- Keep one process-local pending confirmation per assistant instance; an explicit yes resumes the already validated command without reinterpreting it, an explicit no discards it, and other input keeps the confirmation prompt active.
 - Shared runtime control-loop behavior, result metadata, and fallback semantics should live in neutral runtime-owned modules, not in one runtime-specific module imported by another.
 - Keep adapter/config selection policy canonical. Do not duplicate missing-config, adapter-ID lookup, or unregistered-adapter handling across registries when one shared runtime helper can own it.
 - Use the configless runtime-provider entry helper for deterministic or disabled providers; do not add fake parsers or `void` config parameters when no provider config exists.

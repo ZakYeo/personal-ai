@@ -87,6 +87,9 @@ Acceptance criteria:
 - Capabilities can declare risk and confirmation requirements.
 - Configuration can require confirmation for selected capabilities.
 - Confirmation-required commands stop before side effects and ask for yes/no confirmation.
+- An explicit yes on the next serialized assistant turn executes the already
+  validated pending command without another provider interpretation; an
+  explicit no discards it.
 - Expected error categories are mapped to graceful assistant responses.
 - Unexpected errors and feature failure causes are preserved for diagnostics and logged at runtime boundaries without exposing raw details in assistant responses.
 - Adding a new feature requires feature-local code plus registration, without core changes.

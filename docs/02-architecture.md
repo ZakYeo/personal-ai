@@ -83,6 +83,8 @@ The core coordinates assistant behavior:
 - Routes general conversation turns to the configured conversation responder.
 - Chooses or invokes feature plugins.
 - Applies validation and confirmation rules.
+- Retains at most one process-local validated command while awaiting an explicit
+  yes or no, and serializes turns that inspect or change that pending state.
 - Produces structured assistant responses.
 
 The core must not know whether input came from a microphone, CLI, test fixture, HTTP request, or Raspberry Pi device.

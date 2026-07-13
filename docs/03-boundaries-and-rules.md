@@ -116,6 +116,10 @@ Development or test fixtures may exercise an unconfirmed high-risk path only
 when the fixture name and test expectation make that override obvious. Production
 or user-facing default configuration should not depend on remembering to list
 every high-risk capability in `confirmationRequiredCapabilities`.
+After a confirmation prompt, the assistant must not send the next input back to
+the intent provider. An explicit yes executes the already decoded command, an
+explicit no discards it, and unrelated input leaves it pending. Pending
+confirmation state is process-local and is discarded on restart.
 
 ## Shared Runtime Ownership
 
