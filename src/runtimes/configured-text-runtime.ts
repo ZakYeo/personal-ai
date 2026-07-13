@@ -1,7 +1,10 @@
 import { createAssistant } from "../core/assistant/index.js";
 import type { Assistant } from "../core/assistant/index.js";
 import type { ClockPort } from "../ports/assistant.js";
-import { loadConfig, type LoadedRuntimeConfig } from "./config/config.js";
+import {
+  loadConfigWithSource,
+  type LoadedRuntimeConfig,
+} from "./config/config.js";
 import { toAssistantPolicyConfig } from "./config/assistant-policy-config.js";
 import { createConfiguredConversation } from "./conversation-provider-selection.js";
 import { createConfiguredFeatureSelection } from "./feature-adapter-selection.js";
@@ -11,6 +14,7 @@ import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
 
 export interface ConfiguredTextRuntimeOptions {
   config?: LoadedRuntimeConfig;
+  configDirectory?: string;
   configPath?: string;
   env?: Record<string, string | undefined>;
   fetch?: typeof fetch;
@@ -21,19 +25,28 @@ export interface ConfiguredTextRuntimeOptions {
 export async function createConfiguredTextRuntime(
   options: ConfiguredTextRuntimeOptions = {},
 ): Promise<Assistant> {
-  const config =
-    options.config ??
-    (await loadConfig({
-      ...(options.configPath ? { configPath: options.configPath } : {}),
-      ...(options.featureAdapterRegistry
-        ? { featureAdapterRegistry: options.featureAdapterRegistry }
-        : {}),
-    }));
+  const configSource = options.config
+    ? {
+        config: options.config,
+        ...(options.configDirectory
+          ? { configDirectory: options.configDirectory }
+          : {}),
+      }
+    : await loadConfigWithSource({
+        ...(options.configPath ? { configPath: options.configPath } : {}),
+        ...(options.featureAdapterRegistry
+          ? { featureAdapterRegistry: options.featureAdapterRegistry }
+          : {}),
+      });
+  const { config } = configSource;
   const clock = createClock(options.now);
   const env = options.env ?? process.env;
   const fetch = options.fetch ?? globalThis.fetch;
   const featureSelection = createConfiguredFeatureSelection(config, {
     dependencies: {
+      ...(configSource.configDirectory
+        ? { configDirectory: configSource.configDirectory }
+        : {}),
       env,
       fetch,
     },

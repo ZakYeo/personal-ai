@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { isRecord } from "./config-parse-utils.js";
 import { parseDesktopVoiceConfig } from "./desktop-voice-config.js";
 import { parseConversationConfig } from "./conversation-config.js";
@@ -25,13 +26,18 @@ const defaultConfigPath = fileURLToPath(
   new URL("../../../config/default.json", import.meta.url),
 );
 
-interface LoadConfigOptions {
+export interface LoadConfigOptions {
   configPath?: string;
   featureAdapterRegistry?: FeatureAdapterRegistry;
   desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
   intentProviderRegistry?: IntentProviderRegistry;
   conversationProviderRegistry?: ConversationProviderRegistry;
   responseRewriterProviderRegistry?: ResponseRewriterProviderRegistry;
+}
+
+export interface LoadedConfigSource {
+  config: LoadedRuntimeConfig;
+  configDirectory: string;
 }
 
 interface ParseAssistantConfigOptions {
@@ -45,10 +51,19 @@ interface ParseAssistantConfigOptions {
 export async function loadConfig(
   options: LoadConfigOptions = {},
 ): Promise<LoadedRuntimeConfig> {
-  const configPath = options.configPath ?? defaultConfigPath;
+  return (await loadConfigWithSource(options)).config;
+}
+
+export async function loadConfigWithSource(
+  options: LoadConfigOptions = {},
+): Promise<LoadedConfigSource> {
+  const configPath = resolve(options.configPath ?? defaultConfigPath);
   const rawConfig = await readFile(configPath, "utf8");
 
-  return parseAssistantConfig(JSON.parse(rawConfig), options);
+  return {
+    config: parseAssistantConfig(JSON.parse(rawConfig), options),
+    configDirectory: dirname(configPath),
+  };
 }
 
 export function parseAssistantConfig(

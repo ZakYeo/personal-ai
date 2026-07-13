@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
@@ -132,6 +132,56 @@ describe("alarm feature adapters", () => {
       throw new TypeError("Expected a configured alarm store failure.");
     }
     expect(storeError.cause).toBe(stateFailure);
+  });
+
+  it("resolves relative state paths from the loaded config directory", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-config-"));
+    const configPath = join(directory, "config.json");
+    const statePath = join(directory, "state", "alarms.json");
+    await mkdir(join(directory, "state"));
+    await writeFile(
+      statePath,
+      JSON.stringify({
+        alarms: [
+          {
+            id: "relative-alarm",
+            label: "tea",
+            scheduledFor: "2026-07-13T17:00:00.000Z",
+          },
+        ],
+        version: 1,
+      }),
+    );
+    await writeFile(
+      configPath,
+      JSON.stringify(
+        rawAlarmConfig({
+          adapter: "file",
+          enabled: true,
+          state: { path: "state/alarms.json" },
+        }),
+      ),
+    );
+
+    const assistant = await createConfiguredTextRuntime({ configPath });
+
+    const response = await assistant.handleText("Hey Jarvis, list my alarms");
+
+    expect(response.text).toContain("relative-alarm");
+  });
+
+  it("rejects relative state paths for parsed config without a config directory", async () => {
+    const config = createLoadedRuntimeConfig({
+      alarms: {
+        adapter: "file",
+        enabled: true,
+        state: { path: "state/alarms.json" },
+      },
+    });
+
+    await expect(createConfiguredTextRuntime({ config })).rejects.toThrow(
+      "Relative local state paths require a config directory.",
+    );
   });
 });
 

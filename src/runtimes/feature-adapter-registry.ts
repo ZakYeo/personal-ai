@@ -1,6 +1,7 @@
 import type { FeaturePlugin } from "../ports/feature.js";
 
 export interface FeatureAdapterDependencies {
+  configDirectory?: string;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
 }
