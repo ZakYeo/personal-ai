@@ -1,5 +1,6 @@
 import {
   type RunCommandRequest,
+  isCommandDiagnosticError,
   startCommandProcess,
   toError,
 } from "./command-process.js";
@@ -60,6 +61,10 @@ export async function runCommandWritableStream(
 
     await commandProcess.waitForSuccess();
   } catch (error) {
+    if (isCommandDiagnosticError(error)) {
+      throw error;
+    }
+
     await commandProcess.terminateInputFailure(toError(error));
   }
 }

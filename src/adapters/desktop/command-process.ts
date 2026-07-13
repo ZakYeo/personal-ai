@@ -76,6 +76,23 @@ export class CommandSpawnError extends Error {
   }
 }
 
+export function isCommandDiagnosticError(
+  error: unknown,
+): error is
+  | CommandAbortError
+  | CommandExecutionError
+  | CommandInputError
+  | CommandSpawnError
+  | CommandTimeoutError {
+  return (
+    error instanceof CommandAbortError ||
+    error instanceof CommandExecutionError ||
+    error instanceof CommandInputError ||
+    error instanceof CommandSpawnError ||
+    error instanceof CommandTimeoutError
+  );
+}
+
 class CommandTerminationError extends Error {
   constructor(
     message: string,

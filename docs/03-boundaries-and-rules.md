@@ -253,7 +253,9 @@ failure instead of replacing it. Failed process-group signals fall back to direc
 post-`SIGKILL` close wait is also bounded so cleanup cannot wait forever.
 Streaming command input awaits writable callbacks before requesting the next
 chunk. Writable errors, including early pipe closure, settle through the same
-command lifecycle and retain final stdout/stderr diagnostics.
+command lifecycle and retain final stdout/stderr diagnostics. Once the command
+lifecycle has classified a timeout, abort, spawn, or exit failure, stream
+wrappers preserve that primary error type instead of reclassifying it as input.
 
 Assistant diagnostic emission is an exhaustive policy over the public
 `AssistantDiagnosticCategory` contract. Internal feature, conversation,

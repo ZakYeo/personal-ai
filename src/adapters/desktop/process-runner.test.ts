@@ -370,6 +370,35 @@ describe("runCommandWritableStream", () => {
       stderr: "playback failed",
     } satisfies Partial<CommandInputError>);
   });
+
+  it("preserves command abort classification after stdin finishes", async () => {
+    const controller = new AbortController();
+    const reason = new Error("service shutdown requested");
+    const result = runCommandWritableStream(
+      {
+        args: [
+          "-c",
+          "cat >/dev/null; printf 'playback diagnostic' >&2; sleep 1",
+        ],
+        command: "/bin/sh",
+        signal: controller.signal,
+        timeoutMs: 1_000,
+      },
+      (async function* () {
+        await Promise.resolve();
+        yield Buffer.from("audio", "utf8");
+      })(),
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    controller.abort(reason);
+
+    await expect(result).rejects.toMatchObject({
+      name: "CommandAbortError",
+      reason,
+      stderr: "playback diagnostic",
+    } satisfies Partial<CommandAbortError>);
+  });
 });
 
 async function* createFailingInputChunks(
