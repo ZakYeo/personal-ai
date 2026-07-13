@@ -526,6 +526,9 @@ graceful shutdown before unregistering. Shutdown signals also abort the active
 service turn so long-running command-backed wake activation, capture, or
 transcription input can terminate promptly instead of waiting for a wake phrase
 or command timeout.
+Retry callbacks receive the same shutdown signal and are settled against it, so
+a pending backoff cannot delay shutdown hooks or signal-handler removal. A
+later retry rejection is consumed after shutdown has already won settlement.
 Once assistant startup succeeds, shutdown hooks run from lifecycle cleanup for
 normal stops and fatal turn or retry failures alike. Signal handlers are still
 removed best-effort in the outer `finally`; one removal failure is logged

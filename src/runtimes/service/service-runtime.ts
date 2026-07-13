@@ -33,6 +33,7 @@ export interface ServiceTurnFailureContext {
   failures: number;
   now(): Date;
   requestShutdown(reason?: string): void;
+  shutdownSignal: AbortSignal;
 }
 
 export interface ServiceRuntimeOptions {
@@ -111,6 +112,7 @@ export async function runServiceRuntime(
           requestShutdown: (reason) => {
             state.requestShutdown(reason);
           },
+          shutdownSignal: state.shutdownSignal,
         });
       }
     }
@@ -232,7 +234,44 @@ async function retryAfterTurnFailure(
       sleep: options.sleep ?? sleepWithTimeout,
     });
 
-  await retryAfterFailure(context);
+  await runRetryUntilShutdown(() => retryAfterFailure(context), context);
+}
+
+function runRetryUntilShutdown(
+  retry: () => Promise<void>,
+  context: ServiceTurnFailureContext,
+): Promise<void> {
+  if (context.shutdownSignal.aborted) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const settle = (complete: () => void): void => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      context.shutdownSignal.removeEventListener("abort", onAbort);
+      complete();
+    };
+    const onAbort = (): void => {
+      settle(resolve);
+    };
+
+    context.shutdownSignal.addEventListener("abort", onAbort, { once: true });
+    void retry().then(
+      () => {
+        settle(resolve);
+      },
+      (error: unknown) => {
+        settle(() =>
+          reject(error instanceof Error ? error : new Error(String(error))),
+        );
+      },
+    );
+  });
 }
 
 function createFixedDelayRetryAfterFailure(options: {

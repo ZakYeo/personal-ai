@@ -252,4 +252,37 @@ describe("runServiceRuntime", () => {
     expect(retryAfterFailure).not.toHaveBeenCalled();
     expect(harness.stderr.writes).toEqual([]);
   });
+
+  it("aborts a pending retry when shutdown is requested", async () => {
+    const signals = createServiceSignalController();
+    const shutdownHook = vi.fn().mockResolvedValue(undefined);
+    let retryStarted = (): void => {};
+    const retryIsRunning = new Promise<void>((resolve) => {
+      retryStarted = resolve;
+    });
+    const retryAfterFailure = vi.fn(
+      () =>
+        new Promise<void>(() => {
+          retryStarted();
+        }),
+    );
+    const harness = createServiceRuntimeHarness({
+      processSignals: signals,
+      retryAfterFailure,
+      runTurn: vi.fn().mockRejectedValue(new Error("raw turn failure")),
+      shutdownHooks: [shutdownHook],
+    });
+    const runtime = harness.run();
+
+    await retryIsRunning;
+    signals.emit("SIGTERM");
+
+    await expect(runtime).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 0,
+    });
+    expect(shutdownHook).toHaveBeenCalledOnce();
+    expect(signals.listenerCount("SIGINT")).toBe(0);
+    expect(signals.listenerCount("SIGTERM")).toBe(0);
+  });
 });

@@ -69,6 +69,7 @@
 - Treat cleanup as best-effort runtime resource release unless a stricter lifecycle guarantee is documented and tested; cleanup diagnostics should not accidentally change shared turn/retry semantics.
 - Service signal handler removal is best-effort in normal cleanup and partial-registration rollback: log each failure, continue remaining callbacks, and preserve the primary result or error.
 - Service shutdown hooks must run after every post-start exit, including fatal turn or retry failures; startup failures before assistant creation do not run post-start hooks.
+- Service retry waits must receive and settle against the active shutdown signal so backoff callbacks cannot delay shutdown hooks or signal-handler removal.
 - Raspberry Pi service runtime should compose the neutral service loop, configured assistant, local wake activation, streaming voice adapters, and command-based fallback voice adapters; keep Pi-specific commands in local config and clean up temp voice files after each turn.
 - Runtime clock injection should remain a live clock (`now: () => Date` or `ClockPort`) for long-running composition; use fixed `Date` values only for intentionally frozen deterministic tests.
 - Command-based adapters should execute `command` plus `args[]`, not shell-concatenated command strings, and should enforce timeouts while preserving captured stdout/stderr diagnostics internally for spawn failures, non-zero exits, and timeout failures.
