@@ -1,16 +1,14 @@
 import { createAssistant } from "../core/assistant/index.js";
 import type { Assistant } from "../core/assistant/index.js";
 import type { ClockPort } from "../ports/assistant.js";
-import {
-  loadConfigWithSource,
-  type LoadedRuntimeConfig,
-} from "./config/config.js";
+import type { LoadedRuntimeConfig } from "./config/config.js";
 import { toAssistantPolicyConfig } from "./config/assistant-policy-config.js";
 import { createConfiguredConversation } from "./conversation-provider-selection.js";
 import { createConfiguredFeatureSelection } from "./feature-adapter-selection.js";
 import { createConfiguredIntentInterpreter } from "./intent-provider-selection.js";
 import { createConfiguredResponseRewriter } from "./response-rewriter-selection.js";
 import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
+import { resolveConfiguredRuntimeConfigSource } from "./config/runtime-config-source.js";
 
 export interface ConfiguredTextRuntimeOptions {
   config?: LoadedRuntimeConfig;
@@ -25,19 +23,7 @@ export interface ConfiguredTextRuntimeOptions {
 export async function createConfiguredTextRuntime(
   options: ConfiguredTextRuntimeOptions = {},
 ): Promise<Assistant> {
-  const configSource = options.config
-    ? {
-        config: options.config,
-        ...(options.configDirectory
-          ? { configDirectory: options.configDirectory }
-          : {}),
-      }
-    : await loadConfigWithSource({
-        ...(options.configPath ? { configPath: options.configPath } : {}),
-        ...(options.featureAdapterRegistry
-          ? { featureAdapterRegistry: options.featureAdapterRegistry }
-          : {}),
-      });
+  const configSource = await resolveConfiguredRuntimeConfigSource(options);
   const { config } = configSource;
   const clock = createClock(options.now);
   const env = options.env ?? process.env;

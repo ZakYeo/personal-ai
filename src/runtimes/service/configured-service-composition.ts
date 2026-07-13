@@ -5,9 +5,12 @@ import {
 } from "../configured-text-runtime.js";
 import {
   loadConfigWithSource,
-  type LoadedConfigSource,
   type LoadedRuntimeConfig,
 } from "../config/config.js";
+import {
+  resolveRuntimeConfigSource,
+  type RuntimeConfigSource,
+} from "../config/runtime-config-source.js";
 import {
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
@@ -94,10 +97,7 @@ async function createConfiguredServiceStartup(
   await validateConfig(config);
 
   const assistant = await createConfiguredTextRuntime({
-    config,
-    ...(configSource.configDirectory
-      ? { configDirectory: configSource.configDirectory }
-      : {}),
+    ...configSource,
     ...(options.env ? { env: options.env } : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(options.now ? { now: options.now } : {}),
@@ -108,32 +108,24 @@ async function createConfiguredServiceStartup(
 
 function loadServiceConfig(
   options: ConfiguredServiceCompositionOptions,
-): Promise<
-  | LoadedConfigSource
-  | {
-      config: LoadedRuntimeConfig;
-      configDirectory?: string;
-    }
-> {
-  if (options.config) {
-    return Promise.resolve({
-      config: options.config,
-      ...(options.configDirectory
-        ? { configDirectory: options.configDirectory }
-        : {}),
-    });
-  }
-
-  return loadConfigWithSource({
-    ...(options.configPath ? { configPath: options.configPath } : {}),
-    ...(options.desktopVoiceProviderAdapterRegistry
-      ? {
-          desktopVoiceProviderAdapterRegistry:
-            options.desktopVoiceProviderAdapterRegistry,
-        }
+): Promise<RuntimeConfigSource> {
+  return resolveRuntimeConfigSource({
+    ...(options.config ? { config: options.config } : {}),
+    ...(options.configDirectory
+      ? { configDirectory: options.configDirectory }
       : {}),
-    ...(options.featureAdapterRegistry
-      ? { featureAdapterRegistry: options.featureAdapterRegistry }
-      : {}),
+    load: () =>
+      loadConfigWithSource({
+        ...(options.configPath ? { configPath: options.configPath } : {}),
+        ...(options.desktopVoiceProviderAdapterRegistry
+          ? {
+              desktopVoiceProviderAdapterRegistry:
+                options.desktopVoiceProviderAdapterRegistry,
+            }
+          : {}),
+        ...(options.featureAdapterRegistry
+          ? { featureAdapterRegistry: options.featureAdapterRegistry }
+          : {}),
+      }),
   });
 }
