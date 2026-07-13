@@ -1,14 +1,19 @@
 import type { AssistantCommandParameters } from "./assistant.js";
-import type { FeaturePlugin } from "./feature.js";
+import type { FeatureExecutionRequest, FeaturePlugin } from "./feature.js";
 
 export type DeterministicCapabilityRule = (
   normalizedText: string,
 ) => AssistantCommandParameters | undefined;
 
-export interface DeterministicFeatureRule {
-  capability: string;
+export interface DeterministicFeatureRule<TCapability extends string = string> {
+  capability: TCapability;
   match: DeterministicCapabilityRule;
 }
+
+type FeatureCapabilityName<TFeature extends FeaturePlugin> =
+  TFeature extends FeaturePlugin<infer TRequest extends FeatureExecutionRequest>
+    ? TRequest["capability"]
+    : never;
 
 interface FeaturePluginWithDeterministicRules extends FeaturePlugin {
   deterministicIntentRules: DeterministicFeatureRule[];
@@ -16,9 +21,13 @@ interface FeaturePluginWithDeterministicRules extends FeaturePlugin {
 
 export function defineDeterministicFeatureRules<TFeature extends FeaturePlugin>(
   feature: TFeature,
-  deterministicIntentRules: DeterministicFeatureRule[],
+  deterministicIntentRules: readonly DeterministicFeatureRule<
+    FeatureCapabilityName<TFeature>
+  >[],
 ): TFeature & FeaturePluginWithDeterministicRules {
-  return Object.assign(feature, { deterministicIntentRules });
+  return Object.assign(feature, {
+    deterministicIntentRules: [...deterministicIntentRules],
+  });
 }
 
 export function getDeterministicFeatureRules(

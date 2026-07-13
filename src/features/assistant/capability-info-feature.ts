@@ -22,7 +22,7 @@ type CapabilityDescribeArgs = FeatureArgsFromParameters<
   typeof capabilityDescribeParameters
 >;
 
-const capabilityInfoDeterministicRules: DeterministicFeatureRule[] = [
+const capabilityInfoDeterministicRules = [
   {
     capability: "assistant.capabilities.list",
     match: (text) =>
@@ -42,7 +42,7 @@ const capabilityInfoDeterministicRules: DeterministicFeatureRule[] = [
       return name ? { name } : undefined;
     },
   },
-];
+] as const satisfies readonly DeterministicFeatureRule[];
 
 export function createCapabilityInfoFeature(
   catalog: CapabilityCatalog,

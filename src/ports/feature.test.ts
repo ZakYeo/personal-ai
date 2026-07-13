@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { defineCapability, defineFeature } from "./feature.js";
 import type { AssistantContext } from "./assistant.js";
 import type { FeatureExecutionRequest, FeaturePlugin } from "./feature.js";
+import { defineDeterministicFeatureRules } from "./deterministic-feature-rules.js";
 
 const context: AssistantContext = {
   clock: {
@@ -21,6 +22,30 @@ const context: AssistantContext = {
 };
 
 describe("defineFeature", () => {
+  it("ties deterministic rules to declared feature capabilities", () => {
+    const feature = defineFeature({
+      id: "test",
+      displayName: "Test",
+      capabilities: {
+        "test.echo": defineCapability({
+          risk: "low",
+          parameters: {},
+          execute: () => ({ text: "echo" }),
+        }),
+      },
+    });
+
+    defineDeterministicFeatureRules(feature, [
+      {
+        // @ts-expect-error deterministic rules must name a declared capability.
+        capability: "test.missing",
+        match: () => ({}),
+      },
+    ]);
+
+    expect(feature.capabilities[0]?.name).toBe("test.echo");
+  });
+
   it("derives handler argument types from capability parameters", async () => {
     const feature = defineFeature({
       id: "test",

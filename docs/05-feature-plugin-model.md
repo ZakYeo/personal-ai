@@ -160,6 +160,8 @@ When deterministic matching grows, express rules as data tied to declared
 capability names, or keep feature-specific deterministic fixtures near the
 feature contract tests, so adding a feature does not require editing unrelated
 shared interpreter control flow.
+The deterministic rule helper derives its allowed keys from the decorated
+feature's execution contract, so an undeclared capability is a compile error.
 The review bar for deterministic routing is the same as the production routing
 bar: adding a capability should primarily add capability-owned metadata or
 rules, not another condition in a shared interpreter. Central deterministic

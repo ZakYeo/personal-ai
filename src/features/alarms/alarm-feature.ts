@@ -21,7 +21,7 @@ const alarmListParameters = {} as const satisfies FeatureCapabilityParameters;
 
 type AlarmCreateArgs = FeatureArgsFromParameters<typeof alarmCreateParameters>;
 
-const alarmDeterministicIntentRules: DeterministicFeatureRule[] = [
+const alarmDeterministicIntentRules = [
   {
     capability: "alarm.create",
     match: (text) => {
@@ -49,7 +49,7 @@ const alarmDeterministicIntentRules: DeterministicFeatureRule[] = [
         ? {}
         : undefined,
   },
-];
+] as const satisfies readonly DeterministicFeatureRule[];
 
 export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
   return defineDeterministicFeatureRules(

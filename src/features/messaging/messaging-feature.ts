@@ -18,7 +18,7 @@ type MessagingDraftReplyArgs = FeatureArgsFromParameters<
   typeof messagingDraftReplyParameters
 >;
 
-const messagingDeterministicIntentRules: DeterministicFeatureRule[] = [
+const messagingDeterministicIntentRules = [
   {
     capability: "messaging.draft_reply",
     match: (text) =>
@@ -29,7 +29,7 @@ const messagingDeterministicIntentRules: DeterministicFeatureRule[] = [
         ? { channel: "whatsapp" }
         : undefined,
   },
-];
+] as const satisfies readonly DeterministicFeatureRule[];
 
 export function createMessagingFeature(): FeaturePlugin {
   return defineDeterministicFeatureRules(

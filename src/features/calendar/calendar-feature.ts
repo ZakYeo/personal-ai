@@ -24,7 +24,7 @@ interface CalendarFeatureOptions {
   upcomingWindowDays?: number;
 }
 
-const calendarDeterministicIntentRules: DeterministicFeatureRule[] = [
+const calendarDeterministicIntentRules = [
   {
     capability: "calendar.search_events",
     match: (text) =>
@@ -41,7 +41,7 @@ const calendarDeterministicIntentRules: DeterministicFeatureRule[] = [
         ? {}
         : undefined,
   },
-];
+] as const satisfies readonly DeterministicFeatureRule[];
 
 export function createCalendarFeature(
   calendar: CalendarSearchPort,
