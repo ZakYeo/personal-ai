@@ -5,6 +5,7 @@ import type { VoiceTempFilePort } from "../../ports/voice.js";
 import {
   createDesktopVoiceSlotAdapter,
   desktopVoiceSlotTopology,
+  resolveDesktopVoiceProviderSlot,
   resolveDesktopVoiceSlotConfig,
 } from "./desktop-voice-slot-topology.js";
 import { createNodeVoiceTempFiles } from "./voice-temp-files.js";
@@ -64,14 +65,10 @@ export function resolveDesktopVoiceAdapterConfig(
               desktopVoiceSlotTopology.streamingAudioInput,
               config,
             ),
-            transcription: resolveDesktopVoiceSlotProvider(
+            transcription: resolveDesktopVoiceProviderSlot(
               voice,
-              "openai-realtime",
-              resolveDesktopVoiceSlotConfig(
-                voice,
-                desktopVoiceSlotTopology.streamingSpeechToText,
-                config,
-              ),
+              desktopVoiceSlotTopology.streamingSpeechToText,
+              config,
             ),
           },
         }
@@ -84,14 +81,10 @@ export function resolveDesktopVoiceAdapterConfig(
               desktopVoiceSlotTopology.streamingAudioOutput,
               config,
             ),
-            speech: resolveDesktopVoiceSlotProvider(
+            speech: resolveDesktopVoiceProviderSlot(
               voice,
-              "openai-streaming",
-              resolveDesktopVoiceSlotConfig(
-                voice,
-                desktopVoiceSlotTopology.streamingTextToSpeech,
-                config,
-              ),
+              desktopVoiceSlotTopology.streamingTextToSpeech,
+              config,
             ),
           },
         }
@@ -175,12 +168,8 @@ function createDesktopVoiceAdaptersWithTempFiles(
             desktopVoice.streamingSpeechToText.audioInput,
             context,
           ),
-          streamingSpeechToText: createDesktopVoiceSlotAdapter(
-            voice,
-            desktopVoiceSlotTopology.streamingSpeechToText,
-            desktopVoice.streamingSpeechToText.transcription.config,
-            context,
-          ),
+          streamingSpeechToText:
+            desktopVoice.streamingSpeechToText.transcription.create(context),
         }
       : {}),
     ...(desktopVoice.streamingTextToSpeech
@@ -191,12 +180,8 @@ function createDesktopVoiceAdaptersWithTempFiles(
             desktopVoice.streamingTextToSpeech.audioOutput,
             context,
           ),
-          streamingTextToSpeech: createDesktopVoiceSlotAdapter(
-            voice,
-            desktopVoiceSlotTopology.streamingTextToSpeech,
-            desktopVoice.streamingTextToSpeech.speech.config,
-            context,
-          ),
+          streamingTextToSpeech:
+            desktopVoice.streamingTextToSpeech.speech.create(context),
         }
       : {}),
     textToSpeech: createDesktopVoiceSlotAdapter(
@@ -266,27 +251,4 @@ function requireStreamingPair(
   throw new Error(
     `Config voice.${firstKey} and voice.${secondKey} must be configured together.`,
   );
-}
-
-function resolveDesktopVoiceSlotProvider<
-  TAdapterId extends "openai-realtime" | "openai-streaming",
-  TConfig,
->(voice: ResolvedVoiceConfig, adapterId: TAdapterId, config: TConfig) {
-  return {
-    adapterId: requireConfiguredProviderId(voice, adapterId),
-    config,
-  };
-}
-
-function requireConfiguredProviderId<
-  TAdapterId extends "openai-realtime" | "openai-streaming",
->(voice: ResolvedVoiceConfig, adapterId: TAdapterId): TAdapterId {
-  if (
-    voice.streamingSpeechToText === adapterId ||
-    voice.streamingTextToSpeech === adapterId
-  ) {
-    return adapterId;
-  }
-
-  throw new Error(`Config voice provider "${adapterId}" is not selected.`);
 }

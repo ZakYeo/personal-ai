@@ -14,13 +14,13 @@ import {
   requireDesktopOpenAIStreamingSpeechConfig,
 } from "../config/desktop-voice-openai-config.js";
 import {
-  defineDesktopVoiceAdapter,
-  type DesktopVoiceAdapterEntry,
+  defineDesktopVoiceProviderAdapter,
+  type DesktopVoiceProviderAdapterEntry,
 } from "./desktop-voice-adapter-types.js";
 
 export const desktopVoiceProviderAdapterEntries = {
   streamingSpeechToText: {
-    "openai-realtime": defineDesktopVoiceAdapter({
+    "openai-realtime": defineDesktopVoiceProviderAdapter({
       create: (config: OpenAIRealtimeTranscriptionConfig, { dependencies }) =>
         new OpenAIRealtimeTranscription({
           config,
@@ -33,7 +33,7 @@ export const desktopVoiceProviderAdapterEntries = {
     }),
   },
   streamingTextToSpeech: {
-    "openai-streaming": defineDesktopVoiceAdapter({
+    "openai-streaming": defineDesktopVoiceProviderAdapter({
       create: (config: OpenAIStreamingSpeechConfig, { dependencies }) =>
         new OpenAIStreamingSpeech({
           config,
@@ -46,16 +46,10 @@ export const desktopVoiceProviderAdapterEntries = {
 } satisfies {
   streamingSpeechToText: Record<
     string,
-    DesktopVoiceAdapterEntry<
-      OpenAIRealtimeTranscriptionConfig,
-      StreamingSpeechToTextPort
-    >
+    DesktopVoiceProviderAdapterEntry<StreamingSpeechToTextPort>
   >;
   streamingTextToSpeech: Record<
     string,
-    DesktopVoiceAdapterEntry<
-      OpenAIStreamingSpeechConfig,
-      StreamingTextToSpeechPort
-    >
+    DesktopVoiceProviderAdapterEntry<StreamingTextToSpeechPort>
   >;
 };

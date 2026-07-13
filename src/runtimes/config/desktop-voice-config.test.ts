@@ -131,37 +131,32 @@ describe("desktop voice config resolvers", () => {
       },
     });
 
-    expect(
-      resolveDesktopVoiceAdapterConfig(requireVoiceConfig(config), config),
-    ).toMatchObject({
+    const resolved = resolveDesktopVoiceAdapterConfig(
+      requireVoiceConfig(config),
+      config,
+    );
+
+    expect(resolved).toMatchObject({
       streamingSpeechToText: {
         audioInput: { command: "fake-stream-rec" },
         transcription: {
           adapterId: "openai-realtime",
-          config: {
-            apiKeyEnv: "OPENAI_API_KEY",
-            baseUrl: "wss://api.openai.com/v1/realtime",
-            model: "gpt-realtime-whisper",
-            timeoutMs: 30_000,
-          },
         },
       },
       streamingTextToSpeech: {
         audioOutput: { command: "fake-stream-play" },
         speech: {
           adapterId: "openai-streaming",
-          config: {
-            apiKeyEnv: "OPENAI_API_KEY",
-            baseUrl: "https://api.openai.com/v1",
-            instructions: "Speak clearly and concisely.",
-            model: "gpt-4o-mini-tts",
-            responseFormat: "pcm",
-            voice: "coral",
-          },
         },
       },
       wakeActivation: { command: "fake-wake" },
     });
+    expect(typeof resolved.streamingSpeechToText?.transcription.create).toBe(
+      "function",
+    );
+    expect(typeof resolved.streamingTextToSpeech?.speech.create).toBe(
+      "function",
+    );
   });
 
   it("rejects missing selected desktop streaming provider config at the config boundary", () => {

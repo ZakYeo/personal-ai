@@ -11,6 +11,20 @@ export function selectConfiguredRuntimeEntry<TEntry>({
   registry,
   unknownMessage,
 }: RuntimeSelectionOptions<TEntry>): TEntry {
+  return selectConfiguredRuntimeEntryWithId({
+    configuredId,
+    missingMessage,
+    registry,
+    unknownMessage,
+  }).entry;
+}
+
+export function selectConfiguredRuntimeEntryWithId<TEntry>({
+  configuredId,
+  missingMessage,
+  registry,
+  unknownMessage,
+}: RuntimeSelectionOptions<TEntry>): { configuredId: string; entry: TEntry } {
   if (!configuredId) {
     throw new Error(missingMessage);
   }
@@ -21,5 +35,5 @@ export function selectConfiguredRuntimeEntry<TEntry>({
     throw new Error(unknownMessage(configuredId));
   }
 
-  return entry;
+  return { configuredId, entry };
 }

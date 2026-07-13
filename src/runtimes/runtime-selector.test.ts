@@ -1,4 +1,7 @@
-import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
+import {
+  selectConfiguredRuntimeEntry,
+  selectConfiguredRuntimeEntryWithId,
+} from "./runtime-selector.js";
 
 describe("selectConfiguredRuntimeEntry", () => {
   it("selects registered entries by configured ID", () => {
@@ -13,6 +16,18 @@ describe("selectConfiguredRuntimeEntry", () => {
           `Config adapter "${adapterId}" is not registered.`,
       }),
     ).toBe("adapter");
+  });
+
+  it("returns the configured ID with the selected entry when requested", () => {
+    expect(
+      selectConfiguredRuntimeEntryWithId({
+        configuredId: "mock",
+        missingMessage: "Config adapter must be configured.",
+        registry: { mock: "adapter" },
+        unknownMessage: (adapterId) =>
+          `Config adapter "${adapterId}" is not registered.`,
+      }),
+    ).toEqual({ configuredId: "mock", entry: "adapter" });
   });
 
   it("rejects missing configured IDs", () => {

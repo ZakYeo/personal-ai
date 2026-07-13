@@ -30,6 +30,8 @@ Implemented today:
 - Focused runtime config resolvers for assistant policy, intent providers,
   conversation providers, response rewriters, voice adapter IDs, and desktop
   voice command settings.
+- Provider-neutral desktop streaming voice selections whose registry entries
+  capture their own typed provider config and constructor.
 - Opt-in OpenAI intent and conversation adapters behind the existing ports.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events

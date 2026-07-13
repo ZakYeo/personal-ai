@@ -85,6 +85,10 @@ Voice response is a best-effort invariant: an exception in command handling shou
 Voice runtimes should keep spoken output semantics separate from text fallback output. CLI callers should depend on explicit runtime result metadata when deciding whether stdout already received fallback text.
 
 Voice adapter selection must be explicit at runtime composition boundaries. A voice runtime may use mock adapters, but it should select them through configured adapter IDs for input, wake word, speech-to-text, text-to-speech, and audio output rather than by constructing implicit defaults.
+Streaming provider slots must keep provider config types inside their registry
+entries. Neutral desktop voice topology resolves an entry and captures its
+typed config/constructor; adding a provider must not widen a shared
+provider-specific union or add adapter-ID branches to aggregate composition.
 Follow-up listening is neutral voice runtime behavior. A voice runtime may
 capture a no-wake reply only when the assistant response explicitly sets
 `expectsFollowUp: true`, and it should return to normal wake listening once a

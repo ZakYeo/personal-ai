@@ -14,10 +14,6 @@ import type {
   WakeWordPort,
 } from "../../ports/voice.js";
 import type { ParsedDesktopVoiceConfig } from "../config/desktop-voice-config.js";
-import type {
-  OpenAIRealtimeTranscriptionConfig,
-  OpenAIStreamingSpeechConfig,
-} from "../config/desktop-voice-openai-types.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 import type { RealtimeSocketFactory } from "../../adapters/openai/openai-realtime-transcription.js";
 
@@ -39,24 +35,19 @@ export interface DesktopVoiceServiceAdapters extends DesktopVoiceAdapters {
   wakeAudioInput: AudioInputPort;
 }
 
-interface ResolvedDesktopRealtimeTranscriptionProviderConfig {
-  adapterId: "openai-realtime";
-  config: OpenAIRealtimeTranscriptionConfig;
-}
-
-interface ResolvedDesktopStreamingSpeechProviderConfig {
-  adapterId: "openai-streaming";
-  config: OpenAIStreamingSpeechConfig;
+export interface ResolvedDesktopVoiceProviderAdapter<TAdapter> {
+  adapterId: string;
+  create(context: DesktopVoiceAdapterContext): TAdapter;
 }
 
 export interface ResolvedDesktopStreamingSpeechToTextConfig {
   audioInput: VoiceCommandConfig;
-  transcription: ResolvedDesktopRealtimeTranscriptionProviderConfig;
+  transcription: ResolvedDesktopVoiceProviderAdapter<StreamingSpeechToTextPort>;
 }
 
 export interface ResolvedDesktopStreamingTextToSpeechConfig {
   audioOutput: VoiceCommandConfig;
-  speech: ResolvedDesktopStreamingSpeechProviderConfig;
+  speech: ResolvedDesktopVoiceProviderAdapter<StreamingTextToSpeechPort>;
 }
 
 export interface ResolvedDesktopVoiceAdapterConfig {
@@ -91,8 +82,24 @@ export interface DesktopVoiceAdapterEntry<TConfig, TAdapter> {
   resolveConfig(config: { desktopVoice?: ParsedDesktopVoiceConfig }): TConfig;
 }
 
+interface DesktopVoiceProviderAdapterDefinition<TConfig, TAdapter> {
+  create(config: TConfig, context: DesktopVoiceAdapterContext): TAdapter;
+  resolveConfig(config: { desktopVoice?: ParsedDesktopVoiceConfig }): TConfig;
+}
+
+export interface DesktopVoiceProviderAdapterEntry<TAdapter> {
+  resolve(config: {
+    desktopVoice?: ParsedDesktopVoiceConfig;
+  }): Omit<ResolvedDesktopVoiceProviderAdapter<TAdapter>, "adapterId">;
+}
+
 export interface DesktopVoiceSlotDescriptor<TConfig, TAdapter> {
   registry: Record<string, DesktopVoiceAdapterEntry<TConfig, TAdapter>>;
+  voiceKey: keyof ResolvedVoiceConfig;
+}
+
+export interface DesktopVoiceProviderSlotDescriptor<TAdapter> {
+  registry: Record<string, DesktopVoiceProviderAdapterEntry<TAdapter>>;
   voiceKey: keyof ResolvedVoiceConfig;
 }
 
@@ -111,14 +118,8 @@ export interface DesktopVoiceSlotTopology {
     VoiceCommandConfig,
     StreamingAudioOutputPort
   >;
-  streamingSpeechToText: DesktopVoiceSlotDescriptor<
-    OpenAIRealtimeTranscriptionConfig,
-    StreamingSpeechToTextPort
-  >;
-  streamingTextToSpeech: DesktopVoiceSlotDescriptor<
-    OpenAIStreamingSpeechConfig,
-    StreamingTextToSpeechPort
-  >;
+  streamingSpeechToText: DesktopVoiceProviderSlotDescriptor<StreamingSpeechToTextPort>;
+  streamingTextToSpeech: DesktopVoiceProviderSlotDescriptor<StreamingTextToSpeechPort>;
   textToSpeech: DesktopVoiceSlotDescriptor<
     VoiceCommandConfig,
     TextToSpeechPort
@@ -134,4 +135,18 @@ export function defineDesktopVoiceAdapter<TConfig, TAdapter>(
   entry: DesktopVoiceAdapterEntry<TConfig, TAdapter>,
 ): DesktopVoiceAdapterEntry<TConfig, TAdapter> {
   return entry;
+}
+
+export function defineDesktopVoiceProviderAdapter<TConfig, TAdapter>(
+  entry: DesktopVoiceProviderAdapterDefinition<TConfig, TAdapter>,
+): DesktopVoiceProviderAdapterEntry<TAdapter> {
+  return {
+    resolve: (config) => {
+      const resolvedConfig = entry.resolveConfig(config);
+
+      return {
+        create: (context) => entry.create(resolvedConfig, context),
+      };
+    },
+  };
 }
