@@ -28,7 +28,7 @@ describe("createGoogleCalendarAdapter", () => {
           {
             id: "event-2",
             summary: "Dinner",
-            start: { dateTime: "2026-09-13T18:30:00Z" },
+            start: { dateTime: "2026-09-13T18:30:45.123+01:00" },
           },
         ],
       }),
@@ -49,6 +49,7 @@ describe("createGoogleCalendarAdapter", () => {
       {
         id: "event-2",
         startDate: "2026-09-13",
+        startTime: "18:30",
         title: "Dinner",
       },
     ]);
@@ -273,6 +274,50 @@ describe("createGoogleCalendarAdapter", () => {
       ),
     ).rejects.toThrow(
       "Google Calendar event start date must be a non-empty string.",
+    );
+  });
+
+  it("rejects malformed timed event starts", async () => {
+    const calendar = createAdapter({
+      fetch: createFetchStub(
+        jsonResponse({
+          items: [
+            {
+              id: "event-1",
+              summary: "Dinner",
+              start: { dateTime: "2026-09-13T25:30:00Z" },
+            },
+          ],
+        }),
+      ),
+    });
+
+    await expect(
+      calendar.searchEvents({}, { now: deterministicTestNow }),
+    ).rejects.toThrow(
+      "Google Calendar event start dateTime must be a valid RFC3339 string.",
+    );
+  });
+
+  it("rejects malformed all-day event starts", async () => {
+    const calendar = createAdapter({
+      fetch: createFetchStub(
+        jsonResponse({
+          items: [
+            {
+              id: "event-1",
+              summary: "Impossible date",
+              start: { date: "2026-02-30" },
+            },
+          ],
+        }),
+      ),
+    });
+
+    await expect(
+      calendar.searchEvents({}, { now: deterministicTestNow }),
+    ).rejects.toThrow(
+      "Google Calendar event start date must be a valid ISO date.",
     );
   });
 
