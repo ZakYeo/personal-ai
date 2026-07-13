@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { basename, dirname, join } from "node:path";
 import type {
@@ -7,13 +7,19 @@ import type {
   NewAlarmRecord,
 } from "../../ports/alarm-store.js";
 import { isRecord } from "../parsing.js";
+import {
+  atomicReplaceFile,
+  type AtomicFileSystem,
+} from "./atomic-file-replacement.js";
 
 export interface AlarmStoreFileSystem {
   mkdir(path: string): Promise<unknown>;
   readFile(path: string): Promise<string>;
-  rename(from: string, to: string): Promise<void>;
-  unlink(path: string): Promise<void>;
-  writeFile(path: string, contents: string): Promise<void>;
+  replaceFile(options: {
+    contents: string;
+    targetPath: string;
+    temporaryPath: string;
+  }): Promise<void>;
 }
 
 interface FileAlarmStoreOptions {
@@ -27,12 +33,17 @@ interface AlarmStateDocument {
   version: 1;
 }
 
+const nodeAtomicFileSystem: AtomicFileSystem = {
+  open,
+  rename,
+  unlink,
+};
+
 const nodeFileSystem: AlarmStoreFileSystem = {
   mkdir: (path) => mkdir(path, { recursive: true }),
   readFile: (path) => readFile(path, "utf8"),
-  rename,
-  unlink,
-  writeFile: (path, contents) => writeFile(path, contents, "utf8"),
+  replaceFile: (options) =>
+    atomicReplaceFile({ ...options, fileSystem: nodeAtomicFileSystem }),
 };
 
 export function createFileAlarmStore(
@@ -155,10 +166,12 @@ async function writeState(
 
   try {
     await fileSystem.mkdir(directory);
-    await fileSystem.writeFile(temporaryPath, `${JSON.stringify(state)}\n`);
-    await fileSystem.rename(temporaryPath, filePath);
+    await fileSystem.replaceFile({
+      contents: `${JSON.stringify(state)}\n`,
+      targetPath: filePath,
+      temporaryPath,
+    });
   } catch (cause) {
-    await fileSystem.unlink(temporaryPath).catch(() => {});
     throw new Error("Could not persist alarm state.", { cause });
   }
 }

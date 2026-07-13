@@ -126,21 +126,19 @@ describe("createFileAlarmStore", () => {
     await expect(store.list()).resolves.toHaveLength(2);
   });
 
-  it("writes through a same-directory temporary file and removes it after rename failure", async () => {
-    const writes: string[] = [];
-    const removed: string[] = [];
+  it("writes through a same-directory atomic replacement and preserves its failure", async () => {
+    const replacements: Array<{
+      contents: string;
+      targetPath: string;
+      temporaryPath: string;
+    }> = [];
     const fileSystem: AlarmStoreFileSystem = {
       mkdir: () => Promise.resolve(undefined),
       readFile: () =>
         Promise.reject(Object.assign(new Error("missing"), { code: "ENOENT" })),
-      rename: () => Promise.reject(new Error("rename failed")),
-      unlink: (path) => {
-        removed.push(path);
-        return Promise.resolve();
-      },
-      writeFile: (path) => {
-        writes.push(path);
-        return Promise.resolve();
+      replaceFile: (options) => {
+        replacements.push(options);
+        return Promise.reject(new Error("replacement failed"));
       },
     };
     const store = createFileAlarmStore({
@@ -161,11 +159,13 @@ describe("createFileAlarmStore", () => {
       throw new TypeError("Expected alarm persistence failure.");
     }
     expect(error.message).toBe("Could not persist alarm state.");
-    expect(error.cause).toMatchObject({ message: "rename failed" });
-    expect(writes).toEqual([
-      expect.stringMatching(/^\/state\/\.alarms\.json\./u),
-    ]);
-    expect(removed).toEqual(writes);
+    expect(error.cause).toMatchObject({ message: "replacement failed" });
+    expect(replacements).toHaveLength(1);
+    expect(replacements[0]?.contents).toContain('"version":1');
+    expect(replacements[0]?.targetPath).toBe("/state/alarms.json");
+    expect(replacements[0]?.temporaryPath).toMatch(
+      /^\/state\/\.alarms\.json\..+\.tmp$/u,
+    );
   });
 });
 
