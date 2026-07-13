@@ -40,34 +40,35 @@ The text-first flow is the preferred first milestone because it is deterministic
 src/
   core/
     assistant/
-    conversation/
-    intent/
-    response/
   ports/
-    audio-input
-    audio-output
-    speech-to-text
-    text-to-speech
-    wake-word
-    llm
+    assistant
+    conversation
+    intent
+    response-rewriter
     feature
-    clock
-    config
-    memory
+    capability-catalog
+    alarm-store
+    calendar
+    process-control
+    voice
   features/
+    assistant/
     alarms/
     calendar/
     messaging/
   adapters/
-    mock/
     desktop/
-    raspberry-pi/
-    openai/
     google-calendar/
+    local/
+    mock/
+    openai/
   runtimes/
     cli/
-    desktop-voice/
-    pi-service/
+    config/
+    feature-adapters/
+    pi/
+    service/
+    voice/
 ```
 
 This structure is illustrative. The implementation can adjust names and file layout, but the dependency direction must stay intact.
@@ -95,32 +96,27 @@ types.
 Provider configuration types belong with their adapters and runtime config
 parsers, not in application port modules.
 
-Expected ports include:
+Implemented application ports include:
 
-- `LlmPort`
-- `SpeechToTextPort`
-- `StreamingSpeechToTextPort`
-- `TextToSpeechPort`
-- `StreamingTextToSpeechPort`
-- `WakeWordPort`
-- `WakeActivationPort`
-- `AudioInputPort`
-- `StreamingAudioInputPort`
-- `AudioOutputPort`
-- `StreamingAudioOutputPort`
-- `FeaturePort`
-- `ClockPort`
-- `ConfigPort`
-- `MemoryPort`
-- `AlarmStore` for storing alarms and assigning storage-owned alarm IDs
+- Assistant response and diagnostic-aware outcome contracts.
+- Intent interpretation and deterministic feature-rule contracts.
+- Conversation response and compaction contracts.
+- Command response rewriting contracts.
+- Feature, capability metadata, execution context, and capability-catalog
+  contracts.
+- `AlarmStore` for storing alarms and assigning storage-owned alarm IDs.
+- Calendar search and upcoming-event contracts.
+- Process shutdown and command-execution control contracts.
+- Batch and streaming voice input, wake activation, transcription, synthesis,
+  and output contracts.
 
 ## Adapters
 
 Adapters implement ports.
 
-Initial adapters should be deterministic and local:
+Deterministic and local adapters include:
 
-- Mock LLM adapter.
+- Deterministic intent interpreter.
 - Mock speech-to-text adapter.
 - Mock text-to-speech adapter.
 - Command-based desktop speech-to-text adapter.
@@ -130,15 +126,18 @@ Initial adapters should be deterministic and local:
 - Mock messaging adapter.
 - Local/in-memory alarm storage adapter implementing the alarm store port.
 
-Real-provider experiments can integrate behind the same ports:
+Implemented real-provider adapters include:
 
 - OpenAI intent interpreter adapter using the Responses API.
 - OpenAI conversation responder and compactor adapters using the Responses API.
-- Anthropic or local model LLM adapters.
-- Whisper, Vosk, cloud STT, or Python sidecar STT adapters.
-- Piper, system TTS, or cloud TTS adapters.
-- Google Calendar or other calendar adapters.
-- Messaging adapters if feasible and safe.
+- OpenAI response rewriting, realtime transcription, and streaming speech
+  adapters.
+- Read-only Google Calendar search with access-token and refresh-token OAuth.
+- Command-based desktop voice adapters and a Python openWakeWord sidecar behind
+  TypeScript-owned adapter and runtime boundaries.
+
+Future providers such as Anthropic, local models, local STT/TTS, or real
+messaging integrations should be added behind the same application-owned ports.
 
 ## Runtimes
 
@@ -182,7 +181,9 @@ TypeScript is preferred for:
 - Testable orchestration logic.
 - Possible future web/admin tooling.
 
-Python can be used later for specialized adapters if it earns its place, especially for local speech or ML tooling. In that case, Python should run behind a TypeScript port as a child process, local service, or isolated adapter boundary.
+Python is used for the local openWakeWord sidecar and may be used for other
+specialized speech or ML adapters when justified. It remains behind a TypeScript
+port as a child process, local service, or isolated adapter boundary.
 
 ## Documentation Maintenance
 
