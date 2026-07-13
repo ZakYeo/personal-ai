@@ -294,6 +294,9 @@ should also guard against subtler boundary and abstraction drift.
   features, and adapters should receive the narrowest validated shape they need,
   not the full application config object when only a small policy subset is
   relevant.
+- Do not wrap already-required loaded config fields in identity-only
+  `require*Config` helpers; focused resolvers should exist only when they prove
+  an additional invariant or narrow an optional external shape.
 - Treat assistant diagnostics as a public boundary contract when runtimes need
   to log them. Runtime-owned human-boundary helpers should not depend on private
   core implementation details when a stable diagnostic outcome type would

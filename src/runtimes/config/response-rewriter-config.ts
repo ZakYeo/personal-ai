@@ -56,9 +56,3 @@ export function parseResponseRewriterConfig(
     }),
   };
 }
-
-export function requireResponseRewriterConfig(config: {
-  responseRewriter: ParsedResponseRewriterConfig;
-}): ParsedResponseRewriterConfig {
-  return config.responseRewriter;
-}

@@ -1,6 +1,6 @@
 import { parseAssistantConfig } from "./config.js";
 import { createDefaultIntentProviderRegistry } from "../intent-provider-selection.js";
-import { parseIntentConfig, requireIntentConfig } from "./intent-config.js";
+import { parseIntentConfig } from "./intent-config.js";
 
 describe("intent config parsing", () => {
   it("rejects non-object intent config at the intent parser boundary", () => {
@@ -107,23 +107,6 @@ describe("intent config parsing", () => {
         }),
       ),
     ).toThrow("Config intent.openai.timeoutMs must be a positive integer.");
-  });
-});
-
-describe("intent config resolution", () => {
-  it("resolves OpenAI intent config with provider settings", () => {
-    const config = parseAssistantConfig(
-      createMinimalConfig({
-        intent: {
-          provider: "openai",
-          openai: {
-            model: "gpt-5.5",
-          },
-        },
-      }),
-    );
-
-    expect(requireIntentConfig(config)).toBe(config.intent);
   });
 });
 

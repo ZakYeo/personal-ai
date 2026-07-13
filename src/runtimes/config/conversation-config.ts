@@ -82,12 +82,6 @@ export function parseConversationConfig(
   };
 }
 
-export function requireConversationConfig(config: {
-  conversation: ParsedConversationConfig;
-}): ParsedConversationConfig {
-  return config.conversation;
-}
-
 function parseConversationHistoryConfig(
   value: unknown,
 ): ConversationHistoryRuntimeConfig {

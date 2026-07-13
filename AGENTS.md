@@ -47,6 +47,7 @@
 - Google Calendar startup preflight and request-time authentication must use the same adapter-owned credential resolver; callers may customize the boundary error but not credential precedence or completeness policy.
 - The next planned product milestone is persistent local assistant state, starting with a file-backed alarm store behind `AlarmStore`; keep file paths in local runtime config, parse persisted data from `unknown`, preserve diagnostics internally, and keep `config/default.json` deterministic.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
+- Do not add `require*Config` identity wrappers for fields already required and resolved by `LoadedRuntimeConfig`; a resolver must prove a new invariant or narrow an optional shape.
 - Keep adapter/config selection policy canonical; do not add new missing-config, adapter-ID lookup, or unregistered-adapter branches without checking for an existing selector or extracting a shared one.
 - Prefer explicit nested registries over encoded string keys for adapter selection; do not parse registry keys when the feature/provider/adapter relationship can be represented directly in data.
 - Feature adapters should register through the explicit per-feature adapter registry shape and receive narrow adapter dependencies/config from runtime composition rather than broad loaded config.

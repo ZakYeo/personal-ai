@@ -1,6 +1,5 @@
 import { defineRuntimeProvider } from "../runtime-provider-registry.js";
 import { parseAssistantConfig } from "./config.js";
-import { requireResponseRewriterConfig } from "./response-rewriter-config.js";
 
 describe("response rewriter config parsing", () => {
   it("defaults to disabled response rewriting", () => {
@@ -89,12 +88,6 @@ describe("response rewriter config parsing", () => {
         }),
       ),
     ).toThrow("Config responseRewriter.openai must be configured.");
-  });
-
-  it("returns the parsed response rewriter boundary unchanged", () => {
-    const config = parseAssistantConfig(createMinimalConfig());
-
-    expect(requireResponseRewriterConfig(config)).toBe(config.responseRewriter);
   });
 });
 

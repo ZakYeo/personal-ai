@@ -1,5 +1,4 @@
 import { parseAssistantConfig } from "./config.js";
-import { requireConversationConfig } from "./conversation-config.js";
 import { defineRuntimeProvider } from "../runtime-provider-registry.js";
 
 describe("conversation config parsing", () => {
@@ -144,27 +143,6 @@ describe("conversation config parsing", () => {
 });
 
 describe("conversation config resolution", () => {
-  it("resolves disabled conversation config", () => {
-    const config = parseAssistantConfig(createMinimalConfig());
-
-    expect(requireConversationConfig(config)).toBe(config.conversation);
-  });
-
-  it("resolves OpenAI conversation config with provider settings", () => {
-    const config = parseAssistantConfig(
-      createMinimalConfig({
-        conversation: {
-          provider: "openai",
-          openai: {
-            model: "gpt-5.5",
-          },
-        },
-      }),
-    );
-
-    expect(requireConversationConfig(config)).toBe(config.conversation);
-  });
-
   it("rejects OpenAI conversation provider without provider settings", () => {
     expect(() =>
       parseAssistantConfig(

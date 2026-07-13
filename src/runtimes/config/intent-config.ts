@@ -52,9 +52,3 @@ export function parseIntentConfig(
     }),
   };
 }
-
-export function requireIntentConfig(config: {
-  intent: ParsedIntentConfig;
-}): ParsedIntentConfig {
-  return config.intent;
-}
