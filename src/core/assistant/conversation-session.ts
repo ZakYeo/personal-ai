@@ -26,24 +26,34 @@ export function createConversationSession(
   let state: ConversationState = {
     recentTurns: [],
   };
+  let pendingTurn: Promise<void> = Promise.resolve();
 
   return {
-    async respond(input, context) {
-      const response = await dependencies.responder.respond(
-        input,
-        cloneConversationState(state),
-        context,
-      );
-      const candidateState = appendConversationTurn(state, input, response);
-      const nextState = await compactConversationIfNeeded(
-        candidateState,
-        dependencies,
-        context,
+    respond(input, context) {
+      const turn = pendingTurn.then(async () => {
+        const response = await dependencies.responder.respond(
+          input,
+          cloneConversationState(state),
+          context,
+        );
+        const candidateState = appendConversationTurn(state, input, response);
+        const nextState = await compactConversationIfNeeded(
+          candidateState,
+          dependencies,
+          context,
+        );
+
+        state = cloneConversationState(nextState);
+
+        return response;
+      });
+
+      pendingTurn = turn.then(
+        () => {},
+        () => {},
       );
 
-      state = cloneConversationState(nextState);
-
-      return response;
+      return turn;
     },
   };
 }

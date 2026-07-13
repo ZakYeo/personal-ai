@@ -394,7 +394,9 @@ and unknown non-command text stays deterministic. The `openai` conversation
 provider requires `conversation.openai.model` and uses the same environment
 credential defaults as the OpenAI intent provider. One assistant instance owns
 one in-memory chat window. Conversation turns append user and assistant text to
-that window; after `conversation.history.maxTurnsBeforeCompaction` completed
+that window. Each response, compaction, and commit transaction is serialized in
+invocation order so concurrent callers cannot observe stale history or overwrite
+completed turns. After `conversation.history.maxTurnsBeforeCompaction` completed
 user/assistant turns, the configured compactor replaces older turns with a
 summary. The default compaction threshold is 5. OpenAI conversation responses
 return strict JSON containing safe response text and `expectsFollowUp`; raw
