@@ -250,6 +250,12 @@ not outlive runtime cleanup; final captured output remains on the diagnostic
 error. Failed process-group signals fall back to direct-child signals, and the
 post-`SIGKILL` close wait is also bounded so cleanup cannot wait forever.
 
+Assistant diagnostic emission is an exhaustive policy over the public
+`AssistantDiagnosticCategory` contract. Internal feature, conversation,
+response-rewriter, and unexpected failures emit diagnostics even when the
+thrown JavaScript value does not provide a usable cause; expected validation,
+confirmation, and unsupported outcomes do not.
+
 Provider adapters should follow the same boundary discipline. Every real
 provider adapter must be opt-in through runtime configuration, receive network
 clients and environment credentials through injection, read credentials from

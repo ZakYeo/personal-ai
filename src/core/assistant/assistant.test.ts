@@ -136,6 +136,40 @@ describe("createAssistant", () => {
     );
   });
 
+  it("emits rewrite diagnostics when the provider rejects without a cause", async () => {
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [
+        createFeature({
+          execute: () => Promise.resolve({ text: "Original safe response." }),
+        }),
+      ],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+      responseRewriter: {
+        // The boundary must retain diagnostics for non-Error provider failures.
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+        rewrite: () => Promise.reject(undefined),
+      },
+    });
+
+    await expect(assistant.handleTextWithDiagnostics("hello")).resolves.toEqual(
+      {
+        response: {
+          status: "ok",
+          text: "Original safe response.",
+        },
+        diagnostics: [
+          {
+            category: "response_rewrite_failure",
+            capability: "test.echo",
+            message: "Unknown response rewrite error",
+          },
+        ],
+      },
+    );
+  });
+
   it("returns the interpreter response for unknown intent", async () => {
     const assistant = createAssistant({
       clock,

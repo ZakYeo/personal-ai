@@ -1,13 +1,9 @@
-import type { AssistantResponse } from "../../ports/assistant.js";
+import type {
+  AssistantDiagnosticCategory,
+  AssistantResponse,
+} from "../../ports/assistant.js";
 
-export type AppErrorCategory =
-  | "validation"
-  | "confirmation_required"
-  | "unsupported"
-  | "feature_failure"
-  | "response_rewrite_failure"
-  | "conversation_failure"
-  | "unexpected";
+export type AppErrorCategory = AssistantDiagnosticCategory;
 
 export interface AppError {
   category: AppErrorCategory;

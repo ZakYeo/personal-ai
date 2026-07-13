@@ -3,6 +3,7 @@ import type {
   AssistantCommand,
   AssistantContext,
   AssistantDiagnostic,
+  AssistantDiagnosticCategory,
   AssistantOutcome,
   AssistantResponse,
   ClockPort,
@@ -273,16 +274,22 @@ function outcomeFromError(
     response,
   };
 
-  if (
-    error.cause !== undefined ||
-    error.category === "feature_failure" ||
-    error.category === "conversation_failure"
-  ) {
+  if (diagnosticPolicy[error.category]) {
     outcome.diagnostics = [toAssistantDiagnostic(error)];
   }
 
   return outcome;
 }
+
+const diagnosticPolicy = {
+  confirmation_required: false,
+  conversation_failure: true,
+  feature_failure: true,
+  response_rewrite_failure: true,
+  unexpected: true,
+  unsupported: false,
+  validation: false,
+} as const satisfies Record<AssistantDiagnosticCategory, boolean>;
 
 function toAssistantDiagnostic(error: AppError): AssistantDiagnostic {
   return {
