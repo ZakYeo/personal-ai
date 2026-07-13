@@ -1,11 +1,12 @@
 import { OpenAIConversationError } from "./openai-conversation-error.js";
 import { isRecord } from "../parsing.js";
+import { parseOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
 
 export function parseOpenAIConversationResponse(value: string): {
   expectsFollowUp: boolean;
   text: string;
 } {
-  const parsed = parseOutputText(value);
+  const parsed = parseConversationOutput(value);
 
   if (!isRecord(parsed)) {
     throw new OpenAIConversationError(
@@ -32,7 +33,7 @@ export function parseOpenAIConversationResponse(value: string): {
 }
 
 export function parseOpenAIConversationSummary(value: string): string {
-  const parsed = parseOutputText(value);
+  const parsed = parseConversationOutput(value);
 
   if (!isRecord(parsed)) {
     throw new OpenAIConversationError(
@@ -49,15 +50,10 @@ export function parseOpenAIConversationSummary(value: string): string {
   return parsed.summary;
 }
 
-function parseOutputText(value: string): unknown {
-  try {
-    return JSON.parse(value) as unknown;
-  } catch (error) {
-    throw new OpenAIConversationError(
-      "OpenAI conversation response was not valid JSON.",
-      undefined,
-      value,
-      { cause: error },
-    );
-  }
+function parseConversationOutput(value: string): unknown {
+  return parseOpenAIStructuredOutput(value, {
+    createError: ({ cause, message, responseBody }) =>
+      new OpenAIConversationError(message, undefined, responseBody, { cause }),
+    invalidJsonMessage: "OpenAI conversation response was not valid JSON.",
+  });
 }

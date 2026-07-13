@@ -7,22 +7,16 @@ import type {
 import type { IntentInterpretation } from "../../ports/intent.js";
 import { OpenAIIntentError } from "./openai-intent-error.js";
 import { isRecord } from "../parsing.js";
+import { parseOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
 
 export function parseOpenAIIntentOutput(value: string): IntentInterpretation {
-  return parseIntentInterpretation(parseOutputText(value));
-}
-
-function parseOutputText(value: string): unknown {
-  try {
-    return JSON.parse(value) as unknown;
-  } catch (error) {
-    throw new OpenAIIntentError(
-      "OpenAI intent response was not valid JSON.",
-      undefined,
-      value,
-      { cause: error },
-    );
-  }
+  return parseIntentInterpretation(
+    parseOpenAIStructuredOutput(value, {
+      createError: ({ cause, message, responseBody }) =>
+        new OpenAIIntentError(message, undefined, responseBody, { cause }),
+      invalidJsonMessage: "OpenAI intent response was not valid JSON.",
+    }),
+  );
 }
 
 function parseIntentInterpretation(value: unknown): IntentInterpretation {
