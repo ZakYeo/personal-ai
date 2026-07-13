@@ -123,7 +123,8 @@ Deterministic calendar text preserves exact ISO provider dates. The optional
 response rewriter owns conversational surrounding wording, while core protects
 every displayed event title and date and restores nearby dates with deterministic
 UTC phrases such as `today`, `tomorrow`, `this Friday the 17th`, or
-`next Monday the 20th`. Protected local times use natural forms such as `11am`.
+`next Monday the 20th`. Protected event-local times use natural forms such as
+`11am`; date-only events are identified as `all day`.
 
 ## Quick Start
 

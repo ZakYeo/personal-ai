@@ -421,11 +421,12 @@ natural 12-hour renderings such as `11am`, `11:30am`, `noon`, or `midnight`. Mis
 duplicated, or invented tokens fail integrity validation and fall back to the
 original safe response while logging diagnostics.
 Calendar features return factual titles and exact provider date strings before
-this post-processing step. Internal facts absent from the safe response, such as
-provider event IDs, are not exposed merely to satisfy rewriting. Generic
-upcoming-event responses state their event count and expose every displayed
-event title and date as indexed facts so that all expressed values are
-protected.
+this post-processing step. Timed events also return their exact event-local
+`HH:mm` start, while date-only events explicitly return `all day`. Internal facts
+absent from the safe response, such as provider event IDs, are not exposed merely
+to satisfy rewriting. Generic upcoming-event responses state their event count
+and expose every displayed event title, date, and time or all-day marker as
+indexed facts so that all expressed values are protected.
 The `google` calendar adapter is opt-in and selected with
 `features.calendar.adapter: google`. Generic upcoming event searches default to
 `features.calendar.upcomingWindowDays: 92`, so normal list requests stay within

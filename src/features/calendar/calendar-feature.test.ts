@@ -1,5 +1,6 @@
 import { createCalendarFeature } from "./calendar-feature.js";
 import type {
+  CalendarEvent,
   CalendarSearchCriteria,
   CalendarSearchPort,
 } from "../../ports/calendar.js";
@@ -41,10 +42,11 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       { query: "upcoming wedding" },
       {
-        text: "Upcoming wedding is on 2026-09-12.",
+        text: "Upcoming wedding is on 2026-09-12, all day.",
         data: {
           eventId: "wedding-2026",
           date: "2026-09-12",
+          time: "all day",
           title: "Upcoming wedding",
         },
       },
@@ -58,10 +60,11 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       {},
       {
-        text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12.",
+        text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12, all day.",
         data: {
           eventCount: 1,
           event0Date: "2026-09-12",
+          event0Time: "all day",
           event0Title: "Upcoming wedding",
         },
       },
@@ -76,6 +79,7 @@ describe("createCalendarFeature", () => {
           {
             id: "haircut-2026",
             startDate: "2026-07-17",
+            startTime: "11:00",
             title: ".CLAY Studios: Gents Haircut",
           },
           {
@@ -88,12 +92,14 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       {},
       {
-        text: "You have 2 upcoming calendar events: .CLAY Studios: Gents Haircut on 2026-07-17, Zak - Onsite Interview - Agentic Engineer on 2026-07-20.",
+        text: "You have 2 upcoming calendar events: .CLAY Studios: Gents Haircut on 2026-07-17 at 11:00, Zak - Onsite Interview - Agentic Engineer on 2026-07-20, all day.",
         data: {
           eventCount: 2,
           event0Date: "2026-07-17",
+          event0Time: "11:00",
           event0Title: ".CLAY Studios: Gents Haircut",
           event1Date: "2026-07-20",
+          event1Time: "all day",
           event1Title: "Zak - Onsite Interview - Agentic Engineer",
         },
       },
@@ -134,10 +140,11 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       {},
       {
-        text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12.",
+        text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12, all day.",
         data: {
           eventCount: 1,
           event0Date: "2026-09-12",
+          event0Time: "all day",
           event0Title: "Upcoming wedding",
         },
       },
@@ -171,6 +178,7 @@ describe("createCalendarFeature", () => {
           {
             id: "interview-2026",
             startDate: "2026-07-06",
+            startTime: "09:30",
             title: "Zak - Onsite Interview - Agentic Engineer",
           },
         ]),
@@ -178,10 +186,11 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       { query: "interview" },
       {
-        text: "Zak - Onsite Interview - Agentic Engineer is on 2026-07-06.",
+        text: "Zak - Onsite Interview - Agentic Engineer is on 2026-07-06 at 09:30.",
         data: {
           eventId: "interview-2026",
           date: "2026-07-06",
+          time: "09:30",
           title: "Zak - Onsite Interview - Agentic Engineer",
         },
       },
@@ -200,7 +209,7 @@ describe("createCalendarFeature", () => {
 
 function createFakeCalendar(
   calls: CalendarSearchCriteria[] = [],
-  events = [
+  events: CalendarEvent[] = [
     {
       id: "wedding-2026",
       startDate: "2026-09-12",

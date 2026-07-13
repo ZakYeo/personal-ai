@@ -3,7 +3,10 @@ import type {
   FeatureCapabilityParameters,
   FeaturePlugin,
 } from "../../ports/feature.js";
-import type { CalendarSearchPort } from "../../ports/calendar.js";
+import type {
+  CalendarEvent,
+  CalendarSearchPort,
+} from "../../ports/calendar.js";
 import {
   defineDeterministicFeatureRules,
   type DeterministicFeatureRule,
@@ -116,17 +119,18 @@ async function searchEvents(
   }
 
   return {
-    text: `${event.title} is on ${event.startDate}.`,
+    text: `${event.title} is ${formatEventStart(event)}.`,
     data: {
       eventId: event.id,
       date: event.startDate,
+      time: event.startTime ?? "all day",
       title: event.title,
     },
   };
 }
 
 function createUpcomingEventFacts(
-  events: readonly { startDate: string; title: string }[],
+  events: readonly CalendarEvent[],
 ): Record<string, string | number> {
   const facts: Record<string, string | number> = {
     eventCount: events.length,
@@ -134,6 +138,7 @@ function createUpcomingEventFacts(
 
   events.forEach((event, index) => {
     facts[`event${index}Date`] = event.startDate;
+    facts[`event${index}Time`] = event.startTime ?? "all day";
     facts[`event${index}Title`] = event.title;
   });
 
@@ -148,12 +153,16 @@ function normalizeQuery(query: string | undefined): string | undefined {
     : undefined;
 }
 
-function formatEventList(
-  events: { startDate: string; title: string }[],
-): string {
+function formatEventList(events: CalendarEvent[]): string {
   return events
-    .map((event) => `${event.title} on ${event.startDate}`)
+    .map((event) => `${event.title} ${formatEventStart(event)}`)
     .join(", ");
+}
+
+function formatEventStart(event: CalendarEvent): string {
+  return event.startTime === undefined
+    ? `on ${event.startDate}, all day`
+    : `on ${event.startDate} at ${event.startTime}`;
 }
 
 function addUtcDays(date: Date, days: number): Date {

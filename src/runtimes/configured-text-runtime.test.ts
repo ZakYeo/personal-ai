@@ -212,7 +212,7 @@ describe("createConfiguredTextRuntime", () => {
       new Response(
         JSON.stringify({
           output_text: JSON.stringify({
-            text: "__ASSISTANT_PROTECTED_FACT_0__ is happening on __ASSISTANT_PROTECTED_FACT_1__.",
+            text: "__ASSISTANT_PROTECTED_FACT_0__ is happening on __ASSISTANT_PROTECTED_FACT_1__, __ASSISTANT_PROTECTED_FACT_2__.",
           }),
         }),
         { status: 200 },
@@ -228,7 +228,7 @@ describe("createConfiguredTextRuntime", () => {
       assistant.handleText(deterministicScenarios.calendarWedding.text),
     ).resolves.toEqual({
       status: "ok",
-      text: "Upcoming wedding is happening on 12 September.",
+      text: "Upcoming wedding is happening on 12 September, all day.",
     });
 
     expect(fetch).toHaveBeenCalledWith(
@@ -249,12 +249,12 @@ describe("createConfiguredTextRuntime", () => {
               {
                 id: "haircut-2026",
                 summary: ".CLAY Studios: Gents Haircut",
-                start: { date: "2026-07-17" },
+                start: { dateTime: "2026-07-17T11:00:00+01:00" },
               },
               {
                 id: "interview-2026",
                 summary: "Zak - Onsite Interview - Agentic Engineer",
-                start: { date: "2026-07-20" },
+                start: { dateTime: "2026-07-20T09:30:00+01:00" },
               },
             ],
           }),
@@ -265,7 +265,7 @@ describe("createConfiguredTextRuntime", () => {
         new Response(
           JSON.stringify({
             output_text: JSON.stringify({
-              text: "You have __ASSISTANT_PROTECTED_FACT_4__ upcoming calendar events: __ASSISTANT_PROTECTED_FACT_1__ on __ASSISTANT_PROTECTED_FACT_2__, and __ASSISTANT_PROTECTED_FACT_0__ on __ASSISTANT_PROTECTED_FACT_3__.",
+              text: "You have __ASSISTANT_PROTECTED_FACT_6__ upcoming calendar events: __ASSISTANT_PROTECTED_FACT_1__ on __ASSISTANT_PROTECTED_FACT_2__ at __ASSISTANT_PROTECTED_FACT_4__, and __ASSISTANT_PROTECTED_FACT_0__ on __ASSISTANT_PROTECTED_FACT_3__ at __ASSISTANT_PROTECTED_FACT_5__.",
             }),
           }),
           { status: 200 },
@@ -293,10 +293,11 @@ describe("createConfiguredTextRuntime", () => {
     expect(outcome).toEqual({
       response: {
         status: "ok",
-        text: "You have 2 upcoming calendar events: .CLAY Studios: Gents Haircut on this Friday the 17th, and Zak - Onsite Interview - Agentic Engineer on next Monday the 20th.",
+        text: "You have 2 upcoming calendar events: .CLAY Studios: Gents Haircut on this Friday the 17th at 11am, and Zak - Onsite Interview - Agentic Engineer on next Monday the 20th at 9:30am.",
       },
     });
     expect(outcome.response.text).not.toMatch(/\b\d{4}-\d{2}-\d{2}\b/u);
+    expect(outcome.response.text).not.toMatch(/\b\d{2}:\d{2}\b/u);
   });
 
   it("wires Google Calendar adapters into the assistant", async () => {

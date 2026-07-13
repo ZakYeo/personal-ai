@@ -493,6 +493,9 @@ Implemented structure:
 - Upcoming calendar lists protect every displayed event title and date before
   rewriting; core restores nearby ISO dates with deterministic UTC calendar-week
   wording and uses spoken absolute dates farther out.
+- Google timed starts preserve their event-local wall-clock time behind the
+  calendar port; spoken responses protect and render that time naturally, while
+  date-only events are explicitly identified as all day.
 
 Ongoing hardening themes to keep checking during future provider work:
 
