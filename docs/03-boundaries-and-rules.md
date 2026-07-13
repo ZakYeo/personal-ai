@@ -251,6 +251,9 @@ not outlive runtime cleanup; final captured output remains on the diagnostic
 error. A cleanup failure is attached to the primary timeout, abort, or stream
 failure instead of replacing it. Failed process-group signals fall back to direct-child signals, and the
 post-`SIGKILL` close wait is also bounded so cleanup cannot wait forever.
+Streaming command input awaits writable callbacks before requesting the next
+chunk. Writable errors, including early pipe closure, settle through the same
+command lifecycle and retain final stdout/stderr diagnostics.
 
 Assistant diagnostic emission is an exhaustive policy over the public
 `AssistantDiagnosticCategory` contract. Internal feature, conversation,

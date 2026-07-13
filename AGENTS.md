@@ -73,6 +73,7 @@
 - Command-based adapters should execute `command` plus `args[]`, not shell-concatenated command strings, and should enforce timeouts while preserving captured stdout/stderr diagnostics internally for spawn failures, non-zero exits, and timeout failures.
 - Command termination must fall back from process-group signaling to direct-child signaling, bound close waits after both `SIGTERM` and `SIGKILL`, and surface captured diagnostics if the process still cannot be reaped.
 - Command timeout, abort, and cleanup paths must wait for child close, escalate from `SIGTERM` to bounded `SIGKILL` when necessary, and preserve output captured through final exit.
+- Streaming command stdin must honor writable flow control and route callback or writable errors through the command diagnostic lifecycle with captured output.
 - Python sidecars that spawn recorder or helper processes must inherit or drain stderr and must terminate, wait, then kill and reap children that exceed a bounded shutdown grace period; process-exit races during signaling must not mask primary control flow.
 - Keep simulated spoken output separate from fallback text output; CLI boundaries should use explicit voice result metadata rather than inferring stdout writes from voice status.
 - Voice service progress logs are human-facing stdout output; keep internal diagnostics, adapter command output, provider details, credentials, and stack traces on stderr only.

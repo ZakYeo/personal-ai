@@ -54,13 +54,12 @@ export async function runCommandWritableStream(
 
   try {
     for await (const chunk of chunks) {
-      commandProcess.writeStdin(chunk);
+      await commandProcess.writeStdin(chunk);
     }
-    commandProcess.endStdin();
+    await commandProcess.endStdin();
 
     await commandProcess.waitForSuccess();
   } catch (error) {
-    commandProcess.endStdinBestEffort();
-    await commandProcess.terminatePreserving(toError(error));
+    await commandProcess.terminateInputFailure(toError(error));
   }
 }

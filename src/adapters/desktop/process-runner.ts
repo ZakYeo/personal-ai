@@ -7,6 +7,7 @@ import {
 export {
   CommandAbortError,
   CommandExecutionError,
+  CommandInputError,
   CommandSpawnError,
   CommandTimeoutError,
 } from "./command-process.js";

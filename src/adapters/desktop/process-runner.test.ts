@@ -6,6 +6,7 @@ import {
 import type {
   CommandAbortError,
   CommandExecutionError,
+  CommandInputError,
   CommandSpawnError,
   CommandTimeoutError,
 } from "./process-runner.js";
@@ -309,21 +310,65 @@ describe("runCommandWritableStream", () => {
           },
           createFailingInputChunks(inputFailure),
         ),
-      ).rejects.toSatisfy((error: unknown) => {
-        expect(error).toBe(inputFailure);
-        expect(error).toMatchObject({
-          cause: expect.objectContaining({
-            name: "CommandTerminationError",
-          }) as Error,
-        });
-
-        return true;
-      });
+      ).rejects.toMatchObject({
+        cause: expect.objectContaining({
+          errors: [
+            inputFailure,
+            expect.objectContaining({ name: "CommandTerminationError" }),
+          ],
+        }) as AggregateError,
+        message: "input stream failed",
+        stderr: "",
+        stdout: "",
+      } satisfies Partial<CommandInputError>);
     } finally {
       if (processGroups[0] !== undefined) {
         process.kill(processGroups[0], "SIGKILL");
       }
     }
+  });
+
+  it("waits for command stdin backpressure before reading more input", async () => {
+    let chunksRead = 0;
+    const chunks = (async function* () {
+      await Promise.resolve();
+
+      for (let index = 0; index < 4; index += 1) {
+        chunksRead += 1;
+        yield Buffer.alloc(1024 * 1024);
+      }
+    })();
+    const result = runCommandWritableStream(
+      {
+        args: ["-c", "sleep 0.1; cat >/dev/null"],
+        command: "/bin/sh",
+        timeoutMs: 1_000,
+      },
+      chunks,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(chunksRead).toBeLessThan(4);
+    await expect(result).resolves.toBeUndefined();
+  });
+
+  it("preserves command diagnostics when stdin closes early", async () => {
+    await expect(
+      runCommandWritableStream(
+        {
+          args: ["-c", "exec 0<&-; printf 'playback failed' >&2; sleep 0.1"],
+          command: "/bin/sh",
+          timeoutMs: 1_000,
+        },
+        (async function* () {
+          await Promise.resolve();
+          yield Buffer.alloc(1024 * 1024);
+        })(),
+      ),
+    ).rejects.toMatchObject({
+      cause: expect.any(Error) as Error,
+      stderr: "playback failed",
+    } satisfies Partial<CommandInputError>);
   });
 });
 

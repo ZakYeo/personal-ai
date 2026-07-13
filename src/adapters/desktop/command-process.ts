@@ -52,6 +52,18 @@ export class CommandAbortError extends Error {
   }
 }
 
+export class CommandInputError extends Error {
+  constructor(
+    message: string,
+    readonly cause: unknown,
+    readonly stderr: string,
+    readonly stdout: string,
+  ) {
+    super(message, { cause });
+    this.name = "CommandInputError";
+  }
+}
+
 export class CommandSpawnError extends Error {
   constructor(
     message: string,
@@ -120,21 +132,18 @@ class CommandProcess {
     });
 
     this.captureOutput(options);
+    this.child.stdin?.on("error", () => {
+      // Per-operation callbacks settle stdin failures through command diagnostics.
+    });
     this.close = this.createClosePromise();
     this.completion = this.waitForResult();
     this.completion.catch(() => {});
   }
 
-  endStdin(): void {
-    this.child.stdin?.end();
-  }
-
-  endStdinBestEffort(): void {
-    try {
-      this.endStdin();
-    } catch {
-      // Cleanup keeps the primary stream or process failure.
-    }
+  endStdin(): Promise<void> {
+    return this.runStdinOperation((stdin, complete) => {
+      stdin.end(complete);
+    });
   }
 
   output(): RunCommandResult {
@@ -200,28 +209,38 @@ class CommandProcess {
     );
   }
 
-  async terminatePreserving(error: unknown): Promise<never> {
-    const primaryError = toError(error);
+  async terminateInputFailure(error: unknown): Promise<never> {
+    let cleanupError: unknown;
 
     try {
       await this.terminateAndWait();
     } catch (terminationError) {
-      attachSecondaryCause(primaryError, terminationError);
+      cleanupError = terminationError;
     }
 
-    throw primaryError;
+    const inputError = toError(error);
+    const output = this.output();
+    throw new CommandInputError(
+      inputError.message,
+      cleanupError === undefined
+        ? inputError
+        : new AggregateError(
+            [inputError, cleanupError],
+            "Command input and cleanup both failed.",
+          ),
+      output.stderr,
+      output.stdout,
+    );
   }
 
   waitForSuccess(): Promise<RunCommandResult> {
     return this.completion;
   }
 
-  writeStdin(chunk: Uint8Array): void {
-    if (!this.child.stdin) {
-      throw new Error("Command did not provide stdin.");
-    }
-
-    this.child.stdin.write(chunk);
+  writeStdin(chunk: Uint8Array): Promise<void> {
+    return this.runStdinOperation((stdin, complete) => {
+      stdin.write(chunk, complete);
+    });
   }
 
   async *readStdout(): AsyncIterable<Uint8Array> {
@@ -244,6 +263,40 @@ class CommandProcess {
 
     this.child.stderr?.on("data", (chunk: Buffer) => {
       this.stderrChunks.push(chunk);
+    });
+  }
+
+  private runStdinOperation(
+    operation: (
+      stdin: NonNullable<(typeof this.child)["stdin"]>,
+      complete: (error?: Error | null) => void,
+    ) => void,
+  ): Promise<void> {
+    const stdin = this.child.stdin;
+
+    if (!stdin) {
+      return Promise.reject(new Error("Command did not provide stdin."));
+    }
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const settle = (error?: Error | null): void => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        stdin.removeListener("error", settle);
+
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
+      };
+
+      stdin.once("error", settle);
+      operation(stdin, settle);
     });
   }
 
