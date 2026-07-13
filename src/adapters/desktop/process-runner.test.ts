@@ -121,6 +121,42 @@ describe("runCommand", () => {
     expect(signals).toEqual(["SIGTERM"]);
   });
 
+  it("rejects after the bounded post-SIGKILL close wait expires", async () => {
+    const processGroups: number[] = [];
+    const signals: NodeJS.Signals[] = [];
+    const processControl: ProcessControl = {
+      kill: (pid, signal) => {
+        processGroups.push(pid);
+        signals.push(signal);
+      },
+      platform: "linux",
+    };
+
+    try {
+      await expect(
+        runCommand({
+          args: ["-c", "printf ready; while true; do sleep 1; done"],
+          command: "/bin/sh",
+          processControl,
+          terminationGraceMs: 10,
+          timeoutMs: 10,
+        }),
+      ).rejects.toMatchObject({
+        message: expect.stringContaining(
+          "did not exit after termination signals",
+        ) as string,
+        name: "CommandTerminationError",
+        stdout: "ready",
+      });
+
+      expect(signals).toEqual(["SIGTERM", "SIGKILL"]);
+    } finally {
+      if (processGroups[0] !== undefined) {
+        process.kill(processGroups[0], "SIGKILL");
+      }
+    }
+  });
+
   it("rejects spawn failures with preserved diagnostics", async () => {
     await expect(
       runCommand({
