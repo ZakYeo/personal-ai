@@ -53,7 +53,7 @@ export function validateConfiguredFeatureAdapters(
 ): void {
   for (const featureConfig of Object.values(config.features)) {
     if (featureConfig.enabled) {
-      featureConfig.resolvedAdapter?.validateStartup?.(dependencies);
+      featureConfig.resolvedAdapter.validateStartup?.(dependencies);
     }
   }
 }
@@ -63,26 +63,36 @@ function createAdapterBackedFeatures(
   options: CreateConfiguredFeaturesOptions,
 ): ConfiguredFeatureSelection {
   return {
-    features: Object.entries(config.features)
-      .filter(([, featureConfig]) => featureConfig.enabled)
-      .map(([featureId, featureConfig]) =>
-        selectConfiguredFeatureAdapter(
-          featureId,
-          featureConfig,
-          options.dependencies,
-        ),
-      ),
+    features: Object.entries(config.features).flatMap(
+      ([featureId, featureConfig]) =>
+        featureConfig.enabled
+          ? [
+              selectConfiguredFeatureAdapter(
+                featureId,
+                featureConfig,
+                options.dependencies,
+              ),
+            ]
+          : [],
+    ),
   };
 }
 
 function selectConfiguredFeatureAdapter(
   featureId: string,
-  featureConfig: LoadedRuntimeConfig["features"][string],
+  featureConfig: Extract<
+    LoadedRuntimeConfig["features"][string],
+    { enabled: true }
+  >,
   dependencies: FeatureAdapterDependencies,
 ): FeaturePlugin {
-  if (!featureConfig.resolvedAdapter) {
-    throw new Error(`Config feature "${featureId}" adapter was not resolved.`);
+  const feature = featureConfig.resolvedAdapter.create(dependencies);
+
+  if (feature.id !== featureId) {
+    throw new Error(
+      `Config feature "${featureId}" adapter created feature "${feature.id}" instead.`,
+    );
   }
 
-  return featureConfig.resolvedAdapter.create(dependencies);
+  return feature;
 }

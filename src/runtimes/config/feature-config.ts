@@ -6,13 +6,20 @@ import type {
 import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
 import { isRecord } from "./config-parse-utils.js";
 
-type ParsedCommonFeatureConfig = AssistantPolicyConfig["features"][string] & {
+type ParsedCommonFeatureConfig = Omit<
+  AssistantPolicyConfig["features"][string],
+  "enabled"
+> & {
   adapter?: string;
 };
 
-export interface ParsedFeatureConfig extends ParsedCommonFeatureConfig {
-  resolvedAdapter?: ResolvedFeatureAdapter;
-}
+export type ParsedFeatureConfig =
+  | (ParsedCommonFeatureConfig & { enabled: false })
+  | (ParsedCommonFeatureConfig & {
+      adapter: string;
+      enabled: true;
+      resolvedAdapter: ResolvedFeatureAdapter;
+    });
 
 export type ParsedFeaturesConfig = Record<string, ParsedFeatureConfig>;
 
@@ -38,24 +45,46 @@ export function parseFeaturesConfig(
       ...parseFeatureAdapter(featureId, featureConfig),
       ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
     };
-    const parsed: ParsedFeatureConfig = {
-      ...commonConfig,
-      ...(commonConfig.enabled
-        ? {
-            resolvedAdapter: parseSelectedFeatureAdapter(
-              featureId,
-              featureConfig,
-              commonConfig.adapter,
-              registry,
-            ),
-          }
-        : {}),
-    };
+    const parsed: ParsedFeatureConfig = commonConfig.enabled
+      ? createEnabledFeatureConfig(
+          featureId,
+          featureConfig,
+          commonConfig,
+          registry,
+        )
+      : { ...commonConfig, enabled: false };
 
     features[featureId] = parsed;
   }
 
   return features;
+}
+
+function createEnabledFeatureConfig(
+  featureId: string,
+  featureConfig: Record<string, unknown>,
+  commonConfig: ParsedCommonFeatureConfig & { enabled: boolean },
+  registry: FeatureAdapterRegistry,
+): Extract<ParsedFeatureConfig, { enabled: true }> {
+  const adapter = commonConfig.adapter;
+
+  if (!adapter) {
+    throw new Error(
+      `Config feature "${featureId}".adapter must be set for enabled features.`,
+    );
+  }
+
+  return {
+    ...commonConfig,
+    adapter,
+    enabled: true,
+    resolvedAdapter: parseSelectedFeatureAdapter(
+      featureId,
+      featureConfig,
+      adapter,
+      registry,
+    ),
+  };
 }
 
 function parseFeatureAdapter(
@@ -106,7 +135,7 @@ function parseConfirmationRequiredCapabilities(
 function parseSelectedFeatureAdapter(
   featureId: string,
   featureConfig: Record<string, unknown>,
-  adapterId: string | undefined,
+  adapterId: string,
   registry: FeatureAdapterRegistry,
 ): ResolvedFeatureAdapter {
   const featureRegistry = registry[featureId];

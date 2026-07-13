@@ -113,6 +113,33 @@ describe("createConfiguredFeatures", () => {
     );
   });
 
+  it("rejects adapters that construct a different feature ID", () => {
+    const registry: FeatureAdapterRegistry = {
+      notes: {
+        adapters: {
+          mismatched: defineFeatureAdapterEntry({
+            create: () => createTestFeature("calendar"),
+            parseConfig: () => ({}),
+          }),
+        },
+      },
+    };
+    const config = parseAssistantConfig(
+      createMinimalFeatureConfig({
+        notes: { adapter: "mismatched", enabled: true },
+      }),
+      { featureAdapterRegistry: registry },
+    );
+
+    expect(() =>
+      createConfiguredFeatures(config, {
+        dependencies: featureAdapterDependencies,
+      }),
+    ).toThrow(
+      'Config feature "notes" adapter created feature "calendar" instead.',
+    );
+  });
+
   it("does not expose registry-level deterministic rules", () => {
     const selection = createConfiguredFeatureSelection(disabledCalendarConfig, {
       dependencies: featureAdapterDependencies,

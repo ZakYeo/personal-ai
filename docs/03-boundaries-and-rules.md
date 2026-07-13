@@ -154,6 +154,10 @@ Feature registry entries parse their selected raw section once, capture that
 typed value for construction and startup preflight, and expose only neutral
 resolved operations to later runtime composition. Provider fields must not
 accumulate on the common parsed feature type.
+Parsed feature config is a discriminated enabled/disabled union: enabled entries
+always carry a selected adapter ID and resolved adapter. Runtime construction
+also verifies that the adapter-created plugin ID matches the configured feature
+key so confirmation and capability policy cannot silently attach to another ID.
 Desktop streaming provider entries follow the same boundary: they parse their
 selected raw desktop section and capture provider-specific construction and test
 dependencies. Common desktop config retains command settings and neutral

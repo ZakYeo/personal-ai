@@ -355,13 +355,20 @@ describe("parseAssistantConfig", () => {
       }),
     );
 
-    expect(config.features.calendar).toMatchObject({
+    const calendar = config.features.calendar;
+
+    expect(calendar).toMatchObject({
       enabled: true,
       adapter: "google",
     });
-    expect(config.features.calendar).not.toHaveProperty("google");
-    expect(config.features.calendar).not.toHaveProperty("upcomingWindowDays");
-    expect(config.features.calendar?.resolvedAdapter).toBeDefined();
+    expect(calendar).not.toHaveProperty("google");
+    expect(calendar).not.toHaveProperty("upcomingWindowDays");
+
+    if (!calendar?.enabled) {
+      throw new Error("Expected enabled calendar config.");
+    }
+
+    expect(calendar.resolvedAdapter).toBeDefined();
   });
 
   it("parses calendar upcoming window overrides", () => {

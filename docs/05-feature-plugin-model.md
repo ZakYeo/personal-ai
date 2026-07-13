@@ -144,6 +144,11 @@ captures that typed value for construction and optional startup preflight.
 Adding a provider therefore changes its feature-local registry entry rather
 than widening `ParsedFeatureConfig`. Avoid `unknown` adapter config plus casts
 inside factories; that hides the real feature/provider invariant.
+Enabled parsed feature entries always contain their selected adapter ID and
+resolved adapter, while disabled entries do not require either. Runtime
+composition rejects a registry factory that returns a plugin whose `id` differs
+from the configured feature key so metadata and confirmation policy stay bound
+to the intended feature.
 
 Deterministic intent matching should follow the same capability-driven shape as
 real provider routing. A small deterministic adapter may use simple rules for
