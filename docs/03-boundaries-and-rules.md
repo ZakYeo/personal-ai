@@ -363,6 +363,15 @@ should also guard against subtler boundary and abstraction drift.
   state must fail with its cause preserved for runtime diagnostics. Cleanup
   failures remain secondary to the primary persistence failure but must remain
   available to diagnostics rather than being discarded.
+- Relative local state paths resolve from the selected config file's directory,
+  never implicitly from a nested runtime's working directory. Runtime factories
+  that pass parsed config to another factory must forward the same config-source
+  directory. A directly injected parsed config must supply `configDirectory`
+  when it selects relative local state.
+- File-backed alarm state is owned by one assistant service process. Each adapter
+  instance serializes its operations and rereads state for every operation, but
+  no cross-process locking, cloud synchronization, or background delivery is
+  implied.
 - Treat duplication reports as design prompts. A small clone may be acceptable,
   but repeated control-flow or policy duplication should trigger a search for
   the canonical owner before more branches are added.

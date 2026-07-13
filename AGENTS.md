@@ -53,7 +53,9 @@
 - The Google Calendar adapter is read-only, selected with `features.calendar.adapter: "google"`, defaults generic upcoming event searches to `features.calendar.upcomingWindowDays: 92`, and must keep OAuth credentials in environment variables such as `GOOGLE_CALENDAR_ACCESS_TOKEN` or `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, and `GOOGLE_CALENDAR_REFRESH_TOKEN`.
 - Google Calendar startup preflight and request-time authentication must use the same adapter-owned credential resolver; callers may customize the boundary error but not credential precedence or completeness policy.
 - The file-backed alarm store is selected with `features.alarms.adapter: "file"` and `features.alarms.state.path`; keep `config/default.json` on the deterministic in-memory `local` adapter, parse persisted data from `unknown`, sync file contents before atomic same-directory replacement, sync the parent directory afterward, and preserve primary and secondary cleanup diagnostics internally.
-- The next planned product slice is canonical config-directory-relative state path resolution and lifecycle forwarding across CLI, desktop voice, and Pi service composition.
+- Resolve relative local state paths from the selected config file's directory and forward that source context through CLI, desktop voice, and Pi service composition; callers that inject parsed config must also inject `configDirectory` for relative state paths.
+- Treat a file-backed alarm state file as single-process-owned; operations are serialized per adapter instance, but cross-process locking and background scheduling are not provided.
+- The next planned product milestone is Raspberry Pi operations hardening with a tested `systemd` unit, dedicated service user, stable config/state paths, and operator logging/restart guidance.
 - Keep persistence ports asynchronous so feature success is not returned before durable work completes.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Do not add `require*Config` identity wrappers for fields already required and resolved by `LoadedRuntimeConfig`; a resolver must prove a new invariant or narrow an optional shape.
@@ -125,6 +127,7 @@
 - `npm run test:run` - run Vitest once without watch mode.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run test:e2e:openai` - run the opt-in live OpenAI intent routing E2E test with `.env`.
+- `npm run test:e2e:openai:alarms` - run the focused opt-in live OpenAI persistent-alarm creation-safety, listing, and restart smoke with `.env`.
 - `npm run build` - compile the production JavaScript output.
 - `npm start` - run the default desktop OpenAI voice service with `config/local-desktop-voice-openai.json`.
 - `npm run cli -- ask "..."` - run the deterministic text CLI in development; loads `.env` when present.

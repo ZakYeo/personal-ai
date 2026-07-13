@@ -143,6 +143,10 @@ messaging integrations should be added behind the same application-owned ports.
 ## Runtimes
 
 Runtimes wire the application together for a specific environment.
+Runtime config loading retains the absolute directory of the selected config as
+composition context. Stateful feature registries use that context to resolve
+relative local paths before constructing adapters, so application ports and
+feature logic never receive file-system path policy.
 
 Expected runtimes:
 

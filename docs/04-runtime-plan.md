@@ -357,7 +357,11 @@ text runtime currently uses JSON with `intent.provider`, optional
 `responseRewriter.openai` settings, `voice` adapter IDs, optional
 `desktopVoice` command settings, and per-feature `adapter` IDs. Alarm storage
 may remain in memory with `adapter: local` or persist to the configured JSON
-file with `adapter: file` and `state.path`. Deterministic
+file with `adapter: file` and `state.path`. Relative state paths resolve from the
+directory containing the loaded config. Nested text, voice, desktop service,
+and Pi service factories forward that same source directory; callers providing
+parsed config directly must provide `configDirectory` when the state path is
+relative. Deterministic
 behavior is one selected intent provider, not a separate runtime identity. The
 important rule is that provider, conversation, response rewriting, voice, and
 feature selection must be
@@ -377,6 +381,15 @@ The `openai` intent provider is opt-in and selected with
 `https://api.openai.com/v1`, and `30000`. API keys must stay in environment
 variables and out of repository config files. The checked-in default config
 remains deterministic and uses mock/local adapters.
+The committed `config/persistent-alarms.example.json` keeps its state path local
+to the example config directory. A deployed service may instead use an absolute
+device path. The alarm file is single-process-owned: operations are serialized
+within one adapter instance and reread current state, while cross-process locks,
+background alarm delivery, and state cleanup are outside this milestone.
+The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
+routing to verify that alarm creation reaches the confirmation boundary without
+writing state, then lists a durably seeded alarm before and after rebuilding the
+runtime. It is deliberately excluded from `npm run check`.
 Development CLI runs load `.env` when present through Node's
 `--env-file-if-exists` support, so local provider credentials can be supplied
 without prefixing each `npm run cli` invocation.

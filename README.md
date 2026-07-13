@@ -64,17 +64,15 @@ and additional provider work.
 
 Current roadmap position:
 
-- Milestones 1 through 5.4 and 6.1 are implemented in the repository, including the
+- Milestones 1 through 6.2 are implemented in the repository, including the
   deterministic text assistant, safety pipeline, harness hardening, tooling,
   mock and desktop voice runtimes, OpenAI intent routing, Google Calendar
   search, the neutral service runtime, the Raspberry Pi service command, opt-in
   Raspberry Pi OS QEMU smoke support, desktop voice service activation, and a
-  JSON-file-backed alarm store.
-- The next planned product milestone hardens state path resolution and lifecycle
-  behavior consistently across text, desktop voice, and Pi service runtimes.
-- Raspberry Pi `systemd` installation notes and additional real providers are
-  planned follow-up milestones, not part of the default deterministic validation
-  gate.
+  JSON-file-backed alarm store with consistent runtime path resolution.
+- The next planned product milestone adds Raspberry Pi `systemd` installation,
+  restart, logging, and device validation guidance. Additional real providers
+  remain later work outside the default deterministic validation gate.
 
 ## Requirements
 
@@ -283,9 +281,11 @@ npm run test:e2e:openai
 ```
 
 This command is opt-in, calls the live OpenAI Responses API, covers routing for
-the currently enabled feature capabilities, uses `gpt-5.4-nano`, and may
-consume API quota. It is not part of `npm run check`; normal validation remains
-deterministic and network-free.
+the currently enabled feature capabilities plus safe persistent-alarm creation,
+listing, and restart behavior, uses `gpt-5.4-nano`, and may consume API quota.
+Run `npm run test:e2e:openai:alarms` for only the persistent-alarm smoke. These
+tests are not part of `npm run check`; normal validation remains deterministic
+and network-free.
 
 Generate a local Google Calendar refresh token:
 
@@ -306,7 +306,9 @@ npm run cli -- ask --config path/to/google-calendar-config.json "Hey Jarvis, wha
 ```
 
 Persist alarms by selecting the file adapter in a local config. The checked-in
-default continues to use the deterministic in-memory adapter.
+default continues to use the deterministic in-memory adapter. Relative paths
+resolve from the directory containing the selected config, as demonstrated by
+`config/persistent-alarms.example.json`.
 
 ```json
 {
@@ -315,7 +317,7 @@ default continues to use the deterministic in-memory adapter.
       "enabled": true,
       "adapter": "file",
       "state": {
-        "path": "/var/lib/personal-ai/alarms.json"
+        "path": "state/alarms.json"
       },
       "confirmationRequiredCapabilities": ["alarm.create"]
     }
@@ -337,6 +339,8 @@ Common development commands:
 - `npm run test:run` - run Vitest once.
 - `npm run test:file -- path/to/file.test.ts` - run one focused Vitest file.
 - `npm run test:e2e:openai` - run the opt-in live OpenAI intent routing E2E test.
+- `npm run test:e2e:openai:alarms` - run the focused opt-in live OpenAI
+  persistent-alarm smoke.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.

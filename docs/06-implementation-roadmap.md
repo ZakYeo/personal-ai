@@ -12,11 +12,11 @@ Google Calendar adapter, neutral service runtime, Raspberry Pi service command,
 opt-in Raspberry Pi OS QEMU smoke support, and general conversation support
 with in-memory chat history are implemented.
 
-The file-backed alarm store now establishes local state that survives restarts.
-The next slice should make config-directory-relative state paths and lifecycle
-forwarding predictable across every runtime. Alarm scheduling and notification
-delivery remain separate product work rather than implied outcomes of the
-persistence milestone.
+The file-backed alarm store establishes local state that survives restarts, and
+config-directory-relative paths now flow consistently through text, voice, and
+service composition. The next milestone hardens Raspberry Pi device operations.
+Alarm scheduling and notification delivery remain separate product work rather
+than implied outcomes of persistence.
 
 ## Milestone 1: Deterministic Text Assistant
 
@@ -692,7 +692,7 @@ Acceptance criteria:
 
 ## Milestone 6: Persistent Local Assistant State
 
-Status: in progress; Milestone 6.1 is implemented.
+Status: implemented.
 
 Goal: establish a persistent local-state foundation that survives process
 restarts while preserving the existing ports-and-adapters boundaries.
@@ -746,7 +746,7 @@ Acceptance criteria:
 
 ### Milestone 6.2: State Configuration and Lifecycle Hardening
 
-Status: next.
+Status: implemented.
 
 Goal: make stateful local adapters predictable across CLI, desktop voice, and
 service runtimes.
@@ -779,7 +779,7 @@ Acceptance criteria:
 
 ## Milestone 7: Raspberry Pi Operations Hardening
 
-Status: planned.
+Status: next.
 
 Goal: turn the implemented Pi service command into an operator-friendly device
 deployment path without making default validation depend on Raspberry Pi
