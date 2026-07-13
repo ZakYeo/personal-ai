@@ -423,18 +423,18 @@ calendar or messaging providers.
 Included:
 
 - An explicit per-feature adapter registry shape that can receive narrow adapter
-  dependencies, credentials, and resolved config.
+  dependencies and own typed parsing, construction, and startup preflight.
 - Canonical feature adapter selection errors for missing adapter IDs, unknown
   adapter IDs, and unregistered adapters.
-- Test-support helpers for one-change feature adapter config variants.
+- Test-support helpers for focused raw feature adapter config variants.
 
 Acceptance criteria:
 
 - Mock/local feature adapters still compose through config.
 - Adding a real feature adapter does not require new selection-policy branches
   outside the canonical feature adapter registry.
-- Tests can swap one feature adapter ID or missing config field without broad
-  inline config object spreads.
+- Tests can load one-change raw adapter IDs or missing config fields without
+  mutating already-resolved runtime config.
 
 Implemented structure:
 

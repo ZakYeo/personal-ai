@@ -1,18 +1,21 @@
-import type { GoogleCalendarConfig } from "../../ports/calendar.js";
+import type { GoogleCalendarConfig } from "../../adapters/google-calendar/google-calendar-config.js";
 import {
   isRecord,
   parseOptionalNonEmptyString,
   parseOptionalPositiveInteger,
-} from "./config-parse-utils.js";
+} from "../config/config-parse-utils.js";
 
-interface CalendarFeatureProviderConfig {
-  google?: GoogleCalendarConfig;
+export interface CalendarFeatureConfig {
   upcomingWindowDays: number;
+}
+
+export interface CalendarGoogleAdapterConfig extends CalendarFeatureConfig {
+  google: GoogleCalendarConfig;
 }
 
 export function parseCalendarFeatureConfig(
   featureConfig: Record<string, unknown>,
-): CalendarFeatureProviderConfig {
+): CalendarFeatureConfig {
   return {
     upcomingWindowDays: parseOptionalPositiveInteger(
       featureConfig.upcomingWindowDays,
@@ -22,26 +25,17 @@ export function parseCalendarFeatureConfig(
   };
 }
 
-export function parseSelectedCalendarAdapterConfig(
+export function parseCalendarGoogleAdapterConfig(
   featureConfig: Record<string, unknown>,
-): Pick<CalendarFeatureProviderConfig, "google"> {
-  return parseCalendarGoogleConfig(featureConfig);
-}
-
-function parseCalendarGoogleConfig(
-  featureConfig: Record<string, unknown>,
-): Pick<CalendarFeatureProviderConfig, "google"> {
+): CalendarGoogleAdapterConfig {
   const google = featureConfig.google;
 
-  if (google === undefined) {
-    return {};
-  }
-
   if (!isRecord(google)) {
-    throw new Error('Config feature "calendar".google must be a JSON object.');
+    throw new Error('Config feature "calendar".google must be configured.');
   }
 
   return {
+    ...parseCalendarFeatureConfig(featureConfig),
     google: {
       accessTokenEnv: parseOptionalNonEmptyString(
         google.accessTokenEnv,

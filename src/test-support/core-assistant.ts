@@ -7,7 +7,10 @@ import type {
   ClockPort,
 } from "../ports/assistant.js";
 import type { ConversationCompactorPort } from "../ports/conversation.js";
-import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
+import {
+  parseAssistantConfig,
+  type LoadedRuntimeConfig,
+} from "../runtimes/config/config.js";
 import type {
   FeatureArguments,
   FeatureArgsFromParameters,
@@ -47,12 +50,13 @@ export function createAssistantConfig(
 }
 
 export function createLoadedRuntimeConfig(
-  features: LoadedRuntimeConfig["features"] = {
-    test: { enabled: true, adapter: "mock" },
-  },
+  features: Record<string, Record<string, unknown>>,
 ): LoadedRuntimeConfig {
-  return {
-    ...createAssistantConfig(features),
+  return parseAssistantConfig({
+    assistant: {
+      name: "Jarvis",
+      wakePhrases: ["hey jarvis"],
+    },
     conversation: {
       history: {
         maxTurnsBeforeCompaction: 5,
@@ -66,7 +70,7 @@ export function createLoadedRuntimeConfig(
       provider: "disabled",
     },
     features,
-  };
+  });
 }
 
 export function enableFeatures(...featureIds: string[]): AssistantPolicyConfig {

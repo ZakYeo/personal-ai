@@ -10,7 +10,7 @@ export function createAlarmFeatureRegistryEntry(): FeatureRegistryEntry {
     adapters: {
       local: defineFeatureAdapterEntry({
         create: () => createAlarmFeature(createInMemoryAlarmStore()),
-        resolveConfig: () => {},
+        parseConfig: () => {},
       }),
     },
   };

@@ -403,10 +403,12 @@ testing mode, the setup helper can only authorize accounts listed as test users
 for that Google Cloud project; add the local operator account in Google Auth
 Platform > Audience > Test users before rerunning the helper.
 Intent provider selection and feature adapter selection are runtime composition
-policy, owned by shared runtime selector helpers so missing IDs, unknown IDs,
-and provider-specific construction rules do not drift between runtimes. Runtime
-config parsing stays separate from assistant policy projection, intent provider
-resolution, voice adapter ID resolution, and desktop voice command resolution.
+policy, owned by shared runtime selector helpers so missing IDs and unknown IDs
+do not drift between runtimes. Selected feature registry entries parse and
+capture their provider config during runtime config loading, then own typed
+construction and startup preflight without widening common feature config.
+Assistant policy projection, intent provider resolution, voice adapter ID
+resolution, and desktop voice command resolution remain focused boundaries.
 Provider-facing capability catalog construction is shared by runtime composition
 so future intent and conversation providers can reuse the same feature metadata
 projection. Capability summaries and descriptions are generated from enabled

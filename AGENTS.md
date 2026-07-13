@@ -41,6 +41,7 @@
 - Prefer explicit nested registries over encoded string keys for adapter selection; do not parse registry keys when the feature/provider/adapter relationship can be represented directly in data.
 - Feature adapters should register through the explicit per-feature adapter registry shape and receive narrow adapter dependencies/config from runtime composition rather than broad loaded config.
 - Keep selected adapter config typed at the same boundary as selected adapter factories; avoid `unknown` adapter config bags and downstream casts when a registry-local resolver can prove the shape once.
+- Feature registry entries should parse selected provider config once and capture it for construction and startup preflight; do not expose provider fields through the common loaded feature config.
 - Voice runtimes must compose voice input, streaming voice input, wake word, wake activation, speech-to-text, streaming speech-to-text, text-to-speech, streaming text-to-speech, audio output, and streaming audio output through configured adapter IDs; do not construct voice adapters as implicit defaults.
 - Desktop voice runtimes should use explicit local config for command-based STT/TTS, streaming STT/TTS, openWakeWord wake activation, and SoX input/output; keep machine-specific commands out of `config/default.json`.
 - Desktop OpenAI command capture should stop shortly after trailing silence while retaining a bounded maximum capture duration, and smoke tests should keep surfacing voice timing summaries for latency work.

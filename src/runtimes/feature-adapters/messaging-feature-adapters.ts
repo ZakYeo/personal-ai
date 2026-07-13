@@ -9,7 +9,7 @@ export function createMessagingFeatureRegistryEntry(): FeatureRegistryEntry {
     adapters: {
       mock: defineFeatureAdapterEntry({
         create: () => createMessagingFeature(),
-        resolveConfig: () => {},
+        parseConfig: () => {},
       }),
     },
   };

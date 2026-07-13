@@ -5,13 +5,7 @@ import {
 import { createCapabilityCatalog } from "../ports/capability-catalog.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
-import type { ParsedFeatureConfig } from "./config/feature-config.js";
-import { createDefaultFeatureAdapterRegistry } from "./default-feature-adapter-registry.js";
-import {
-  type FeatureAdapterDependencies,
-  type FeatureAdapterRegistry,
-} from "./feature-adapter-registry.js";
-import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
+import type { FeatureAdapterDependencies } from "./feature-adapter-registry.js";
 
 export {
   defineFeatureAdapterEntry,
@@ -25,7 +19,6 @@ interface ConfiguredFeatureSelection {
 
 interface CreateConfiguredFeaturesOptions {
   dependencies: FeatureAdapterDependencies;
-  registry?: FeatureAdapterRegistry;
 }
 
 export function createConfiguredFeatures(
@@ -39,11 +32,10 @@ export function createConfiguredFeatureSelection(
   config: LoadedRuntimeConfig,
   options: CreateConfiguredFeaturesOptions,
 ): ConfiguredFeatureSelection {
-  const registry = options.registry ?? createDefaultFeatureAdapterRegistry();
-  const configuredFeatures = createAdapterBackedFeatures(config, {
-    ...options,
-    registry,
-  }).features;
+  const configuredFeatures = createAdapterBackedFeatures(
+    config,
+    options,
+  ).features;
   const catalog = createCapabilityCatalog([
     ...configuredFeatures,
     createCapabilityInfoCatalogFeature(),
@@ -55,12 +47,21 @@ export function createConfiguredFeatureSelection(
   };
 }
 
+export function validateConfiguredFeatureAdapters(
+  config: LoadedRuntimeConfig,
+  dependencies: FeatureAdapterDependencies,
+): void {
+  for (const featureConfig of Object.values(config.features)) {
+    if (featureConfig.enabled) {
+      featureConfig.resolvedAdapter?.validateStartup?.(dependencies);
+    }
+  }
+}
+
 function createAdapterBackedFeatures(
   config: LoadedRuntimeConfig,
   options: CreateConfiguredFeaturesOptions,
 ): ConfiguredFeatureSelection {
-  const registry = options.registry ?? createDefaultFeatureAdapterRegistry();
-
   return {
     features: Object.entries(config.features)
       .filter(([, featureConfig]) => featureConfig.enabled)
@@ -68,7 +69,6 @@ function createAdapterBackedFeatures(
         selectConfiguredFeatureAdapter(
           featureId,
           featureConfig,
-          registry,
           options.dependencies,
         ),
       ),
@@ -77,23 +77,12 @@ function createAdapterBackedFeatures(
 
 function selectConfiguredFeatureAdapter(
   featureId: string,
-  featureConfig: ParsedFeatureConfig,
-  registry: FeatureAdapterRegistry,
+  featureConfig: LoadedRuntimeConfig["features"][string],
   dependencies: FeatureAdapterDependencies,
 ): FeaturePlugin {
-  const featureRegistry = registry[featureId];
-
-  if (!featureRegistry) {
-    throw new Error(`Config feature "${featureId}" is not registered.`);
+  if (!featureConfig.resolvedAdapter) {
+    throw new Error(`Config feature "${featureId}" adapter was not resolved.`);
   }
 
-  const adapter = selectConfiguredRuntimeEntry({
-    configuredId: featureConfig.adapter,
-    missingMessage: `Config feature "${featureId}".adapter must be set for enabled features.`,
-    registry: featureRegistry.adapters,
-    unknownMessage: (adapterId) =>
-      `Config feature "${featureId}" adapter "${adapterId}" is not registered.`,
-  });
-
-  return adapter.create(featureConfig, dependencies);
+  return featureConfig.resolvedAdapter.create(dependencies);
 }

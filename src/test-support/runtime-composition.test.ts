@@ -1,13 +1,10 @@
 import {
   createConfiguredTextRuntimeHarness,
-  createRuntimeConfigWithGoogleCalendarAdapter,
+  createGoogleCalendarRuntimeConfigInput,
   createRuntimeConfigWithMissingFeatureAdapter,
   createRuntimeConfigWithUnknownFeatureAdapter,
   createRuntimeConfigWithUnknownIntentProvider,
-  withFeatureAdapterId,
-  withFeatureEnabled,
   withIntentProvider,
-  withoutFeatureAdapterId,
   withoutVoiceConfigKey,
   writeRuntimeHarnessConfig,
   withVoiceAdapterId,
@@ -65,7 +62,7 @@ describe("runtime composition test support", () => {
 
   it("round-trips Google calendar adapter selection through runtime harness files", async () => {
     const configPath = await writeRuntimeHarnessConfig(
-      createRuntimeConfigWithGoogleCalendarAdapter(),
+      createGoogleCalendarRuntimeConfigInput(),
     );
 
     await expect(loadConfig({ configPath })).resolves.toMatchObject({
@@ -81,15 +78,6 @@ describe("runtime composition test support", () => {
   it("creates one-change runtime config variants", () => {
     expect(withIntentProvider("unknown")).toMatchObject({
       intent: { provider: "unknown" },
-    });
-    expect(withFeatureAdapterId("calendar", "unknown")).toMatchObject({
-      features: { calendar: { enabled: true, adapter: "unknown" } },
-    });
-    expect(withoutFeatureAdapterId("calendar")).toMatchObject({
-      features: { calendar: { enabled: true } },
-    });
-    expect(withFeatureEnabled("calendar", false)).toMatchObject({
-      features: { calendar: { enabled: false, adapter: "mock" } },
     });
     expect(
       withVoiceAdapterId("speechToText", "unknown", {

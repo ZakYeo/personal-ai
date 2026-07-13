@@ -1,5 +1,5 @@
-import type { GoogleCalendarConfig } from "../../ports/calendar.js";
 import { fetchProviderJson } from "../http-json-client.js";
+import type { GoogleCalendarConfig } from "./google-calendar-config.js";
 import { GoogleCalendarError } from "./google-calendar-error.js";
 
 interface FetchGoogleCalendarAccessTokenOptions {

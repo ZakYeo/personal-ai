@@ -8,6 +8,7 @@ import {
 } from "../../test-support/desktop-voice-runtime.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import { createCapturedWriter, line } from "../../test-support/primitives.js";
+import { createRuntimeConfigWithGoogleCalendarAdapter } from "../../test-support/runtime-composition.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
 
@@ -80,25 +81,7 @@ describe("desktop voice service startup", () => {
         config: createDesktopVoiceConfig(
           deterministicScenarios.alarmListEmpty.text,
           {
-            features: {
-              calendar: {
-                enabled: true,
-                adapter: "google",
-                google: {
-                  accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-                  baseUrl: "https://calendar.example.test/v3",
-                  calendarId: "primary",
-                  clientIdEnv: "GOOGLE_CALENDAR_CLIENT_ID",
-                  clientSecretEnv: "GOOGLE_CALENDAR_CLIENT_SECRET",
-                  maxResults: 10,
-                  refreshTokenEnv: "GOOGLE_CALENDAR_REFRESH_TOKEN",
-                  timeoutMs: 30_000,
-                  tokenUrl: "https://oauth2.googleapis.com/token",
-                },
-              },
-              messaging: { enabled: true, adapter: "mock" },
-              alarms: { enabled: true, adapter: "local" },
-            },
+            features: createRuntimeConfigWithGoogleCalendarAdapter().features,
           },
         ),
         env: {

@@ -1,8 +1,6 @@
-import type {
-  CalendarSearchCriteria,
-  GoogleCalendarConfig,
-} from "../../ports/calendar.js";
+import type { CalendarSearchCriteria } from "../../ports/calendar.js";
 import { fetchProviderJson, trimTrailingSlash } from "../http-json-client.js";
+import type { GoogleCalendarConfig } from "./google-calendar-config.js";
 import { GoogleCalendarError } from "./google-calendar-error.js";
 
 interface FetchGoogleCalendarEventsOptions {

@@ -1,9 +1,9 @@
 import type { AssistantPolicyConfig } from "../../ports/assistant.js";
-import type { GoogleCalendarConfig } from "../../ports/calendar.js";
-import {
-  parseCalendarFeatureConfig,
-  parseSelectedCalendarAdapterConfig,
-} from "./calendar-feature-config.js";
+import type {
+  FeatureAdapterRegistry,
+  ResolvedFeatureAdapter,
+} from "../feature-adapter-registry.js";
+import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
 import { isRecord } from "./config-parse-utils.js";
 
 type ParsedCommonFeatureConfig = AssistantPolicyConfig["features"][string] & {
@@ -11,14 +11,14 @@ type ParsedCommonFeatureConfig = AssistantPolicyConfig["features"][string] & {
 };
 
 export interface ParsedFeatureConfig extends ParsedCommonFeatureConfig {
-  google?: GoogleCalendarConfig;
-  upcomingWindowDays?: number;
+  resolvedAdapter?: ResolvedFeatureAdapter;
 }
 
 export type ParsedFeaturesConfig = Record<string, ParsedFeatureConfig>;
 
 export function parseFeaturesConfig(
   value: Record<string, unknown>,
+  registry: FeatureAdapterRegistry,
 ): ParsedFeaturesConfig {
   const features: ParsedFeaturesConfig = {};
 
@@ -33,29 +33,29 @@ export function parseFeaturesConfig(
       );
     }
 
-    const parsed = {
+    const commonConfig = {
       enabled: featureConfig.enabled,
       ...parseFeatureAdapter(featureId, featureConfig),
-      ...parseFeatureConfig(featureId, featureConfig),
       ...parseConfirmationRequiredCapabilities(featureId, featureConfig),
-      ...parseSelectedFeatureAdapterConfig(featureId, featureConfig),
+    };
+    const parsed: ParsedFeatureConfig = {
+      ...commonConfig,
+      ...(commonConfig.enabled
+        ? {
+            resolvedAdapter: parseSelectedFeatureAdapter(
+              featureId,
+              featureConfig,
+              commonConfig.adapter,
+              registry,
+            ),
+          }
+        : {}),
     };
 
     features[featureId] = parsed;
   }
 
   return features;
-}
-
-function parseFeatureConfig(
-  featureId: string,
-  featureConfig: Record<string, unknown>,
-): Partial<ParsedFeatureConfig> {
-  if (featureId !== "calendar") {
-    return {};
-  }
-
-  return parseCalendarFeatureConfig(featureConfig);
 }
 
 function parseFeatureAdapter(
@@ -103,13 +103,25 @@ function parseConfirmationRequiredCapabilities(
   };
 }
 
-function parseSelectedFeatureAdapterConfig(
+function parseSelectedFeatureAdapter(
   featureId: string,
   featureConfig: Record<string, unknown>,
-): Partial<ParsedFeatureConfig> {
-  if (featureId !== "calendar" || featureConfig.adapter !== "google") {
-    return {};
+  adapterId: string | undefined,
+  registry: FeatureAdapterRegistry,
+): ResolvedFeatureAdapter {
+  const featureRegistry = registry[featureId];
+
+  if (!featureRegistry) {
+    throw new Error(`Config feature "${featureId}" is not registered.`);
   }
 
-  return parseSelectedCalendarAdapterConfig(featureConfig);
+  const adapter = selectConfiguredRuntimeEntry({
+    configuredId: adapterId,
+    missingMessage: `Config feature "${featureId}".adapter must be set for enabled features.`,
+    registry: featureRegistry.adapters,
+    unknownMessage: (configuredAdapterId) =>
+      `Config feature "${featureId}" adapter "${configuredAdapterId}" is not registered.`,
+  });
+
+  return adapter.parse(featureConfig);
 }

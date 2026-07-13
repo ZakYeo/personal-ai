@@ -25,7 +25,8 @@ Implemented today:
 - Raspberry Pi service command that runs configured command-based voice turns in
   a long-running service loop.
 - Config-driven adapter selection for intent, features, and voice components.
-- Explicit nested feature adapter registration for mock/local feature adapters.
+- Explicit nested feature adapter registration whose selected entries parse,
+  retain, construct, and preflight their own typed adapter configuration.
 - Focused runtime config resolvers for assistant policy, intent providers,
   conversation providers, response rewriters, voice adapter IDs, and desktop
   voice command settings.

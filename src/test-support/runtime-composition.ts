@@ -1,5 +1,8 @@
 import { createConfiguredTextRuntime } from "../runtimes/configured-text-runtime.js";
-import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
+import {
+  parseAssistantConfig,
+  type LoadedRuntimeConfig,
+} from "../runtimes/config/config.js";
 import {
   deterministicNow,
   enabledDeterministicConfig,
@@ -34,7 +37,7 @@ export async function createConfiguredTextRuntimeHarness(
 }
 
 export async function writeRuntimeHarnessConfig(
-  config: LoadedRuntimeConfig,
+  config: unknown,
 ): Promise<string> {
   return writeTempJsonFile(config, "personal-ai-runtime-");
 }
@@ -94,10 +97,9 @@ export function createRuntimeConfigWithUnknownConversationProvider(): LoadedRunt
 }
 
 export function createRuntimeConfigWithGoogleCalendarAdapter(): LoadedRuntimeConfig {
-  return {
+  return parseAssistantConfig({
     ...enabledDeterministicConfig,
     features: {
-      ...enabledDeterministicConfig.features,
       calendar: {
         enabled: true,
         adapter: "google",
@@ -114,16 +116,61 @@ export function createRuntimeConfigWithGoogleCalendarAdapter(): LoadedRuntimeCon
           timeoutMs: 30_000,
         },
       },
+      messaging: { adapter: "mock", enabled: true },
+      alarms: { adapter: "local", enabled: true },
     },
-  };
+  });
 }
 
-export function createRuntimeConfigWithUnknownFeatureAdapter(): LoadedRuntimeConfig {
-  return withFeatureAdapterId("calendar", "unknown");
+export function createRuntimeConfigWithUnknownFeatureAdapter(): Record<
+  string,
+  unknown
+> {
+  return createRuntimeConfigWithRawFeatures({
+    calendar: { adapter: "unknown", enabled: true },
+  });
 }
 
-export function createRuntimeConfigWithMissingFeatureAdapter(): LoadedRuntimeConfig {
-  return withoutFeatureAdapterId("calendar");
+export function createRuntimeConfigWithMissingFeatureAdapter(): Record<
+  string,
+  unknown
+> {
+  return createRuntimeConfigWithRawFeatures({
+    calendar: { enabled: true },
+  });
+}
+
+export function createRuntimeConfigWithUnknownFeature(): Record<
+  string,
+  unknown
+> {
+  return createRuntimeConfigWithRawFeatures({
+    notes: { adapter: "mock", enabled: true },
+  });
+}
+
+export function createGoogleCalendarRuntimeConfigInput(): Record<
+  string,
+  unknown
+> {
+  return createRuntimeConfigWithRawFeatures({
+    calendar: {
+      adapter: "google",
+      enabled: true,
+      google: {
+        accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
+        baseUrl: "https://calendar.example.test/v3",
+        calendarId: "primary",
+        clientIdEnv: "GOOGLE_CALENDAR_CLIENT_ID",
+        clientSecretEnv: "GOOGLE_CALENDAR_CLIENT_SECRET",
+        maxResults: 10,
+        refreshTokenEnv: "GOOGLE_CALENDAR_REFRESH_TOKEN",
+        tokenUrl: "https://oauth2.googleapis.com/token",
+        timeoutMs: 30_000,
+      },
+      upcomingWindowDays: 92,
+    },
+  });
 }
 
 export function withIntentProvider(
@@ -140,61 +187,12 @@ export function withIntentProvider(
   };
 }
 
-export function withFeatureAdapterId(
-  featureId: string,
-  adapter: string,
-  config: LoadedRuntimeConfig = enabledDeterministicConfig,
-): LoadedRuntimeConfig {
-  const feature = config.features[featureId];
-  const enabled = feature?.enabled ?? true;
-
+function createRuntimeConfigWithRawFeatures(
+  features: Record<string, unknown>,
+): Record<string, unknown> {
   return {
-    ...config,
-    features: {
-      ...config.features,
-      [featureId]: {
-        ...feature,
-        adapter,
-        enabled,
-      },
-    },
-  };
-}
-
-export function withFeatureEnabled(
-  featureId: string,
-  enabled: boolean,
-  config: LoadedRuntimeConfig = enabledDeterministicConfig,
-): LoadedRuntimeConfig {
-  const feature = config.features[featureId];
-
-  return {
-    ...config,
-    features: {
-      ...config.features,
-      [featureId]: {
-        ...(feature ?? {}),
-        enabled,
-      },
-    },
-  };
-}
-
-export function withoutFeatureAdapterId(
-  featureId: string,
-  config: LoadedRuntimeConfig = enabledDeterministicConfig,
-): LoadedRuntimeConfig {
-  const featureWithoutAdapter = {
-    ...(config.features[featureId] ?? { enabled: true }),
-  };
-  delete featureWithoutAdapter.adapter;
-
-  return {
-    ...config,
-    features: {
-      ...config.features,
-      [featureId]: featureWithoutAdapter,
-    },
+    ...enabledDeterministicConfig,
+    features,
   };
 }
 

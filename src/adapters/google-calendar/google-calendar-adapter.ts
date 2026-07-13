@@ -3,8 +3,8 @@ import type {
   CalendarSearchCriteria,
   CalendarSearchOptions,
   CalendarSearchPort,
-  GoogleCalendarConfig,
 } from "../../ports/calendar.js";
+import type { GoogleCalendarConfig } from "./google-calendar-config.js";
 import { fetchGoogleCalendarEvents } from "./google-calendar-client.js";
 import { GoogleCalendarError } from "./google-calendar-error.js";
 import { fetchGoogleCalendarAccessToken } from "./google-calendar-token.js";

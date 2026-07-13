@@ -8,9 +8,10 @@ import {
   createRuntimeConfigWithOpenAIResponseRewriter,
   createRuntimeConfigWithUnknownConversationProvider,
   createRuntimeConfigWithMissingFeatureAdapter,
+  createRuntimeConfigWithUnknownFeature,
   createRuntimeConfigWithUnknownFeatureAdapter,
   createRuntimeConfigWithUnknownIntentProvider,
-  withFeatureAdapterId,
+  writeRuntimeHarnessConfig,
 } from "../test-support/runtime-composition.js";
 
 describe("createConfiguredTextRuntime", () => {
@@ -323,7 +324,9 @@ describe("createConfiguredTextRuntime", () => {
   it("rejects enabled features without registered adapters", async () => {
     await expect(
       createConfiguredTextRuntimeHarness({
-        config: createRuntimeConfigWithUnknownFeatureAdapter(),
+        configPath: await writeRuntimeHarnessConfig(
+          createRuntimeConfigWithUnknownFeatureAdapter(),
+        ),
       }),
     ).rejects.toThrow(
       'Config feature "calendar" adapter "unknown" is not registered.',
@@ -333,7 +336,9 @@ describe("createConfiguredTextRuntime", () => {
   it("rejects enabled features without registered feature adapters", async () => {
     await expect(
       createConfiguredTextRuntimeHarness({
-        config: withFeatureAdapterId("notes", "mock"),
+        configPath: await writeRuntimeHarnessConfig(
+          createRuntimeConfigWithUnknownFeature(),
+        ),
       }),
     ).rejects.toThrow('Config feature "notes" is not registered.');
   });
@@ -341,7 +346,9 @@ describe("createConfiguredTextRuntime", () => {
   it("rejects enabled features without adapter IDs", async () => {
     await expect(
       createConfiguredTextRuntimeHarness({
-        config: createRuntimeConfigWithMissingFeatureAdapter(),
+        configPath: await writeRuntimeHarnessConfig(
+          createRuntimeConfigWithMissingFeatureAdapter(),
+        ),
       }),
     ).rejects.toThrow(
       'Config feature "calendar".adapter must be set for enabled features.',

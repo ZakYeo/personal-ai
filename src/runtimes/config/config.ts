@@ -8,6 +8,8 @@ import { parseIntentConfig } from "./intent-config.js";
 import { parseResponseRewriterConfig } from "./response-rewriter-config.js";
 import type { LoadedRuntimeConfig } from "./runtime-config.js";
 import { parseVoiceConfig } from "./voice-config.js";
+import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
+import type { FeatureAdapterRegistry } from "../feature-adapter-registry.js";
 
 export type { LoadedRuntimeConfig } from "./runtime-config.js";
 
@@ -17,6 +19,11 @@ const defaultConfigPath = fileURLToPath(
 
 interface LoadConfigOptions {
   configPath?: string;
+  featureAdapterRegistry?: FeatureAdapterRegistry;
+}
+
+interface ParseAssistantConfigOptions {
+  featureAdapterRegistry?: FeatureAdapterRegistry;
 }
 
 export async function loadConfig(
@@ -25,10 +32,13 @@ export async function loadConfig(
   const configPath = options.configPath ?? defaultConfigPath;
   const rawConfig = await readFile(configPath, "utf8");
 
-  return parseAssistantConfig(JSON.parse(rawConfig));
+  return parseAssistantConfig(JSON.parse(rawConfig), options);
 }
 
-export function parseAssistantConfig(value: unknown): LoadedRuntimeConfig {
+export function parseAssistantConfig(
+  value: unknown,
+  options: ParseAssistantConfigOptions = {},
+): LoadedRuntimeConfig {
   if (!isRecord(value)) {
     throw new Error("Config must be a JSON object.");
   }
@@ -74,6 +84,9 @@ export function parseAssistantConfig(value: unknown): LoadedRuntimeConfig {
     ...parseDesktopVoiceConfig(value.desktopVoice),
     ...parseVoiceConfig(value.voice),
     intent: parseIntentConfig(intent),
-    features: parseFeaturesConfig(features),
+    features: parseFeaturesConfig(
+      features,
+      options.featureAdapterRegistry ?? createDefaultFeatureAdapterRegistry(),
+    ),
   };
 }

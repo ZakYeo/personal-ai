@@ -1,24 +1,14 @@
 import type { FeaturePlugin } from "../ports/feature.js";
-import {
-  parseAssistantConfig,
-  type LoadedRuntimeConfig,
-} from "./config/config.js";
 import { defineCapability, defineFeature } from "../ports/feature.js";
-import {
-  disabledCalendarConfig,
-  enabledDeterministicConfig,
-} from "../test-support/deterministic-runtime-fixtures.js";
-import {
-  withFeatureAdapterId,
-  withFeatureEnabled,
-  withoutFeatureAdapterId,
-} from "../test-support/runtime-composition.js";
+import { disabledCalendarConfig } from "../test-support/deterministic-runtime-fixtures.js";
+import { parseAssistantConfig } from "./config/config.js";
 import {
   createConfiguredFeatureSelection,
   createConfiguredFeatures,
   defineFeatureAdapterEntry,
   type FeatureAdapterDependencies,
   type FeatureAdapterRegistry,
+  validateConfiguredFeatureAdapters,
 } from "./feature-adapter-selection.js";
 
 const featureAdapterDependencies: FeatureAdapterDependencies = {
@@ -27,61 +17,100 @@ const featureAdapterDependencies: FeatureAdapterDependencies = {
 };
 
 describe("createConfiguredFeatures", () => {
-  it("passes narrow adapter dependencies and selected adapter config to registered entries", () => {
+  it("parses selected adapter config through the same typed registry entry that creates it", () => {
     let observedContext:
       | {
-          adapterConfig: void;
+          adapterConfig: { endpoint: string };
           dependencies: FeatureAdapterDependencies;
         }
       | undefined;
     const registry: FeatureAdapterRegistry = {
-      calendar: {
+      notes: {
         adapters: {
-          mock: defineFeatureAdapterEntry({
+          remote: defineFeatureAdapterEntry<{ endpoint: string }>({
             create: (context) => {
               observedContext = context;
-              return createTestFeature("calendar");
+
+              return createTestFeature("notes");
             },
-            resolveConfig: () => {},
+            parseConfig: (featureConfig) => {
+              if (typeof featureConfig.endpoint !== "string") {
+                throw new Error("notes endpoint required");
+              }
+
+              return { endpoint: featureConfig.endpoint };
+            },
           }),
         },
       },
     };
-    const config = withFeatureEnabled(
-      "alarms",
-      false,
-      withFeatureEnabled("messaging", false, enabledDeterministicConfig),
+    const config = parseAssistantConfig(
+      createMinimalFeatureConfig({
+        notes: {
+          adapter: "remote",
+          enabled: true,
+          endpoint: "https://notes.test",
+        },
+      }),
+      { featureAdapterRegistry: registry },
     );
 
-    const features = createConfiguredFeatures(config, {
-      dependencies: featureAdapterDependencies,
-      registry,
-    });
-
-    expect(features.map((feature) => feature.id)).toEqual([
-      "calendar",
-      "assistant",
-    ]);
-    expect(Object.keys(observedContext?.dependencies ?? {}).sort()).toEqual([
-      "env",
-      "fetch",
-    ]);
+    expect(config.features.notes).not.toHaveProperty("endpoint");
+    expect(
+      createConfiguredFeatures(config, {
+        dependencies: featureAdapterDependencies,
+      }).map((feature) => feature.id),
+    ).toEqual(["notes", "assistant"]);
     expect(observedContext).toMatchObject({
+      adapterConfig: { endpoint: "https://notes.test" },
       dependencies: featureAdapterDependencies,
-      adapterConfig: undefined,
     });
   });
 
   it("ignores disabled features before requiring a registered feature or adapter ID", () => {
+    const config = parseAssistantConfig(
+      createMinimalFeatureConfig({ notes: { enabled: false } }),
+    );
+
     expect(() =>
-      createConfiguredFeatures(
-        withoutFeatureAdapterId(
-          "notes",
-          withFeatureEnabled("notes", false, enabledDeterministicConfig),
-        ),
-        { dependencies: featureAdapterDependencies },
-      ),
+      createConfiguredFeatures(config, {
+        dependencies: featureAdapterDependencies,
+      }),
     ).not.toThrow();
+  });
+
+  it("runs startup preflight with the typed config captured by the selected entry", () => {
+    const validateStartup = vi.fn();
+    const registry: FeatureAdapterRegistry = {
+      notes: {
+        adapters: {
+          remote: defineFeatureAdapterEntry<{ tokenEnv: string }>({
+            create: () => createTestFeature("notes"),
+            parseConfig: () => ({ tokenEnv: "NOTES_TOKEN" }),
+            validateStartup: ({ adapterConfig, dependencies }) => {
+              validateStartup(adapterConfig, dependencies.env);
+            },
+          }),
+        },
+      },
+    };
+    const config = parseAssistantConfig(
+      createMinimalFeatureConfig({
+        notes: { adapter: "remote", enabled: true },
+      }),
+      { featureAdapterRegistry: registry },
+    );
+    const dependencies = {
+      ...featureAdapterDependencies,
+      env: { NOTES_TOKEN: "secret" },
+    };
+
+    validateConfiguredFeatureAdapters(config, dependencies);
+
+    expect(validateStartup).toHaveBeenCalledWith(
+      { tokenEnv: "NOTES_TOKEN" },
+      dependencies.env,
+    );
   });
 
   it("does not expose registry-level deterministic rules", () => {
@@ -97,67 +126,55 @@ describe("createConfiguredFeatures", () => {
     expect(selection).not.toHaveProperty("deterministicIntentRules");
   });
 
-  it("rejects enabled features without registered feature adapters", () => {
+  it("rejects enabled features without registered feature adapters during parsing", () => {
     expect(() =>
-      createConfiguredFeatures(withFeatureAdapterId("notes", "mock"), {
-        dependencies: featureAdapterDependencies,
-      }),
+      parseAssistantConfig(
+        createMinimalFeatureConfig({
+          notes: { adapter: "mock", enabled: true },
+        }),
+      ),
     ).toThrow('Config feature "notes" is not registered.');
   });
 
-  it("rejects enabled features without registered adapter IDs", () => {
+  it("rejects enabled features without registered adapter IDs during parsing", () => {
     expect(() =>
-      createConfiguredFeatures(withFeatureAdapterId("calendar", "unknown"), {
-        dependencies: featureAdapterDependencies,
-      }),
+      parseAssistantConfig(
+        createMinimalFeatureConfig({
+          calendar: { adapter: "unknown", enabled: true },
+        }),
+      ),
     ).toThrow('Config feature "calendar" adapter "unknown" is not registered.');
   });
 
-  it("rejects enabled features without adapter IDs", () => {
+  it("rejects enabled features without adapter IDs during parsing", () => {
     expect(() =>
-      createConfiguredFeatures(withoutFeatureAdapterId("calendar"), {
-        dependencies: featureAdapterDependencies,
-      }),
+      parseAssistantConfig(
+        createMinimalFeatureConfig({ calendar: { enabled: true } }),
+      ),
     ).toThrow(
       'Config feature "calendar".adapter must be set for enabled features.',
     );
   });
 
   it("rejects Google calendar adapters without provider config", () => {
-    expect(() =>
-      createConfiguredFeatures(withFeatureAdapterId("calendar", "google"), {
-        dependencies: featureAdapterDependencies,
-      }),
-    ).toThrow('Config feature "calendar".google must be configured.');
+    expect(() => onlyGoogleCalendarConfig({})).toThrow(
+      'Config feature "calendar".google must be configured.',
+    );
   });
 
   it("resolves Google calendar adapter config with defaults when selected", () => {
-    const config = onlyGoogleCalendarConfig({
-      google: {},
-    });
+    const config = onlyGoogleCalendarConfig({ google: {} });
 
-    const features = createConfiguredFeatures(config, {
-      dependencies: featureAdapterDependencies,
-    });
-
-    expect(features.map((feature) => feature.id)).toEqual([
-      "calendar",
-      "assistant",
-    ]);
+    expect(
+      createConfiguredFeatures(config, {
+        dependencies: featureAdapterDependencies,
+      }).map((feature) => feature.id),
+    ).toEqual(["calendar", "assistant"]);
   });
 
   it("rejects invalid Google calendar adapter config only when selected", () => {
     expect(() =>
-      createConfiguredFeatures(
-        onlyGoogleCalendarConfig({
-          google: {
-            timeoutMs: 0,
-          },
-        }),
-        {
-          dependencies: featureAdapterDependencies,
-        },
-      ),
+      onlyGoogleCalendarConfig({ google: { timeoutMs: 0 } }),
     ).toThrow(
       'Config feature "calendar".google.timeoutMs must be a positive integer.',
     );
@@ -165,66 +182,16 @@ describe("createConfiguredFeatures", () => {
 
   it("does not parse unselected adapter config", () => {
     expect(() =>
-      parseAssistantConfig({
-        ...enabledDeterministicConfig,
-        features: {
+      parseAssistantConfig(
+        createMinimalFeatureConfig({
           calendar: {
             adapter: "mock",
             enabled: true,
-            google: {
-              timeoutMs: 0,
-            },
+            google: { timeoutMs: 0 },
           },
-        },
-      }),
+        }),
+      ),
     ).not.toThrow();
-  });
-
-  it("lets registered entries resolve their selected adapter config", () => {
-    const resolvedConfigs: TestGoogleConfig[] = [];
-    const factory = vi.fn((adapterConfig: TestGoogleConfig) => {
-      resolvedConfigs.push(adapterConfig);
-
-      return createTestFeature("calendar");
-    });
-    const config = onlyGoogleCalendarConfig({
-      google: {
-        accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-        baseUrl: "https://calendar.example.test/v3",
-        calendarId: "primary",
-        maxResults: 10,
-        timeoutMs: 30_000,
-      },
-    });
-
-    createConfiguredFeatures(config, {
-      dependencies: featureAdapterDependencies,
-      registry: {
-        calendar: {
-          adapters: {
-            google: defineFeatureAdapterEntry({
-              resolveConfig: requireTestGoogleConfig,
-              create: (context) => {
-                return factory(context.adapterConfig);
-              },
-            }),
-          },
-        },
-      },
-    });
-
-    expect(factory).toHaveBeenCalledWith({
-      google: {
-        accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-      },
-    });
-    expect(resolvedConfigs).toEqual([
-      {
-        google: {
-          accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-        },
-      },
-    ]);
   });
 });
 
@@ -242,52 +209,24 @@ function createTestFeature(id: string): FeaturePlugin {
   });
 }
 
-function onlyGoogleCalendarConfig(
-  calendarOverrides: Record<string, unknown>,
-): LoadedRuntimeConfig {
-  const config = withFeatureEnabled(
-    "alarms",
-    false,
-    withFeatureEnabled(
-      "messaging",
-      false,
-      withFeatureAdapterId("calendar", "google"),
-    ),
-  );
+function createMinimalFeatureConfig(
+  features: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
+    assistant: { name: "Jarvis", wakePhrases: ["hey jarvis"] },
+    features,
+    intent: { provider: "deterministic" },
+  };
+}
 
-  return parseAssistantConfig({
-    ...config,
-    features: {
-      ...config.features,
+function onlyGoogleCalendarConfig(calendarOverrides: Record<string, unknown>) {
+  return parseAssistantConfig(
+    createMinimalFeatureConfig({
       calendar: {
-        enabled: config.features.calendar?.enabled ?? true,
-        ...(config.features.calendar?.adapter
-          ? { adapter: config.features.calendar.adapter }
-          : {}),
+        adapter: "google",
+        enabled: true,
         ...calendarOverrides,
       },
-    },
-  });
-}
-
-interface TestGoogleConfig {
-  google: {
-    accessTokenEnv: string;
-  };
-}
-
-function requireTestGoogleConfig(
-  featureConfig: LoadedRuntimeConfig["features"][string],
-): TestGoogleConfig {
-  const google = featureConfig.google;
-
-  if (!google) {
-    throw new Error('Config feature "calendar".google must be configured.');
-  }
-
-  return {
-    google: {
-      accessTokenEnv: google.accessTokenEnv,
-    },
-  };
+    }),
+  );
 }

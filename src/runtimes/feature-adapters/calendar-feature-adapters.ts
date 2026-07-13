@@ -1,12 +1,16 @@
 import { createGoogleCalendarAdapter } from "../../adapters/google-calendar/google-calendar-adapter.js";
 import { createMockCalendar } from "../../adapters/mock/mock-calendar.js";
 import { createCalendarFeature } from "../../features/calendar/calendar-feature.js";
-import type { GoogleCalendarConfig } from "../../ports/calendar.js";
-import type { ParsedFeatureConfig } from "../config/feature-config.js";
 import {
   defineFeatureAdapterEntry,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
+import {
+  parseCalendarFeatureConfig,
+  parseCalendarGoogleAdapterConfig,
+  type CalendarFeatureConfig,
+  type CalendarGoogleAdapterConfig,
+} from "./calendar-feature-adapter-config.js";
 
 export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
   return {
@@ -24,52 +28,38 @@ export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
             },
           );
         },
-        resolveConfig: (featureConfig): CalendarGoogleAdapterConfig =>
-          requireCalendarGoogleAdapterConfig({ featureConfig }),
+        parseConfig: parseCalendarGoogleAdapterConfig,
+        validateStartup: ({ adapterConfig, dependencies }) =>
+          validateGoogleCalendarStartup(adapterConfig, dependencies.env),
       }),
-      mock: defineFeatureAdapterEntry<CalendarMockAdapterConfig>({
+      mock: defineFeatureAdapterEntry<CalendarFeatureConfig>({
         create: (context) =>
           createCalendarFeature(createMockCalendar(), {
             upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
           }),
-        resolveConfig: (featureConfig): CalendarMockAdapterConfig => ({
-          upcomingWindowDays: requireUpcomingWindowDays(featureConfig),
-        }),
+        parseConfig: parseCalendarFeatureConfig,
       }),
     },
   };
 }
 
-interface CalendarGoogleAdapterConfig {
-  google: GoogleCalendarConfig;
-  upcomingWindowDays: number;
-}
-
-interface CalendarMockAdapterConfig {
-  upcomingWindowDays: number;
-}
-
-function requireCalendarGoogleAdapterConfig(context: {
-  featureConfig: ParsedFeatureConfig;
-}): CalendarGoogleAdapterConfig {
-  const featureConfig = context.featureConfig;
-
-  if (!featureConfig.google) {
-    throw new Error('Config feature "calendar".google must be configured.');
+function validateGoogleCalendarStartup(
+  config: CalendarGoogleAdapterConfig,
+  env: Record<string, string | undefined>,
+): void {
+  if (env[config.google.accessTokenEnv]) {
+    return;
   }
 
-  return {
-    google: featureConfig.google,
-    upcomingWindowDays: requireUpcomingWindowDays(featureConfig),
-  };
-}
+  const missingRefreshCredential = [
+    config.google.clientIdEnv,
+    config.google.clientSecretEnv,
+    config.google.refreshTokenEnv,
+  ].find((envName) => !env[envName]);
 
-function requireUpcomingWindowDays(featureConfig: ParsedFeatureConfig): number {
-  if (featureConfig.upcomingWindowDays === undefined) {
+  if (missingRefreshCredential) {
     throw new Error(
-      'Config feature "calendar".upcomingWindowDays must be configured.',
+      `Google Calendar is selected but ${missingRefreshCredential} is not set. Run "npm run setup:google-calendar" first, add the printed GOOGLE_CALENDAR_REFRESH_TOKEN line to .env, then start the service again.`,
     );
   }
-
-  return featureConfig.upcomingWindowDays;
 }

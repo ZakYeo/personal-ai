@@ -1,5 +1,4 @@
 import type { FeaturePlugin } from "../ports/feature.js";
-import type { ParsedFeatureConfig } from "./config/feature-config.js";
 
 export interface FeatureAdapterDependencies {
   env: Record<string, string | undefined>;
@@ -13,14 +12,17 @@ interface FeatureAdapterContext<TAdapterConfig> {
 
 interface FeatureAdapterDefinition<TAdapterConfig> {
   create(context: FeatureAdapterContext<TAdapterConfig>): FeaturePlugin;
-  resolveConfig(featureConfig: ParsedFeatureConfig): TAdapterConfig;
+  parseConfig(featureConfig: Record<string, unknown>): TAdapterConfig;
+  validateStartup?(context: FeatureAdapterContext<TAdapterConfig>): void;
+}
+
+export interface ResolvedFeatureAdapter {
+  create(dependencies: FeatureAdapterDependencies): FeaturePlugin;
+  validateStartup?(dependencies: FeatureAdapterDependencies): void;
 }
 
 export interface FeatureAdapterEntry {
-  create(
-    featureConfig: ParsedFeatureConfig,
-    dependencies: FeatureAdapterDependencies,
-  ): FeaturePlugin;
+  parse(featureConfig: Record<string, unknown>): ResolvedFeatureAdapter;
 }
 
 export interface FeatureRegistryEntry {
@@ -33,11 +35,18 @@ export function defineFeatureAdapterEntry<TAdapterConfig>(
   entry: FeatureAdapterDefinition<TAdapterConfig>,
 ): FeatureAdapterEntry {
   return {
-    create: (featureConfig, dependencies) => {
-      return entry.create({
-        adapterConfig: entry.resolveConfig(featureConfig),
-        dependencies,
-      });
+    parse: (featureConfig) => {
+      const adapterConfig = entry.parseConfig(featureConfig);
+
+      return {
+        create: (dependencies) => entry.create({ adapterConfig, dependencies }),
+        ...(entry.validateStartup
+          ? {
+              validateStartup: (dependencies: FeatureAdapterDependencies) =>
+                entry.validateStartup?.({ adapterConfig, dependencies }),
+            }
+          : {}),
+      };
     },
   };
 }

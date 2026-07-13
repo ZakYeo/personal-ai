@@ -7,7 +7,7 @@ import { requireVoiceConfig } from "./voice-config.js";
 
 describe("loadConfig", () => {
   it("loads the default checked-in config", async () => {
-    await expect(loadConfig()).resolves.toEqual({
+    await expect(loadConfig()).resolves.toMatchObject({
       assistant: {
         name: "Jarvis",
         wakePhrases: ["hey jarvis"],
@@ -32,7 +32,7 @@ describe("loadConfig", () => {
         audioOutput: "mock",
       },
       features: {
-        calendar: { enabled: true, adapter: "mock", upcomingWindowDays: 92 },
+        calendar: { enabled: true, adapter: "mock" },
         messaging: { enabled: true, adapter: "mock" },
         alarms: {
           enabled: true,
@@ -63,7 +63,7 @@ describe("loadConfig", () => {
       }),
     );
 
-    await expect(loadConfig({ configPath })).resolves.toEqual({
+    await expect(loadConfig({ configPath })).resolves.toMatchObject({
       assistant: {
         name: "Friday",
         wakePhrases: ["hey friday"],
@@ -81,7 +81,7 @@ describe("loadConfig", () => {
         provider: "disabled",
       },
       features: {
-        calendar: { enabled: false, upcomingWindowDays: 92 },
+        calendar: { enabled: false },
       },
     });
   });
@@ -191,7 +191,7 @@ describe("parseAssistantConfig", () => {
           },
         },
       }),
-    ).toEqual({
+    ).toMatchObject({
       assistant: {
         name: "Jarvis",
         wakePhrases: ["hey jarvis"],
@@ -338,7 +338,7 @@ describe("parseAssistantConfig", () => {
     ).toThrow('Config feature "calendar".adapter must be a non-empty string.');
   });
 
-  it("parses selected feature adapter provider config into the feature shape", () => {
+  it("keeps selected feature adapter provider config out of the common feature shape", () => {
     const config = parseAssistantConfig(
       createMinimalConfig({
         features: {
@@ -351,22 +351,13 @@ describe("parseAssistantConfig", () => {
       }),
     );
 
-    expect(config.features.calendar).toEqual({
+    expect(config.features.calendar).toMatchObject({
       enabled: true,
       adapter: "google",
-      upcomingWindowDays: 92,
-      google: {
-        accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-        baseUrl: "https://www.googleapis.com/calendar/v3",
-        calendarId: "primary",
-        clientIdEnv: "GOOGLE_CALENDAR_CLIENT_ID",
-        clientSecretEnv: "GOOGLE_CALENDAR_CLIENT_SECRET",
-        maxResults: 10,
-        refreshTokenEnv: "GOOGLE_CALENDAR_REFRESH_TOKEN",
-        timeoutMs: 30_000,
-        tokenUrl: "https://oauth2.googleapis.com/token",
-      },
     });
+    expect(config.features.calendar).not.toHaveProperty("google");
+    expect(config.features.calendar).not.toHaveProperty("upcomingWindowDays");
+    expect(config.features.calendar?.resolvedAdapter).toBeDefined();
   });
 
   it("parses calendar upcoming window overrides", () => {
@@ -382,11 +373,11 @@ describe("parseAssistantConfig", () => {
       }),
     );
 
-    expect(config.features.calendar).toEqual({
+    expect(config.features.calendar).toMatchObject({
       enabled: true,
       adapter: "mock",
-      upcomingWindowDays: 31,
     });
+    expect(config.features.calendar).not.toHaveProperty("upcomingWindowDays");
   });
 
   it("validates selected feature adapter provider config during parsing", () => {
@@ -442,11 +433,11 @@ describe("parseAssistantConfig", () => {
       }),
     ).features.calendar;
 
-    expect(feature).toEqual({
+    expect(feature).toMatchObject({
       enabled: true,
       adapter: "mock",
-      upcomingWindowDays: 92,
     });
+    expect(feature).not.toHaveProperty("google");
   });
 });
 

@@ -146,6 +146,10 @@ credentials or adapter-specific settings without spreading selection policy.
 The selected adapter's resolved config should be typed at the same boundary as
 the selected adapter factory. Do not pass `unknown` adapter config through a
 generic feature context and recover the real shape with casts inside factories.
+Feature registry entries parse their selected raw section once, capture that
+typed value for construction and startup preflight, and expose only neutral
+resolved operations to later runtime composition. Provider fields must not
+accumulate on the common parsed feature type.
 If adapter config differs by adapter ID, model that relationship in a resolved
 discriminated type or in the registry entry itself. Loaded runtime config should
 not retain raw adapter config bags for later hidden reparsing; selected adapter

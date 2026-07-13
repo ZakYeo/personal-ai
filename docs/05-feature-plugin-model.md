@@ -137,11 +137,13 @@ enabled capability catalog. It is runtime-owned rather than user-configured, and
 it must stay backed by the same generated feature metadata used by provider
 prompts. Its normal list response should be phrased for speech and avoid
 internal capability names unless the user asks for technical detail.
-Adapter-specific configuration should be resolved as part of selecting the
-adapter, not passed as an untyped generic bag. A feature adapter registry entry
-should either receive the exact resolved config type it needs or own the small
-resolver that proves that type. Avoid `unknown` adapter config plus casts inside
-feature adapter factories; that hides the real feature/provider invariant.
+Adapter-specific configuration is parsed as part of selecting the adapter, not
+retained in the common loaded feature shape or passed as an untyped generic
+bag. Each registry entry owns the parser that proves its exact config type and
+captures that typed value for construction and optional startup preflight.
+Adding a provider therefore changes its feature-local registry entry rather
+than widening `ParsedFeatureConfig`. Avoid `unknown` adapter config plus casts
+inside factories; that hides the real feature/provider invariant.
 
 Deterministic intent matching should follow the same capability-driven shape as
 real provider routing. A small deterministic adapter may use simple rules for
