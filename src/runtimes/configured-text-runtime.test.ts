@@ -52,6 +52,10 @@ describe("createConfiguredTextRuntime", () => {
     ).resolves.toEqual(
       deterministicScenarios.alarmCreateNeedsConfirmation.response,
     );
+    await expect(assistant.handleText("no")).resolves.toEqual({
+      status: "ok",
+      text: "Okay, I did not do that.",
+    });
 
     await expect(
       assistant.handleText(deterministicScenarios.alarmListEmpty.text),
@@ -70,6 +74,10 @@ describe("createConfiguredTextRuntime", () => {
     ).resolves.toEqual(
       deterministicScenarios.alarmCreateNeedsConfirmation.response,
     );
+    await expect(assistant.handleText("no")).resolves.toEqual({
+      status: "ok",
+      text: "Okay, I did not do that.",
+    });
 
     await expect(
       assistant.handleText(deterministicScenarios.alarmListEmpty.text),

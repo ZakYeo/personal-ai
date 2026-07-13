@@ -458,8 +458,61 @@ describe("createAssistant", () => {
     });
 
     await expect(assistant.handleText("hello")).resolves.toEqual({
+      expectsFollowUp: true,
       status: "needs_confirmation",
       text: "I need confirmation before doing that. Please confirm yes or no.",
+    });
+    expect(execute).not.toHaveBeenCalled();
+  });
+
+  it("executes a pending command only after an explicit confirmation", async () => {
+    const command = createCommand("test.echo", { message: "hello" });
+    const execute = vi.fn(() =>
+      Promise.resolve({ text: "Handled after confirmation." }),
+    );
+    const interpret = vi.fn(() =>
+      Promise.resolve({ command, kind: "command" as const }),
+    );
+    const assistant = createAssistant({
+      clock,
+      config: requireConfirmationFor("test", ["test.echo"]),
+      features: [
+        createFeature({
+          capability: {
+            name: "test.echo",
+            risk: "low",
+            parameters: { message: { type: "string", required: true } },
+          },
+          execute,
+        }),
+      ],
+      intentInterpreter: { interpret },
+    });
+
+    await assistant.handleText("do it");
+
+    await expect(assistant.handleText("yes")).resolves.toEqual({
+      status: "ok",
+      text: "Handled after confirmation.",
+    });
+    expect(interpret).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels a pending command after an explicit rejection", async () => {
+    const execute = vi.fn(() => Promise.resolve({ text: "Should not run." }));
+    const assistant = createAssistant({
+      clock,
+      config: requireConfirmationFor("test", ["test.echo"]),
+      features: [createFeature({ execute })],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+    });
+
+    await assistant.handleText("do it");
+
+    await expect(assistant.handleText("no")).resolves.toEqual({
+      status: "ok",
+      text: "Okay, I did not do that.",
     });
     expect(execute).not.toHaveBeenCalled();
   });

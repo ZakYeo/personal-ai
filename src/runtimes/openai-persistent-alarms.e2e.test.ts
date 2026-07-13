@@ -8,7 +8,7 @@ import { createConfiguredTextRuntime } from "./configured-text-runtime.js";
 const runOpenAIE2E = env.PERSONAL_AI_RUN_OPENAI_E2E === "1";
 
 describe.skipIf(!runOpenAIE2E)("OpenAI persistent alarms live E2E", () => {
-  it("routes safe creation and lists durable alarms after restart", async () => {
+  it("confirms creation and lists the durable alarm after restart", async () => {
     const configPath = await writeTempJsonFile(createLiveAlarmConfig());
     const statePath = join(dirname(configPath), "state", "alarms.json");
     const createRuntime = () =>
@@ -25,15 +25,22 @@ describe.skipIf(!runOpenAIE2E)("OpenAI persistent alarms live E2E", () => {
         "Hey Jarvis, set an alarm called tea in 10 minutes.",
       ),
     ).resolves.toEqual({
+      expectsFollowUp: true,
       status: "needs_confirmation",
       text: "I need confirmation before doing that. Please confirm yes or no.",
     });
     await expect(access(statePath)).rejects.toMatchObject({ code: "ENOENT" });
 
-    await createFileAlarmStore({
-      createId: () => "live-persisted-alarm",
+    await expect(firstRuntime.handleText("yes")).resolves.toMatchObject({
+      status: "ok",
+      text: "Alarm set for 2026-07-13T16:10:00.000Z (tea).",
+    });
+    const storedAlarms = await createFileAlarmStore({
       filePath: statePath,
-    }).add({
+    }).list();
+    expect(storedAlarms).toHaveLength(1);
+    expect(storedAlarms[0]?.id).not.toBe("");
+    expect(storedAlarms[0]).toMatchObject({
       label: "tea",
       scheduledFor: "2026-07-13T16:10:00.000Z",
     });
@@ -46,9 +53,9 @@ describe.skipIf(!runOpenAIE2E)("OpenAI persistent alarms live E2E", () => {
       "Hey Jarvis, what alarms do I have?",
     );
 
-    expect(firstList.text).toContain("live-persisted-alarm");
+    expect(firstList.text).toContain("2026-07-13T16:10:00.000Z (tea)");
     expect(restartedList).toEqual(firstList);
-  });
+  }, 30_000);
 });
 
 function createLiveAlarmConfig() {

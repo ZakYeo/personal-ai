@@ -30,6 +30,7 @@ export const deterministicScenarios = {
   alarmCreateNeedsConfirmation: {
     text: "Hey Jarvis, set an alarm to ping me in 10 minutes.",
     response: {
+      expectsFollowUp: true,
       status: "needs_confirmation",
       text: "I need confirmation before doing that. Please confirm yes or no.",
     },

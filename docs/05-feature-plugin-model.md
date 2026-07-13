@@ -77,12 +77,18 @@ Higher-risk examples:
 - Cancel an alarm.
 - Modify external state.
 
-Higher-risk actions should support confirmation before execution. The exact confirmation model can be implemented later, but the feature contract should leave room for it.
+Higher-risk actions support confirmation before execution. The assistant retains
+one pending command per assistant instance and accepts an explicit yes or no on
+the next turn before interpreting another command.
 Generated capability summaries describe this policy in feature-neutral language
 because any registered capability can be high risk or explicitly require
 confirmation.
 
-Milestone 1.5 intentionally uses a thin confirmation policy. If a capability requires confirmation, the assistant stops before feature execution and returns a yes/no confirmation prompt. It does not yet persist pending commands or resume them in a later turn.
+The confirmation session is intentionally process-local. If a capability
+requires confirmation, the assistant stops before feature execution and returns
+a yes/no follow-up prompt. A positive response resumes the already decoded
+command without asking the intent provider to interpret it again; a negative
+response discards it. Restarting the assistant discards any pending command.
 
 High-risk capability safety should fail closed. A capability marked
 `risk: "high"` should require confirmation by default unless the feature's

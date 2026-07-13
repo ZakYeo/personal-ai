@@ -8,7 +8,7 @@ import type {
   AssistantResponse,
   ClockPort,
 } from "../../ports/assistant.js";
-import type { FeaturePlugin } from "../../ports/feature.js";
+import type { FeatureArguments, FeaturePlugin } from "../../ports/feature.js";
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
@@ -24,6 +24,10 @@ import {
   type ConversationSessionDependencies,
 } from "./conversation-session.js";
 import { evaluateConfirmationPolicy } from "./confirmation-policy.js";
+import {
+  createConfirmationSession,
+  type ConfirmationSession,
+} from "./confirmation-session.js";
 import { protectResponseFacts } from "./response-fact-protection.js";
 
 export interface AssistantDependencies {
@@ -46,11 +50,14 @@ export function createAssistant(
   const conversation = dependencies.conversation
     ? createConversationSession(dependencies.conversation)
     : undefined;
+  const confirmation = createConfirmationSession();
 
   async function handleTextWithDiagnostics(
     text: string,
   ): Promise<AssistantOutcome> {
-    return handleTextInternal(text, dependencies, conversation);
+    return confirmation.run(text, () =>
+      handleTextInternal(text, dependencies, conversation, confirmation),
+    );
   }
 
   return {
@@ -67,6 +74,7 @@ async function handleTextInternal(
   text: string,
   dependencies: AssistantDependencies,
   conversation: ConversationSession | undefined,
+  confirmation: ConfirmationSession,
 ): Promise<AssistantOutcome> {
   const normalizedText = text.trim();
 
@@ -140,16 +148,52 @@ async function handleTextInternal(
     );
 
     if (confirmationError) {
-      return outcomeFromError(confirmationError);
+      return confirmation.request(() =>
+        executeCommand({
+          command,
+          context,
+          decodedArgs: decodedCommand.args,
+          dependencies,
+          executionContext,
+          feature,
+          normalizedText,
+        }),
+      );
     }
 
-    const result = await feature.execute(
-      {
-        capability: command.capability,
-        command,
-        args: decodedCommand.args,
-      },
+    return executeCommand({
+      command,
+      context,
+      decodedArgs: decodedCommand.args,
+      dependencies,
       executionContext,
+      feature,
+      normalizedText,
+    });
+  } catch (error) {
+    return featureFailureOutcome(error, command.capability);
+  }
+}
+
+async function executeCommand(input: {
+  command: AssistantCommand;
+  context: AssistantContext;
+  decodedArgs: FeatureArguments;
+  dependencies: AssistantDependencies;
+  executionContext: AssistantContext & {
+    capabilityCatalog: AssistantDependencies["capabilityRouting"]["catalog"];
+  };
+  feature: FeaturePlugin;
+  normalizedText: string;
+}): Promise<AssistantOutcome> {
+  try {
+    const result = await input.feature.execute(
+      {
+        capability: input.command.capability,
+        command: input.command,
+        args: input.decodedArgs,
+      },
+      input.executionContext,
     );
 
     const response: AssistantResponse = {
@@ -158,26 +202,33 @@ async function handleTextInternal(
     };
 
     return rewriteCommandResponse({
-      command,
-      context,
-      dependencies,
+      command: input.command,
+      context: input.context,
+      dependencies: input.dependencies,
       facts: result.data ?? {},
       response,
-      text: normalizedText,
+      text: input.normalizedText,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown feature error";
-
-    return outcomeFromError(
-      createAppError({
-        category: "feature_failure",
-        capability: command.capability,
-        cause: error,
-        message,
-      }),
-    );
+    return featureFailureOutcome(error, input.command.capability);
   }
+}
+
+function featureFailureOutcome(
+  error: unknown,
+  capability: string,
+): AssistantOutcome {
+  const message =
+    error instanceof Error ? error.message : "Unknown feature error";
+
+  return outcomeFromError(
+    createAppError({
+      category: "feature_failure",
+      capability,
+      cause: error,
+      message,
+    }),
+  );
 }
 
 async function rewriteCommandResponse(input: {
