@@ -220,7 +220,8 @@ External data should be parsed from `unknown` and validated before it becomes an
 application type. Config files, provider responses, command output, and other
 untrusted shapes should use field-by-field checks instead of broad type
 assertions such as casting parsed JSON directly to a runtime config or assistant
-command.
+command. Array-encoded maps must reject duplicate keys rather than silently
+overwriting an earlier provider value.
 
 Runtime-specific invariants should be resolved once through named helpers before
 construction proceeds. When a runtime requires a complete voice config,

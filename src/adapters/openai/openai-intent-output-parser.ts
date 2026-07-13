@@ -75,10 +75,18 @@ function parseCommandParameters(value: unknown): AssistantCommandParameters {
   }
 
   const parameters: AssistantCommandParameters = {};
+  const parameterNames = new Set<string>();
 
   for (const parameter of value) {
     const parsedParameter = parseCommandParameter(parameter);
 
+    if (parameterNames.has(parsedParameter.name)) {
+      throw new OpenAIIntentError(
+        `OpenAI intent response command.parameters contains duplicate name "${parsedParameter.name}".`,
+      );
+    }
+
+    parameterNames.add(parsedParameter.name);
     parameters[parsedParameter.name] = parsedParameter.value;
   }
 

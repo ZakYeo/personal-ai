@@ -318,6 +318,33 @@ describe("OpenAIIntentInterpreter", () => {
     );
   });
 
+  it("rejects duplicate command parameter names", async () => {
+    const interpreter = createInterpreter({
+      fetch: createFetchStub(
+        jsonResponse({
+          output_text: JSON.stringify({
+            kind: "command",
+            command: {
+              capability: "alarm.create",
+              parameters: [
+                { name: "time", value: "07:00" },
+                { name: "time", value: "08:00" },
+              ],
+              rawText: "Hey Jarvis, set an alarm",
+            },
+            response: null,
+          }),
+        }),
+      ),
+    });
+
+    await expect(
+      interpreter.interpret("Hey Jarvis, set an alarm", context),
+    ).rejects.toThrow(
+      'OpenAI intent response command.parameters contains duplicate name "time".',
+    );
+  });
+
   it("rejects transport failures without replacing the provider diagnostic", async () => {
     const error = new TypeError("network unavailable");
     const interpreter = createInterpreter({

@@ -36,6 +36,7 @@
 - Parse config, provider responses, command output, and other external data from `unknown` with field-by-field validation before casting to application types.
 - Adapter response and command parsers must use the shared adapter-layer structural primitives for repeated checks such as plain-record detection.
 - OpenAI structured-output parsers must share JSON decoding and raw-body/cause preservation while keeping operation-specific schema validation and error constructors local.
+- Reject duplicate names in array-encoded provider maps such as OpenAI intent parameters instead of silently applying last-write-wins semantics.
 - Keep raw config parsing and runtime-specific config resolution separate: parse external shape once, then let one focused resolver own each required provider, adapter, or command invariant.
 - Intent, conversation, and response-rewriter config parsers each accept `unknown` and own their section/provider validation; central config parsing must not pre-validate one operation's provider shape.
 - Treat diagnostic-aware assistant outcomes as a stable runtime boundary contract rather than making runtime helpers depend on private core error implementation details.
