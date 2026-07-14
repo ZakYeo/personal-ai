@@ -17,6 +17,7 @@ import {
 import type { ConversationState } from "../../ports/conversation.js";
 import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
+import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import { createScheduledAlarmRecord } from "../../test-support/primitives.js";
 
 const config = createAssistantConfig({
@@ -283,6 +284,123 @@ describe("createAssistant", () => {
         message:
           "Response rewrite changed protected fact token __ASSISTANT_PROTECTED_FACT_0__.",
       }),
+    ]);
+  });
+
+  it.each([
+    {
+      factName: "alarm0NextDeliveryAt",
+      record: createScheduledAlarmRecord({
+        id: "alarm-1",
+        label: "tea",
+        nextDeliveryAt: "2026-06-26T09:15:00.000Z",
+        scheduledFor: "2026-06-26T09:10:00.000Z",
+        status: "snoozed",
+      }),
+      text: "The tea alarm (alarm-1) is snoozed until 2026-06-26T09:15:00.000Z.",
+    },
+    {
+      factName: "alarm0TerminalAt",
+      record: createScheduledAlarmRecord({
+        deliveryAttempts: 1,
+        id: "alarm-1",
+        label: "tea",
+        nextDeliveryAt: undefined,
+        scheduledFor: "2026-06-26T09:10:00.000Z",
+        status: "completed",
+        successfulDeliveries: 1,
+        terminalAt: "2026-06-26T09:11:00.000Z",
+      }),
+      text: "The tea alarm (alarm-1) was completed at 2026-06-26T09:11:00.000Z.",
+    },
+    {
+      factName: "alarm0RecurrenceFrequency",
+      record: createScheduledAlarmRecord({
+        id: "alarm-1",
+        label: "tea",
+        recurrence: { frequency: "daily", timeZone: "Europe/London" },
+        scheduledFor: "2026-06-26T09:10:00.000Z",
+      }),
+      text: "The tea alarm (alarm-1) is scheduled for 2026-06-26T09:10:00.000Z and repeats daily in Europe/London.",
+    },
+    {
+      factName: "alarm0RecurrenceTimeZone",
+      record: createScheduledAlarmRecord({
+        id: "alarm-1",
+        label: "tea",
+        recurrence: { frequency: "daily", timeZone: "Europe/London" },
+        scheduledFor: "2026-06-26T09:10:00.000Z",
+      }),
+      text: "The tea alarm (alarm-1) is scheduled for 2026-06-26T09:10:00.000Z and repeats daily in Europe/London.",
+    },
+  ])(
+    "protects $factName when rewriting alarm status",
+    async ({ factName, record, text }) => {
+      const store: AlarmStore = {
+        add: () => Promise.reject(new Error("not used")),
+        list: () => Promise.resolve([record]),
+        removeTerminalBefore: () => Promise.resolve(0),
+        update: () => Promise.resolve(undefined),
+      };
+      const assistant = createAssistant({
+        clock,
+        config: createAssistantConfig({ alarms: { enabled: true } }),
+        features: [createAlarmFeature(store)],
+        intentInterpreter: createInterpreter(createCommand("alarm.list")),
+        responseRewriter: createFactChangingRewriter(factName),
+      });
+
+      const outcome = await assistant.handleTextWithDiagnostics("list alarms");
+
+      expect(outcome.response).toEqual({ status: "ok", text });
+      expect(outcome.diagnostics).toEqual([
+        expect.objectContaining({ category: "response_rewrite_failure" }),
+      ]);
+    },
+  );
+
+  it("protects the next occurrence when rewriting recurring acknowledgement", async () => {
+    const ringing = createScheduledAlarmRecord({
+      deliveryAttempts: 1,
+      id: "alarm-1",
+      label: "tea",
+      nextDeliveryAt: "2026-06-26T09:11:00.000Z",
+      recurrence: { frequency: "daily", timeZone: "Europe/London" },
+      scheduledFor: "2026-06-26T09:10:00.000Z",
+      status: "ringing",
+      successfulDeliveries: 1,
+    });
+    const store: AlarmStore = {
+      add: () => Promise.reject(new Error("not used")),
+      list: () => Promise.resolve([ringing]),
+      removeTerminalBefore: () => Promise.resolve(0),
+      update: () =>
+        Promise.resolve(
+          createScheduledAlarmRecord({
+            id: "alarm-1",
+            label: "tea",
+            recurrence: { frequency: "daily", timeZone: "Europe/London" },
+            revision: 3,
+            scheduledFor: "2026-06-27T09:10:00.000Z",
+          }),
+        ),
+    };
+    const assistant = createAssistant({
+      clock,
+      config: createAssistantConfig({ alarms: { enabled: true } }),
+      features: [createAlarmFeature(store)],
+      intentInterpreter: createInterpreter(createCommand("alarm.acknowledge")),
+      responseRewriter: createFactChangingRewriter("scheduledFor"),
+    });
+
+    const outcome = await assistant.handleTextWithDiagnostics("heard it");
+
+    expect(outcome.response).toEqual({
+      status: "ok",
+      text: "Acknowledged the tea alarm. Its next occurrence is 2026-06-27T09:10:00.000Z.",
+    });
+    expect(outcome.diagnostics).toEqual([
+      expect.objectContaining({ category: "response_rewrite_failure" }),
     ]);
   });
 
@@ -786,3 +904,19 @@ describe("createAssistant", () => {
     );
   });
 });
+
+function createFactChangingRewriter(factName: string): ResponseRewriterPort {
+  return {
+    rewrite: (request) => {
+      const fact = request.protectedFacts?.find(({ names }) =>
+        names.includes(factName),
+      );
+      if (!fact) {
+        return Promise.reject(new Error(`Missing protected fact ${factName}.`));
+      }
+      return Promise.resolve({
+        text: request.response.text.replace(fact.token, "changed"),
+      });
+    },
+  };
+}

@@ -83,16 +83,17 @@ export async function listAlarms(store: AlarmStore): Promise<FeatureResult> {
     return { text: "There are no alarms set." };
   }
 
+  const projections = alarms.map(projectAlarmStatus);
   return {
     data: Object.fromEntries(
-      alarms.flatMap((alarm, index) => [
-        [`alarm${index}Id`, alarm.id],
-        [`alarm${index}Label`, alarm.label],
-        [`alarm${index}ScheduledFor`, alarm.scheduledFor],
-        [`alarm${index}Status`, alarm.status],
-      ]),
+      projections.flatMap(({ facts }, index) =>
+        Object.entries(facts).map(([name, value]) => [
+          `alarm${index}${name}`,
+          value,
+        ]),
+      ),
     ),
-    text: alarms.map(formatAlarmStatus).join(" "),
+    text: projections.map(({ text }) => text).join(" "),
   };
 }
 
@@ -219,7 +220,14 @@ function transitionAlarm(
   return updateSelectedAlarm(args, context, store, allowedStatuses, () => ({
     changes: { nextDeliveryAt: null, status: nextStatus },
     result: (alarm) => ({
-      data: { id: alarm.id, label: alarm.label, status: alarm.status },
+      data: {
+        id: alarm.id,
+        label: alarm.label,
+        ...(alarm.status === "scheduled" && alarm.recurrence
+          ? { scheduledFor: alarm.scheduledFor }
+          : {}),
+        status: alarm.status,
+      },
       text:
         alarm.status === "scheduled" && alarm.recurrence
           ? `${response.verb} the ${alarm.label} alarm. Its next occurrence is ${alarm.scheduledFor}.`
@@ -309,24 +317,59 @@ function relativeTime(
   ).toISOString();
 }
 
-function formatAlarmStatus(alarm: AlarmRecord): string {
+function projectAlarmStatus(alarm: AlarmRecord): {
+  facts: Record<string, string>;
+  text: string;
+} {
   const identity = `The ${alarm.label} alarm (${alarm.id})`;
+  const facts: Record<string, string> = {
+    Id: alarm.id,
+    Label: alarm.label,
+    ScheduledFor: alarm.scheduledFor,
+    Status: alarm.status,
+  };
   switch (alarm.status) {
     case "scheduled":
-      return alarm.recurrence
-        ? `${identity} is scheduled for ${alarm.scheduledFor} and repeats ${alarm.recurrence.frequency} in ${alarm.recurrence.timeZone}.`
-        : `${identity} is scheduled for ${alarm.scheduledFor}.`;
+      return {
+        facts: {
+          ...facts,
+          ...(alarm.recurrence
+            ? {
+                RecurrenceFrequency: alarm.recurrence.frequency,
+                RecurrenceTimeZone: alarm.recurrence.timeZone,
+              }
+            : {}),
+        },
+        text: alarm.recurrence
+          ? `${identity} is scheduled for ${alarm.scheduledFor} and repeats ${alarm.recurrence.frequency} in ${alarm.recurrence.timeZone}.`
+          : `${identity} is scheduled for ${alarm.scheduledFor}.`,
+      };
     case "snoozed":
-      return `${identity} is snoozed until ${alarm.nextDeliveryAt}.`;
+      return {
+        facts: { ...facts, NextDeliveryAt: alarm.nextDeliveryAt! },
+        text: `${identity} is snoozed until ${alarm.nextDeliveryAt}.`,
+      };
     case "ringing":
-      return `${identity} is ringing.`;
+      return { facts, text: `${identity} is ringing.` };
     case "completed":
-      return `${identity} was completed at ${alarm.terminalAt}.`;
+      return {
+        facts: { ...facts, TerminalAt: alarm.terminalAt! },
+        text: `${identity} was completed at ${alarm.terminalAt}.`,
+      };
     case "dismissed":
-      return `${identity} was dismissed at ${alarm.terminalAt}.`;
+      return {
+        facts: { ...facts, TerminalAt: alarm.terminalAt! },
+        text: `${identity} was dismissed at ${alarm.terminalAt}.`,
+      };
     case "cancelled":
-      return `${identity} was cancelled at ${alarm.terminalAt}.`;
+      return {
+        facts: { ...facts, TerminalAt: alarm.terminalAt! },
+        text: `${identity} was cancelled at ${alarm.terminalAt}.`,
+      };
     case "missed":
-      return `${identity} was missed at ${alarm.terminalAt}.`;
+      return {
+        facts: { ...facts, TerminalAt: alarm.terminalAt! },
+        text: `${identity} was missed at ${alarm.terminalAt}.`,
+      };
   }
 }

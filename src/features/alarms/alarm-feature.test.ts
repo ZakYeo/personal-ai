@@ -178,6 +178,8 @@ describe("createAlarmFeature", () => {
       data: {
         alarm0Id: "alarm-1",
         alarm0Label: "morning tea",
+        alarm0RecurrenceFrequency: "weekly",
+        alarm0RecurrenceTimeZone: "Europe/London",
         alarm0ScheduledFor: "2026-06-26T09:10:00.000Z",
         alarm0Status: "scheduled",
       },
@@ -274,7 +276,12 @@ describe("createAlarmFeature", () => {
       "alarm.acknowledge",
       {},
       {
-        data: { id: alarm.id, label: "tea", status: "scheduled" },
+        data: {
+          id: alarm.id,
+          label: "tea",
+          scheduledFor: "2026-06-27T09:00:00.000Z",
+          status: "scheduled",
+        },
         text: "Acknowledged the tea alarm. Its next occurrence is 2026-06-27T09:00:00.000Z.",
       },
       context,
