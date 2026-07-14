@@ -19,6 +19,7 @@ import {
   mockVoiceConfig,
 } from "./deterministic-runtime-fixtures.js";
 import { createFileAlarmStore } from "../adapters/local/file-alarm-store.js";
+import { createScheduledAlarmRecord } from "./primitives.js";
 
 describe("runtime composition test support", () => {
   it("creates configured text runtimes with a fixed clock by default", async () => {
@@ -133,6 +134,12 @@ describe("runtime composition test support", () => {
     });
     await expect(
       createFileAlarmStore({ filePath: statePath }).list(),
-    ).resolves.toEqual([alarm]);
+    ).resolves.toEqual([
+      createScheduledAlarmRecord({
+        ...alarm,
+        createdAt: alarm.scheduledFor,
+        updatedAt: alarm.scheduledFor,
+      }),
+    ]);
   });
 });

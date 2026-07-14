@@ -1,5 +1,6 @@
 import { createAlarmFeature } from "./alarm-feature.js";
 import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
+import { createScheduledAlarmRecord } from "../../test-support/primitives.js";
 import {
   createFeatureContext,
   executeFeature,
@@ -142,10 +143,10 @@ function createTestAlarmStore(idPrefix = "alarm"): AlarmStore {
 
   return {
     add: (alarm) => {
-      const storedAlarm = {
+      const storedAlarm = createScheduledAlarmRecord({
         ...alarm,
         id: `${idPrefix}-${alarms.length + 1}`,
-      };
+      });
 
       alarms.push(storedAlarm);
 

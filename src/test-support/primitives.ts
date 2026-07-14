@@ -1,9 +1,24 @@
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { AlarmRecord } from "../ports/alarm-store.js";
 
 export const deterministicTestNow = new Date("2026-06-26T09:00:00.000Z");
 export const deterministicTestNowIso = deterministicTestNow.toISOString();
+
+export function createScheduledAlarmRecord(
+  input: Pick<AlarmRecord, "id" | "label" | "scheduledFor"> &
+    Partial<AlarmRecord>,
+): AlarmRecord {
+  return {
+    createdAt: deterministicTestNowIso,
+    deliveryAttempts: 0,
+    status: "scheduled",
+    successfulDeliveries: 0,
+    updatedAt: deterministicTestNowIso,
+    ...input,
+  };
+}
 
 interface CapturedWriter {
   write(chunk: string): void;

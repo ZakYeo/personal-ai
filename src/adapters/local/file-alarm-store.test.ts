@@ -13,6 +13,7 @@ describe("createFileAlarmStore", () => {
     const first = createFileAlarmStore({
       createId: () => "alarm-persisted",
       filePath,
+      now: () => new Date("2026-07-13T16:00:00.000Z"),
     });
 
     await expect(first.list()).resolves.toEqual([]);
@@ -22,29 +23,93 @@ describe("createFileAlarmStore", () => {
         scheduledFor: "2026-07-13T17:00:00.000Z",
       }),
     ).resolves.toEqual({
+      createdAt: "2026-07-13T16:00:00.000Z",
+      deliveryAttempts: 0,
       id: "alarm-persisted",
       label: "tea",
+      successfulDeliveries: 0,
       scheduledFor: "2026-07-13T17:00:00.000Z",
+      status: "scheduled",
+      updatedAt: "2026-07-13T16:00:00.000Z",
     });
 
     const second = createFileAlarmStore({ filePath });
 
     await expect(second.list()).resolves.toEqual([
       {
+        createdAt: "2026-07-13T16:00:00.000Z",
+        deliveryAttempts: 0,
         id: "alarm-persisted",
         label: "tea",
+        successfulDeliveries: 0,
         scheduledFor: "2026-07-13T17:00:00.000Z",
+        status: "scheduled",
+        updatedAt: "2026-07-13T16:00:00.000Z",
       },
     ]);
     await expect(readJson(filePath)).resolves.toEqual({
       alarms: [
         {
+          createdAt: "2026-07-13T16:00:00.000Z",
+          deliveryAttempts: 0,
           id: "alarm-persisted",
           label: "tea",
+          successfulDeliveries: 0,
           scheduledFor: "2026-07-13T17:00:00.000Z",
+          status: "scheduled",
+          updatedAt: "2026-07-13T16:00:00.000Z",
         },
       ],
-      version: 1,
+      version: 2,
+    });
+  });
+
+  it("migrates version-one records deterministically on the next write", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-alarms-"));
+    const filePath = join(directory, "alarms.json");
+    await writeFile(
+      filePath,
+      JSON.stringify({
+        alarms: [
+          {
+            id: "legacy-alarm",
+            label: "legacy tea",
+            scheduledFor: "2026-07-13T17:00:00.000Z",
+          },
+        ],
+        version: 1,
+      }),
+    );
+    const store = createFileAlarmStore({
+      createId: () => "new-alarm",
+      filePath,
+      now: () => new Date("2026-07-13T16:30:00.000Z"),
+    });
+
+    await expect(store.list()).resolves.toEqual([
+      {
+        createdAt: "2026-07-13T17:00:00.000Z",
+        deliveryAttempts: 0,
+        id: "legacy-alarm",
+        label: "legacy tea",
+        scheduledFor: "2026-07-13T17:00:00.000Z",
+        status: "scheduled",
+        successfulDeliveries: 0,
+        updatedAt: "2026-07-13T17:00:00.000Z",
+      },
+    ]);
+
+    await store.add({
+      label: "new tea",
+      scheduledFor: "2026-07-13T18:00:00.000Z",
+    });
+
+    await expect(readJson(filePath)).resolves.toMatchObject({
+      version: 2,
+      alarms: [
+        { id: "legacy-alarm", status: "scheduled" },
+        { id: "new-alarm", status: "scheduled" },
+      ],
     });
   });
 
@@ -67,7 +132,7 @@ describe("createFileAlarmStore", () => {
   });
 
   it.each([
-    { alarms: [], version: 2 },
+    { alarms: [], version: 3 },
     { alarms: "invalid", version: 1 },
     {
       alarms: [
@@ -179,7 +244,7 @@ describe("createFileAlarmStore", () => {
     expect(error.message).toBe("Could not persist alarm state.");
     expect(error.cause).toMatchObject({ message: "replacement failed" });
     expect(replacements).toHaveLength(1);
-    expect(replacements[0]?.contents).toContain('"version":1');
+    expect(replacements[0]?.contents).toContain('"version":2');
     expect(replacements[0]?.targetPath).toBe("/state/alarms.json");
     expect(replacements[0]?.temporaryPath).toMatch(
       /^\/state\/\.alarms\.json\..+\.tmp$/u,

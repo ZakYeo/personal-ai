@@ -13,7 +13,6 @@ import { createDefaultIntentProviderRegistry } from "../runtimes/intent-provider
 import { createDefaultConversationProviderRegistry } from "../runtimes/conversation-provider-selection.js";
 import { createDefaultResponseRewriterProviderRegistry } from "../runtimes/response-rewriter-selection.js";
 import { resolveConfiguredRuntimeProvider } from "../runtimes/runtime-provider-registry.js";
-import type { AlarmRecord } from "../ports/alarm-store.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
@@ -55,7 +54,11 @@ interface RuntimeConfigWithFeatures {
 }
 
 interface PersistentAlarmRuntimeConfigOptions {
-  alarms?: readonly AlarmRecord[];
+  alarms?: ReadonlyArray<{
+    id: string;
+    label: string;
+    scheduledFor: string;
+  }>;
   statePath?: string;
 }
 

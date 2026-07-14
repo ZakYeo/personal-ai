@@ -4,6 +4,7 @@ import {
   createCapabilityInfoFeature,
 } from "./capability-info-feature.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
+import { createScheduledAlarmRecord } from "../../test-support/primitives.js";
 import { createCapabilityCatalog } from "../../ports/capability-catalog.js";
 import {
   createFeatureContext,
@@ -111,7 +112,8 @@ function createFeature() {
 
 function createTestAlarmStore(): AlarmStore {
   return {
-    add: (alarm) => Promise.resolve({ ...alarm, id: "alarm-1" }),
+    add: (alarm) =>
+      Promise.resolve(createScheduledAlarmRecord({ ...alarm, id: "alarm-1" })),
     list: () => Promise.resolve([]),
   };
 }

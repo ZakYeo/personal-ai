@@ -17,6 +17,7 @@ import {
 import type { ConversationState } from "../../ports/conversation.js";
 import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
+import { createScheduledAlarmRecord } from "../../test-support/primitives.js";
 
 const config = createAssistantConfig({
   test: { enabled: true },
@@ -251,11 +252,11 @@ describe("createAssistant", () => {
       add: () => Promise.reject(new Error("not used")),
       list: () =>
         Promise.resolve([
-          {
+          createScheduledAlarmRecord({
             id: "alarm-1",
             label: "private appointment",
             scheduledFor: "2026-06-26T09:10:00.000Z",
-          },
+          }),
         ]),
     };
     const assistant = createAssistant({
