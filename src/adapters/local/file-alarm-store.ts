@@ -13,10 +13,13 @@ import {
 } from "./atomic-file-replacement.js";
 import {
   applyAlarmLifecycleUpdate,
-  assertValidAlarmRecord,
   cloneAlarmRecord,
   createScheduledAlarm,
 } from "./alarm-record.js";
+import {
+  parseAlarmState,
+  type AlarmStateDocument,
+} from "./alarm-state-schema.js";
 
 export interface AlarmStoreFileSystem {
   mkdir(
@@ -42,11 +45,6 @@ export type FileAlarmStoreDependencies = Pick<
   FileAlarmStoreOptions,
   "createId" | "fileSystem"
 >;
-
-interface AlarmStateDocument {
-  alarms: AlarmRecord[];
-  version: 3;
-}
 
 const nodeAtomicFileSystem: AtomicFileSystem = {
   open,
@@ -183,152 +181,6 @@ async function readState(
   return parseAlarmState(parsed);
 }
 
-function parseAlarmState(value: unknown): AlarmStateDocument {
-  if (
-    !isRecord(value) ||
-    (value.version !== 1 && value.version !== 2 && value.version !== 3) ||
-    !Array.isArray(value.alarms)
-  ) {
-    throw new Error("Alarm state file is invalid.");
-  }
-
-  const version = value.version;
-  const alarms = value.alarms.map((alarm) =>
-    version === 1
-      ? migrateVersionOneAlarm(alarm)
-      : parseAlarmRecord(alarm, version),
-  );
-  if (new Set(alarms.map((alarm) => alarm.id)).size !== alarms.length) {
-    throw new Error("Alarm state file is invalid.");
-  }
-
-  return { alarms, version: 3 };
-}
-
-function migrateVersionOneAlarm(value: unknown): AlarmRecord {
-  if (
-    !isRecord(value) ||
-    !isNonEmptyString(value.id) ||
-    !isNonEmptyString(value.label) ||
-    !isCanonicalIsoTimestamp(value.scheduledFor)
-  ) {
-    throw new Error("Alarm state file is invalid.");
-  }
-
-  return {
-    createdAt: value.scheduledFor,
-    deliveryAttempts: 0,
-    id: value.id,
-    label: value.label,
-    nextDeliveryAt: value.scheduledFor,
-    revision: 1,
-    scheduledFor: value.scheduledFor,
-    status: "scheduled",
-    successfulDeliveries: 0,
-    updatedAt: value.scheduledFor,
-  };
-}
-
-function parseAlarmRecord(value: unknown, version: 2 | 3): AlarmRecord {
-  if (
-    !isRecord(value) ||
-    !isCanonicalIsoTimestamp(value.createdAt) ||
-    !isNonNegativeInteger(value.deliveryAttempts) ||
-    !isNonEmptyString(value.id) ||
-    !isNonEmptyString(value.label) ||
-    !isCanonicalIsoTimestamp(value.scheduledFor) ||
-    !isAlarmStatus(value.status) ||
-    !isNonNegativeInteger(value.successfulDeliveries) ||
-    value.successfulDeliveries > value.deliveryAttempts ||
-    !isCanonicalIsoTimestamp(value.updatedAt) ||
-    !isPositiveInteger(value.revision) ||
-    (value.nextDeliveryAt !== undefined &&
-      !isCanonicalIsoTimestamp(value.nextDeliveryAt)) ||
-    (value.terminalAt !== undefined &&
-      !isCanonicalIsoTimestamp(value.terminalAt)) ||
-    (value.recurrence !== undefined && !isAlarmRecurrence(value.recurrence))
-  ) {
-    throw new Error("Alarm state file is invalid.");
-  }
-
-  const alarm: AlarmRecord = {
-    createdAt: value.createdAt,
-    deliveryAttempts: value.deliveryAttempts,
-    id: value.id,
-    label: value.label,
-    ...(value.nextDeliveryAt ? { nextDeliveryAt: value.nextDeliveryAt } : {}),
-    ...(value.recurrence ? { recurrence: value.recurrence } : {}),
-    revision: value.revision,
-    scheduledFor: value.scheduledFor,
-    status: value.status,
-    successfulDeliveries: value.successfulDeliveries,
-    ...(version === 3
-      ? value.terminalAt
-        ? { terminalAt: value.terminalAt }
-        : {}
-      : isTerminalAlarmStatus(value.status)
-        ? { terminalAt: value.updatedAt }
-        : {}),
-    updatedAt: value.updatedAt,
-  };
-
-  try {
-    assertValidAlarmRecord(alarm);
-  } catch {
-    throw new Error("Alarm state file is invalid.");
-  }
-
-  return alarm;
-}
-
-function isAlarmStatus(value: unknown): value is AlarmRecord["status"] {
-  return (
-    value === "scheduled" ||
-    value === "snoozed" ||
-    value === "ringing" ||
-    value === "completed" ||
-    value === "dismissed" ||
-    value === "cancelled" ||
-    value === "missed"
-  );
-}
-
-function isTerminalAlarmStatus(status: AlarmRecord["status"]): boolean {
-  return (
-    status === "cancelled" ||
-    status === "completed" ||
-    status === "dismissed" ||
-    status === "missed"
-  );
-}
-
-function isAlarmRecurrence(
-  value: unknown,
-): value is NonNullable<AlarmRecord["recurrence"]> {
-  if (
-    !isRecord(value) ||
-    (value.frequency !== "daily" && value.frequency !== "weekly") ||
-    !isNonEmptyString(value.timeZone)
-  ) {
-    return false;
-  }
-
-  try {
-    new Intl.DateTimeFormat("en", { timeZone: value.timeZone });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function isNonNegativeInteger(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0;
-}
-
-function isPositiveInteger(value: unknown): value is number {
-  return typeof value === "number" && Number.isInteger(value) && value > 0;
-}
-
 async function writeState(
   filePath: string,
   state: AlarmStateDocument,
@@ -354,19 +206,4 @@ async function writeState(
 
 function isMissingFileError(error: unknown): boolean {
   return isRecord(error) && error.code === "ENOENT";
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
-}
-
-function isCanonicalIsoTimestamp(value: unknown): value is string {
-  if (typeof value !== "string") {
-    return false;
-  }
-
-  const timestamp = new Date(value);
-  return (
-    !Number.isNaN(timestamp.getTime()) && timestamp.toISOString() === value
-  );
 }

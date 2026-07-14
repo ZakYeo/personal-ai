@@ -156,6 +156,7 @@ describe("createFileAlarmStore", () => {
             nextDeliveryAt: undefined,
             status: "cancelled",
             terminalAt: "2026-06-30T08:59:59.999Z",
+            updatedAt: "2026-06-30T08:59:59.999Z",
           }),
           persistedAlarm({
             id: "active",
@@ -254,6 +255,22 @@ describe("createFileAlarmStore", () => {
       version: 2,
     },
     {
+      alarms: [persistedAlarm({ status: "snoozed" })],
+      version: 2,
+    },
+    {
+      alarms: [
+        persistedAlarm({
+          recurrence: { frequency: "daily", timeZone: "Europe/London" },
+        }),
+      ],
+      version: 2,
+    },
+    {
+      alarms: [persistedAlarm({ terminalAt: "2026-07-13T16:00:00.000Z" })],
+      version: 2,
+    },
+    {
       alarms: [
         persistedAlarm({
           deliveryAttempts: 1,
@@ -266,6 +283,16 @@ describe("createFileAlarmStore", () => {
     },
     {
       alarms: [persistedAlarm({ terminalAt: "2026-07-13T18:00:00.000Z" })],
+      version: 3,
+    },
+    {
+      alarms: [
+        persistedAlarm({
+          nextDeliveryAt: undefined,
+          status: "cancelled",
+          terminalAt: "2026-07-13T16:01:00.000Z",
+        }),
+      ],
       version: 3,
     },
     {
@@ -380,6 +407,7 @@ describe("createFileAlarmStore", () => {
             nextDeliveryAt: undefined,
             status: "cancelled",
             terminalAt: "2026-06-01T09:00:00.000Z",
+            updatedAt: "2026-06-01T09:00:00.000Z",
           }),
         ],
         version: 3,

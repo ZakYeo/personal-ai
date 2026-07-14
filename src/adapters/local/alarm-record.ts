@@ -1,8 +1,15 @@
 import type {
   AlarmLifecycleUpdate,
   AlarmRecord,
+  AlarmRecurrence,
   NewAlarmRecord,
 } from "../../ports/alarm-store.js";
+import {
+  isCanonicalAlarmRecurrence,
+  isCanonicalIsoTimestamp,
+  isTerminalAlarmStatus,
+  resolveAlarmRecurrence,
+} from "../../ports/alarm-lifecycle-policy.js";
 import { nextRecurringOccurrence } from "./alarm-recurrence.js";
 
 export function createScheduledAlarm(
@@ -11,10 +18,16 @@ export function createScheduledAlarm(
   now: Date,
 ): AlarmRecord {
   const timestamp = now.toISOString();
+  const recurrence = alarm.recurrence
+    ? resolveAlarmRecurrence(
+        alarm.recurrence.frequency,
+        alarm.recurrence.timeZone,
+      )
+    : undefined;
 
   const stored: AlarmRecord = {
     ...alarm,
-    ...(alarm.recurrence ? { recurrence: { ...alarm.recurrence } } : {}),
+    ...(recurrence ? { recurrence } : {}),
     createdAt: timestamp,
     deliveryAttempts: 0,
     id,
@@ -73,39 +86,71 @@ export function applyAlarmLifecycleUpdate(
   if (update.changes.nextDeliveryAt === null) {
     delete updated.nextDeliveryAt;
   }
-  if (isTerminalStatus(updated.status)) {
+  if (isTerminalAlarmStatus(updated.status)) {
     updated.terminalAt = alarm.terminalAt ?? update.updatedAt;
   } else {
     delete updated.terminalAt;
   }
 
-  assertValidLifecycleUpdate(alarm, updated);
+  return applyValidatedTransition(alarm, updated).record;
+}
 
-  if (
-    alarm.recurrence &&
-    (updated.status === "completed" ||
-      updated.status === "dismissed" ||
-      updated.status === "missed")
-  ) {
-    const scheduledFor = nextRecurringOccurrence(
-      alarm.scheduledFor,
-      update.updatedAt,
-      alarm.recurrence,
-    );
-    const recurring: AlarmRecord = {
-      ...updated,
-      deliveryAttempts: 0,
-      nextDeliveryAt: scheduledFor,
-      scheduledFor,
-      status: "scheduled",
-      successfulDeliveries: 0,
-    };
-    delete recurring.terminalAt;
-    assertValidAlarmRecord(recurring);
-    return recurring;
+type AppliedAlarmTransition =
+  | { kind: "recurrence_advanced"; record: AlarmRecord }
+  | { kind: "updated"; record: AlarmRecord };
+
+function applyValidatedTransition(
+  previous: AlarmRecord,
+  requested: AlarmRecord,
+): AppliedAlarmTransition {
+  assertValidLifecycleUpdate(previous, requested);
+  const recurrence = recurrenceToAdvance(previous, requested.status);
+  if (!recurrence) {
+    return { kind: "updated", record: requested };
   }
 
-  return updated;
+  const scheduledFor = nextRecurringOccurrence(
+    previous.scheduledFor,
+    requested.updatedAt,
+    recurrence,
+  );
+  const advanced: AlarmRecord = {
+    ...requested,
+    deliveryAttempts: 0,
+    nextDeliveryAt: scheduledFor,
+    scheduledFor,
+    status: "scheduled",
+    successfulDeliveries: 0,
+  };
+  delete advanced.terminalAt;
+  assertValidRecurringAdvance(previous, advanced);
+  return { kind: "recurrence_advanced", record: advanced };
+}
+
+function recurrenceToAdvance(
+  previous: AlarmRecord,
+  requestedStatus: AlarmRecord["status"],
+): AlarmRecurrence | undefined {
+  return requestedStatus === "completed" ||
+    requestedStatus === "dismissed" ||
+    requestedStatus === "missed"
+    ? previous.recurrence
+    : undefined;
+}
+
+function assertValidRecurringAdvance(
+  previous: AlarmRecord,
+  advanced: AlarmRecord,
+): void {
+  assertValidAlarmRecord(advanced);
+  if (
+    advanced.recurrence?.frequency !== previous.recurrence?.frequency ||
+    advanced.recurrence?.timeZone !== previous.recurrence?.timeZone ||
+    advanced.scheduledFor <= previous.scheduledFor ||
+    advanced.scheduledFor <= advanced.updatedAt
+  ) {
+    throw new Error("Alarm lifecycle update is invalid.");
+  }
 }
 
 export function assertValidAlarmRecord(alarm: AlarmRecord): void {
@@ -124,7 +169,7 @@ export function assertValidAlarmRecord(alarm: AlarmRecord): void {
     alarm.successfulDeliveries < 0 ||
     alarm.successfulDeliveries > alarm.deliveryAttempts ||
     (alarm.recurrence !== undefined &&
-      !isValidAlarmRecurrence(alarm.recurrence)) ||
+      !isCanonicalAlarmRecurrence(alarm.recurrence)) ||
     !hasConsistentStatusFields(alarm)
   ) {
     throw new Error("Alarm lifecycle update is invalid.");
@@ -215,56 +260,25 @@ function hasConsistentStatusFields(alarm: AlarmRecord): boolean {
         alarm.deliveryAttempts === 0 &&
         alarm.successfulDeliveries === 0 &&
         alarm.nextDeliveryAt === undefined &&
-        alarm.terminalAt !== undefined
+        alarm.terminalAt === alarm.updatedAt
       );
     case "completed":
       return (
         alarm.deliveryAttempts >= 1 &&
         alarm.nextDeliveryAt === undefined &&
-        alarm.terminalAt !== undefined
+        alarm.terminalAt === alarm.updatedAt
       );
     case "dismissed":
       return (
         alarm.deliveryAttempts >= 1 &&
         alarm.nextDeliveryAt === undefined &&
-        alarm.terminalAt !== undefined
+        alarm.terminalAt === alarm.updatedAt
       );
     case "missed":
       return (
         alarm.successfulDeliveries === 0 &&
         alarm.nextDeliveryAt === undefined &&
-        alarm.terminalAt !== undefined
+        alarm.terminalAt === alarm.updatedAt
       );
   }
-}
-
-function isTerminalStatus(status: AlarmRecord["status"]): boolean {
-  return (
-    status === "cancelled" ||
-    status === "completed" ||
-    status === "dismissed" ||
-    status === "missed"
-  );
-}
-
-function isValidAlarmRecurrence(
-  recurrence: NonNullable<AlarmRecord["recurrence"]>,
-): boolean {
-  if (recurrence.frequency !== "daily" && recurrence.frequency !== "weekly") {
-    return false;
-  }
-
-  try {
-    new Intl.DateTimeFormat("en", { timeZone: recurrence.timeZone });
-    return recurrence.timeZone.length > 0;
-  } catch {
-    return false;
-  }
-}
-
-function isCanonicalIsoTimestamp(value: string): boolean {
-  const timestamp = new Date(value);
-  return (
-    !Number.isNaN(timestamp.getTime()) && timestamp.toISOString() === value
-  );
 }

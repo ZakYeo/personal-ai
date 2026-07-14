@@ -6,6 +6,7 @@ import type {
   AlarmStatus,
   AlarmStore,
 } from "../../ports/alarm-store.js";
+import { resolveAlarmRecurrence } from "../../ports/alarm-lifecycle-policy.js";
 import type {
   AlarmCreateArgs,
   AlarmDelayTargetArgs,
@@ -60,21 +61,7 @@ function parseRecurrence(
   if (frequency === undefined && timeZone === undefined) {
     return;
   }
-  if (frequency !== "daily" && frequency !== "weekly") {
-    throw new Error("Alarm recurrence frequency must be daily or weekly.");
-  }
-  if (timeZone === undefined) {
-    throw new Error("Alarm recurrence requires an explicit IANA timezone.");
-  }
-  let canonicalTimeZone: string;
-  try {
-    canonicalTimeZone = new Intl.DateTimeFormat("en", {
-      timeZone,
-    }).resolvedOptions().timeZone;
-  } catch {
-    throw new Error("Alarm recurrence requires a valid IANA timezone.");
-  }
-  return { frequency, timeZone: canonicalTimeZone };
+  return resolveAlarmRecurrence(frequency, timeZone);
 }
 
 export async function listAlarms(store: AlarmStore): Promise<FeatureResult> {

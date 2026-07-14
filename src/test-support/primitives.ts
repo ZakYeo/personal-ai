@@ -8,17 +8,26 @@ export const deterministicTestNowIso = deterministicTestNow.toISOString();
 
 export function createScheduledAlarmRecord(
   input: Pick<AlarmRecord, "id" | "label" | "scheduledFor"> &
-    Partial<AlarmRecord>,
+    Partial<Omit<AlarmRecord, "nextDeliveryAt" | "terminalAt">> & {
+      nextDeliveryAt?: string | undefined;
+      terminalAt?: string | undefined;
+    },
 ): AlarmRecord {
+  const { nextDeliveryAt, terminalAt, ...recordInput } = input;
   return {
     createdAt: deterministicTestNowIso,
     deliveryAttempts: 0,
-    nextDeliveryAt: input.scheduledFor,
+    ...("nextDeliveryAt" in input
+      ? nextDeliveryAt === undefined
+        ? {}
+        : { nextDeliveryAt }
+      : { nextDeliveryAt: input.scheduledFor }),
     revision: 1,
     status: "scheduled",
     successfulDeliveries: 0,
     updatedAt: deterministicTestNowIso,
-    ...input,
+    ...recordInput,
+    ...(terminalAt === undefined ? {} : { terminalAt }),
   };
 }
 
