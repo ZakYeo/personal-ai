@@ -12,6 +12,23 @@ import { deterministicScenarios } from "../../test-support/deterministic-scenari
 import { withVoiceAdapterId } from "../../test-support/runtime-composition.js";
 
 describe("desktop voice runtime", () => {
+  it("speaks one aggregate confirmation for a compound command plan", async () => {
+    const runtime = await createDesktopVoiceRuntime({
+      config: createDesktopVoiceConfig(
+        "Hey Jarvis, check my calendar for upcoming events and set an alarm to tea in 10 minutes",
+      ),
+    });
+
+    await expect(runtime.runOnce()).resolves.toMatchObject({
+      response: {
+        expectsFollowUp: true,
+        status: "needs_confirmation",
+        text: expect.stringContaining("set the tea alarm") as string,
+      },
+      status: "spoken",
+    });
+  });
+
   it("runs one turn with the committed desktop voice demo config", async () => {
     const runtime = await createDesktopVoiceRuntime({
       configPath: fileURLToPath(

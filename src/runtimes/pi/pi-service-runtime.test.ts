@@ -19,6 +19,39 @@ import { runPiServiceRuntime } from "./pi-service-runtime.js";
 import { writePersistentAlarmRuntimeConfig } from "../../test-support/runtime-composition.js";
 
 describe("runPiServiceRuntime", () => {
+  it("confirms and executes a compound plan through Pi service composition", async () => {
+    const signals = createServiceSignalController();
+    const utterance =
+      "Hey Jarvis, check my calendar for upcoming events and set an alarm to tea in 10 minutes";
+
+    await expect(
+      runPiServiceRuntime({
+        config: createDesktopVoiceConfig(utterance),
+        processSignals: signals,
+        retryAfterFailure: () => Promise.resolve(),
+        runVoiceActivation: async ({ assistant }) => {
+          const prompt = await assistant.handleText(utterance);
+          expect(prompt).toMatchObject({
+            expectsFollowUp: true,
+            status: "needs_confirmation",
+            text: expect.stringContaining("set the tea alarm") as string,
+          });
+          const response = await assistant.handleText("yes");
+          expect(response).toMatchObject({
+            status: "ok",
+            text: expect.stringContaining("Alarm set") as string,
+          });
+          signals.emit("SIGTERM");
+          return {
+            response,
+            status: "spoken",
+            textOutputWritten: false,
+          };
+        },
+      }),
+    ).resolves.toEqual({ status: "stopped", turnsCompleted: 1 });
+  });
+
   it("runs a configured command voice turn through the service loop", async () => {
     const signals = createServiceSignalController();
     const stderr = createCapturedWriter();
