@@ -153,9 +153,9 @@ Implemented real-provider adapters include:
 Future providers such as Anthropic, local models, local STT/TTS, or real
 messaging integrations should be added behind the same application-owned ports.
 
-## Planned Compound Command Boundary
+## Compound Command Boundary
 
-Milestone 10 has two explicit application-owned stages. Intent providers return
+Compound commands use two explicit application-owned stages. Intent providers return
 either one raw proposed command or a `ProposedAssistantPlan` of at most three
 raw proposed commands. Parameters are still untrusted provider output at this
 boundary. Core resolves each capability route, decodes and validates every

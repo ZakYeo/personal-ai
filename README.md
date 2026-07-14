@@ -39,6 +39,9 @@ Implemented today:
   parse selected provider config and capture neutral factories during runtime
   config loading.
 - Opt-in OpenAI intent and conversation adapters behind the existing ports.
+- Bounded compound command plans that validate every step before execution,
+  aggregate exact confirmation for risky actions, execute sequentially, and
+  report succeeded, failed, and skipped steps without exposing diagnostics.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Shared OpenAI Responses configuration parsing with provider-local config
   types rather than provider details in application ports.
@@ -306,6 +309,8 @@ creation through the configured assistant, listing, and restart behavior, uses
 Run `npm run test:e2e:openai:alarms` for only the persistent-alarm smoke. These
 tests are not part of `npm run check`; normal validation remains deterministic
 and network-free.
+Run `npm run test:e2e:openai:plans` for the focused live compound calendar and
+alarm plan smoke.
 Run `npm run test:e2e:openai:pi` for the focused live alarm flow through Pi
 service composition. It does not validate physical audio hardware.
 
@@ -388,6 +393,8 @@ Common development commands:
 - `npm run test:e2e:openai` - run the opt-in live OpenAI intent routing E2E test.
 - `npm run test:e2e:openai:alarms` - run the focused opt-in live OpenAI
   persistent-alarm smoke.
+- `npm run test:e2e:openai:plans` - run the focused opt-in live OpenAI compound
+  plan smoke.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.

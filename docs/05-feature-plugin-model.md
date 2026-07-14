@@ -4,7 +4,7 @@
 
 Features are the assistant's capabilities. Calendar lookup, message drafting, alarms, reminders, notes, and future integrations should be added as feature plugins rather than as hard-coded branches in the assistant core.
 
-Compound commands do not change this ownership. Milestone 10 plans will compose
+Compound commands do not change this ownership. Plans compose
 multiple existing capability requests through the compiled routing index while
 each feature still validates and executes only its own decoded command. A plan
 must not make one feature import another or add a feature-specific switch to
