@@ -38,17 +38,25 @@ sudo useradd --system --user-group --home-dir /var/lib/personal-ai --no-create-h
 
 ## Build and install
 
-From a clean checkout on the Pi, validate and build the release before copying
-it into the root-owned application directory:
+From a clean checkout on the Pi, validate and build an immutable release before
+atomically selecting it through the `/opt/personal-ai` symlink:
 
 ```bash
 npm ci
 npm run check
 npm run build
-sudo install -d -o root -g root -m 0755 /opt/personal-ai
-sudo cp -a dist package.json package-lock.json scripts /opt/personal-ai/
-sudo npm ci --omit=dev --prefix /opt/personal-ai
-sudo /opt/personal-ai/scripts/setup-openwakeword-venv.sh
+release_id="$(git rev-parse --verify HEAD)"
+release_dir="/opt/personal-ai-releases/$release_id"
+sudo install -d -o root -g root -m 0755 /opt/personal-ai-releases
+sudo test ! -e "$release_dir"
+sudo install -d -o root -g root -m 0755 "$release_dir"
+sudo cp -a dist package.json package-lock.json scripts "$release_dir/"
+sudo npm ci --omit=dev --prefix "$release_dir"
+sudo "$release_dir/scripts/setup-openwakeword-venv.sh"
+sudo test -x "$release_dir/.venv/bin/python"
+sudo test -f "$release_dir/dist/runtimes/cli/main.js"
+sudo ln -sfn "$release_dir" /opt/personal-ai.next
+sudo mv -Tf /opt/personal-ai.next /opt/personal-ai
 ```
 
 Install the operator-owned config and environment directories. The example uses
@@ -117,25 +125,39 @@ sudo systemctl disable personal-ai.service
 ## Upgrade and rollback
 
 Keep `/etc/personal-ai` and `/var/lib/personal-ai` outside release replacement so
-upgrades do not overwrite credentials, machine-specific config, or alarms.
-Build and validate a new checkout, assemble it as `/opt/personal-ai.next`, then
-stop the service and swap application directories:
+upgrades do not overwrite credentials, machine-specific config, or alarms. In
+one administrative shell, record the current immutable release, build and
+validate the checkout as above, assemble a new versioned release completely,
+then atomically replace the stable symlink:
 
 ```bash
+previous_release="$(readlink -f /opt/personal-ai)"
+release_id="$(git rev-parse --verify HEAD)"
+release_dir="/opt/personal-ai-releases/$release_id"
+sudo test ! -e "$release_dir"
+sudo install -d -o root -g root -m 0755 "$release_dir"
+sudo cp -a dist package.json package-lock.json scripts "$release_dir/"
+sudo npm ci --omit=dev --prefix "$release_dir"
+sudo "$release_dir/scripts/setup-openwakeword-venv.sh"
+sudo test -x "$release_dir/.venv/bin/python"
+sudo test -f "$release_dir/dist/runtimes/cli/main.js"
 sudo systemctl stop personal-ai.service
-sudo mv /opt/personal-ai /opt/personal-ai.previous
-sudo mv /opt/personal-ai.next /opt/personal-ai
+sudo ln -sfn "$release_dir" /opt/personal-ai.next
+sudo mv -Tf /opt/personal-ai.next /opt/personal-ai
 sudo systemctl start personal-ai.service
 systemctl status personal-ai.service
 ```
 
-If startup validation or the hardware check fails, roll back the application
-directory without touching config or state:
+If startup validation or the hardware check fails, use the recorded absolute
+`previous_release` from that same shell. Verify it still exists, then atomically
+select it without touching config or state. Repeating this process never nests
+one release directory inside another:
 
 ```bash
 sudo systemctl stop personal-ai.service
-sudo mv /opt/personal-ai /opt/personal-ai.failed
-sudo mv /opt/personal-ai.previous /opt/personal-ai
+sudo test -f "$previous_release/dist/runtimes/cli/main.js"
+sudo ln -sfn "$previous_release" /opt/personal-ai.rollback
+sudo mv -Tf /opt/personal-ai.rollback /opt/personal-ai
 sudo systemctl start personal-ai.service
 journalctl -u personal-ai.service -n 100 --no-pager
 ```

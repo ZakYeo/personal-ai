@@ -62,6 +62,13 @@ describe("Raspberry Pi systemd service", () => {
     expect(guide).toContain("npm run test:e2e:openai:pi");
     expect(guide).toContain("npm run smoke:pi:qemu");
     expect(guide).toMatch(/## Upgrade and rollback/u);
+    expect(guide).toContain("/opt/personal-ai-releases/");
+    expect(guide).toContain("readlink -f /opt/personal-ai");
+    expect(guide).toContain("ln -sfn");
+    expect(guide).toContain("mv -Tf");
+    expect(guide).not.toContain(
+      "mv /opt/personal-ai /opt/personal-ai.previous",
+    );
     expect(guide).toMatch(/does not validate.*audio hardware/isu);
   });
 });
