@@ -127,6 +127,7 @@
     },
     "speechToText": {
       "command": "/bin/sh",
+      "environmentAllowlist": ["OPENAI_API_KEY"],
       "args": [
         "/opt/personal-ai/scripts/openai-audio-command.sh",
         "transcribe",
@@ -136,6 +137,7 @@
     },
     "textToSpeech": {
       "command": "/bin/sh",
+      "environmentAllowlist": ["OPENAI_API_KEY"],
       "args": [
         "/opt/personal-ai/scripts/openai-audio-command.sh",
         "speak",

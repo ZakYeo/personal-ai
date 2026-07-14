@@ -248,6 +248,10 @@ Command-based adapters should preserve diagnostics for every final failure
 mode. Non-zero exits, spawn failures where available, and timeouts should keep
 captured stdout/stderr internally so human-facing boundaries can log useful
 operator diagnostics while returning safe fallback text.
+Each child receives an explicit minimal environment. Runtime composition may
+forward safe process settings such as `PATH` and may pass a credential only
+when that specific command declares it in `environmentAllowlist`; recorder,
+player, and wake-word commands must not inherit the broad service environment.
 Timeout, abort, and cleanup must track process close separately from the public
 command result. Aborts use a diagnostic-bearing command error that retains the
 abort reason and final stdout/stderr. Termination waits for child exit and escalates from `SIGTERM` to

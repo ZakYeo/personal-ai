@@ -1,5 +1,8 @@
 import { basename } from "node:path";
-import type { DesktopCommandConfig } from "../../adapters/desktop/desktop-command-config.js";
+import {
+  resolveDesktopCommandEnvironment,
+  type DesktopCommandConfig,
+} from "../../adapters/desktop/desktop-command-config.js";
 import { runCommand } from "../../adapters/desktop/process-runner.js";
 import type { ResolvedDesktopVoiceServiceAdapterConfig } from "./desktop-voice-adapter-types.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
@@ -10,6 +13,7 @@ const startupCheckTimeoutMs = 5000;
 export async function validateOpenWakeWordStartup(
   voiceConfig: ResolvedVoiceConfig,
   desktopVoiceConfig: ResolvedDesktopVoiceServiceAdapterConfig,
+  environment: Record<string, string | undefined> = {},
 ): Promise<void> {
   if (voiceConfig.wakeActivation !== "openwakeword-command") {
     return;
@@ -24,6 +28,10 @@ export async function validateOpenWakeWordStartup(
     await runCommand({
       args: [...(wakeActivation.args ?? []), "--startup-check"],
       command: wakeActivation.command,
+      environment: resolveDesktopCommandEnvironment(
+        wakeActivation,
+        environment,
+      ),
       timeoutMs: startupCheckTimeoutMs,
     });
   } catch {

@@ -31,6 +31,7 @@ describe("desktop voice config parsing", () => {
       speechToText: {
         command: "fake-stt",
         args: ["--input", "{input}"],
+        environmentAllowlist: ["OPENAI_API_KEY"],
         timeoutMs: 2000,
       },
       textToSpeech: {
@@ -94,6 +95,23 @@ describe("desktop voice config parsing", () => {
         }),
       ),
     ).toThrow("Config desktopVoice.textToSpeech.args must be a string array.");
+  });
+
+  it("rejects duplicate command environment allowlist entries", () => {
+    expect(() =>
+      parseAssistantConfig(
+        createMinimalConfig({
+          desktopVoice: {
+            speechToText: {
+              command: "fake-stt",
+              environmentAllowlist: ["OPENAI_API_KEY", "OPENAI_API_KEY"],
+            },
+          },
+        }),
+      ),
+    ).toThrow(
+      "Config desktopVoice.speechToText.environmentAllowlist must not contain duplicates.",
+    );
   });
 });
 

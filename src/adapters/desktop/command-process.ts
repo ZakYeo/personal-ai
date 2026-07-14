@@ -4,6 +4,7 @@ import type { ProcessControl } from "../../ports/process-control.js";
 export interface RunCommandRequest {
   args?: string[];
   command: string;
+  environment?: Record<string, string | undefined>;
   processControl?: ProcessControl;
   signal?: AbortSignal;
   terminationGraceMs?: number;
@@ -145,6 +146,7 @@ class CommandProcess {
     this.processControl = request.processControl ?? nodeProcessControl;
     this.child = spawn(request.command, request.args ?? [], {
       detached: options.detached && canUseProcessGroups(this.processControl),
+      env: definedEnvironment(request.environment ?? {}),
       stdio: options.stdio,
     });
 
@@ -466,6 +468,16 @@ class CommandProcess {
       });
     });
   }
+}
+
+function definedEnvironment(
+  environment: Record<string, string | undefined>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(environment).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined,
+    ),
+  );
 }
 
 export function toError(error: unknown): Error {

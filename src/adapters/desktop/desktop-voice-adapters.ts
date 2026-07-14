@@ -23,6 +23,7 @@ export class SoxAudioInput implements AudioInputPort {
     private readonly tempFiles: VoiceTempFilePort,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
+    private readonly environment: Record<string, string | undefined> = {},
   ) {}
 
   async capture(): Promise<CapturedAudio> {
@@ -35,6 +36,7 @@ export class SoxAudioInput implements AudioInputPort {
       },
       this.processControl,
       this.signal,
+      this.environment,
     );
 
     return {
@@ -49,6 +51,7 @@ export class CommandSpeechToText implements SpeechToTextPort {
     private readonly commandConfig: DesktopCommandConfig,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
+    private readonly environment: Record<string, string | undefined> = {},
   ) {}
 
   async transcribe(audio: CapturedAudio): Promise<{ text: string }> {
@@ -60,6 +63,7 @@ export class CommandSpeechToText implements SpeechToTextPort {
       },
       this.processControl,
       this.signal,
+      this.environment,
     );
 
     return {
@@ -79,6 +83,7 @@ export class CommandWakeActivation implements WakeActivationPort {
     private readonly commandConfig: DesktopCommandConfig,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
+    private readonly environment: Record<string, string | undefined> = {},
   ) {}
 
   async waitForWake(request: { wakePhrases: string[] }): Promise<{
@@ -89,6 +94,7 @@ export class CommandWakeActivation implements WakeActivationPort {
         ...this.commandConfig,
         ...(this.processControl ? { processControl: this.processControl } : {}),
         ...(this.signal ? { signal: this.signal } : {}),
+        environment: this.environment,
       },
       (line) => parseWakeActivationLine(line, request.wakePhrases),
     );
@@ -103,6 +109,7 @@ export class CommandTextToSpeech implements TextToSpeechPort {
     private readonly tempFiles: VoiceTempFilePort,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
+    private readonly environment: Record<string, string | undefined> = {},
   ) {}
 
   async synthesize(text: string): Promise<SynthesizedSpeech> {
@@ -116,6 +123,7 @@ export class CommandTextToSpeech implements TextToSpeechPort {
       },
       this.processControl,
       this.signal,
+      this.environment,
     );
 
     return {
@@ -170,6 +178,7 @@ export class SoxAudioOutput implements AudioOutputPort {
     private readonly commandConfig: DesktopCommandConfig,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,
+    private readonly environment: Record<string, string | undefined> = {},
   ) {}
 
   async play(speech: SynthesizedSpeech): Promise<void> {
@@ -181,6 +190,7 @@ export class SoxAudioOutput implements AudioOutputPort {
       },
       this.processControl,
       this.signal,
+      this.environment,
     );
   }
 }
@@ -190,12 +200,14 @@ async function runConfiguredCommand(
   replacements: Record<string, string>,
   processControl?: ProcessControl,
   signal?: AbortSignal,
+  environment: Record<string, string | undefined> = {},
 ): ReturnType<typeof runCommand> {
   return runCommand({
     args: (config.args ?? []).map((argument) =>
       replaceCommandPlaceholders(argument, replacements),
     ),
     command: config.command,
+    environment,
     ...(processControl ? { processControl } : {}),
     ...(signal ? { signal } : {}),
     ...(config.timeoutMs ? { timeoutMs: config.timeoutMs } : {}),

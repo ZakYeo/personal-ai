@@ -1,3 +1,4 @@
+import { env, execPath } from "node:process";
 import {
   createFailingCommandScript,
   createShellCommand,
@@ -19,6 +20,24 @@ import {
 } from "./process-runner.js";
 
 describe("runCommand", () => {
+  it("does not inherit ambient credentials by default", async () => {
+    env.PERSONAL_AI_TEST_SECRET = "must-not-leak";
+
+    try {
+      const result = await runCommand({
+        args: [
+          "-e",
+          'process.stdout.write(process.env.PERSONAL_AI_TEST_SECRET ?? "missing")',
+        ],
+        command: execPath,
+      });
+
+      expect(result.stdout).not.toContain("must-not-leak");
+    } finally {
+      delete env.PERSONAL_AI_TEST_SECRET;
+    }
+  });
+
   it("captures stdout and stderr from a successful command", async () => {
     await expect(
       runCommand(

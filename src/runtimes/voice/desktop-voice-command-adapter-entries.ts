@@ -10,7 +10,10 @@ import {
   CommandStreamingAudioInput,
   CommandStreamingAudioOutput,
 } from "../../adapters/desktop/desktop-streaming-voice-adapters.js";
-import type { DesktopCommandConfig } from "../../adapters/desktop/desktop-command-config.js";
+import {
+  resolveDesktopCommandEnvironment,
+  type DesktopCommandConfig,
+} from "../../adapters/desktop/desktop-command-config.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -31,7 +34,12 @@ export const desktopVoiceCommandAdapterEntries = {
   audioOutput: {
     "sox-play": defineDesktopVoiceAdapter({
       create: (command: DesktopCommandConfig, context) =>
-        new SoxAudioOutput(command, context.dependencies.processControl),
+        new SoxAudioOutput(
+          command,
+          context.dependencies.processControl,
+          context.dependencies.shutdownSignal,
+          resolveDesktopCommandEnvironment(command, context.dependencies.env),
+        ),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "audioOutput"),
     }),
@@ -44,6 +52,7 @@ export const desktopVoiceCommandAdapterEntries = {
           context.tempFiles,
           context.dependencies.processControl,
           context.dependencies.shutdownSignal,
+          resolveDesktopCommandEnvironment(command, context.dependencies.env),
         ),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "audioInput"),
@@ -56,6 +65,7 @@ export const desktopVoiceCommandAdapterEntries = {
           command,
           context.dependencies.processControl,
           context.dependencies.shutdownSignal,
+          resolveDesktopCommandEnvironment(command, context.dependencies.env),
         ),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "speechToText"),
@@ -68,6 +78,7 @@ export const desktopVoiceCommandAdapterEntries = {
           command,
           context.dependencies.processControl,
           context.dependencies.shutdownSignal,
+          resolveDesktopCommandEnvironment(command, context.dependencies.env),
         ),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "streamingAudioInput"),
@@ -79,6 +90,8 @@ export const desktopVoiceCommandAdapterEntries = {
         new CommandStreamingAudioOutput(
           command,
           context.dependencies.processControl,
+          context.dependencies.shutdownSignal,
+          resolveDesktopCommandEnvironment(command, context.dependencies.env),
         ),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "streamingAudioOutput"),
@@ -91,6 +104,8 @@ export const desktopVoiceCommandAdapterEntries = {
           command,
           context.tempFiles,
           context.dependencies.processControl,
+          context.dependencies.shutdownSignal,
+          resolveDesktopCommandEnvironment(command, context.dependencies.env),
         ),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "textToSpeech"),
@@ -103,6 +118,7 @@ export const desktopVoiceCommandAdapterEntries = {
           command,
           context.dependencies.processControl,
           context.dependencies.shutdownSignal,
+          resolveDesktopCommandEnvironment(command, context.dependencies.env),
         ),
       resolveConfig: (config) =>
         requireDesktopVoiceCommandConfig(config, "wakeActivation"),

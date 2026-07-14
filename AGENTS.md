@@ -83,6 +83,7 @@
 - Raspberry Pi service runtime should compose the neutral service loop, configured assistant, local wake activation, streaming voice adapters, and command-based fallback voice adapters; keep Pi-specific commands in local config and clean up temp voice files after each turn.
 - Runtime clock injection should remain a live clock (`now: () => Date` or `ClockPort`) for long-running composition; use fixed `Date` values only for intentionally frozen deterministic tests.
 - Command-based adapters should execute `command` plus `args[]`, not shell-concatenated command strings, and should enforce timeouts while preserving captured stdout/stderr diagnostics internally for spawn failures, non-zero exits, and timeout failures.
+- Command subprocesses must receive an explicit minimal environment; pass provider credentials only through a validated per-command `environmentAllowlist`, and never inherit the broad service environment implicitly.
 - Command termination must fall back from process-group signaling to direct-child signaling, bound close waits after both `SIGTERM` and `SIGKILL`, and surface captured diagnostics if the process still cannot be reaped.
 - Command timeout, abort, and cleanup paths must wait for child close, escalate from `SIGTERM` to bounded `SIGKILL` when necessary, and preserve output captured through final exit.
 - Streaming command stdin must honor writable flow control and route callback or writable errors through the command diagnostic lifecycle with captured output.

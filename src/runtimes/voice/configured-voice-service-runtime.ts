@@ -121,6 +121,10 @@ async function validateVoiceServiceConfig(
     config,
   );
 
-  await validateOpenWakeWordStartup(voiceConfig, desktopVoiceConfig);
+  await validateOpenWakeWordStartup(
+    voiceConfig,
+    desktopVoiceConfig,
+    featureAdapterDependencies.env,
+  );
   validateConfiguredFeatureAdapters(config, featureAdapterDependencies);
 }

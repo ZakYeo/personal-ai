@@ -194,6 +194,28 @@ function parseVoiceCommand<TKey extends ParsedDesktopVoiceCommandKey>(
   }
 
   const timeoutMs = value.timeoutMs;
+  const environmentAllowlist = value.environmentAllowlist;
+
+  if (
+    environmentAllowlist !== undefined &&
+    (!Array.isArray(environmentAllowlist) ||
+      !environmentAllowlist.every(
+        (variable) => typeof variable === "string" && variable.length > 0,
+      ))
+  ) {
+    throw new Error(
+      `Config desktopVoice.${key}.environmentAllowlist must be a non-empty string array.`,
+    );
+  }
+
+  if (
+    Array.isArray(environmentAllowlist) &&
+    new Set(environmentAllowlist).size !== environmentAllowlist.length
+  ) {
+    throw new Error(
+      `Config desktopVoice.${key}.environmentAllowlist must not contain duplicates.`,
+    );
+  }
 
   if (
     timeoutMs !== undefined &&
@@ -210,6 +232,7 @@ function parseVoiceCommand<TKey extends ParsedDesktopVoiceCommandKey>(
     [key]: {
       command: value.command,
       ...(value.args ? { args: value.args } : {}),
+      ...(Array.isArray(environmentAllowlist) ? { environmentAllowlist } : {}),
       ...(timeoutMs ? { timeoutMs } : {}),
     },
   } as Pick<ParsedDesktopVoiceConfig, TKey>;
