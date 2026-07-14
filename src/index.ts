@@ -9,6 +9,8 @@ export type {
   AssistantDiagnostic,
   AssistantDiagnosticCategory,
   AssistantOutcome,
+  AssistantPlanOutcome,
+  AssistantPlanStepOutcome,
   AssistantPolicyConfig,
   AssistantContext,
   AssistantResponse,
