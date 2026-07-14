@@ -13,29 +13,28 @@ import { deterministicScenarios } from "../../test-support/deterministic-scenari
 import { createCapturedWriter, line } from "../../test-support/primitives.js";
 import { createServiceSignalController } from "../../test-support/service-runtime.js";
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
-import type { AlarmSchedulerRuntimeDependencies } from "../alarm/alarm-scheduler.js";
 
 describe("runDesktopVoiceServiceRuntime", () => {
   it("delivers scheduled alarms through configured voice output", async () => {
     const signals = createServiceSignalController();
     const synthesize = vi.fn().mockResolvedValue({
       filePath: "/tmp/alarm.wav",
-      text: "Alarm: tea.",
+      text: "Alarm: ping me.",
     });
-    const play = vi.fn().mockResolvedValue(undefined);
-    const runAlarmScheduler = vi.fn(
-      async (dependencies: AlarmSchedulerRuntimeDependencies) => {
-        await dependencies.delivery.deliver(
-          {
-            attempt: 1,
-            id: "alarm-1",
-            label: "tea",
-            scheduledFor: "2026-07-14T09:00:00.000Z",
-          },
-          { shutdownSignal: dependencies.shutdownSignal },
-        );
-      },
-    );
+    let resolveDelivered: (() => void) | undefined;
+    const delivered = new Promise<void>((resolve) => {
+      resolveDelivered = resolve;
+    });
+    const play = vi.fn().mockImplementation(() => {
+      resolveDelivered?.();
+      signals.emit("SIGTERM");
+      return Promise.resolve();
+    });
+    let startBackgroundTask: (() => void) | undefined;
+    const backgroundTaskReady = new Promise<void>((resolve) => {
+      startBackgroundTask = resolve;
+    });
+    let now = new Date("2026-07-14T09:00:00.000Z");
 
     await runDesktopVoiceServiceRuntime({
       config: createDesktopVoiceConfig(
@@ -48,22 +47,30 @@ describe("runDesktopVoiceServiceRuntime", () => {
         audioOutput: { play },
         textToSpeech: { synthesize },
       }),
+      now: () => now,
       processSignals: signals,
-      runAlarmScheduler,
-      runVoiceActivation: () => {
-        signals.emit("SIGTERM");
-        return Promise.resolve({
+      runBackgroundTask: (task, context) =>
+        backgroundTaskReady.then(() => task.run(context)),
+      runVoiceActivation: async (dependencies) => {
+        await dependencies.assistant.handleText(
+          "Hey Jarvis, set an alarm to ping me in 10 minutes.",
+        );
+        await dependencies.assistant.handleText("yes");
+        now = new Date("2026-07-14T09:10:00.000Z");
+        startBackgroundTask?.();
+        await delivered;
+        return {
           response: deterministicScenarios.alarmListEmpty.response,
           status: "spoken",
           textOutputWritten: false,
-        });
+        };
       },
     });
 
-    expect(synthesize).toHaveBeenCalledExactlyOnceWith("Alarm: tea.");
+    expect(synthesize).toHaveBeenCalledExactlyOnceWith("Alarm: ping me.");
     expect(play).toHaveBeenCalledExactlyOnceWith({
       filePath: "/tmp/alarm.wav",
-      text: "Alarm: tea.",
+      text: "Alarm: ping me.",
     });
   });
 

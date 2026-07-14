@@ -20,10 +20,8 @@ describe("createVoiceAlarmDelivery", () => {
 
     await delivery.deliver(
       {
-        attempt: 1,
         id: "alarm-1",
-        label: "tea",
-        scheduledFor: "2026-07-14T09:00:00.000Z",
+        text: "Alarm: tea.",
       },
       { shutdownSignal: shutdown.signal },
     );
@@ -54,10 +52,8 @@ describe("createVoiceAlarmDelivery", () => {
     await expect(
       delivery.deliver(
         {
-          attempt: 1,
           id: "alarm-1",
-          label: "tea",
-          scheduledFor: "2026-07-14T09:00:00.000Z",
+          text: "Alarm: tea.",
         },
         {},
       ),
@@ -105,10 +101,8 @@ describe("createVoiceAlarmDelivery", () => {
       coordinator,
     ).deliver(
       {
-        attempt: 1,
         id: "alarm-1",
-        label: "tea",
-        scheduledFor: "2026-07-14T09:00:00.000Z",
+        text: "Alarm: tea.",
       },
       {},
     );

@@ -7,10 +7,13 @@ import {
 import type { ServiceTurnContext } from "./service-runtime.js";
 import { runConfiguredServiceRuntime } from "./configured-service-composition.js";
 import { dirname } from "node:path";
-import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
-import type { AlarmSchedulerRuntimeDependencies } from "../alarm/alarm-scheduler.js";
+import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import { createFileAlarmStore } from "../../adapters/local/file-alarm-store.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
+import type {
+  RuntimeBackgroundTask,
+  RuntimeBackgroundTaskContext,
+} from "../background-task.js";
 
 describe("runConfiguredServiceRuntime", () => {
   it("composes the configured text assistant from an injected config path", async () => {
@@ -101,7 +104,7 @@ describe("runConfiguredServiceRuntime", () => {
     ).resolves.toMatchObject({ status: "stopped" });
   });
 
-  it("starts alarm scheduling with the same store used by the assistant", async () => {
+  it("starts feature-contributed background tasks through neutral service orchestration", async () => {
     const { configPath } = await writePersistentAlarmRuntimeConfig(
       enabledDeterministicConfig,
       {
@@ -114,22 +117,23 @@ describe("runConfiguredServiceRuntime", () => {
         ],
       },
     );
-    const runAlarmScheduler = vi.fn(
-      async (dependencies: AlarmSchedulerRuntimeDependencies) => {
-        await expect(dependencies.store.list()).resolves.toEqual([
-          expect.objectContaining({ id: "scheduled-alarm" }),
-        ]);
-      },
-    );
-    const delivery: AlarmDeliveryPort = {
+    const runBackgroundTask = vi
+      .fn<
+        (
+          task: RuntimeBackgroundTask,
+          context: RuntimeBackgroundTaskContext,
+        ) => Promise<void>
+      >()
+      .mockResolvedValue(undefined);
+    const delivery: NotificationDeliveryPort = {
       deliver: () => Promise.resolve(),
     };
 
     await runConfiguredServiceRuntime(
       {
-        alarmDelivery: delivery,
         configPath,
-        runAlarmScheduler,
+        createNotificationDelivery: () => delivery,
+        runBackgroundTask,
       },
       {
         validateConfig: () => {},
@@ -140,12 +144,11 @@ describe("runConfiguredServiceRuntime", () => {
       },
     );
 
-    expect(runAlarmScheduler).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({
-        config: { missedGraceMs: 900_000, repeatAfterMs: 60_000 },
-        delivery,
-      }),
-    );
+    expect(runBackgroundTask).toHaveBeenCalledOnce();
+    const [task, context] = runBackgroundTask.mock.calls[0] ?? [];
+    expect(task?.id).toBe("alarms.delivery");
+    expect(context?.clock).toHaveProperty("now");
+    expect(context?.shutdownSignal).toBeInstanceOf(AbortSignal);
   });
 
   it("returns a fatal result after scheduler failure and service cleanup", async () => {
@@ -156,8 +159,10 @@ describe("runConfiguredServiceRuntime", () => {
     await expect(
       runConfiguredServiceRuntime(
         {
-          alarmDelivery: { deliver: () => Promise.resolve() },
           config: enabledDeterministicConfig,
+          createNotificationDelivery: () => ({
+            deliver: () => Promise.resolve(),
+          }),
           io: {
             stderr: {
               write: (chunk) => {
@@ -165,7 +170,7 @@ describe("runConfiguredServiceRuntime", () => {
               },
             },
           },
-          runAlarmScheduler: () => Promise.reject(schedulerFailure),
+          runBackgroundTask: () => Promise.reject(schedulerFailure),
           shutdownHooks: [shutdownHook],
         },
         {
@@ -211,7 +216,7 @@ describe("runConfiguredServiceRuntime", () => {
     const delivered = new Promise<void>((resolve) => {
       resolveDelivered = resolve;
     });
-    const delivery: AlarmDeliveryPort = {
+    const delivery: NotificationDeliveryPort = {
       deliver: () => {
         resolveDelivered?.();
         return Promise.resolve();
@@ -220,8 +225,8 @@ describe("runConfiguredServiceRuntime", () => {
 
     await runConfiguredServiceRuntime(
       {
-        alarmDelivery: delivery,
         configPath,
+        createNotificationDelivery: () => delivery,
         now: () => new Date("2026-07-14T09:00:00.000Z"),
       },
       {

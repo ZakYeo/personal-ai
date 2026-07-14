@@ -4,12 +4,16 @@ import {
 } from "../../adapters/local/file-alarm-store.js";
 import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
 import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
+import type { AlarmStore } from "../../ports/alarm-store.js";
 import { isRecord } from "../config/config-parse-utils.js";
 import { resolveLocalStatePath } from "../local-state-path.js";
 import {
   defineFeatureAdapterEntry,
+  type FeatureAdapterDependencies,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
+import { runAlarmScheduler } from "../alarm/alarm-scheduler.js";
+import type { RuntimeBackgroundTaskContext } from "../background-task.js";
 
 export function createAlarmFeatureRegistryEntry(
   dependencies: FileAlarmStoreDependencies = {},
@@ -27,7 +31,7 @@ export function createAlarmFeatureRegistryEntry(
             now: () => runtimeDependencies.clock.now(),
           });
 
-          return { alarmStore, feature: createAlarmFeature(alarmStore) };
+          return createAlarmComposition(alarmStore, runtimeDependencies);
         },
         parseConfig: parseFileAlarmStoreConfig,
       }),
@@ -36,11 +40,50 @@ export function createAlarmFeatureRegistryEntry(
           const alarmStore = createInMemoryAlarmStore({
             now: () => runtimeDependencies.clock.now(),
           });
-          return { alarmStore, feature: createAlarmFeature(alarmStore) };
+          return createAlarmComposition(alarmStore, runtimeDependencies);
         },
         parseConfig: () => {},
       }),
     },
+  };
+}
+
+function createAlarmComposition(
+  alarmStore: AlarmStore,
+  dependencies: FeatureAdapterDependencies,
+) {
+  const feature = createAlarmFeature(alarmStore);
+  if (!dependencies.notificationDelivery) {
+    return { feature };
+  }
+
+  const notificationDelivery = dependencies.notificationDelivery;
+  return {
+    backgroundTasks: [
+      {
+        failureReason: "alarm scheduler failed",
+        id: "alarms.delivery",
+        run: (context: RuntimeBackgroundTaskContext) =>
+          runAlarmScheduler({
+            clock: context.clock,
+            clockRecheckMs: 1000,
+            config: { missedGraceMs: 900_000, repeatAfterMs: 60_000 },
+            delivery: {
+              deliver: (alarm, deliveryContext) =>
+                notificationDelivery.deliver(
+                  { id: alarm.id, text: `Alarm: ${alarm.label}.` },
+                  deliveryContext,
+                ),
+            },
+            reportDeliveryFailure: ({ error }) => {
+              context.reportFailure(error);
+            },
+            shutdownSignal: context.shutdownSignal,
+            store: alarmStore,
+          }),
+      },
+    ],
+    feature,
   };
 }
 

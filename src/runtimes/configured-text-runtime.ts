@@ -8,8 +8,9 @@ import { createConfiguredFeatureSelection } from "./feature-adapter-selection.js
 import { createConfiguredIntentInterpreter } from "./intent-provider-selection.js";
 import { createConfiguredResponseRewriter } from "./response-rewriter-selection.js";
 import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
-import type { AlarmStore } from "../ports/alarm-store.js";
 import { resolveConfiguredRuntimeConfigSource } from "./config/runtime-config-source.js";
+import type { NotificationDeliveryPort } from "../ports/notification-delivery.js";
+import type { RuntimeBackgroundTask } from "./background-task.js";
 
 export interface ConfiguredTextRuntimeOptions {
   config?: LoadedRuntimeConfig;
@@ -19,6 +20,7 @@ export interface ConfiguredTextRuntimeOptions {
   fetch?: typeof fetch;
   featureAdapterRegistry?: FeatureAdapterRegistry;
   now?: () => Date;
+  notificationDelivery?: NotificationDeliveryPort;
 }
 
 export async function createConfiguredTextRuntime(
@@ -28,8 +30,8 @@ export async function createConfiguredTextRuntime(
 }
 
 interface ConfiguredTextRuntimeComposition {
-  alarmStore?: AlarmStore;
   assistant: Assistant;
+  backgroundTasks: RuntimeBackgroundTask[];
 }
 
 export async function createConfiguredTextRuntimeComposition(
@@ -48,6 +50,9 @@ export async function createConfiguredTextRuntimeComposition(
         : {}),
       env,
       fetch,
+      ...(options.notificationDelivery
+        ? { notificationDelivery: options.notificationDelivery }
+        : {}),
     },
   });
   const conversation = createConfiguredConversation(
@@ -84,10 +89,8 @@ export async function createConfiguredTextRuntimeComposition(
   });
 
   return {
-    ...(featureSelection.alarmStore
-      ? { alarmStore: featureSelection.alarmStore }
-      : {}),
     assistant,
+    backgroundTasks: featureSelection.backgroundTasks,
   };
 }
 

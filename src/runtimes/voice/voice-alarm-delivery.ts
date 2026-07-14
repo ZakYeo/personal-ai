@@ -1,4 +1,4 @@
-import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
+import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import type { DesktopVoiceOutputAdapters } from "./desktop-voice-adapter-types.js";
 import { cleanupVoiceAdapters } from "./voice-cleanup.js";
 import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
@@ -15,12 +15,12 @@ export function createVoiceAlarmDelivery(
   createAdapters: CreateVoiceDeliveryAdapters,
   io: VoiceRuntimeIo = {},
   outputCoordinator: VoiceOutputCoordinator = createVoiceOutputCoordinator(),
-): AlarmDeliveryPort {
+): NotificationDeliveryPort {
   return {
-    deliver: (alarm, context) =>
+    deliver: (notification, context) =>
       outputCoordinator.run(async () => {
         const adapters = createAdapters(context.shutdownSignal);
-        const text = `Alarm: ${alarm.label}.`;
+        const { text } = notification;
 
         try {
           if (adapters.streamingOutput) {

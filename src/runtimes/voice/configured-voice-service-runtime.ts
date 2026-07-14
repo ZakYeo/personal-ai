@@ -29,17 +29,20 @@ import {
 import type { VoiceRuntimeIo } from "./voice-turn.js";
 import { validateOpenWakeWordStartup } from "./openwakeword-startup-check.js";
 import type { FeatureAdapterDependencies } from "../feature-adapter-registry.js";
-import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
+import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import { createVoiceAlarmDelivery } from "./voice-alarm-delivery.js";
-import type { runAlarmScheduler } from "../alarm/alarm-scheduler.js";
 import { createVoiceOutputCoordinator } from "./voice-output-coordinator.js";
+import type {
+  RuntimeBackgroundTask,
+  RuntimeBackgroundTaskContext,
+} from "../background-task.js";
 
 export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,
   "configDirectory" | "env" | "featureAdapterRegistry" | "fetch" | "now"
 > {
   config?: LoadedRuntimeConfig;
-  alarmDelivery?: AlarmDeliveryPort;
+  notificationDelivery?: NotificationDeliveryPort;
   configPath?: string;
   createVoiceAdapters?: (
     voiceConfig: ReturnType<typeof requireVoiceConfig>,
@@ -59,7 +62,10 @@ export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   processControl?: ProcessControl;
   processSignals?: ServiceProcessSignals;
   retryAfterFailure?: (context: ServiceTurnFailureContext) => Promise<void>;
-  runAlarmScheduler?: typeof runAlarmScheduler;
+  runBackgroundTask?: (
+    task: RuntimeBackgroundTask,
+    context: RuntimeBackgroundTaskContext,
+  ) => Promise<void>;
   runVoiceActivation?: (
     dependencies: VoiceActivationDependencies,
     io?: VoiceRuntimeIo,
@@ -80,7 +86,11 @@ export function runConfiguredVoiceServiceRuntime(
   return runConfiguredServiceRuntime(
     {
       ...options,
-      createAlarmDelivery: ({ config, shutdownSignal }) => {
+      createNotificationDelivery: ({ config }) => {
+        if (options.notificationDelivery) {
+          return options.notificationDelivery;
+        }
+
         const voiceConfig = requireVoiceConfig(config);
         const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
           voiceConfig,
@@ -96,7 +106,7 @@ export function runConfiguredVoiceServiceRuntime(
               env,
               fetch,
               processControl,
-              shutdownSignal: deliverySignal ?? shutdownSignal,
+              ...(deliverySignal ? { shutdownSignal: deliverySignal } : {}),
             }),
           options.io,
           outputCoordinator,

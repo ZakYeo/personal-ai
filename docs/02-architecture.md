@@ -110,6 +110,8 @@ Implemented application ports include:
   revision-checking durable lifecycle transitions.
 - `AlarmDeliveryPort` for runtime-owned delivery without coupling scheduling to
   a particular voice or device adapter.
+- `NotificationDeliveryPort` for neutral runtime-task output; alarm tasks adapt
+  their delivery records into human-facing notifications before voice output.
 - Calendar search and upcoming-event contracts.
 - Process shutdown and command-execution control contracts.
 - Batch and streaming voice input, wake activation, transcription, synthesis,
@@ -156,10 +158,13 @@ Runtime config loading retains the absolute directory of the selected config as
 composition context. Stateful feature registries use that context to resolve
 relative local paths before constructing adapters, so application ports and
 feature logic never receive file-system path policy.
-Configured service composition receives the exact `AlarmStore` constructed for
-the alarms feature and gives it to the neutral runtime-owned scheduler. This
-keeps feature commands, restart recovery, and delivery claims on one serialized
-state boundary instead of reconstructing storage policy in the service runtime.
+The alarms adapter contributes a neutral runtime background task that closes
+over the exact `AlarmStore` used by its feature commands. Generic feature
+selection collects tasks without importing feature-specific resources, and the
+service runtime only owns task startup, shutdown, diagnostics, and fatal
+outcomes. This keeps restart recovery and delivery claims on one serialized
+state boundary without turning the generic registry into an optional resource
+bag.
 
 Expected runtimes:
 

@@ -4,9 +4,9 @@ import {
   type CapabilityRoutingIndex,
 } from "../ports/capability-catalog.js";
 import type { FeaturePlugin } from "../ports/feature.js";
-import type { AlarmStore } from "../ports/alarm-store.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import type { FeatureAdapterDependencies } from "./feature-adapter-registry.js";
+import type { RuntimeBackgroundTask } from "./background-task.js";
 
 export {
   defineFeatureAdapterEntry,
@@ -15,7 +15,7 @@ export {
 } from "./feature-adapter-registry.js";
 
 interface ConfiguredFeatureSelection {
-  alarmStore?: AlarmStore;
+  backgroundTasks: RuntimeBackgroundTask[];
   capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
   features: FeaturePlugin[];
 }
@@ -37,18 +37,15 @@ export function createConfiguredFeatureSelection(
 ): ConfiguredFeatureSelection {
   const configuredAdapters = createAdapterBackedFeatures(config, options);
   const configuredFeatures = configuredAdapters.map(({ feature }) => feature);
-  const alarmStores = configuredAdapters.flatMap(({ alarmStore }) =>
-    alarmStore ? [alarmStore] : [],
+  const backgroundTasks = configuredAdapters.flatMap(
+    ({ backgroundTasks }) => backgroundTasks ?? [],
   );
-  if (alarmStores.length > 1) {
-    throw new Error("More than one alarm store was composed.");
-  }
   const capabilityInfoFeature = createCapabilityInfoFeature();
   const features = [...configuredFeatures, capabilityInfoFeature];
   const capabilityRouting = createCapabilityRoutingIndex(features);
 
   return {
-    ...(alarmStores[0] ? { alarmStore: alarmStores[0] } : {}),
+    backgroundTasks,
     capabilityRouting,
     features,
   };
@@ -68,7 +65,10 @@ export function validateConfiguredFeatureAdapters(
 function createAdapterBackedFeatures(
   config: LoadedRuntimeConfig,
   options: CreateConfiguredFeaturesOptions,
-): Array<{ alarmStore?: AlarmStore; feature: FeaturePlugin }> {
+): Array<{
+  backgroundTasks?: RuntimeBackgroundTask[];
+  feature: FeaturePlugin;
+}> {
   return Object.entries(config.features).flatMap(
     ([featureId, featureConfig]) =>
       featureConfig.enabled
@@ -90,7 +90,7 @@ function selectConfiguredFeatureAdapter(
     { enabled: true }
   >,
   dependencies: FeatureAdapterDependencies,
-): { alarmStore?: AlarmStore; feature: FeaturePlugin } {
+): { backgroundTasks?: RuntimeBackgroundTask[]; feature: FeaturePlugin } {
   const created = featureConfig.resolvedAdapter.create(dependencies);
   const composition = isFeatureAdapterComposition(created)
     ? created
@@ -113,6 +113,9 @@ function isFeatureAdapterComposition(
       { enabled: true }
     >["resolvedAdapter"]["create"]
   >,
-): created is { alarmStore?: AlarmStore; feature: FeaturePlugin } {
+): created is {
+  backgroundTasks?: RuntimeBackgroundTask[];
+  feature: FeaturePlugin;
+} {
   return "feature" in created;
 }

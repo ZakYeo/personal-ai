@@ -234,8 +234,10 @@ Create a deterministic draft response. Do not send anything in the first milesto
 Local/in-memory or file-backed capability for creating, listing,
 acknowledging, dismissing, and cancelling alarms.
 Alarm identity belongs to the selected `AlarmStore`; feature logic provides the
-alarm details and reports the stored record returned by the port. Configured
-voice services expose that same store to the runtime-owned scheduler, which
+alarm details and reports the stored record returned by the port. The adapter
+contributes a neutral runtime task that closes over that same store; configured
+voice services run it with notification delivery while generic feature and
+service composition remain unaware of alarm-specific resources. The scheduler
 durably claims due attempts before speaking through the selected voice output.
 Acknowledgement and dismissal stop a ringing alarm; cancellation is a
 high-risk lifecycle change and requires confirmation by default.

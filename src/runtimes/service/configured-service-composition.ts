@@ -26,25 +26,28 @@ import {
 } from "./service-runtime.js";
 import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-registry.js";
 import type { FeatureAdapterDependencies } from "../feature-adapter-registry.js";
-import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
-import type { AlarmStore } from "../../ports/alarm-store.js";
-import { runAlarmScheduler } from "../alarm/alarm-scheduler.js";
+import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
+import type {
+  RuntimeBackgroundTask,
+  RuntimeBackgroundTaskContext,
+} from "../background-task.js";
 
 interface ConfiguredServiceCompositionOptions extends Pick<
   ConfiguredTextRuntimeOptions,
   "configDirectory" | "env" | "featureAdapterRegistry" | "fetch" | "now"
 > {
-  alarmDelivery?: AlarmDeliveryPort;
-  createAlarmDelivery?: (context: {
+  createNotificationDelivery?: (context: {
     config: LoadedRuntimeConfig;
-    shutdownSignal: AbortSignal;
-  }) => AlarmDeliveryPort;
+  }) => NotificationDeliveryPort;
   config?: LoadedRuntimeConfig;
   configPath?: string;
   io?: ServiceRuntimeIo;
   processSignals?: ServiceProcessSignals;
   retryAfterFailure?: (context: ServiceTurnFailureContext) => Promise<void>;
-  runAlarmScheduler?: typeof runAlarmScheduler;
+  runBackgroundTask?: (
+    task: RuntimeBackgroundTask,
+    context: RuntimeBackgroundTaskContext,
+  ) => Promise<void>;
   shutdownHooks?: Array<(context: ServiceShutdownContext) => Promise<void>>;
   desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
 }
@@ -66,8 +69,8 @@ export async function runConfiguredServiceRuntime(
   callbacks: ConfiguredServiceRuntimeCallbacks,
 ): Promise<ServiceRuntimeResult> {
   let startup: {
-    alarmStore?: AlarmStore;
     assistant: Assistant;
+    backgroundTasks: RuntimeBackgroundTask[];
     config: LoadedRuntimeConfig;
   };
 
@@ -86,9 +89,8 @@ export async function runConfiguredServiceRuntime(
     };
   }
 
-  let schedulerTask: Promise<void> | undefined;
-  let schedulerFailed = false;
-  let alarmDelivery = options.alarmDelivery;
+  let backgroundTaskGroup: Promise<void> | undefined;
+  let backgroundTaskFailed = false;
   const result = await runServiceRuntime({
     ...(options.configPath ? { configPath: options.configPath } : {}),
     createAssistant: () => Promise.resolve(startup.assistant),
@@ -101,33 +103,24 @@ export async function runConfiguredServiceRuntime(
       ? { retryAfterFailure: options.retryAfterFailure }
       : {}),
     runTurn: (context) => {
-      if (!alarmDelivery && options.createAlarmDelivery) {
-        alarmDelivery = options.createAlarmDelivery({
-          config: startup.config,
-          shutdownSignal: context.shutdownSignal,
-        });
-      }
-
-      if (!schedulerTask && startup.alarmStore && alarmDelivery) {
-        schedulerTask = (options.runAlarmScheduler ?? runAlarmScheduler)({
-          clock: { now: options.now ?? (() => new Date()) },
-          clockRecheckMs: 1000,
-          config: { missedGraceMs: 900_000, repeatAfterMs: 60_000 },
-          delivery: alarmDelivery,
-          reportDeliveryFailure: ({ error }) => {
-            logRuntimeFailure(error, options.io ?? {});
-          },
-          shutdownSignal: context.shutdownSignal,
-          store: startup.alarmStore,
-        }).catch((error: unknown) => {
-          schedulerFailed = true;
-          try {
-            logRuntimeFailure(error, options.io ?? {});
-          } catch {
-            // Shutdown and the fatal service result must survive logging failure.
-          }
-          context.requestShutdown("alarm scheduler failed");
-        });
+      if (!backgroundTaskGroup && startup.backgroundTasks.length > 0) {
+        backgroundTaskGroup = Promise.all(
+          startup.backgroundTasks.map(async (task) => {
+            try {
+              await (options.runBackgroundTask ?? runBackgroundTask)(task, {
+                clock: { now: options.now ?? (() => new Date()) },
+                reportFailure: (error) => {
+                  logRuntimeFailure(error, options.io ?? {});
+                },
+                shutdownSignal: context.shutdownSignal,
+              });
+            } catch (error) {
+              backgroundTaskFailed = true;
+              logRuntimeFailureBestEffort(error, options.io ?? {});
+              context.requestShutdown(task.failureReason);
+            }
+          }),
+        ).then(() => {});
       }
 
       return callbacks.runTurn({
@@ -138,8 +131,8 @@ export async function runConfiguredServiceRuntime(
     ...(options.shutdownHooks ? { shutdownHooks: options.shutdownHooks } : {}),
   });
 
-  await schedulerTask;
-  if (schedulerFailed) {
+  await backgroundTaskGroup;
+  if (backgroundTaskFailed) {
     return {
       response: safeRuntimeFallbackResponse,
       status: "failed",
@@ -157,16 +150,18 @@ async function createConfiguredServiceStartup(
     dependencies: FeatureAdapterDependencies,
   ) => Promise<void> | void,
 ): Promise<{
-  alarmStore?: AlarmStore;
   assistant: Assistant;
+  backgroundTasks: RuntimeBackgroundTask[];
   config: LoadedRuntimeConfig;
 }> {
   const configSource = await loadServiceConfig(options);
   const { config } = configSource;
+  const notificationDelivery = options.createNotificationDelivery?.({ config });
   const featureAdapterDependencies: FeatureAdapterDependencies = {
     clock: { now: options.now ?? (() => new Date()) },
     env: options.env ?? process.env,
     fetch: options.fetch ?? globalThis.fetch,
+    ...(notificationDelivery ? { notificationDelivery } : {}),
     ...(configSource.configDirectory
       ? { configDirectory: configSource.configDirectory }
       : {}),
@@ -177,10 +172,29 @@ async function createConfiguredServiceStartup(
     ...configSource,
     env: featureAdapterDependencies.env,
     fetch: featureAdapterDependencies.fetch,
+    ...(notificationDelivery ? { notificationDelivery } : {}),
     ...(options.now ? { now: options.now } : {}),
   });
 
   return { ...composition, config };
+}
+
+function runBackgroundTask(
+  task: RuntimeBackgroundTask,
+  context: RuntimeBackgroundTaskContext,
+): Promise<void> {
+  return task.run(context);
+}
+
+function logRuntimeFailureBestEffort(
+  error: unknown,
+  io: ServiceRuntimeIo,
+): void {
+  try {
+    logRuntimeFailure(error, io);
+  } catch {
+    // Shutdown and the fatal service result must survive logging failure.
+  }
 }
 
 function loadServiceConfig(

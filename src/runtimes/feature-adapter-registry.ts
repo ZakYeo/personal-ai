@@ -1,12 +1,14 @@
 import type { FeaturePlugin } from "../ports/feature.js";
-import type { AlarmStore } from "../ports/alarm-store.js";
 import type { ClockPort } from "../ports/assistant.js";
+import type { NotificationDeliveryPort } from "../ports/notification-delivery.js";
+import type { RuntimeBackgroundTask } from "./background-task.js";
 
 export interface FeatureAdapterDependencies {
   clock: ClockPort;
   configDirectory?: string;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
+  notificationDelivery?: NotificationDeliveryPort;
 }
 
 interface FeatureAdapterContext<TAdapterConfig> {
@@ -30,7 +32,7 @@ export interface ResolvedFeatureAdapter {
 }
 
 export interface FeatureAdapterComposition {
-  alarmStore?: AlarmStore;
+  backgroundTasks?: RuntimeBackgroundTask[];
   feature: FeaturePlugin;
 }
 

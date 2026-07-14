@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
@@ -13,19 +13,28 @@ import type { AlarmStoreFileSystem } from "../../adapters/local/file-alarm-store
 describe("alarm feature adapters", () => {
   it("uses the configured runtime clock for alarm lifecycle timestamps", async () => {
     const now = new Date("2026-07-14T09:15:00.000Z");
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-clock-"));
+    const filePath = join(directory, "alarms.json");
     const composition = await createConfiguredTextRuntimeComposition({
       config: createLoadedRuntimeConfig({
-        alarms: { adapter: "local", enabled: true },
+        alarms: {
+          adapter: "file",
+          enabled: true,
+          state: { path: filePath },
+        },
       }),
       now: () => now,
     });
 
-    const stored = await composition.alarmStore?.add({
-      label: "tea",
-      scheduledFor: "2026-07-14T09:25:00.000Z",
-    });
+    await composition.assistant.handleText(
+      "Hey Jarvis, set an alarm to ping me in 10 minutes.",
+    );
+    await composition.assistant.handleText("yes");
+    const state = JSON.parse(await readFile(filePath, "utf8")) as {
+      alarms: Array<{ createdAt: string; updatedAt: string }>;
+    };
 
-    expect(stored).toMatchObject({
+    expect(state.alarms[0]).toMatchObject({
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     });

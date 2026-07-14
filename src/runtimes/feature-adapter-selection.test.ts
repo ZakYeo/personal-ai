@@ -4,10 +4,6 @@ import {
   disabledCalendarConfig,
   enabledDeterministicConfig,
 } from "../test-support/deterministic-runtime-fixtures.js";
-import {
-  createFeatureContext,
-  executeFeature,
-} from "../test-support/feature-contract.js";
 import { parseAssistantConfig } from "./config/config.js";
 import {
   createConfiguredFeatureSelection,
@@ -25,33 +21,26 @@ const featureAdapterDependencies: FeatureAdapterDependencies = {
 };
 
 describe("createConfiguredFeatures", () => {
-  it("shares one selected alarm store between feature and runtime composition", async () => {
+  it("collects neutral runtime tasks contributed by selected features", () => {
     const selection = createConfiguredFeatureSelection(
       enabledDeterministicConfig,
-      { dependencies: featureAdapterDependencies },
+      {
+        dependencies: {
+          ...featureAdapterDependencies,
+          notificationDelivery: { deliver: () => Promise.resolve() },
+        },
+      },
     );
 
-    expect(selection.alarmStore).toBeDefined();
+    expect(selection.backgroundTasks).toEqual([
+      expect.objectContaining({
+        failureReason: "alarm scheduler failed",
+        id: "alarms.delivery",
+      }),
+    ]);
     expect(
       selection.features.find((feature) => feature.id === "alarms"),
     ).toBeDefined();
-    const alarmFeature = selection.features.find(
-      (feature) => feature.id === "alarms",
-    );
-    if (!alarmFeature || !selection.alarmStore) {
-      throw new TypeError("Expected composed alarm feature and store.");
-    }
-
-    await executeFeature(
-      alarmFeature,
-      "alarm.create",
-      { label: "tea", minutesFromNow: 10 },
-      createFeatureContext(),
-    );
-
-    await expect(selection.alarmStore.list()).resolves.toEqual([
-      expect.objectContaining({ label: "tea" }),
-    ]);
   });
 
   it("parses selected adapter config through the same typed registry entry that creates it", () => {

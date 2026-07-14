@@ -378,9 +378,9 @@ should also guard against subtler boundary and abstraction drift.
   when it selects relative local state.
 - File-backed alarm state is owned by one assistant service process. Each adapter
   instance serializes its operations and rereads state for every operation, but
-  no cross-process locking or cloud synchronization is implied. The configured
-  voice service scheduler must observe the exact adapter instance exposed by
-  feature composition so lifecycle commands and delivery claims remain
+  no cross-process locking or cloud synchronization is implied. The alarm
+  adapter's neutral background-task contribution closes over the exact store
+  used by feature commands so lifecycle commands and delivery claims remain
   serialized. It claims due work durably before output and uses revision-checked
   updates so stale observations cannot overwrite newer user actions.
 - Alarm creation, persisted version parsing, and lifecycle updates share one
