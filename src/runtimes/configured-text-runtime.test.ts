@@ -114,16 +114,18 @@ describe("createConfiguredTextRuntime", () => {
   });
 
   it("wires deterministic conversation providers into the assistant", async () => {
-    const fetch = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          output_text: JSON.stringify({
-            command: null,
-            kind: "conversation",
-            response: null,
+    const fetch = vi.fn(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            output_text: JSON.stringify({
+              command: null,
+              kind: "conversation",
+              response: null,
+            }),
           }),
-        }),
-        { status: 200 },
+          { status: 200 },
+        ),
       ),
     );
     const assistant = await createConfiguredTextRuntimeHarness({
@@ -141,6 +143,49 @@ describe("createConfiguredTextRuntime", () => {
       status: "ok",
       text: 'I can chat about "Hey Jarvis, how are you today?".',
     });
+  });
+
+  it("bounds deterministic summaries across repeated compactions", async () => {
+    const fetch = vi.fn(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            output_text: JSON.stringify({
+              command: null,
+              kind: "conversation",
+              response: null,
+            }),
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+    const baseConfig = createRuntimeConfigWithOpenAIIntentProvider();
+    const conversationConfig = withConversationProvider(
+      "deterministic",
+      undefined,
+      baseConfig,
+    ).conversation;
+    const assistant = await createConfiguredTextRuntimeHarness({
+      config: {
+        ...baseConfig,
+        conversation: {
+          ...conversationConfig,
+          history: { maxTurnsBeforeCompaction: 1 },
+        },
+      },
+      env: { OPENAI_API_KEY: "test-api-key" },
+      fetch,
+    });
+    let finalText = "";
+
+    for (let index = 0; index < 12; index += 1) {
+      finalText = (await assistant.handleText(`conversation turn ${index}`))
+        .text;
+    }
+
+    expect(finalText.length).toBeLessThanOrEqual(2_100);
+    expect(finalText).toContain("conversation turn 10");
   });
 
   it("wires OpenAI conversation providers into the assistant", async () => {

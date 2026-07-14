@@ -433,6 +433,9 @@ user/assistant turns, the configured compactor replaces older turns with a
 summary. The default compaction threshold is 5. OpenAI conversation responses
 return strict JSON containing safe response text and `expectsFollowUp`; raw
 provider output stays inside adapter diagnostics.
+The deterministic compactor removes summaries echoed by its own responder and
+caps retained summary text at 2,000 characters, preventing repeated compaction
+from multiplying stored history.
 The command response rewriter is selected separately with
 `responseRewriter.provider`. The default provider is `disabled`, so
 deterministic configs remain network-free. The `openai` response rewriter

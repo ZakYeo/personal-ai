@@ -83,14 +83,30 @@ class DeterministicConversationResponder implements ConversationResponderPort {
 
 class DeterministicConversationCompactor implements ConversationCompactorPort {
   compact(state: ConversationState) {
+    const combinedSummary = [
+      state.summary,
+      ...state.recentTurns.map(
+        (turn) => `${turn.role}: ${withoutDeterministicSummaryEcho(turn)}`,
+      ),
+    ]
+      .filter((line): line is string => Boolean(line))
+      .join("\n");
+
     return Promise.resolve({
       recentTurns: [],
-      summary: [
-        state.summary,
-        ...state.recentTurns.map((turn) => `${turn.role}: ${turn.content}`),
-      ]
-        .filter((line): line is string => Boolean(line))
-        .join("\n"),
+      summary: combinedSummary.slice(-maximumDeterministicSummaryCharacters),
     });
   }
+}
+
+const maximumDeterministicSummaryCharacters = 2_000;
+
+function withoutDeterministicSummaryEcho(
+  turn: ConversationState["recentTurns"][number],
+): string {
+  if (turn.role !== "assistant") {
+    return turn.content;
+  }
+
+  return turn.content.split(". Summary: ", 1)[0] ?? turn.content;
 }

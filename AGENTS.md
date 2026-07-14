@@ -25,6 +25,7 @@
 - Keep broad loaded config at runtime composition boundaries; pass core, features, and adapters the narrowest validated shape they need.
 - General conversation support is selected with `conversation.provider`; keep chat history in the assistant instance unless a persistence milestone explicitly changes that boundary.
 - Conversation history compacts after `conversation.history.maxTurnsBeforeCompaction` completed user/assistant turns; the current default is 5.
+- Deterministic conversation compaction must remove echoed summaries and keep its stored summary within a fixed character bound so repeated compaction cannot multiply history text.
 - Serialize each assistant instance's conversation response, compaction, and history commit transaction so concurrent callers cannot overwrite turns or reorder history.
 - Conversation providers that can ask a user-facing follow-up should return the diagnostic-safe `AssistantResponse.expectsFollowUp` signal; voice runtimes use that signal to capture the next utterance without another wake word before returning to normal wake listening.
 - Command response rewriting is selected with `responseRewriter.provider`; keep it post-processing only, replace feature facts expressed in the safe response with opaque tokens, require exact token preservation, and fall back to the original response with internal diagnostics on any integrity or provider failure.
