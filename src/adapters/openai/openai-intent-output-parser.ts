@@ -37,6 +37,19 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
     };
   }
 
+  if (value.kind === "plan") {
+    if (value.command !== null || value.response !== null) {
+      throw new OpenAIIntentError(
+        "OpenAI intent plan response must set command and response to null.",
+      );
+    }
+
+    return {
+      kind: "plan",
+      plan: parsePlan(value.plan),
+    };
+  }
+
   if (value.kind === "conversation") {
     if (value.command !== null) {
       throw new OpenAIIntentError(
@@ -63,8 +76,24 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   throw new OpenAIIntentError(
-    "OpenAI intent response kind must be command, conversation, unknown, or unsupported.",
+    "OpenAI intent response kind must be command, plan, conversation, unknown, or unsupported.",
   );
+}
+
+function parsePlan(value: unknown): { commands: AssistantCommand[] } {
+  if (!isRecord(value) || !Array.isArray(value.commands)) {
+    throw new OpenAIIntentError(
+      "OpenAI intent response plan must contain a commands array.",
+    );
+  }
+
+  if (value.commands.length < 1 || value.commands.length > 3) {
+    throw new OpenAIIntentError(
+      "OpenAI intent response plan.commands must contain one to three commands.",
+    );
+  }
+
+  return { commands: value.commands.map(parseCommand) };
 }
 
 function parseCommandParameters(value: unknown): AssistantCommandParameters {

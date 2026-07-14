@@ -21,6 +21,7 @@ export function createOpenAIIntentRequestBody(
               "Map requests to enabled assistant capabilities when possible.",
               "Questions about the assistant's enabled capabilities must use the enabled assistant capability that lists them when one is present.",
               "Use kind command with command populated and response null when a capability matches.",
+              "Use kind plan with plan populated, command and response null, and one to three fully resolved commands when the user requests multiple enabled capabilities in one utterance.",
               "When kind is command, command must be populated with the exact enabled capability name, a parameters array, and the user's original text; never set command to null.",
               "Use kind conversation with command and response null for general questions or casual chat.",
               "Use kind unsupported with command null and response populated for command-like requests that no enabled capability can handle.",
@@ -61,36 +62,54 @@ function createIntentInterpretationSchema(
     ({ capability }) => capability.name,
   );
 
+  const commandSchema = {
+    additionalProperties: false,
+    properties: {
+      capability:
+        capabilityNames.length === 0
+          ? { type: "string" }
+          : { enum: capabilityNames, type: "string" },
+      parameters: {
+        items: {
+          additionalProperties: false,
+          properties: {
+            name: { type: "string" },
+            value: { type: ["string", "number", "boolean", "null"] },
+          },
+          required: ["name", "value"],
+          type: "object",
+        },
+        type: "array",
+      },
+      rawText: { type: "string" },
+    },
+    required: ["capability", "parameters", "rawText"],
+    type: "object",
+  } as const;
+
   return {
     additionalProperties: false,
     properties: {
       command: {
-        additionalProperties: false,
-        properties: {
-          capability:
-            capabilityNames.length === 0
-              ? { type: "string" }
-              : { enum: capabilityNames, type: "string" },
-          parameters: {
-            items: {
-              additionalProperties: false,
-              properties: {
-                name: { type: "string" },
-                value: { type: ["string", "number", "boolean", "null"] },
-              },
-              required: ["name", "value"],
-              type: "object",
-            },
-            type: "array",
-          },
-          rawText: { type: "string" },
-        },
-        required: ["capability", "parameters", "rawText"],
+        ...commandSchema,
         type: ["object", "null"],
       },
       kind: {
-        enum: ["command", "conversation", "unknown", "unsupported"],
+        enum: ["command", "plan", "conversation", "unknown", "unsupported"],
         type: "string",
+      },
+      plan: {
+        additionalProperties: false,
+        properties: {
+          commands: {
+            items: commandSchema,
+            maxItems: 3,
+            minItems: 1,
+            type: "array",
+          },
+        },
+        required: ["commands"],
+        type: ["object", "null"],
       },
       response: {
         additionalProperties: false,
@@ -112,7 +131,7 @@ function createIntentInterpretationSchema(
         type: ["object", "null"],
       },
     },
-    required: ["kind", "command", "response"],
+    required: ["kind", "command", "plan", "response"],
     type: "object",
   };
 }

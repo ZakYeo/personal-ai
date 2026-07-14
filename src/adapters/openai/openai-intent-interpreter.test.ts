@@ -33,6 +33,79 @@ const context = {
 } satisfies AssistantContext;
 
 describe("OpenAIIntentInterpreter", () => {
+  it("returns a bounded compound plan from structured provider output", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        output_text: JSON.stringify({
+          command: null,
+          kind: "plan",
+          plan: {
+            commands: [
+              {
+                capability: "calendar.search_events",
+                parameters: [],
+                rawText: "check my calendar and set an alarm",
+              },
+              {
+                capability: "alarm.create",
+                parameters: [{ name: "minutesFromNow", value: 10 }],
+                rawText: "check my calendar and set an alarm",
+              },
+            ],
+          },
+          response: null,
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({ fetch });
+
+    await expect(
+      interpreter.interpret("check my calendar and set an alarm", context),
+    ).resolves.toEqual({
+      kind: "plan",
+      plan: {
+        commands: [
+          {
+            capability: "calendar.search_events",
+            parameters: {},
+            rawText: "check my calendar and set an alarm",
+          },
+          {
+            capability: "alarm.create",
+            parameters: { minutesFromNow: 10 },
+            rawText: "check my calendar and set an alarm",
+          },
+        ],
+      },
+    });
+  });
+
+  it("rejects plans containing more than three commands", async () => {
+    const command = {
+      capability: "alarm.list",
+      parameters: [],
+      rawText: "do four things",
+    };
+    const interpreter = createInterpreter({
+      fetch: createFetchStub(
+        jsonResponse({
+          output_text: JSON.stringify({
+            command: null,
+            kind: "plan",
+            plan: { commands: [command, command, command, command] },
+            response: null,
+          }),
+        }),
+      ),
+    });
+
+    await expect(
+      interpreter.interpret("do four things", context),
+    ).rejects.toThrow(
+      "OpenAI intent response plan.commands must contain one to three commands.",
+    );
+  });
+
   it("returns a command from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({
@@ -117,14 +190,20 @@ describe("OpenAIIntentInterpreter", () => {
           required: ["capability", "parameters", "rawText"],
         },
         kind: {
-          enum: ["command", "conversation", "unknown", "unsupported"],
+          enum: ["command", "plan", "conversation", "unknown", "unsupported"],
+        },
+        plan: {
+          type: ["object", "null"],
+          properties: {
+            commands: { type: "array", minItems: 1, maxItems: 3 },
+          },
         },
         response: {
           type: ["object", "null"],
           required: ["status", "text"],
         },
       },
-      required: ["kind", "command", "response"],
+      required: ["kind", "command", "plan", "response"],
     });
     expect(body.text.format.schema).not.toHaveProperty("anyOf");
     expect(JSON.stringify(body.input)).toContain("calendar.search_events");
