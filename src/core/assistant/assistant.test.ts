@@ -15,8 +15,8 @@ import {
   requireConfirmationFor,
 } from "../../test-support/core-assistant.js";
 import type { ConversationState } from "../../ports/conversation.js";
-import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
 import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
+import type { AlarmStore } from "../../ports/alarm-store.js";
 
 const config = createAssistantConfig({
   test: { enabled: true },
@@ -247,11 +247,17 @@ describe("createAssistant", () => {
   });
 
   it("falls back when a rewrite changes persisted alarm-list facts", async () => {
-    const store = createInMemoryAlarmStore();
-    await store.add({
-      label: "private appointment",
-      scheduledFor: "2026-06-26T09:10:00.000Z",
-    });
+    const store: AlarmStore = {
+      add: () => Promise.reject(new Error("not used")),
+      list: () =>
+        Promise.resolve([
+          {
+            id: "alarm-1",
+            label: "private appointment",
+            scheduledFor: "2026-06-26T09:10:00.000Z",
+          },
+        ]),
+    };
     const assistant = createAssistant({
       clock,
       config: createAssistantConfig({ alarms: { enabled: true } }),
