@@ -249,6 +249,10 @@ time and resets its bounded delivery attempts. Rescheduling and label editing
 preserve stable alarm identity. Cancellation and rescheduling are high-risk
 lifecycle changes and require confirmation by default. List responses describe
 each alarm's status in human-facing language.
+Creation optionally accepts a daily or weekly recurrence plus a required IANA
+timezone. Recurring completion advances through the adapter-owned lifecycle
+state machine, preserving local wall-clock time and stable identity rather than
+creating a replacement alarm record.
 
 Example command:
 

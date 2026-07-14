@@ -51,9 +51,10 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
         }),
         "alarm.create": defineCapability({
           description:
-            "Create a local alarm scheduled a number of minutes from now. This requires confirmation before the alarm is saved.",
+            "Create a one-shot, daily, or weekly local alarm scheduled a number of minutes from now. Recurrence requires an explicit IANA timezone. This requires confirmation before the alarm is saved.",
           risk: "high",
-          summary: "Create a local alarm after a relative delay.",
+          summary:
+            "Create a one-shot or recurring local alarm after a relative delay.",
           spokenSummary: "manage local alarms",
           requiresConfirmation: true,
           parameters: alarmCreateParameters,

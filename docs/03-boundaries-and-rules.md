@@ -396,6 +396,12 @@ should also guard against subtler boundary and abstraction drift.
   confirmation; snooze and label-only edits are low risk. Snooze resets the
   bounded delivery attempts and persists its new due time while preserving the
   original alarm identity.
+- Daily and weekly recurrence requires an explicit valid IANA timezone. The
+  canonical adapter lifecycle state machine preserves local wall-clock time,
+  moves a nonexistent local time forward across a daylight-saving gap, chooses
+  the earlier occurrence when a local time repeats, skips elapsed occurrences
+  after downtime, and schedules the next occurrence atomically on the same ID.
+  Cancellation terminates the whole recurring alarm rather than advancing it.
 - Persist an alarm delivery result before reporting its delivery diagnostic.
   Diagnostic sinks are best effort at this boundary and cannot strand a claimed
   attempt when logging itself fails.

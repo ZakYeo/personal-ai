@@ -82,12 +82,56 @@ describe("configured service alarm recovery", () => {
       createFileAlarmStore({ filePath: fixture.statePath }).list(),
     ).resolves.toEqual([expect.objectContaining({ status: "completed" })]);
   });
+
+  it("persists the next recurring occurrence across restart", async () => {
+    const fixture = await persistedAlarmAt("2026-07-14T09:10:00.000Z", {
+      frequency: "daily",
+      timeZone: "Europe/London",
+    });
+
+    await runRecoveryCycle(
+      fixture.configPath,
+      "2026-07-14T09:10:00.000Z",
+      true,
+    );
+    await runRecoveryCycle(
+      fixture.configPath,
+      "2026-07-14T09:11:00.000Z",
+      true,
+    );
+    await expect(
+      runRecoveryCycle(fixture.configPath, "2026-07-14T09:12:00.000Z", false),
+    ).resolves.toEqual([]);
+    await expect(
+      createFileAlarmStore({ filePath: fixture.statePath }).list(),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        recurrence: { frequency: "daily", timeZone: "Europe/London" },
+        scheduledFor: "2026-07-15T09:10:00.000Z",
+        status: "scheduled",
+      }),
+    ]);
+  });
 });
 
-async function persistedAlarmAt(scheduledFor: string) {
-  return writePersistentAlarmRuntimeConfig(enabledDeterministicConfig, {
-    alarms: [{ id: "recovery-alarm", label: "tea", scheduledFor }],
-  });
+async function persistedAlarmAt(
+  scheduledFor: string,
+  recurrence?: { frequency: "daily" | "weekly"; timeZone: string },
+) {
+  const fixture = await writePersistentAlarmRuntimeConfig(
+    enabledDeterministicConfig,
+    recurrence
+      ? {}
+      : { alarms: [{ id: "recovery-alarm", label: "tea", scheduledFor }] },
+  );
+  if (recurrence) {
+    await createFileAlarmStore({
+      createId: () => "recovery-alarm",
+      filePath: fixture.statePath,
+      now: () => new Date("2026-07-14T09:00:00.000Z"),
+    }).add({ label: "tea", recurrence, scheduledFor });
+  }
+  return fixture;
 }
 
 async function runRecoveryCycle(

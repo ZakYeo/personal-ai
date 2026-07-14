@@ -408,8 +408,12 @@ service result so the process exits non-zero. Feature commands can now snooze a
 ringing alarm, rename a pending alarm, or reschedule it without changing its
 identity; rescheduling requires confirmation, and every mutation remains
 revision checked against scheduler work. Alarm lists render lifecycle state in
-human-facing language. Recurrence and terminal-history cleanup remain
-Milestone 8.1 work.
+human-facing language. Daily and weekly recurring alarms use an explicit IANA
+timezone and the same state machine for command and scheduler completion. They
+preserve local wall-clock time across daylight-saving changes, skip elapsed
+occurrences after downtime, and persist the next occurrence before another
+runtime observes the record. Terminal-history cleanup remains Milestone 8.1
+work.
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
 writing state, resumes the validated command after an explicit yes, asserts the

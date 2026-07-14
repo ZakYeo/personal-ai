@@ -9,6 +9,7 @@ import {
 import { parseAssistantConfig } from "../config/config.js";
 import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
 import type { AlarmStoreFileSystem } from "../../adapters/local/file-alarm-store.js";
+import { createFileAlarmStore } from "../../adapters/local/file-alarm-store.js";
 
 describe("alarm feature adapters", () => {
   it("uses the configured runtime clock for alarm lifecycle timestamps", async () => {
@@ -38,6 +39,41 @@ describe("alarm feature adapters", () => {
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     });
+  });
+
+  it("routes and persists a deterministic recurring alarm command", async () => {
+    const now = new Date("2026-07-14T09:00:00.000Z");
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-recurring-"));
+    const filePath = join(directory, "alarms.json");
+    const assistant = await createConfiguredTextRuntime({
+      config: createLoadedRuntimeConfig({
+        alarms: {
+          adapter: "file",
+          enabled: true,
+          state: { path: filePath },
+        },
+      }),
+      now: () => now,
+    });
+
+    await expect(
+      assistant.handleText(
+        "Hey Jarvis, set a daily alarm to take medicine in 10 minutes in Europe/London",
+      ),
+    ).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: "I need confirmation before doing that. Please confirm yes or no.",
+    });
+    await assistant.handleText("yes");
+
+    await expect(createFileAlarmStore({ filePath }).list()).resolves.toEqual([
+      expect.objectContaining({
+        label: "take medicine",
+        recurrence: { frequency: "daily", timeZone: "Europe/London" },
+        scheduledFor: "2026-07-14T09:10:00.000Z",
+      }),
+    ]);
   });
 
   it("requires a nested state path for the file adapter", () => {

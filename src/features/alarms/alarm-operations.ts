@@ -20,7 +20,27 @@ export async function createAlarm(
 ): Promise<FeatureResult> {
   const label = args.label ?? "alarm";
   const scheduledFor = relativeTime(context, args.minutesFromNow);
-  const alarm = await store.add({ label, scheduledFor });
+  const recurrence = parseRecurrence(args);
+  const alarm = await store.add({
+    label,
+    ...(recurrence ? { recurrence } : {}),
+    scheduledFor,
+  });
+
+  if (alarm.recurrence) {
+    const frequencyLabel =
+      alarm.recurrence.frequency === "daily" ? "Daily" : "Weekly";
+    return {
+      text: `${frequencyLabel} alarm set for ${scheduledFor} (${label}) in ${alarm.recurrence.timeZone}.`,
+      data: {
+        id: alarm.id,
+        label: alarm.label,
+        recurrenceFrequency: alarm.recurrence.frequency,
+        recurrenceTimeZone: alarm.recurrence.timeZone,
+        scheduledFor: alarm.scheduledFor,
+      },
+    };
+  }
 
   return {
     text: `Alarm set for ${scheduledFor} (${label}).`,
@@ -30,6 +50,31 @@ export async function createAlarm(
       scheduledFor: alarm.scheduledFor,
     },
   };
+}
+
+function parseRecurrence(
+  args: AlarmCreateArgs,
+): AlarmRecord["recurrence"] | undefined {
+  const frequency = args.recurrenceFrequency;
+  const timeZone = args.recurrenceTimeZone;
+  if (frequency === undefined && timeZone === undefined) {
+    return;
+  }
+  if (frequency !== "daily" && frequency !== "weekly") {
+    throw new Error("Alarm recurrence frequency must be daily or weekly.");
+  }
+  if (timeZone === undefined) {
+    throw new Error("Alarm recurrence requires an explicit IANA timezone.");
+  }
+  let canonicalTimeZone: string;
+  try {
+    canonicalTimeZone = new Intl.DateTimeFormat("en", {
+      timeZone,
+    }).resolvedOptions().timeZone;
+  } catch {
+    throw new Error("Alarm recurrence requires a valid IANA timezone.");
+  }
+  return { frequency, timeZone: canonicalTimeZone };
 }
 
 export async function listAlarms(store: AlarmStore): Promise<FeatureResult> {
@@ -175,7 +220,10 @@ function transitionAlarm(
     changes: { nextDeliveryAt: null, status: nextStatus },
     result: (alarm) => ({
       data: { id: alarm.id, label: alarm.label, status: alarm.status },
-      text: `${response.verb} the ${alarm.label} alarm.`,
+      text:
+        alarm.status === "scheduled" && alarm.recurrence
+          ? `${response.verb} the ${alarm.label} alarm. Its next occurrence is ${alarm.scheduledFor}.`
+          : `${response.verb} the ${alarm.label} alarm.`,
     }),
   }));
 }
@@ -265,7 +313,9 @@ function formatAlarmStatus(alarm: AlarmRecord): string {
   const identity = `The ${alarm.label} alarm (${alarm.id})`;
   switch (alarm.status) {
     case "scheduled":
-      return `${identity} is scheduled for ${alarm.scheduledFor}.`;
+      return alarm.recurrence
+        ? `${identity} is scheduled for ${alarm.scheduledFor} and repeats ${alarm.recurrence.frequency} in ${alarm.recurrence.timeZone}.`
+        : `${identity} is scheduled for ${alarm.scheduledFor}.`;
     case "snoozed":
       return `${identity} is snoozed until ${alarm.nextDeliveryAt}.`;
     case "ringing":

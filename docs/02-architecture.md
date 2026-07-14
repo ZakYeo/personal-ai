@@ -132,7 +132,9 @@ Deterministic and local adapters include:
 - Mock calendar adapter.
 - Mock messaging adapter.
 - Local/in-memory and versioned JSON-file alarm storage adapters implementing
-  the alarm store port.
+  the alarm store port. Their shared lifecycle state machine advances daily and
+  weekly schedules atomically with explicit timezone and daylight-saving
+  semantics.
 - A voice alarm-delivery adapter that composes the configured synthesis and
   audio-output path for each delivery attempt. A runtime-owned output
   coordinator serializes that path with ordinary response speech without

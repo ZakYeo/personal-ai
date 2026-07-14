@@ -1,5 +1,6 @@
 import { createAlarmFeature } from "./alarm-feature.js";
 import { createTestAlarmStore } from "../../test-support/alarm-store.js";
+import type { AlarmRecurrence, AlarmStore } from "../../ports/alarm-store.js";
 import {
   createFeatureContext,
   executeFeature,
@@ -21,6 +22,8 @@ describe("createAlarmFeature", () => {
       parameters: {
         label: { type: "string" },
         minutesFromNow: { type: "number", required: true, positive: true },
+        recurrenceFrequency: { type: "string" },
+        recurrenceTimeZone: { type: "string" },
       },
     });
     expectCapabilityMetadata(feature, {
@@ -137,6 +140,70 @@ describe("createAlarmFeature", () => {
     );
   });
 
+  it("creates a daily alarm with an explicit IANA timezone", async () => {
+    await expectDecodedFeatureExecution(
+      createAlarmFeature(createTestAlarmStore()),
+      "alarm.create",
+      {
+        label: "morning tea",
+        minutesFromNow: 10,
+        recurrenceFrequency: "daily",
+        recurrenceTimeZone: "Europe/London",
+      },
+      {
+        text: "Daily alarm set for 2026-06-26T09:10:00.000Z (morning tea) in Europe/London.",
+        data: {
+          id: "alarm-1",
+          label: "morning tea",
+          recurrenceFrequency: "daily",
+          recurrenceTimeZone: "Europe/London",
+          scheduledFor: "2026-06-26T09:10:00.000Z",
+        },
+      },
+      context,
+    );
+  });
+
+  it("describes recurrence in the human-facing alarm status", async () => {
+    const store = createTestAlarmStore();
+    await store.add({
+      label: "morning tea",
+      recurrence: { frequency: "weekly", timeZone: "Europe/London" },
+      scheduledFor: "2026-06-26T09:10:00.000Z",
+    });
+
+    await expect(
+      executeFeature(createAlarmFeature(store), "alarm.list", {}, context),
+    ).resolves.toEqual({
+      data: {
+        alarm0Id: "alarm-1",
+        alarm0Label: "morning tea",
+        alarm0ScheduledFor: "2026-06-26T09:10:00.000Z",
+        alarm0Status: "scheduled",
+      },
+      text: "The morning tea alarm (alarm-1) is scheduled for 2026-06-26T09:10:00.000Z and repeats weekly in Europe/London.",
+    });
+  });
+
+  it.each([
+    [{ recurrenceFrequency: "monthly" }, "daily or weekly"],
+    [{ recurrenceFrequency: "daily" }, "explicit IANA timezone"],
+    [{ recurrenceTimeZone: "Europe/London" }, "frequency"],
+    [
+      { recurrenceFrequency: "weekly", recurrenceTimeZone: "not/a-zone" },
+      "valid IANA timezone",
+    ],
+  ])("rejects invalid recurrence parameters", async (parameters, message) => {
+    await expect(
+      executeFeature(
+        createAlarmFeature(createTestAlarmStore()),
+        "alarm.create",
+        { label: "tea", minutesFromNow: 10, ...parameters },
+        context,
+      ),
+    ).rejects.toThrow(message);
+  });
+
   it("lists alarms from the in-memory store", async () => {
     const feature = createAlarmFeature(createTestAlarmStore());
 
@@ -177,21 +244,7 @@ describe("createAlarmFeature", () => {
 
   it("acknowledges the single ringing alarm and clears its repeat", async () => {
     const store = createTestAlarmStore();
-    const alarm = await store.add({
-      label: "tea",
-      scheduledFor: "2026-06-26T09:00:00.000Z",
-    });
-    await store.update({
-      changes: {
-        deliveryAttempts: 1,
-        nextDeliveryAt: "2026-06-26T09:01:00.000Z",
-        status: "ringing",
-        successfulDeliveries: 1,
-      },
-      expectedRevision: alarm.revision,
-      id: alarm.id,
-      updatedAt: "2026-06-26T09:00:00.000Z",
-    });
+    const { alarm } = await addRingingAlarm(store);
 
     await expectDecodedFeatureExecution(
       createAlarmFeature(store),
@@ -209,22 +262,28 @@ describe("createAlarmFeature", () => {
     expect((await store.list())[0]?.nextDeliveryAt).toBeUndefined();
   });
 
+  it("acknowledges a ringing recurring alarm by scheduling its next occurrence", async () => {
+    const store = createTestAlarmStore();
+    const { alarm } = await addRingingAlarm(store, {
+      frequency: "daily",
+      timeZone: "Europe/London",
+    });
+
+    await expectDecodedFeatureExecution(
+      createAlarmFeature(store),
+      "alarm.acknowledge",
+      {},
+      {
+        data: { id: alarm.id, label: "tea", status: "scheduled" },
+        text: "Acknowledged the tea alarm. Its next occurrence is 2026-06-27T09:00:00.000Z.",
+      },
+      context,
+    );
+  });
+
   it("dismisses a ringing alarm by unambiguous label", async () => {
     const store = createTestAlarmStore();
-    const alarm = await store.add({
-      label: "tea",
-      scheduledFor: "2026-06-26T09:00:00.000Z",
-    });
-    await store.update({
-      changes: {
-        deliveryAttempts: 1,
-        nextDeliveryAt: "2026-06-26T09:01:00.000Z",
-        status: "ringing",
-      },
-      expectedRevision: alarm.revision,
-      id: alarm.id,
-      updatedAt: "2026-06-26T09:00:00.000Z",
-    });
+    const { alarm } = await addRingingAlarm(store);
 
     await expectDecodedFeatureExecution(
       createAlarmFeature(store),
@@ -259,21 +318,7 @@ describe("createAlarmFeature", () => {
 
   it("snoozes a ringing alarm with reset delivery attempts", async () => {
     const store = createTestAlarmStore();
-    const alarm = await store.add({
-      label: "tea",
-      scheduledFor: "2026-06-26T09:00:00.000Z",
-    });
-    const ringing = await store.update({
-      changes: {
-        deliveryAttempts: 1,
-        nextDeliveryAt: "2026-06-26T09:01:00.000Z",
-        status: "ringing",
-        successfulDeliveries: 1,
-      },
-      expectedRevision: alarm.revision,
-      id: alarm.id,
-      updatedAt: "2026-06-26T09:00:00.000Z",
-    });
+    const { alarm, ringing } = await addRingingAlarm(store);
 
     await expectDecodedFeatureExecution(
       createAlarmFeature(store),
@@ -395,3 +440,27 @@ describe("createAlarmFeature", () => {
     ).rejects.toBe(failure);
   });
 });
+
+async function addRingingAlarm(
+  store: AlarmStore,
+  recurrence?: AlarmRecurrence,
+) {
+  const alarm = await store.add({
+    label: "tea",
+    ...(recurrence ? { recurrence } : {}),
+    scheduledFor: "2026-06-26T09:00:00.000Z",
+  });
+  const ringing = await store.update({
+    changes: {
+      deliveryAttempts: 1,
+      nextDeliveryAt: "2026-06-26T09:01:00.000Z",
+      status: "ringing",
+      successfulDeliveries: 1,
+    },
+    expectedRevision: alarm.revision,
+    id: alarm.id,
+    updatedAt: "2026-06-26T09:00:00.000Z",
+  });
+
+  return { alarm, ringing };
+}

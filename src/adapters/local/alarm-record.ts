@@ -3,6 +3,7 @@ import type {
   AlarmRecord,
   NewAlarmRecord,
 } from "../../ports/alarm-store.js";
+import { nextRecurringOccurrence } from "./alarm-recurrence.js";
 
 export function createScheduledAlarm(
   alarm: NewAlarmRecord,
@@ -71,6 +72,30 @@ export function applyAlarmLifecycleUpdate(
   }
 
   assertValidLifecycleUpdate(alarm, updated);
+
+  if (
+    alarm.recurrence &&
+    (updated.status === "completed" ||
+      updated.status === "dismissed" ||
+      updated.status === "missed")
+  ) {
+    const scheduledFor = nextRecurringOccurrence(
+      alarm.scheduledFor,
+      update.updatedAt,
+      alarm.recurrence,
+    );
+    const recurring: AlarmRecord = {
+      ...updated,
+      deliveryAttempts: 0,
+      nextDeliveryAt: scheduledFor,
+      scheduledFor,
+      status: "scheduled",
+      successfulDeliveries: 0,
+    };
+    delete recurring.terminalAt;
+    assertValidAlarmRecord(recurring);
+    return recurring;
+  }
 
   return updated;
 }

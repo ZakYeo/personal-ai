@@ -19,8 +19,8 @@ stable deployment paths, a dedicated service account, and operator guidance.
 Milestone 8 is implemented after its required independent maintainability
 review. It adds neutral runtime-owned scheduling, durable delivery claims,
 restart recovery, configured voice delivery, and lifecycle controls. Milestone
-8.1 is in progress: snooze, rescheduling, label editing, and human-facing status
-are implemented, while recurrence and retention remain. After that work is
+8.1 is in progress: snooze, daily and weekly recurrence, rescheduling, label
+editing, and human-facing status are implemented, while retention remains. After that work is
 stable, Spike 9 will identify and define the next concrete implementation
 milestones rather than treating a broad list of possible providers as one
 delivery milestone.
@@ -895,6 +895,9 @@ Implemented slices:
   identity and confirmation for rescheduling.
 - Human-facing list responses for scheduled, snoozed, ringing, completed,
   dismissed, cancelled, and missed alarms.
+- Daily and weekly recurrence with explicit IANA timezones, deterministic
+  daylight-saving behavior, stable identity, downtime catch-up, and persisted
+  restart coverage.
 
 Excluded:
 

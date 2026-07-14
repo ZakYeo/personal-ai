@@ -43,6 +43,31 @@ describe("processAlarmSchedulerCycle", () => {
     expect((await fixture.store.list())[0]?.nextDeliveryAt).toBeUndefined();
   });
 
+  it("schedules the next recurring occurrence after its final delivery", async () => {
+    const fixture = await createFixture(
+      "2026-07-14T09:10:00.000Z",
+      undefined,
+      undefined,
+      {
+        frequency: "daily",
+        timeZone: "Europe/London",
+      },
+    );
+
+    await fixture.runAt("2026-07-14T09:10:00.000Z");
+    await fixture.runAt("2026-07-14T09:11:00.000Z");
+
+    await expect(fixture.store.list()).resolves.toEqual([
+      expect.objectContaining({
+        deliveryAttempts: 0,
+        nextDeliveryAt: "2026-07-15T09:10:00.000Z",
+        scheduledFor: "2026-07-15T09:10:00.000Z",
+        status: "scheduled",
+        successfulDeliveries: 0,
+      }),
+    ]);
+  });
+
   it("delivers at the recovery grace boundary and misses older alarms", async () => {
     const recoverable = await createFixture("2026-07-14T09:00:00.000Z");
     await recoverable.runAt("2026-07-14T09:15:00.000Z");
@@ -225,11 +250,16 @@ async function createFixture(
   scheduledFor: string,
   delivery?: AlarmDeliveryPort,
   reportDeliveryFailure?: AlarmSchedulerDependencies["reportDeliveryFailure"],
+  recurrence?: { frequency: "daily" | "weekly"; timeZone: string },
 ) {
   const store = createInMemoryAlarmStore({
     now: () => new Date("2026-07-14T09:00:00.000Z"),
   });
-  const alarm = await store.add({ label: "tea", scheduledFor });
+  const alarm = await store.add({
+    label: "tea",
+    ...(recurrence ? { recurrence } : {}),
+    scheduledFor,
+  });
   const delivered: AlarmDeliveryRequest[] = [];
   const failures: Array<{ alarmId: string; error: unknown }> = [];
   const dependencies: Omit<AlarmSchedulerDependencies, "clock"> = {

@@ -7,6 +7,8 @@ import type { DeterministicFeatureRule } from "../../ports/deterministic-feature
 export const alarmCreateParameters = {
   label: { type: "string" },
   minutesFromNow: { type: "number", required: true, positive: true },
+  recurrenceFrequency: { type: "string" },
+  recurrenceTimeZone: { type: "string" },
 } as const satisfies FeatureCapabilityParameters;
 
 export const alarmListParameters =
@@ -41,6 +43,24 @@ export type AlarmEditArgs = FeatureArgsFromParameters<
 >;
 
 export const alarmDeterministicIntentRules = [
+  {
+    capability: "alarm.create",
+    match: (text) => {
+      const match = text.match(
+        /\bset a (?<frequency>daily|weekly) alarm(?: to (?<label>.+?))? in (?<minutes>\d+) minutes? in (?<timeZone>[A-Za-z_]+\/[A-Za-z_]+)\b/u,
+      );
+      return match?.groups?.frequency &&
+        match.groups.minutes &&
+        match.groups.timeZone
+        ? {
+            label: match.groups.label ?? "alarm",
+            minutesFromNow: Number(match.groups.minutes),
+            recurrenceFrequency: match.groups.frequency,
+            recurrenceTimeZone: match.groups.timeZone,
+          }
+        : undefined;
+    },
+  },
   {
     capability: "alarm.create",
     match: (text) => {

@@ -75,9 +75,9 @@ Current roadmap position:
   tested Raspberry Pi systemd deployment path. Milestone 8 is implemented after
   its required independent maintainability review; it adds runtime-owned alarm
   scheduling and desktop/Pi voice delivery.
-- Milestone 8.1 is in progress. Snooze, rescheduling, label editing, and
-  human-facing lifecycle status are implemented; recurrence and retention
-  controls remain. Spike 9 will evaluate
+- Milestone 8.1 is in progress. Snooze, daily and weekly recurrence,
+  rescheduling, label editing, and human-facing lifecycle status are
+  implemented; retention controls remain. Spike 9 will evaluate
   messaging, intent providers, local STT/TTS, calendar follow-ups, and other
   candidates, then turn the selected direction into concrete future
   implementation milestones. Real providers and hardware validation remain
@@ -364,6 +364,12 @@ confirmation. A ringing alarm can be snoozed, and scheduled or snoozed alarms
 can be renamed or rescheduled without changing their ID. Rescheduling requires
 confirmation; listing alarms describes each lifecycle state in human-facing
 language.
+Daily and weekly alarms require an explicit IANA timezone, retain their local
+wall-clock time across daylight-saving changes, and atomically schedule their
+next occurrence on the same alarm ID after acknowledgement, dismissal, final
+delivery, or a missed occurrence. For nonexistent local times, the schedule
+moves forward across the daylight-saving gap; for repeated local times, the
+earlier occurrence is used.
 
 ## Scripts
 
