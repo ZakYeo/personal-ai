@@ -8,6 +8,7 @@ import { createConfiguredFeatureSelection } from "./feature-adapter-selection.js
 import { createConfiguredIntentInterpreter } from "./intent-provider-selection.js";
 import { createConfiguredResponseRewriter } from "./response-rewriter-selection.js";
 import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
+import type { AlarmStore } from "../ports/alarm-store.js";
 import { resolveConfiguredRuntimeConfigSource } from "./config/runtime-config-source.js";
 
 export interface ConfiguredTextRuntimeOptions {
@@ -23,6 +24,17 @@ export interface ConfiguredTextRuntimeOptions {
 export async function createConfiguredTextRuntime(
   options: ConfiguredTextRuntimeOptions = {},
 ): Promise<Assistant> {
+  return (await createConfiguredTextRuntimeComposition(options)).assistant;
+}
+
+interface ConfiguredTextRuntimeComposition {
+  alarmStore?: AlarmStore;
+  assistant: Assistant;
+}
+
+export async function createConfiguredTextRuntimeComposition(
+  options: ConfiguredTextRuntimeOptions = {},
+): Promise<ConfiguredTextRuntimeComposition> {
   const configSource = await resolveConfiguredRuntimeConfigSource(options);
   const { config } = configSource;
   const clock = createClock(options.now);
@@ -51,7 +63,7 @@ export async function createConfiguredTextRuntime(
     fetch,
   });
 
-  return createAssistant({
+  const assistant = createAssistant({
     capabilityRouting: featureSelection.capabilityRouting,
     clock,
     config: toAssistantPolicyConfig(config, {
@@ -69,6 +81,13 @@ export async function createConfiguredTextRuntime(
       },
     ),
   });
+
+  return {
+    ...(featureSelection.alarmStore
+      ? { alarmStore: featureSelection.alarmStore }
+      : {}),
+    assistant,
+  };
 }
 
 function createClock(now: (() => Date) | undefined): ClockPort {

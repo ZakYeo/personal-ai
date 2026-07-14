@@ -1,4 +1,5 @@
 import type { FeaturePlugin } from "../ports/feature.js";
+import type { AlarmStore } from "../ports/alarm-store.js";
 
 export interface FeatureAdapterDependencies {
   configDirectory?: string;
@@ -12,14 +13,23 @@ interface FeatureAdapterContext<TAdapterConfig> {
 }
 
 interface FeatureAdapterDefinition<TAdapterConfig> {
-  create(context: FeatureAdapterContext<TAdapterConfig>): FeaturePlugin;
+  create(
+    context: FeatureAdapterContext<TAdapterConfig>,
+  ): FeaturePlugin | FeatureAdapterComposition;
   parseConfig(featureConfig: Record<string, unknown>): TAdapterConfig;
   validateStartup?(context: FeatureAdapterContext<TAdapterConfig>): void;
 }
 
 export interface ResolvedFeatureAdapter {
-  create(dependencies: FeatureAdapterDependencies): FeaturePlugin;
+  create(
+    dependencies: FeatureAdapterDependencies,
+  ): FeaturePlugin | FeatureAdapterComposition;
   validateStartup?(dependencies: FeatureAdapterDependencies): void;
+}
+
+export interface FeatureAdapterComposition {
+  alarmStore?: AlarmStore;
+  feature: FeaturePlugin;
 }
 
 export interface FeatureAdapterEntry {

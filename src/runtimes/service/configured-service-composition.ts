@@ -1,6 +1,6 @@
 import type { Assistant } from "../../core/assistant/index.js";
 import {
-  createConfiguredTextRuntime,
+  createConfiguredTextRuntimeComposition,
   type ConfiguredTextRuntimeOptions,
 } from "../configured-text-runtime.js";
 import {
@@ -26,16 +26,21 @@ import {
 } from "./service-runtime.js";
 import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-registry.js";
 import type { FeatureAdapterDependencies } from "../feature-adapter-registry.js";
+import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
+import type { AlarmStore } from "../../ports/alarm-store.js";
+import { runAlarmScheduler } from "../alarm/alarm-scheduler.js";
 
 interface ConfiguredServiceCompositionOptions extends Pick<
   ConfiguredTextRuntimeOptions,
   "configDirectory" | "env" | "featureAdapterRegistry" | "fetch" | "now"
 > {
+  alarmDelivery?: AlarmDeliveryPort;
   config?: LoadedRuntimeConfig;
   configPath?: string;
   io?: ServiceRuntimeIo;
   processSignals?: ServiceProcessSignals;
   retryAfterFailure?: (context: ServiceTurnFailureContext) => Promise<void>;
+  runAlarmScheduler?: typeof runAlarmScheduler;
   shutdownHooks?: Array<(context: ServiceShutdownContext) => Promise<void>>;
   desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
 }
@@ -56,7 +61,11 @@ export async function runConfiguredServiceRuntime(
   options: ConfiguredServiceCompositionOptions,
   callbacks: ConfiguredServiceRuntimeCallbacks,
 ): Promise<ServiceRuntimeResult> {
-  let startup: { assistant: Assistant; config: LoadedRuntimeConfig };
+  let startup: {
+    alarmStore?: AlarmStore;
+    assistant: Assistant;
+    config: LoadedRuntimeConfig;
+  };
 
   try {
     startup = await createConfiguredServiceStartup(
@@ -73,7 +82,8 @@ export async function runConfiguredServiceRuntime(
     };
   }
 
-  return runServiceRuntime({
+  let schedulerTask: Promise<void> | undefined;
+  const result = await runServiceRuntime({
     ...(options.configPath ? { configPath: options.configPath } : {}),
     createAssistant: () => Promise.resolve(startup.assistant),
     ...(options.io ? { io: options.io } : {}),
@@ -84,13 +94,34 @@ export async function runConfiguredServiceRuntime(
     ...(options.retryAfterFailure
       ? { retryAfterFailure: options.retryAfterFailure }
       : {}),
-    runTurn: (context) =>
-      callbacks.runTurn({
+    runTurn: (context) => {
+      if (!schedulerTask && startup.alarmStore && options.alarmDelivery) {
+        schedulerTask = (options.runAlarmScheduler ?? runAlarmScheduler)({
+          clock: { now: options.now ?? (() => new Date()) },
+          clockRecheckMs: 1000,
+          config: { missedGraceMs: 900_000, repeatAfterMs: 60_000 },
+          delivery: options.alarmDelivery,
+          reportDeliveryFailure: ({ error }) => {
+            logRuntimeFailure(error, options.io ?? {});
+          },
+          shutdownSignal: context.shutdownSignal,
+          store: startup.alarmStore,
+        }).catch((error: unknown) => {
+          logRuntimeFailure(error, options.io ?? {});
+          context.requestShutdown("alarm scheduler failed");
+        });
+      }
+
+      return callbacks.runTurn({
         ...context,
         config: startup.config,
-      }),
+      });
+    },
     ...(options.shutdownHooks ? { shutdownHooks: options.shutdownHooks } : {}),
   });
+
+  await schedulerTask;
+  return result;
 }
 
 async function createConfiguredServiceStartup(
@@ -99,7 +130,11 @@ async function createConfiguredServiceStartup(
     config: LoadedRuntimeConfig,
     dependencies: FeatureAdapterDependencies,
   ) => Promise<void> | void,
-): Promise<{ assistant: Assistant; config: LoadedRuntimeConfig }> {
+): Promise<{
+  alarmStore?: AlarmStore;
+  assistant: Assistant;
+  config: LoadedRuntimeConfig;
+}> {
   const configSource = await loadServiceConfig(options);
   const { config } = configSource;
   const featureAdapterDependencies: FeatureAdapterDependencies = {
@@ -111,14 +146,14 @@ async function createConfiguredServiceStartup(
   };
   await validateConfig(config, featureAdapterDependencies);
 
-  const assistant = await createConfiguredTextRuntime({
+  const composition = await createConfiguredTextRuntimeComposition({
     ...configSource,
     env: featureAdapterDependencies.env,
     fetch: featureAdapterDependencies.fetch,
     ...(options.now ? { now: options.now } : {}),
   });
 
-  return { assistant, config };
+  return { ...composition, config };
 }
 
 function loadServiceConfig(

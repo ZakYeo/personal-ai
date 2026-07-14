@@ -29,7 +29,7 @@ interface AlarmSchedulerTimer {
   wait(delayMs: number, shutdownSignal: AbortSignal): Promise<void>;
 }
 
-interface AlarmSchedulerRuntimeDependencies extends AlarmSchedulerDependencies {
+export interface AlarmSchedulerRuntimeDependencies extends AlarmSchedulerDependencies {
   clockRecheckMs: number;
   shutdownSignal: AbortSignal;
   timer?: AlarmSchedulerTimer;

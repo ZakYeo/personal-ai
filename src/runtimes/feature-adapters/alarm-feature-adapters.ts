@@ -17,20 +17,24 @@ export function createAlarmFeatureRegistryEntry(
   return {
     adapters: {
       file: defineFeatureAdapterEntry({
-        create: ({ adapterConfig, dependencies: runtimeDependencies }) =>
-          createAlarmFeature(
-            createFileAlarmStore({
-              ...dependencies,
-              filePath: resolveLocalStatePath(
-                adapterConfig.filePath,
-                runtimeDependencies.configDirectory,
-              ),
-            }),
-          ),
+        create: ({ adapterConfig, dependencies: runtimeDependencies }) => {
+          const alarmStore = createFileAlarmStore({
+            ...dependencies,
+            filePath: resolveLocalStatePath(
+              adapterConfig.filePath,
+              runtimeDependencies.configDirectory,
+            ),
+          });
+
+          return { alarmStore, feature: createAlarmFeature(alarmStore) };
+        },
         parseConfig: parseFileAlarmStoreConfig,
       }),
       local: defineFeatureAdapterEntry({
-        create: () => createAlarmFeature(createInMemoryAlarmStore()),
+        create: () => {
+          const alarmStore = createInMemoryAlarmStore();
+          return { alarmStore, feature: createAlarmFeature(alarmStore) };
+        },
         parseConfig: () => {},
       }),
     },

@@ -7,6 +7,8 @@ import {
 import type { ServiceTurnContext } from "./service-runtime.js";
 import { runConfiguredServiceRuntime } from "./configured-service-composition.js";
 import { dirname } from "node:path";
+import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
+import type { AlarmSchedulerRuntimeDependencies } from "../alarm/alarm-scheduler.js";
 
 describe("runConfiguredServiceRuntime", () => {
   it("composes the configured text assistant from an injected config path", async () => {
@@ -95,5 +97,52 @@ describe("runConfiguredServiceRuntime", () => {
         },
       ),
     ).resolves.toMatchObject({ status: "stopped" });
+  });
+
+  it("starts alarm scheduling with the same store used by the assistant", async () => {
+    const { configPath } = await writePersistentAlarmRuntimeConfig(
+      enabledDeterministicConfig,
+      {
+        alarms: [
+          {
+            id: "scheduled-alarm",
+            label: "tea",
+            scheduledFor: "2026-07-13T17:00:00.000Z",
+          },
+        ],
+      },
+    );
+    const runAlarmScheduler = vi.fn(
+      async (dependencies: AlarmSchedulerRuntimeDependencies) => {
+        await expect(dependencies.store.list()).resolves.toEqual([
+          expect.objectContaining({ id: "scheduled-alarm" }),
+        ]);
+      },
+    );
+    const delivery: AlarmDeliveryPort = {
+      deliver: () => Promise.resolve(),
+    };
+
+    await runConfiguredServiceRuntime(
+      {
+        alarmDelivery: delivery,
+        configPath,
+        runAlarmScheduler,
+      },
+      {
+        validateConfig: () => {},
+        runTurn: (context) => {
+          context.requestShutdown("test complete");
+          return Promise.resolve();
+        },
+      },
+    );
+
+    expect(runAlarmScheduler).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        config: { missedGraceMs: 900_000, repeatAfterMs: 60_000 },
+        delivery,
+      }),
+    );
   });
 });

@@ -1,6 +1,13 @@
 import type { FeaturePlugin } from "../ports/feature.js";
 import { defineCapability, defineFeature } from "../ports/feature.js";
-import { disabledCalendarConfig } from "../test-support/deterministic-runtime-fixtures.js";
+import {
+  disabledCalendarConfig,
+  enabledDeterministicConfig,
+} from "../test-support/deterministic-runtime-fixtures.js";
+import {
+  createFeatureContext,
+  executeFeature,
+} from "../test-support/feature-contract.js";
 import { parseAssistantConfig } from "./config/config.js";
 import {
   createConfiguredFeatureSelection,
@@ -17,6 +24,35 @@ const featureAdapterDependencies: FeatureAdapterDependencies = {
 };
 
 describe("createConfiguredFeatures", () => {
+  it("shares one selected alarm store between feature and runtime composition", async () => {
+    const selection = createConfiguredFeatureSelection(
+      enabledDeterministicConfig,
+      { dependencies: featureAdapterDependencies },
+    );
+
+    expect(selection.alarmStore).toBeDefined();
+    expect(
+      selection.features.find((feature) => feature.id === "alarms"),
+    ).toBeDefined();
+    const alarmFeature = selection.features.find(
+      (feature) => feature.id === "alarms",
+    );
+    if (!alarmFeature || !selection.alarmStore) {
+      throw new TypeError("Expected composed alarm feature and store.");
+    }
+
+    await executeFeature(
+      alarmFeature,
+      "alarm.create",
+      { label: "tea", minutesFromNow: 10 },
+      createFeatureContext(),
+    );
+
+    await expect(selection.alarmStore.list()).resolves.toEqual([
+      expect.objectContaining({ label: "tea" }),
+    ]);
+  });
+
   it("parses selected adapter config through the same typed registry entry that creates it", () => {
     let observedContext:
       | {
