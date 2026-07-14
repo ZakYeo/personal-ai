@@ -1,9 +1,10 @@
+import { basename } from "node:path";
 import type { DesktopCommandConfig } from "../../adapters/desktop/desktop-command-config.js";
 import { runCommand } from "../../adapters/desktop/process-runner.js";
 import type { ResolvedDesktopVoiceServiceAdapterConfig } from "./desktop-voice-adapter-types.js";
 import type { ResolvedVoiceConfig } from "../config/voice-config.js";
 
-const localOpenWakeWordListener = "scripts/openwakeword-listener.py";
+const localOpenWakeWordListener = "openwakeword-listener.py";
 const startupCheckTimeoutMs = 5000;
 
 export async function validateOpenWakeWordStartup(
@@ -33,5 +34,7 @@ export async function validateOpenWakeWordStartup(
 }
 
 function usesLocalOpenWakeWordListener(config: DesktopCommandConfig): boolean {
-  return (config.args ?? []).includes(localOpenWakeWordListener);
+  return (config.args ?? []).some(
+    (argument) => basename(argument) === localOpenWakeWordListener,
+  );
 }

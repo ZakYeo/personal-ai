@@ -13,6 +13,7 @@ import {
   writeTempJsonFile,
 } from "../../test-support/primitives.js";
 import { createRuntimeConfigWithGoogleCalendarAdapter } from "../../test-support/runtime-composition.js";
+import { createServiceSignalController } from "../../test-support/service-runtime.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
 import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
@@ -178,6 +179,36 @@ describe("desktop voice service startup", () => {
       line(
         'Runtime failure: OpenWakeWord startup check failed for desktopVoice.wakeActivation command "/bin/false". Create a Python virtual environment, install openwakeword, and configure desktopVoice.wakeActivation.command to the venv Python interpreter, for example ".venv/bin/python".',
       ),
+    ]);
+  });
+
+  it("checks an installed OpenWakeWord listener referenced by an absolute path", async () => {
+    const stderr = createCapturedWriter();
+    const signals = createServiceSignalController();
+    const runVoiceActivation = vi.fn(() => {
+      signals.emit("SIGTERM");
+      return Promise.resolve({
+        response: deterministicScenarios.alarmListEmpty.response,
+        status: "spoken" as const,
+        textOutputWritten: false,
+      });
+    });
+
+    await expect(
+      runDesktopVoiceServiceRuntime({
+        config: createOpenWakeWordServiceConfig("/bin/false", [
+          "/opt/personal-ai/scripts/openwakeword-listener.py",
+        ]),
+        io: { stderr },
+        processSignals: signals,
+        retryAfterFailure: () => Promise.resolve(),
+        runVoiceActivation,
+      }),
+    ).resolves.toMatchObject({ status: "startup_failed" });
+
+    expect(runVoiceActivation).not.toHaveBeenCalled();
+    expect(stderr.writes).toEqual([
+      expect.stringContaining("OpenWakeWord startup check failed"),
     ]);
   });
 
