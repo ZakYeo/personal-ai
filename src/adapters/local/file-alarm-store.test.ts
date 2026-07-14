@@ -66,7 +66,7 @@ describe("createFileAlarmStore", () => {
           updatedAt: "2026-07-13T16:00:00.000Z",
         },
       ],
-      version: 2,
+      version: 3,
     });
   });
 
@@ -113,12 +113,61 @@ describe("createFileAlarmStore", () => {
     });
 
     await expect(readJson(filePath)).resolves.toMatchObject({
-      version: 2,
+      version: 3,
       alarms: [
         { id: "legacy-alarm", status: "scheduled" },
         { id: "new-alarm", status: "scheduled" },
       ],
     });
+  });
+
+  it("persists recurring alarm metadata with an explicit IANA timezone", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-alarms-"));
+    const filePath = join(directory, "alarms.json");
+    const store = createFileAlarmStore({
+      createId: () => "recurring-alarm",
+      filePath,
+      now: () => new Date("2026-07-13T16:00:00.000Z"),
+    });
+
+    await store.add({
+      label: "medicine",
+      recurrence: { frequency: "daily", timeZone: "Europe/London" },
+      scheduledFor: "2026-07-13T17:00:00.000Z",
+    });
+
+    await expect(createFileAlarmStore({ filePath }).list()).resolves.toEqual([
+      expect.objectContaining({
+        recurrence: { frequency: "daily", timeZone: "Europe/London" },
+      }),
+    ]);
+    await expect(readJson(filePath)).resolves.toMatchObject({ version: 3 });
+  });
+
+  it("migrates version-two terminal timestamps deterministically", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-alarms-"));
+    const filePath = join(directory, "alarms.json");
+    await writeFile(
+      filePath,
+      JSON.stringify({
+        alarms: [
+          persistedAlarm({
+            deliveryAttempts: 1,
+            nextDeliveryAt: undefined,
+            status: "completed",
+            successfulDeliveries: 1,
+          }),
+        ],
+        version: 2,
+      }),
+    );
+
+    await expect(createFileAlarmStore({ filePath }).list()).resolves.toEqual([
+      expect.objectContaining({
+        status: "completed",
+        terminalAt: "2026-07-13T16:00:00.000Z",
+      }),
+    ]);
   });
 
   it("creates private state directories and files", async () => {
@@ -140,7 +189,7 @@ describe("createFileAlarmStore", () => {
   });
 
   it.each([
-    { alarms: [], version: 3 },
+    { alarms: [], version: 4 },
     { alarms: "invalid", version: 1 },
     {
       alarms: [
@@ -170,6 +219,29 @@ describe("createFileAlarmStore", () => {
     {
       alarms: [persistedAlarm({ revision: undefined })],
       version: 2,
+    },
+    {
+      alarms: [
+        persistedAlarm({
+          deliveryAttempts: 1,
+          nextDeliveryAt: undefined,
+          status: "completed",
+          successfulDeliveries: 1,
+        }),
+      ],
+      version: 3,
+    },
+    {
+      alarms: [persistedAlarm({ terminalAt: "2026-07-13T18:00:00.000Z" })],
+      version: 3,
+    },
+    {
+      alarms: [
+        persistedAlarm({
+          recurrence: { frequency: "daily", timeZone: "Not/A_Zone" },
+        }),
+      ],
+      version: 3,
     },
     {
       alarms: [persistedAlarm({ nextDeliveryAt: undefined })],
@@ -334,7 +406,7 @@ describe("createFileAlarmStore", () => {
     expect(error.message).toBe("Could not persist alarm state.");
     expect(error.cause).toMatchObject({ message: "replacement failed" });
     expect(replacements).toHaveLength(1);
-    expect(replacements[0]?.contents).toContain('"version":2');
+    expect(replacements[0]?.contents).toContain('"version":3');
     expect(replacements[0]?.targetPath).toBe("/state/alarms.json");
     expect(replacements[0]?.temporaryPath).toMatch(
       /^\/state\/\.alarms\.json\..+\.tmp$/u,

@@ -384,10 +384,12 @@ should also guard against subtler boundary and abstraction drift.
   serialized. It claims due work durably before output and uses revision-checked
   updates so stale observations cannot overwrite newer user actions.
 - Alarm creation, persisted version parsing, and lifecycle updates share one
-  strict adapter-layer state-machine invariant. Version-two state requires its
-  declared lifecycle fields, contradictory status/counter/delivery-time
-  combinations fail closed, and terminal alarms cannot transition back to
-  active states.
+  strict adapter-layer state-machine invariant. Current version-three state
+  requires its declared lifecycle and terminal-time fields, recurrence requires
+  a valid explicit IANA timezone, contradictory combinations fail closed, and
+  terminal alarms cannot transition back to active states. Version-one and
+  version-two records migrate deterministically rather than being silently
+  treated as current state.
 - Persist an alarm delivery result before reporting its delivery diagnostic.
   Diagnostic sinks are best effort at this boundary and cannot strand a claimed
   attempt when logging itself fails.

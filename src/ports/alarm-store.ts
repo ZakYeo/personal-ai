@@ -1,10 +1,16 @@
 export type AlarmStatus =
   | "scheduled"
+  | "snoozed"
   | "ringing"
   | "completed"
   | "dismissed"
   | "cancelled"
   | "missed";
+
+export interface AlarmRecurrence {
+  frequency: "daily" | "weekly";
+  timeZone: string;
+}
 
 export interface AlarmRecord {
   createdAt: string;
@@ -12,14 +18,18 @@ export interface AlarmRecord {
   id: string;
   label: string;
   nextDeliveryAt?: string;
+  recurrence?: AlarmRecurrence;
   revision: number;
   scheduledFor: string;
   status: AlarmStatus;
   successfulDeliveries: number;
+  terminalAt?: string;
   updatedAt: string;
 }
 
-export type NewAlarmRecord = Pick<AlarmRecord, "label" | "scheduledFor">;
+export type NewAlarmRecord = Pick<AlarmRecord, "label" | "scheduledFor"> & {
+  recurrence?: AlarmRecurrence;
+};
 
 type AlarmLifecycleChanges = Partial<
   Pick<

@@ -44,7 +44,7 @@ export type FileAlarmStoreDependencies = Pick<
 
 interface AlarmStateDocument {
   alarms: AlarmRecord[];
-  version: 2;
+  version: 3;
 }
 
 const nodeAtomicFileSystem: AtomicFileSystem = {
@@ -90,7 +90,7 @@ export function createFileAlarmStore(
 
         await writeState(
           options.filePath,
-          { alarms: [...state.alarms, storedAlarm], version: 2 },
+          { alarms: [...state.alarms, storedAlarm], version: 3 },
           fileSystem,
         );
 
@@ -118,7 +118,7 @@ export function createFileAlarmStore(
 
         const alarms = [...state.alarms];
         alarms[index] = updated;
-        await writeState(options.filePath, { alarms, version: 2 }, fileSystem);
+        await writeState(options.filePath, { alarms, version: 3 }, fileSystem);
 
         return { ...updated };
       }),
@@ -148,7 +148,7 @@ async function readState(
     contents = await fileSystem.readFile(filePath);
   } catch (cause) {
     if (isMissingFileError(cause)) {
-      return { alarms: [], version: 2 };
+      return { alarms: [], version: 3 };
     }
 
     throw new Error("Could not read alarm state.", { cause });
@@ -168,22 +168,23 @@ async function readState(
 function parseAlarmState(value: unknown): AlarmStateDocument {
   if (
     !isRecord(value) ||
-    (value.version !== 1 && value.version !== 2) ||
+    (value.version !== 1 && value.version !== 2 && value.version !== 3) ||
     !Array.isArray(value.alarms)
   ) {
     throw new Error("Alarm state file is invalid.");
   }
 
+  const version = value.version;
   const alarms = value.alarms.map((alarm) =>
-    value.version === 1
+    version === 1
       ? migrateVersionOneAlarm(alarm)
-      : parseAlarmRecord(alarm),
+      : parseAlarmRecord(alarm, version),
   );
   if (new Set(alarms.map((alarm) => alarm.id)).size !== alarms.length) {
     throw new Error("Alarm state file is invalid.");
   }
 
-  return { alarms, version: 2 };
+  return { alarms, version: 3 };
 }
 
 function migrateVersionOneAlarm(value: unknown): AlarmRecord {
@@ -210,7 +211,7 @@ function migrateVersionOneAlarm(value: unknown): AlarmRecord {
   };
 }
 
-function parseAlarmRecord(value: unknown): AlarmRecord {
+function parseAlarmRecord(value: unknown, version: 2 | 3): AlarmRecord {
   if (
     !isRecord(value) ||
     !isCanonicalIsoTimestamp(value.createdAt) ||
@@ -224,7 +225,10 @@ function parseAlarmRecord(value: unknown): AlarmRecord {
     !isCanonicalIsoTimestamp(value.updatedAt) ||
     !isPositiveInteger(value.revision) ||
     (value.nextDeliveryAt !== undefined &&
-      !isCanonicalIsoTimestamp(value.nextDeliveryAt))
+      !isCanonicalIsoTimestamp(value.nextDeliveryAt)) ||
+    (value.terminalAt !== undefined &&
+      !isCanonicalIsoTimestamp(value.terminalAt)) ||
+    (value.recurrence !== undefined && !isAlarmRecurrence(value.recurrence))
   ) {
     throw new Error("Alarm state file is invalid.");
   }
@@ -235,10 +239,18 @@ function parseAlarmRecord(value: unknown): AlarmRecord {
     id: value.id,
     label: value.label,
     ...(value.nextDeliveryAt ? { nextDeliveryAt: value.nextDeliveryAt } : {}),
+    ...(value.recurrence ? { recurrence: value.recurrence } : {}),
     revision: value.revision,
     scheduledFor: value.scheduledFor,
     status: value.status,
     successfulDeliveries: value.successfulDeliveries,
+    ...(version === 3
+      ? value.terminalAt
+        ? { terminalAt: value.terminalAt }
+        : {}
+      : isTerminalAlarmStatus(value.status)
+        ? { terminalAt: value.updatedAt }
+        : {}),
     updatedAt: value.updatedAt,
   };
 
@@ -254,12 +266,41 @@ function parseAlarmRecord(value: unknown): AlarmRecord {
 function isAlarmStatus(value: unknown): value is AlarmRecord["status"] {
   return (
     value === "scheduled" ||
+    value === "snoozed" ||
     value === "ringing" ||
     value === "completed" ||
     value === "dismissed" ||
     value === "cancelled" ||
     value === "missed"
   );
+}
+
+function isTerminalAlarmStatus(status: AlarmRecord["status"]): boolean {
+  return (
+    status === "cancelled" ||
+    status === "completed" ||
+    status === "dismissed" ||
+    status === "missed"
+  );
+}
+
+function isAlarmRecurrence(
+  value: unknown,
+): value is NonNullable<AlarmRecord["recurrence"]> {
+  if (
+    !isRecord(value) ||
+    (value.frequency !== "daily" && value.frequency !== "weekly") ||
+    !isNonEmptyString(value.timeZone)
+  ) {
+    return false;
+  }
+
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: value.timeZone });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function isNonNegativeInteger(value: unknown): value is number {

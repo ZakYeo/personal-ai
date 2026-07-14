@@ -64,6 +64,11 @@ export function applyAlarmLifecycleUpdate(
   if (update.changes.nextDeliveryAt === null) {
     delete updated.nextDeliveryAt;
   }
+  if (isTerminalStatus(updated.status)) {
+    updated.terminalAt = alarm.terminalAt ?? update.updatedAt;
+  } else {
+    delete updated.terminalAt;
+  }
 
   assertValidLifecycleUpdate(alarm, updated);
 
@@ -85,6 +90,8 @@ export function assertValidAlarmRecord(alarm: AlarmRecord): void {
     !Number.isInteger(alarm.successfulDeliveries) ||
     alarm.successfulDeliveries < 0 ||
     alarm.successfulDeliveries > alarm.deliveryAttempts ||
+    (alarm.recurrence !== undefined &&
+      !isValidAlarmRecurrence(alarm.recurrence)) ||
     !hasConsistentStatusFields(alarm)
   ) {
     throw new Error("Alarm lifecycle update is invalid.");
@@ -137,35 +144,75 @@ const allowedNextStatuses: Record<
   missed: [],
   ringing: ["ringing", "completed", "dismissed", "missed"],
   scheduled: ["scheduled", "ringing", "cancelled", "missed"],
+  snoozed: ["scheduled", "ringing", "cancelled", "missed"],
 };
 
 function hasConsistentStatusFields(alarm: AlarmRecord): boolean {
   switch (alarm.status) {
     case "scheduled":
+    case "snoozed":
       return (
         alarm.deliveryAttempts === 0 &&
         alarm.successfulDeliveries === 0 &&
-        alarm.nextDeliveryAt !== undefined
+        alarm.nextDeliveryAt !== undefined &&
+        alarm.terminalAt === undefined
       );
     case "ringing":
       return (
         alarm.deliveryAttempts >= 1 &&
-        (alarm.deliveryAttempts === 1) === (alarm.nextDeliveryAt !== undefined)
+        (alarm.deliveryAttempts === 1) ===
+          (alarm.nextDeliveryAt !== undefined) &&
+        alarm.terminalAt === undefined
       );
     case "cancelled":
       return (
         alarm.deliveryAttempts === 0 &&
         alarm.successfulDeliveries === 0 &&
-        alarm.nextDeliveryAt === undefined
+        alarm.nextDeliveryAt === undefined &&
+        alarm.terminalAt !== undefined
       );
     case "completed":
-      return alarm.deliveryAttempts >= 1 && alarm.nextDeliveryAt === undefined;
+      return (
+        alarm.deliveryAttempts >= 1 &&
+        alarm.nextDeliveryAt === undefined &&
+        alarm.terminalAt !== undefined
+      );
     case "dismissed":
-      return alarm.deliveryAttempts >= 1 && alarm.nextDeliveryAt === undefined;
+      return (
+        alarm.deliveryAttempts >= 1 &&
+        alarm.nextDeliveryAt === undefined &&
+        alarm.terminalAt !== undefined
+      );
     case "missed":
       return (
-        alarm.successfulDeliveries === 0 && alarm.nextDeliveryAt === undefined
+        alarm.successfulDeliveries === 0 &&
+        alarm.nextDeliveryAt === undefined &&
+        alarm.terminalAt !== undefined
       );
+  }
+}
+
+function isTerminalStatus(status: AlarmRecord["status"]): boolean {
+  return (
+    status === "cancelled" ||
+    status === "completed" ||
+    status === "dismissed" ||
+    status === "missed"
+  );
+}
+
+function isValidAlarmRecurrence(
+  recurrence: NonNullable<AlarmRecord["recurrence"]>,
+): boolean {
+  if (recurrence.frequency !== "daily" && recurrence.frequency !== "weekly") {
+    return false;
+  }
+
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: recurrence.timeZone });
+    return recurrence.timeZone.length > 0;
+  } catch {
+    return false;
   }
 }
 
