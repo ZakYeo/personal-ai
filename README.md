@@ -72,9 +72,13 @@ Current roadmap position:
   Raspberry Pi OS QEMU smoke support, desktop voice service activation, and a
   JSON-file-backed alarm store with consistent runtime path resolution, and the
   tested Raspberry Pi systemd deployment path.
-- The next planned product milestone adds another real capability after local
-  state and Pi operations. Real providers and hardware validation remain opt-in
-  work outside the default deterministic validation gate.
+- Milestone 8 next adds runtime-owned alarm scheduling and desktop/Pi delivery;
+  Milestone 8.1 then adds snooze, recurrence, editing, lifecycle status, and
+  retention controls. Spike 9 will evaluate
+  messaging, intent providers, local STT/TTS, calendar follow-ups, and other
+  candidates, then turn the selected direction into concrete future
+  implementation milestones. Real providers and hardware validation remain
+  opt-in work outside the default deterministic validation gate.
 
 ## Requirements
 

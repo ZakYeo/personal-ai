@@ -16,9 +16,12 @@ The file-backed alarm store establishes local state that survives restarts, and
 config-directory-relative paths now flow consistently through text, voice, and
 service composition. Raspberry Pi operations now include a tested systemd unit,
 stable deployment paths, a dedicated service account, and operator guidance.
-The next milestone adds another real capability. Alarm scheduling and
-notification delivery remain separate product work rather than implied outcomes
-of persistence.
+The next milestone turns durable alarm records into operational alarms with
+runtime-owned scheduling and human-facing delivery. A follow-on alarm usability
+milestone adds richer alarm lifecycle controls. After those are stable, a
+discovery spike will identify and define the next concrete implementation
+milestones rather than treating a broad list of possible providers as one
+delivery milestone.
 
 ## Milestone 1: Deterministic Text Assistant
 
@@ -819,31 +822,136 @@ Acceptance criteria:
 - Any generated deployment artifacts are tested without requiring real Pi
   hardware.
 
-## Milestone 8: Additional Real Capabilities
+## Milestone 8: Operational Alarm Delivery
 
 Status: planned.
 
-Goal: add another useful real capability only after persistent local alarm state
-and Pi operations are stable enough to make the assistant useful day to day.
+Goal: turn persisted alarm records into alarms that trigger reliably in the
+long-running desktop and Raspberry Pi service runtimes.
 
-Candidate slices:
+Included:
 
-- A real messaging adapter behind the existing messaging feature port.
-- A second intent provider, such as Anthropic or a local model, behind the
-  existing intent interpreter port.
-- A local STT or TTS provider adapter behind the existing voice ports.
-- Calendar follow-up improvements that remain read-only unless explicit safety
-  and confirmation rules are documented and tested.
+- A neutral runtime-owned alarm scheduler behind an application port rather than
+  feature or adapter polling logic.
+- Injected clock, timer, and shutdown dependencies so due-alarm behavior remains
+  deterministic and service shutdown cannot strand waits.
+- Startup recovery for future and overdue alarms with an explicit, tested
+  missed-alarm policy.
+- An alarm-delivery port with desktop and Raspberry Pi audio or spoken delivery
+  adapters selected through local runtime config.
+- Durable alarm lifecycle state that prevents an acknowledged or completed alarm
+  from repeatedly firing after process restart.
+- Human-facing acknowledgement, dismissal, and cancellation paths with internal
+  diagnostics and graceful delivery-failure responses.
+- Deterministic scheduler, restart, clock-change, shutdown, and delivery-failure
+  tests, plus explicit opt-in device smoke coverage.
+
+Excluded:
+
+- Recurring alarms, snoozing, and arbitrary rescheduling, which belong in
+  Milestone 8.1.
+- Cloud synchronization or coordination between multiple assistant processes.
+- Hardware-in-the-loop checks in the default validation gate.
 
 Acceptance criteria:
 
-- Each adapter remains opt-in through local config.
-- Credentials stay in environment variables or operator-owned local config files
-  outside the repository.
-- Deterministic tests cover provider failures and malformed output without live
-  network calls.
-- High-risk capabilities fail closed and require confirmation unless a narrow,
-  documented exception is tested.
+- A confirmed persisted alarm fires once at or after its due time while the
+  service is running.
+- Restarting before an alarm is due preserves delivery, and restarting after its
+  due time follows the documented missed-alarm policy without duplicate delivery.
+- Desktop and Raspberry Pi service composition use the same neutral scheduling
+  semantics and adapter-owned delivery paths.
+- Delivery failures preserve useful internal diagnostics without exposing raw
+  command, provider, credential, or stack details to the user.
+- Shutdown cancels scheduler waits promptly and still runs normal service cleanup.
+- The default checked-in config and validation remain deterministic and require
+  neither live providers nor audio hardware.
+- `npm run check` passes.
+
+### Milestone 8.1: Alarm Usability and Lifecycle Controls
+
+Status: planned.
+
+Goal: make operational alarms convenient to manage after reliable one-shot
+delivery exists.
+
+Included:
+
+- Snooze with an explicit new due time and durable lifecycle transition.
+- Recurring alarm schedules with field-by-field validation of persisted rules.
+- Reschedule and edit operations that preserve stable alarm identity.
+- Human-facing alarm status that distinguishes scheduled, ringing, snoozed,
+  completed, dismissed, and missed alarms without exposing internal state names
+  unless technical detail is requested.
+- Retention and cleanup policy for completed or dismissed alarm history.
+- Confirmation policy for destructive or surprising lifecycle changes.
+
+Excluded:
+
+- Calendar reminders or a general task scheduler unless a later milestone first
+  defines their separate product and port boundaries.
+- Cross-device alarm synchronization.
+
+Acceptance criteria:
+
+- Snoozed and recurring alarms survive restart and do not duplicate delivery.
+- Editing, rescheduling, dismissal, and cancellation are serialized with
+  scheduler observation so stale due work cannot fire afterward.
+- Retention cleanup cannot remove active alarms and reports failures through the
+  diagnostic-safe runtime boundary.
+- Intent fixtures, live-provider prompts, capability metadata, and spoken
+  summaries remain aligned with the supported alarm operations.
+- `npm run check` passes.
+
+## Spike 9: Future Milestone Discovery
+
+Status: planned.
+
+Goal: identify, evaluate, prioritize, and create the concrete implementation
+milestones that should follow the operational alarm work.
+
+Questions to investigate:
+
+- Which user outcome should come next: real messaging, another intent provider,
+  local STT or TTS, calendar follow-ups, or a newly identified capability?
+- Which existing ports are sufficient, and which candidate requires a new or
+  revised application boundary?
+- What safety, confirmation, privacy, credential, offline, latency, cost, and
+  device constraints materially affect each option?
+- What deterministic adapter contracts, integration tests, live smokes, and
+  operator setup would each candidate require?
+- Which dependencies or architectural risks should determine implementation
+  order?
+
+Deliverables:
+
+- A short evidence-backed comparison of the candidate capabilities and providers.
+- A prioritized recommendation with explicit reasons, dependencies, risks, and
+  rejected or deferred options.
+- New, separately numbered implementation milestones in this roadmap, each with
+  a bounded goal, included and excluded scope, thin-slice outline, and measurable
+  acceptance criteria.
+- Corresponding README, AGENTS, architecture, runtime, feature-model, and product
+  documentation updates where the selected future direction changes those
+  sources of truth.
+
+Excluded:
+
+- Implementing a production provider, adapter, or end-user capability as part of
+  the spike itself.
+- Committing credentials, machine-specific configuration, or speculative shared
+  abstractions before a selected milestone proves they are needed.
+
+Acceptance criteria:
+
+- The spike ends by replacing broad candidate ideas with an ordered set of
+  concrete future implementation milestones.
+- Each resulting milestone can be delivered independently through thin TDD
+  slices and names its ports, adapters, runtime boundaries, safety policy, and
+  validation strategy.
+- Unknowns that still require prototyping are isolated as explicitly bounded
+  follow-up spikes rather than hidden inside implementation milestones.
+- Documentation passes the repository documentation validation gate.
 
 ## Roadmap Rule
 

@@ -59,7 +59,9 @@
 - Resolve relative local state paths from the selected config file's directory and forward that source context through CLI, desktop voice, and Pi service composition; callers that inject parsed config must also inject `configDirectory` for relative state paths.
 - Treat a file-backed alarm state file as single-process-owned; operations are serialized per adapter instance, but cross-process locking and background scheduling are not provided.
 - Raspberry Pi deployment uses the tested `deploy/systemd/personal-ai.service` unit, the dedicated `personal-ai` account, `/opt/personal-ai` application files, required `/etc/personal-ai` config and environment files, and `/var/lib/personal-ai` durable state; keep credentials out of the unit and repository.
-- The next planned product milestone is an additional real capability behind an existing or new port, without weakening confirmation or deterministic validation boundaries.
+- The next planned product milestone is operational alarm delivery: keep scheduling neutral and runtime-owned, deliver through configured desktop/Pi adapters, inject clock/timer/shutdown dependencies, recover safely across restart, and prevent duplicate delivery with durable lifecycle state.
+- Follow operational delivery with alarm usability and lifecycle controls; keep snooze, recurrence, rescheduling, status, and retention serialized with scheduler observation and covered by deterministic restart tests.
+- Treat Spike 9 as future-milestone discovery, not an implementation milestone: compare messaging, intent providers, local STT/TTS, calendar follow-ups, and other candidates, then update the roadmap with separately numbered, bounded implementation milestones before building them.
 - Keep persistence ports asynchronous so feature success is not returned before durable work completes.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Do not add `require*Config` identity wrappers for fields already required and resolved by `LoadedRuntimeConfig`; a resolver must prove a new invariant or narrow an optional shape.
