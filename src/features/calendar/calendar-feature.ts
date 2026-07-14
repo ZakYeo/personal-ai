@@ -148,6 +148,7 @@ async function searchEvents(
     const eventLabel = events.length === 1 ? "event" : "events";
 
     return {
+      expectsFollowUp: true,
       text: `You have ${events.length} upcoming calendar ${eventLabel}: ${formatEventList(events)}.`,
       data: createUpcomingEventFacts(events),
       resultReferences: createResultReferences(events),
@@ -155,6 +156,7 @@ async function searchEvents(
   }
 
   return {
+    expectsFollowUp: true,
     text: `${event.title} is ${formatEventStart(event)}.`,
     data: {
       date: event.startDate,

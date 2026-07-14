@@ -116,6 +116,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       { query: "upcoming wedding" },
       {
+        expectsFollowUp: true,
         text: "Upcoming wedding is on 2026-09-12, all day.",
         data: {
           date: "2026-09-12",
@@ -140,6 +141,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       {},
       {
+        expectsFollowUp: true,
         text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12, all day.",
         data: {
           eventCount: 1,
@@ -173,6 +175,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       {},
       {
+        expectsFollowUp: true,
         text: "You have 2 upcoming calendar events: .CLAY Studios: Gents Haircut on 2026-07-17 at 11:00, Zak - Onsite Interview - Agentic Engineer on 2026-07-20, all day.",
         data: {
           eventCount: 2,
@@ -234,6 +237,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       {},
       {
+        expectsFollowUp: true,
         text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12, all day.",
         data: {
           eventCount: 1,
@@ -281,6 +285,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       { query: "interview" },
       {
+        expectsFollowUp: true,
         text: "Zak - Onsite Interview - Agentic Engineer is on 2026-07-06 at 09:30.",
         data: {
           date: "2026-07-06",

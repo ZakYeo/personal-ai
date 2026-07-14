@@ -15,6 +15,7 @@ import {
   createVoiceRuntimeDependencies,
 } from "../../test-support/voice-runtime.js";
 import {
+  createConfiguredTextRuntimeHarness,
   createRuntimeConfigWithOpenAIIntentProvider,
   withConversationProvider,
   withVoiceAdapterId,
@@ -263,6 +264,38 @@ describe("mock voice runtime", () => {
       line("Heard: What are your capable functionalities?"),
       line(`Assistant: ${deterministicScenarios.capabilityList.response.text}`),
     ]);
+  });
+
+  it("smoke-captures a calendar result follow-up without another wake phrase", async () => {
+    const progressOutput = createCapturedWriter();
+    const assistant = await createConfiguredTextRuntimeHarness();
+    const utterances = [
+      deterministicScenarios.calendarUpcomingEvents.text,
+      "Where is that?",
+    ];
+    const dependencies = createVoiceRuntimeDependencies({ assistant });
+
+    await expect(
+      runVoiceTurn(
+        {
+          ...dependencies,
+          audioInput: {
+            capture: () =>
+              Promise.resolve({ text: utterances.shift() ?? "unexpected" }),
+          },
+        },
+        { progressOutput },
+      ),
+    ).resolves.toMatchObject({
+      response: {
+        status: "ok",
+        text: "Upcoming wedding does not include a location.",
+      },
+      transcript: "Where is that?",
+    });
+    expect(progressOutput.writes).toContain(
+      line("Listening for your reply..."),
+    );
   });
 
   it("speaks a graceful fallback if assistant handling rejects", async () => {

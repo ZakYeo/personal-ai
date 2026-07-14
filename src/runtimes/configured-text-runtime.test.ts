@@ -30,6 +30,7 @@ describe("createConfiguredTextRuntime", () => {
       text: "Please confirm this plan: 1. set the tea alarm for 2026-06-26T09:10:00.000Z. Say yes or no.",
     });
     await expect(assistant.handleText("yes")).resolves.toEqual({
+      expectsFollowUp: true,
       status: "ok",
       text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12, all day. Alarm set for 2026-06-26T09:10:00.000Z (tea).",
     });
@@ -54,6 +55,19 @@ describe("createConfiguredTextRuntime", () => {
     await expect(
       assistant.handleText(deterministicScenarios.calendarUpcomingEvents.text),
     ).resolves.toEqual(deterministicScenarios.calendarUpcomingEvents.response);
+  });
+
+  it("smoke-answers a calendar result follow-up from the same assistant", async () => {
+    const assistant = await createConfiguredTextRuntimeHarness();
+
+    await assistant.handleText(
+      deterministicScenarios.calendarUpcomingEvents.text,
+    );
+
+    await expect(assistant.handleText("Where is that?")).resolves.toEqual({
+      status: "ok",
+      text: "Upcoming wedding does not include a location.",
+    });
   });
 
   it("respects disabled features from config", async () => {
@@ -281,6 +295,7 @@ describe("createConfiguredTextRuntime", () => {
     await expect(
       assistant.handleText(deterministicScenarios.calendarWedding.text),
     ).resolves.toEqual({
+      expectsFollowUp: true,
       status: "ok",
       text: "Upcoming wedding is happening on 12 September, all day.",
     });
@@ -346,6 +361,7 @@ describe("createConfiguredTextRuntime", () => {
 
     expect(outcome).toEqual({
       response: {
+        expectsFollowUp: true,
         status: "ok",
         text: "You have 2 upcoming calendar events: .CLAY Studios: Gents Haircut on this Friday the 17th at 11am, and Zak - Onsite Interview - Agentic Engineer on next Monday the 20th at 9:30am.",
       },

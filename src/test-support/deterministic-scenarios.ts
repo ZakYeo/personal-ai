@@ -9,6 +9,7 @@ export const deterministicScenarios = {
   calendarWedding: {
     text: "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?",
     response: {
+      expectsFollowUp: true,
       status: "ok",
       text: "Upcoming wedding is on 2026-09-12, all day.",
     },
@@ -16,6 +17,7 @@ export const deterministicScenarios = {
   calendarUpcomingEvents: {
     text: "Hey Jarvis, can you check my calendar please? What upcoming events do I have?",
     response: {
+      expectsFollowUp: true,
       status: "ok",
       text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12, all day.",
     },
@@ -53,7 +55,7 @@ export const deterministicScenarios = {
     text: "Hey Jarvis, what are your capable functionalities?",
     response: {
       status: "ok",
-      text: "I can check your calendar, draft message replies, and manage local alarms. I will ask before high-risk actions.",
+      text: "I can ask about recent calendar results, check your calendar, draft message replies, and manage local alarms. I will ask before high-risk actions.",
     },
   },
   unknown: {
