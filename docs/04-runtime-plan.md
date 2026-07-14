@@ -632,7 +632,7 @@ Runtime code should prefer the assistant's diagnostic-aware outcome method over 
 
 For voice runtimes, producing some response is more important than preserving the exact internal error message. If command handling fails, the runtime should attempt a spoken fallback. If speech output fails, it should fall back to text or logs rather than silently ending the interaction.
 
-## Planned Compound Turn Semantics
+## Compound Turn Semantics
 
 Milestone 10 keeps one spoken utterance and one assistant response while allowing
 the interpreted request to contain up to three fully resolved commands. The

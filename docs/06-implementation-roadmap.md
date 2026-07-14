@@ -24,11 +24,15 @@ adds snooze, daily and weekly recurrence, rescheduling, label editing,
 human-facing status, and 30-day retention. Spike 9 is complete after its
 required independent review. Its evidence-backed report prioritizes compound
 command plans, calendar result follow-ups, measured local voice, target-specific
-messaging, and finally a local structured intent provider.
+messaging, and finally a local structured intent provider. Milestone 10 is
+implemented after its required independent maintainability review. It adds
+bounded compound plans with whole-plan validation, aggregate exact
+confirmation, ordered stop-on-first-failure execution, and deterministic plus
+opt-in live smoke coverage.
 
 ## Implemented Milestone Archive
 
-Detailed acceptance criteria and outcomes for Milestones 1 through 8.1 are kept
+Detailed acceptance criteria and outcomes for Milestones 1 through 10 are kept
 in `docs/09-implemented-milestones.md`. This roadmap retains the current
 position, completed discovery decision, and active/future work.
 
@@ -104,69 +108,8 @@ Outcome:
 
 ## Milestone 10: Compound Command Plans
 
-Status: planned.
-
-Goal: allow one utterance to request a small, safe, ordered set of existing
-capabilities, including “check my upcoming events and set an alarm for ten
-minutes”.
-
-Included:
-
-- An application-owned `ProposedAssistantPlan` containing one to three raw,
-  untrusted provider commands and parameters.
-- A separate immutable `ValidatedAssistantPlan` whose steps retain resolved
-  routes, decoded arguments, confirmation decisions, and deterministic
-  protected confirmation facts.
-- Intent provider schemas and deterministic fixtures that return either one
-  command or one bounded plan.
-- Whole-plan validation against the immutable capability routing index before
-  any execution.
-- One aggregate confirmation for every confirmation-required step, with the
-  exact validated plan retained process-locally.
-- Capability-owned deterministic confirmation renderers tied to decoded
-  arguments, with all material action facts protected from provider rewriting.
-- Sequential execution in utterance order, stopping on the first failure.
-- Per-step `succeeded`, `failed`, or `skipped` diagnostic-aware outcomes,
-  protected facts, response metadata, and one concise combined human response
-  that makes partial completion explicit.
-- Text, simulated voice, desktop voice, and Pi service integration coverage.
-
-Excluded:
-
-- Provider-directed loops or dynamically generated follow-on commands.
-- Passing one command's output into another command's arguments.
-- Parallel execution, rollback, or claims of transactional side effects.
-- More than three commands in one utterance.
-
-Thin slices:
-
-1. Add separate proposed and validated plan contracts plus deterministic
-   interpretation fixtures.
-2. Decode, validate, and route a whole proposed plan into an immutable validated
-   plan without executing invalid steps.
-3. Add capability-owned deterministic confirmation rendering, aggregate every
-   risky step's protected exact facts, and resume the exact frozen plan.
-4. Execute sequentially with explicit succeeded, failed, and skipped
-   stop-on-first-failure outcomes.
-5. Compose safe combined responses through text and voice boundaries.
-6. Add the opt-in live OpenAI compound-command smoke.
-
-Acceptance criteria:
-
-- The example calendar-and-alarm utterance produces a two-step plan and, after
-  one aggregate confirmation, executes both steps in order.
-- No step executes when any plan command is invalid or cannot be routed.
-- An explicit yes resumes the already validated plan without reinterpretation;
-  no discards it; unrelated input preserves the prompt.
-- Aggregate confirmation states every material decoded fact for each risky step
-  using deterministic application-owned rendering.
-- A failed step prevents later steps from executing and preserves internal
-  diagnostics without exposing them to the user; the response unambiguously
-  distinguishes completed, failed, and skipped actions.
-- Concurrent calls cannot interleave plan execution, pending confirmation, or
-  conversation-history commits.
-- Existing single-command behavior remains compatible and `npm run check`
-  passes.
+Status: implemented. Detailed scope, acceptance criteria, and outcomes are
+archived in `docs/09-implemented-milestones.md`.
 
 ## Milestone 11: Calendar Result Follow-Ups
 

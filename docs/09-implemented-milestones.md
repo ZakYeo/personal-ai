@@ -4,6 +4,70 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 10: Compound Command Plans
+
+Status: implemented.
+
+Goal: allow one utterance to request a small, safe, ordered set of existing
+capabilities, including checking upcoming events and setting an alarm.
+
+Included:
+
+- Separate raw `ProposedAssistantPlan` and immutable, core-validated
+  `ValidatedAssistantPlan` contracts, bounded to three commands.
+- Deterministic and OpenAI interpretation of single commands or compound plans.
+- Whole-plan argument decoding, route resolution, and confirmation validation
+  before any step executes.
+- One aggregate confirmation containing every exact material fact rendered by
+  confirmation-required capabilities, with the validated plan retained
+  process-locally and resumed without reinterpretation.
+- Sequential utterance-order execution that stops on the first failure and
+  classifies every step as succeeded, failed, or skipped.
+- Diagnostic-aware per-step outcomes with safe human summaries, protected facts,
+  feature data, and no raw provider or adapter details.
+- Text, simulated voice, desktop voice, Raspberry Pi service, deterministic
+  configured-runtime, and opt-in live OpenAI smoke coverage.
+
+Excluded:
+
+- Provider-directed loops or dynamically generated follow-on commands.
+- Passing one command's output into another command's arguments.
+- Parallel execution, rollback, or transactional side-effect claims.
+- More than three commands in one utterance.
+
+Outcomes:
+
+- Invalid plans execute no steps, including when only a later step is invalid.
+- Explicit confirmation resumes the exact frozen plan; rejection discards it;
+  unrelated input preserves the aggregate prompt.
+- Single-command and compound-command handling share the same validation,
+  confirmation, pending-plan, execution, and outcome pipeline.
+- Confirmation fails closed when a capability's risk, metadata, or configuration
+  requires confirmation but no deterministic renderer is declared.
+- Provider schema parsing rejects mixed command, plan, conversation, and fallback
+  branches instead of silently accepting ambiguous output.
+- Deterministic compound interpretation rejects the entire request when any
+  requested clause is unresolved and counts unresolved clauses toward the bound.
+- Confirmed plan execution uses its validation-time clock so relative alarm
+  actions persist and report the exact absolute time shown in the prompt.
+- Independent maintainability review findings were addressed by consolidating
+  orchestration, preserving textual command order, deepening immutable plan and
+  route contracts, enriching outcome metadata, splitting the assistant plan
+  tests, and adding desktop and Pi integration coverage.
+
+Acceptance criteria:
+
+- A calendar-and-alarm utterance produces a two-step plan and executes both in
+  order after one aggregate confirmation.
+- No step executes when any command is invalid or cannot be routed.
+- Aggregate confirmation states every material decoded fact for each risky step.
+- A failed step prevents later execution and reports completed, failed, and
+  skipped actions without exposing internal diagnostics.
+- Concurrent calls cannot interleave plan execution, pending confirmation, or
+  conversation-history commits.
+- Existing single-command behavior remains compatible and `npm run check`
+  passes.
+
 ## Milestone 1: Deterministic Text Assistant
 
 Status: implemented.
