@@ -1,6 +1,7 @@
 import { createAssistant } from "./assistant.js";
 import { createCapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type { AssistantContext } from "../../ports/assistant.js";
+import type { FeaturePlugin } from "../../ports/feature.js";
 import {
   createAssistantConfig,
   createCommand,
@@ -95,6 +96,42 @@ describe("assistant result references", () => {
 
     expect(contexts[2]?.resultReferences).toBeUndefined();
   });
+
+  it("rejects a provider-forged ordinal that is absent from the trusted utterance", async () => {
+    let call = 0;
+    const feature = createForgedReferenceFeature();
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([feature]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({ calendar: { enabled: true } }),
+      intentInterpreter: {
+        interpret: () =>
+          Promise.resolve(
+            call++ === 0
+              ? {
+                  command: createCommand("calendar.search", {}, "show events"),
+                  kind: "command" as const,
+                }
+              : {
+                  command: createCommand(
+                    "calendar.follow_up",
+                    { ordinal: 2, reference: "calendar-event-2" },
+                    "the second one",
+                  ),
+                  kind: "command" as const,
+                },
+          ),
+      },
+    });
+
+    await assistant.handleText("show events");
+
+    await expect(assistant.handleText("Where is that?")).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: "I am not sure which event you mean.",
+    });
+  });
 });
 
 const unknownInterpretation = {
@@ -155,4 +192,57 @@ function createReferenceAssistant(
       },
     },
   });
+}
+
+function createForgedReferenceFeature(): FeaturePlugin {
+  return {
+    capabilities: [
+      { name: "calendar.search", parameters: {}, risk: "low" },
+      {
+        name: "calendar.follow_up",
+        parameters: {
+          ordinal: { type: "number" },
+          reference: { type: "string" },
+        },
+        risk: "low",
+      },
+    ],
+    displayName: "Calendar",
+    execute: (request, context) => {
+      if (request.capability === "calendar.search") {
+        return Promise.resolve({
+          resultReferences: {
+            items: ["First", "Second"].map((title) => ({
+              facts: { date: "2026-07-17", time: "11:00", title },
+              target: {
+                kind: "calendar_event" as const,
+                providerEventId: title,
+              },
+            })),
+            kind: "calendar_events",
+          },
+          text: "Two events.",
+        });
+      }
+
+      const selected = context.selectResultReference?.({
+        ...(typeof request.args.ordinal === "number"
+          ? { ordinal: request.args.ordinal }
+          : {}),
+        rawText: context.trustedInputText,
+        ...(typeof request.args.reference === "string"
+          ? { reference: request.args.reference }
+          : {}),
+      });
+      return Promise.resolve(
+        selected
+          ? { text: selected.publicReference.facts.title }
+          : {
+              expectsFollowUp: true,
+              text: "I am not sure which event you mean.",
+            },
+      );
+    },
+    id: "calendar",
+  };
 }

@@ -8,7 +8,11 @@ import type {
   AssistantResponse,
   ClockPort,
 } from "../../ports/assistant.js";
-import type { FeatureArguments, FeaturePlugin } from "../../ports/feature.js";
+import type {
+  FeatureArguments,
+  FeatureExecutionContext,
+  FeaturePlugin,
+} from "../../ports/feature.js";
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
@@ -199,6 +203,7 @@ function executeValidatedPlan(
   const executionContext = {
     ...context,
     capabilityCatalog: dependencies.capabilityRouting.catalog,
+    trustedInputText: plan.originalText,
     ...(publicReferences.length > 0
       ? {
           selectResultReference: (request: ResultReferenceSelectionRequest) =>
@@ -227,9 +232,7 @@ async function executeCommand(input: {
   context: AssistantContext;
   decodedArgs: FeatureArguments;
   dependencies: AssistantDependencies;
-  executionContext: AssistantContext & {
-    capabilityCatalog: AssistantDependencies["capabilityRouting"]["catalog"];
-  };
+  executionContext: FeatureExecutionContext;
   feature: FeaturePlugin;
   normalizedText: string;
   onReferencesRetained: () => void;

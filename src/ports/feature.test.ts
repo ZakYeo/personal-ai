@@ -9,6 +9,7 @@ import { defineDeterministicFeatureRules } from "./deterministic-feature-rules.j
 
 const context: FeatureExecutionContext = {
   capabilityCatalog: [],
+  trustedInputText: "test input",
   clock: {
     now: () => new Date("2026-06-26T09:00:00.000Z"),
   },

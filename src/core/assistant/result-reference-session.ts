@@ -10,7 +10,6 @@ export interface ResultReferenceSession {
   clear(): void;
   completeTurn(): void;
   publicReferences(): readonly AssistantResultReference[];
-  resolve(reference: string): ResultReferenceTarget | undefined;
   select(
     request: ResultReferenceSelectionRequest,
   ): ResolvedResultReference | undefined;
@@ -38,9 +37,6 @@ export function createResultReferenceSession(): ResultReferenceSession {
     },
     publicReferences: () =>
       entries.map(({ publicReference }) => publicReference),
-    resolve: (reference) =>
-      entries.find((entry) => entry.publicReference.reference === reference)
-        ?.target,
     select(request) {
       const spokenOrdinal = parseSpokenOrdinal(request.rawText);
       if (request.ordinal !== undefined && request.ordinal !== spokenOrdinal) {
@@ -84,9 +80,9 @@ export function createResultReferenceSession(): ResultReferenceSession {
       entries = resultSet.items.slice(0, 10).map((item, index) => ({
         publicReference: Object.freeze({
           facts: Object.freeze({ ...item.facts }),
-          kind: "calendar_event" as const,
+          kind: item.target.kind,
           ordinal: index + 1,
-          reference: `calendar-event-${index + 1}`,
+          reference: `${item.target.kind.replace("_", "-")}-${index + 1}`,
         }),
         target: Object.freeze({ ...item.target }),
       }));

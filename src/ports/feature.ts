@@ -23,6 +23,7 @@ export type {
 
 export interface FeatureExecutionContext extends AssistantContext {
   capabilityCatalog: CapabilityCatalog;
+  trustedInputText: string;
   selectResultReference?(
     request: ResultReferenceSelectionRequest,
   ): ResolvedResultReference | undefined;

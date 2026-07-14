@@ -25,6 +25,7 @@ export function createFeatureContext(
       now: () => featureContractNow,
     },
     config,
+    trustedInputText: "test feature input",
   };
 }
 

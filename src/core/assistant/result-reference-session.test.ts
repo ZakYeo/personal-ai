@@ -26,9 +26,8 @@ describe("result reference session", () => {
       ordinal: 1,
       reference: "calendar-event-1",
     });
-    expect(session.resolve("calendar-event-1")).toEqual({
-      kind: "calendar_event",
-      providerEventId: "id-1",
+    expect(session.select({ rawText: "the first one" })).toMatchObject({
+      target: { kind: "calendar_event", providerEventId: "id-1" },
     });
   });
 
@@ -37,8 +36,8 @@ describe("result reference session", () => {
     session.retain(resultSet("old"));
     session.retain(resultSet("new"));
 
-    expect(session.resolve("calendar-event-1")).toMatchObject({
-      providerEventId: "new",
+    expect(session.select({ rawText: "the first one" })).toMatchObject({
+      target: { providerEventId: "new" },
     });
     session.completeTurn();
     session.completeTurn();
@@ -62,7 +61,7 @@ describe("result reference session", () => {
 
     session.clear();
 
-    expect(session.resolve("calendar-event-1")).toBeUndefined();
+    expect(session.publicReferences()).toEqual([]);
   });
 
   it("owns ordinal selection, rejects provider conflicts, and advances focus", () => {

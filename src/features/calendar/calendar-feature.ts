@@ -88,12 +88,7 @@ export function createCalendarFeature(
           spokenSummary: "ask about recent calendar results",
           parameters: calendarFollowUpParameters,
           execute: (request, context) =>
-            answerCalendarFollowUp(
-              calendar,
-              request.args,
-              request.command.rawText,
-              context,
-            ),
+            answerCalendarFollowUp(calendar, request.args, context),
         }),
         "calendar.search_events": defineCapability({
           description:
@@ -177,13 +172,12 @@ async function searchEvents(
 async function answerCalendarFollowUp(
   calendar: CalendarSearchPort,
   args: CalendarFollowUpArgs,
-  rawText: string,
   context: FeatureExecutionContext,
 ) {
   const selected = context.selectResultReference?.({
     ...(args.detail === "next" ? { next: true } : {}),
     ...(args.ordinal === undefined ? {} : { ordinal: args.ordinal }),
-    rawText,
+    rawText: context.trustedInputText,
     ...(args.reference === undefined ? {} : { reference: args.reference }),
   });
 
