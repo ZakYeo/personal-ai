@@ -11,10 +11,10 @@ more day-to-day value to every existing feature than another provider adapter
 would, and the current capability catalog, validation, confirmation, and
 diagnostic-aware outcome boundaries provide most of the required foundations.
 
-Calendar result follow-ups should come next. Local STT and TTS should follow a
-device benchmark rather than a speculative adapter choice. Real messaging and a
-local intent provider remain worthwhile, but each needs a bounded proof before
-production implementation.
+Calendar result follow-ups were implemented next as Milestone 11. Local STT and
+TTS should follow a device benchmark rather than a speculative adapter choice.
+Real messaging and a local intent provider remain worthwhile, but each needs a
+bounded proof before production implementation.
 
 ## Candidate Comparison
 

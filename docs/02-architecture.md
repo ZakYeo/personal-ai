@@ -173,10 +173,12 @@ Plans compose existing capabilities through the immutable routing index.
 Feature plugins will continue to execute one validated command at a time and
 will not import or call one another. The first plan boundary will not bind one
 step's output into another step's arguments or run a provider-directed tool
-loop. Calendar result references planned for Milestone 11 remain opaque and
+loop. Implemented calendar result references remain opaque and
 assistant-session-owned: one latest set capped at ten events, replaced by a new
 calendar result and cleared after three subsequent completed assistant turns or
-conversation compaction.
+conversation compaction. Intent providers receive only ordinals, opaque
+references, and safe displayed facts; feature execution resolves private
+provider IDs through the assistant-owned session.
 
 ## Runtimes
 

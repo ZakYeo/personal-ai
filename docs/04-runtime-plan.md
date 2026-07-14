@@ -199,6 +199,13 @@ the service returns to normal wake listening. The neutral voice command
 sequence owns the maximum no-wake follow-up count so model output cannot keep a
 runtime in unbounded no-wake capture.
 
+Calendar searches that return results request one no-wake follow-up opportunity.
+The assistant retains only the most recent ten displayed events as opaque
+process-local references. A calendar follow-up resolves an ordinal or exact
+opaque reference through the assistant session, then the read-only calendar port
+fetches current event details by its private stable provider ID. Ambiguous,
+missing, and expired references request clarification instead of guessing.
+
 The opt-in desktop voice OpenAI smoke command is:
 
 ```bash

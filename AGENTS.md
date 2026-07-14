@@ -162,6 +162,7 @@
 - `npm run test:e2e:openai` - run the opt-in live OpenAI intent routing E2E test with `.env`.
 - `npm run test:e2e:openai:alarms` - run the focused opt-in live OpenAI persistent-alarm creation-safety, listing, and restart smoke with `.env`.
 - `npm run test:e2e:openai:plans` - run the focused opt-in live OpenAI compound calendar-and-alarm plan smoke with `.env`.
+- `npm run test:e2e:openai:calendar-followup` - run the focused opt-in live OpenAI and Google Calendar result-follow-up smoke with `.env`.
 - `npm run test:e2e:openai:pi` - run the focused opt-in live OpenAI confirmed-alarm smoke through Raspberry Pi service composition without audio hardware.
 - `npm run build` - compile the production JavaScript output.
 - `npm start` - run the default desktop OpenAI voice service with `config/local-desktop-voice-openai.json`.

@@ -115,6 +115,13 @@ Configuration may add confirmation requirements for environment-specific cases,
 but user-facing defaults should not rely on configuration remembering every
 high-risk capability.
 
+Feature results may contribute a bounded result-reference set. Calendar search
+uses this neutral result contract to provide safe displayed facts and a private
+read-only lookup target. Core replaces the assistant session's previous set and
+exposes only opaque references to later intent interpretation. Follow-up feature
+execution receives a resolver for the private target; the calendar feature does
+not own session lifetime or expose provider IDs in its human response.
+
 ## Feature Authoring Conventions
 
 Each feature should make its command contract explicit in `capabilities`.

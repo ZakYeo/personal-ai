@@ -4,6 +4,50 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 11: Calendar Result Follow-Ups
+
+Status: implemented.
+
+Goal: answer read-only follow-ups about calendar events displayed earlier in the
+same assistant session.
+
+Included:
+
+- One process-local latest result set capped at ten opaque event references.
+- Replacement on each new calendar result and expiry after three subsequent
+  completed assistant turns or conversation compaction.
+- Deterministic ordinal, location, summary, and next-event follow-up routing.
+- Core-owned selection rejects conflicting or provider-guessed references,
+  retains the latest explicit focus, and supports “the second one” followed by
+  “what comes after it?”.
+- Explicit clarification for ambiguous, missing, expired, and unavailable
+  events without guessing.
+- Read-only stable event lookup through mock and Google Calendar adapters.
+- Safe OpenAI grounding containing only opaque references and displayed facts;
+  private provider event IDs remain behind the execution resolver. Result data
+  is serialized as delimited untrusted JSON with a tightly typed fact projection.
+- Protected feature facts and no-wake voice continuation after calendar results.
+- Deterministic core, feature, configured text, voice, and Google adapter tests,
+  plus an explicit opt-in live OpenAI and Google Calendar smoke.
+
+Excluded:
+
+- Calendar creation, editing, deletion, or attendance changes.
+- Persistent long-term memory or provider identifiers exposed to an LLM.
+- Compound output binding such as scheduling an alarm from an event result.
+
+Acceptance criteria:
+
+- Follow-ups resolve only against unexpired results from the same assistant
+  instance.
+- Tests prove the ten-event cap, newest-set replacement, three-turn expiry, and
+  immediate clearing during conversation compaction.
+- Ambiguous, missing, or expired references ask for clarification and never
+  guess an event.
+- Provider IDs and raw event payloads do not enter user-facing responses or
+  unrestricted conversation history.
+- The Google Calendar adapter remains read-only and `npm run check` passes.
+
 ## Milestone 10: Compound Command Plans
 
 Status: implemented.

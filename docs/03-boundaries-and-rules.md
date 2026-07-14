@@ -95,6 +95,13 @@ capture a no-wake reply only when the assistant response explicitly sets
 response does not request another follow-up or the runtime-owned maximum
 follow-up count is reached.
 
+Calendar result references are assistant-owned session state, not conversation
+memory or feature-owned state. Only the latest displayed set is retained, it is
+capped at ten opaque references, and it clears after three subsequent completed
+turns or conversation compaction. Intent providers receive only those opaque
+references and safe displayed facts. Provider event IDs remain behind the
+feature execution resolver and must not enter prompts or user-facing responses.
+
 Desktop voice command settings are runtime configuration, not core behavior.
 Machine-specific command names, arguments, and timeouts belong in local config
 under the desktop voice settings and should not be hard-coded into the assistant

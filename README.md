@@ -50,6 +50,9 @@ Implemented today:
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events
   port, with a three-month default upcoming window and refresh-token OAuth
   support.
+- Read-only calendar result follow-ups using one assistant-owned set of up to
+  ten opaque references, deterministic expiry, safe OpenAI grounding, stable
+  Google event lookup, and no-wake voice continuation.
 - Provider adapter contract helpers for deterministic credentials, transport,
   provider response, timeout, and diagnostic tests.
 - Mock calendar and messaging features.
@@ -85,7 +88,9 @@ Current roadmap position:
   independent review is addressed. Milestone 10 is implemented after its
   independent maintainability review, adding bounded compound command plans,
   whole-plan validation, aggregate confirmation, ordered execution, and smoke
-  coverage across text and voice runtimes. The
+  coverage across text and voice runtimes. Milestone 11 is implemented after
+  its required independent review, with bounded process-local calendar
+  references and read-only detail lookup. The
   [discovery report](docs/08-spike-9-report.md) makes compound command plans the
   first post-spike milestone, followed by calendar result follow-ups, measured
   local voice, target-specific messaging, and a benchmarked local intent
@@ -398,6 +403,9 @@ Common development commands:
   persistent-alarm smoke.
 - `npm run test:e2e:openai:plans` - run the focused opt-in live OpenAI compound
   plan smoke.
+- `npm run test:e2e:openai:calendar-followup` - run the focused opt-in live
+  OpenAI plus Google Calendar result-follow-up smoke; requires a configured
+  fixture query, expected title/location detail, and Google credentials.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.

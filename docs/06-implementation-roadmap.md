@@ -29,10 +29,14 @@ implemented after its required independent maintainability review. It adds
 bounded compound plans with whole-plan validation, aggregate exact
 confirmation, ordered stop-on-first-failure execution, and deterministic plus
 opt-in live smoke coverage.
+Milestone 11 is implemented after its required independent maintainability
+review. It adds bounded assistant-session calendar references, deterministic
+expiry and ambiguity handling, read-only stable event lookup, safe provider
+grounding, and text, voice, adapter, and live smoke coverage.
 
 ## Implemented Milestone Archive
 
-Detailed acceptance criteria and outcomes for Milestones 1 through 10 are kept
+Detailed acceptance criteria and outcomes for Milestones 1 through 11 are kept
 in `docs/09-implemented-milestones.md`. This roadmap retains the current
 position, completed discovery decision, and active/future work.
 
@@ -113,52 +117,8 @@ archived in `docs/09-implemented-milestones.md`.
 
 ## Milestone 11: Calendar Result Follow-Ups
 
-Status: planned.
-
-Goal: answer read-only follow-ups about calendar events displayed earlier in the
-same assistant session.
-
-Included:
-
-- Process-local, bounded, opaque references to the last displayed calendar
-  results.
-- Exactly one retained result set capped at ten events; a newer calendar result
-  replaces it, and it expires after three subsequent completed assistant turns
-  or conversation compaction, whichever occurs first.
-- Follow-up intents such as “the second one”, “where is that?”, and “what comes
-  after it?”.
-- Stable provider-event lookup behind the existing calendar boundary or a
-  narrowly revised read-only calendar port.
-- Explicit expiry, ambiguity, and missing-result behavior.
-- Protected event facts and no-wake voice follow-up coverage.
-
-Excluded:
-
-- Calendar creation, editing, deletion, or attendance changes.
-- Persistent long-term memory or provider identifiers exposed to an LLM.
-- Compound output binding such as scheduling an alarm from an event result.
-
-Thin slices:
-
-1. Retain one opaque result set of at most ten events in assistant session
-   state, replacing the prior set on a new calendar result.
-2. Resolve ordinal references deterministically.
-3. Fetch or answer supported event details through the calendar port.
-4. Expire references after three subsequent completed assistant turns or
-   compaction and add ambiguity, replacement, concurrency, and voice follow-up
-   tests.
-
-Acceptance criteria:
-
-- Follow-ups resolve only against unexpired results from the same assistant
-  instance.
-- Tests prove the ten-event cap, newest-set replacement, three-turn expiry, and
-  immediate clearing during conversation compaction.
-- Ambiguous, missing, or expired references ask for clarification and never
-  guess an event.
-- Provider IDs and raw event payloads do not enter user-facing responses or
-  unrestricted conversation history.
-- The Google Calendar adapter remains read-only and `npm run check` passes.
+Status: implemented. Detailed scope, acceptance criteria, and outcomes are
+archived in `docs/09-implemented-milestones.md`.
 
 ## Spike 12: Local Voice Device Benchmark
 
