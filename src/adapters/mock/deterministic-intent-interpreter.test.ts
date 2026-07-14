@@ -144,6 +144,58 @@ describe("DeterministicIntentInterpreter", () => {
     });
   });
 
+  it("rejects a compound request when any requested clause is unresolved", async () => {
+    const interpreter = new DeterministicIntentInterpreter([
+      {
+        capability: "calendar.search_events",
+        match: (text) => (text.includes("calendar") ? {} : undefined),
+      },
+      {
+        capability: "alarm.create",
+        match: (text) => (text.includes("alarm") ? {} : undefined),
+      },
+    ]);
+
+    await expect(
+      interpreter.interpret(
+        "Check my calendar, then turn on the lights, then set an alarm",
+        context,
+      ),
+    ).resolves.toEqual({
+      kind: "unsupported",
+      response: {
+        status: "unsupported",
+        text: "I could not resolve every command in that request.",
+      },
+    });
+  });
+
+  it("counts every requested clause when enforcing the plan bound", async () => {
+    const interpreter = new DeterministicIntentInterpreter([
+      {
+        capability: "calendar.search_events",
+        match: (text) => (text.includes("calendar") ? {} : undefined),
+      },
+      {
+        capability: "alarm.create",
+        match: (text) => (text.includes("alarm") ? {} : undefined),
+      },
+    ]);
+
+    await expect(
+      interpreter.interpret(
+        "Check my calendar, then turn on the lights, then set an alarm, then check my calendar",
+        context,
+      ),
+    ).resolves.toEqual({
+      kind: "unsupported",
+      response: {
+        status: "unsupported",
+        text: "I can handle at most three commands in one request.",
+      },
+    });
+  });
+
   it("does not own feature-specific default routing rules", async () => {
     const interpreter = new DeterministicIntentInterpreter();
 

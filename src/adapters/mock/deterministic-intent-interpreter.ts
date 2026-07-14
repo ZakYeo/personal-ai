@@ -26,9 +26,13 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
       context.config.assistant.wakePhrases,
     );
 
-    const clauseCommands = interpretClauses(normalizedText, text, this.rules);
-    if (clauseCommands.length > 1) {
-      if (clauseCommands.length > 3) {
+    const clauseInterpretation = interpretClauses(
+      normalizedText,
+      text,
+      this.rules,
+    );
+    if (clauseInterpretation) {
+      if (clauseInterpretation.requestedCount > 3) {
         return Promise.resolve({
           kind: "unsupported",
           response: {
@@ -38,9 +42,19 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
         });
       }
 
+      if (!clauseInterpretation.fullyResolved) {
+        return Promise.resolve({
+          kind: "unsupported",
+          response: {
+            status: "unsupported",
+            text: "I could not resolve every command in that request.",
+          },
+        });
+      }
+
       return Promise.resolve({
         kind: "plan",
-        plan: { commands: clauseCommands },
+        plan: { commands: clauseInterpretation.commands },
       });
     }
 
@@ -82,26 +96,39 @@ function interpretClauses(
   normalizedText: string,
   rawText: string,
   rules: readonly DeterministicIntentRule[],
-): AssistantCommand[] {
+):
+  | {
+      commands: AssistantCommand[];
+      fullyResolved: boolean;
+      requestedCount: number;
+    }
+  | undefined {
   const clauses = normalizedText
     .split(/\s*(?:,\s*)?\b(?:and then|then|and)\b\s*/u)
     .map((clause) => clause.trim())
     .filter(Boolean);
 
   if (clauses.length < 2) {
-    return [];
+    return;
   }
 
-  return clauses.flatMap((clause) => {
+  const commands: AssistantCommand[] = [];
+  let fullyResolved = true;
+  for (const clause of clauses) {
+    let resolved = false;
     for (const rule of rules) {
       const parameters = rule.match(clause);
       if (parameters) {
-        return [createCommand(rule.capability, rawText, parameters)];
+        commands.push(createCommand(rule.capability, rawText, parameters));
+        resolved = true;
+        break;
       }
     }
 
-    return [];
-  });
+    fullyResolved &&= resolved;
+  }
+
+  return { commands, fullyResolved, requestedCount: clauses.length };
 }
 
 export function normalizeCommandText(
