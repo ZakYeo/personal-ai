@@ -16,6 +16,10 @@ export type {
   ClockPort,
 } from "./ports/assistant.js";
 export type {
+  ValidatedAssistantPlan,
+  ValidatedAssistantPlanStep,
+} from "./ports/assistant-plan.js";
+export type {
   FeatureCapability,
   FeaturePlugin,
   FeatureResult,
@@ -23,4 +27,5 @@ export type {
 export type {
   IntentInterpretation,
   IntentInterpreterPort,
+  ProposedAssistantPlan,
 } from "./ports/intent.js";

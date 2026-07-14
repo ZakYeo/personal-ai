@@ -11,12 +11,14 @@ import type {
 import type {
   ConfirmationDeclaration,
   FeatureArguments,
+  FeatureCapability,
   FeaturePlugin,
 } from "../../ports/feature.js";
+import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type {
-  CapabilityRoute,
-  CapabilityRoutingIndex,
-} from "../../ports/capability-catalog.js";
+  ValidatedAssistantPlan,
+  ValidatedAssistantPlanStep,
+} from "../../ports/assistant-plan.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import {
@@ -210,13 +212,6 @@ async function handleTextInternal(
   }
 }
 
-interface ValidatedPlanStep {
-  command: AssistantCommand;
-  confirmation?: ConfirmationDeclaration;
-  decodedArgs: FeatureArguments;
-  route: CapabilityRoute<FeaturePlugin>;
-}
-
 async function handleProposedPlan(input: {
   commands: readonly AssistantCommand[];
   confirmation: ConfirmationSession;
@@ -236,7 +231,7 @@ async function handleProposedPlan(input: {
     );
   }
 
-  const steps: ValidatedPlanStep[] = [];
+  const steps: ValidatedAssistantPlanStep[] = [];
   let requiresConfirmation = false;
 
   for (const command of input.commands) {
@@ -298,9 +293,11 @@ async function handleProposedPlan(input: {
     );
   }
 
-  const validatedSteps = Object.freeze(steps);
+  const validatedPlan: ValidatedAssistantPlan = Object.freeze({
+    steps: Object.freeze(steps),
+  });
   const execute = () =>
-    executeValidatedPlan(validatedSteps, {
+    executeValidatedPlan(validatedPlan, {
       context: input.context,
       dependencies: input.dependencies,
       executionContext: input.executionContext,
@@ -311,7 +308,7 @@ async function handleProposedPlan(input: {
     ? input.confirmation.request(
         execute,
         createConfirmationPrompt(
-          validatedSteps.flatMap((step) =>
+          validatedPlan.steps.flatMap((step) =>
             step.confirmation ? [step.confirmation] : [],
           ),
           true,
@@ -321,7 +318,7 @@ async function handleProposedPlan(input: {
 }
 
 function renderConfirmation(
-  capability: CapabilityRoute<FeaturePlugin>["capability"],
+  capability: FeatureCapability,
   args: FeatureArguments,
   context: AssistantContext,
 ): ConfirmationDeclaration | undefined {
@@ -363,7 +360,7 @@ function createConfirmationPrompt(
 }
 
 async function executeValidatedPlan(
-  steps: readonly ValidatedPlanStep[],
+  plan: ValidatedAssistantPlan,
   input: {
     context: AssistantContext;
     dependencies: AssistantDependencies;
@@ -373,6 +370,7 @@ async function executeValidatedPlan(
     normalizedText: string;
   },
 ): Promise<AssistantOutcome> {
+  const { steps } = plan;
   const stepOutcomes: NonNullable<AssistantOutcome["plan"]>["steps"][number][] =
     [];
   let failed = false;
@@ -440,7 +438,7 @@ async function executeValidatedPlan(
   };
 }
 
-function formatPlanAction(step: ValidatedPlanStep): string {
+function formatPlanAction(step: ValidatedAssistantPlanStep): string {
   return (
     step.route.capability.summary?.replace(/\.$/u, "") ??
     step.route.feature.displayName
