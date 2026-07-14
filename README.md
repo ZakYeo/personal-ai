@@ -77,7 +77,8 @@ Current roadmap position:
   scheduling and desktop/Pi voice delivery.
 - Milestone 8.1 is in progress. Snooze, daily and weekly recurrence,
   rescheduling, label editing, and human-facing lifecycle status are
-  implemented; retention controls remain. Spike 9 will evaluate
+  implemented. Thirty-day terminal-history retention is also implemented; the
+  milestone now awaits its required independent review. Spike 9 will evaluate
   messaging, intent providers, local STT/TTS, calendar follow-ups, and other
   candidates, then turn the selected direction into concrete future
   implementation milestones. Real providers and hardware validation remain
@@ -370,6 +371,10 @@ next occurrence on the same alarm ID after acknowledgement, dismissal, final
 delivery, or a missed occurrence. For nonexistent local times, the schedule
 moves forward across the daylight-saving gap; for repeated local times, the
 earlier occurrence is used.
+Long-running services run terminal-history cleanup immediately at startup and
+then daily. Completed, dismissed, cancelled, and missed records older than 30
+days are removed through the same serialized store used by lifecycle commands;
+active alarms and records exactly at the cutoff are retained.
 
 ## Scripts
 

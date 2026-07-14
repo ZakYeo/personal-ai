@@ -19,9 +19,10 @@ stable deployment paths, a dedicated service account, and operator guidance.
 Milestone 8 is implemented after its required independent maintainability
 review. It adds neutral runtime-owned scheduling, durable delivery claims,
 restart recovery, configured voice delivery, and lifecycle controls. Milestone
-8.1 is in progress: snooze, daily and weekly recurrence, rescheduling, label
-editing, and human-facing status are implemented, while retention remains. After that work is
-stable, Spike 9 will identify and define the next concrete implementation
+8.1 implementation is complete pending its required independent review: snooze,
+daily and weekly recurrence, rescheduling, label editing, human-facing status,
+and 30-day retention are implemented. After that work is stable, Spike 9 will
+identify and define the next concrete implementation
 milestones rather than treating a broad list of possible providers as one
 delivery milestone.
 
@@ -873,7 +874,7 @@ Acceptance criteria:
 
 ### Milestone 8.1: Alarm Usability and Lifecycle Controls
 
-Status: implementation in progress.
+Status: implementation complete; independent review pending.
 
 Goal: make operational alarms convenient to manage after reliable one-shot
 delivery exists.
@@ -886,7 +887,8 @@ Included:
 - Human-facing alarm status that distinguishes scheduled, ringing, snoozed,
   completed, dismissed, and missed alarms without exposing internal state names
   unless technical detail is requested.
-- Retention and cleanup policy for completed or dismissed alarm history.
+- Retention and cleanup policy for completed, dismissed, cancelled, or missed
+  alarm history.
 - Confirmation policy for destructive or surprising lifecycle changes.
 
 Implemented slices:
@@ -898,6 +900,8 @@ Implemented slices:
 - Daily and weekly recurrence with explicit IANA timezones, deterministic
   daylight-saving behavior, stable identity, downtime catch-up, and persisted
   restart coverage.
+- Runtime-owned 30-day terminal-history cleanup at startup and daily, serialized
+  through the selected store with active and cutoff-boundary records retained.
 
 Excluded:
 

@@ -54,5 +54,6 @@ export interface AlarmLifecycleUpdate {
 export interface AlarmStore {
   add(alarm: NewAlarmRecord): Promise<AlarmRecord>;
   list(): Promise<AlarmRecord[]>;
+  removeTerminalBefore(cutoff: string): Promise<number>;
   update(update: AlarmLifecycleUpdate): Promise<AlarmRecord | undefined>;
 }

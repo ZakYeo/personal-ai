@@ -144,11 +144,15 @@ describe("runConfiguredServiceRuntime", () => {
       },
     );
 
-    expect(runBackgroundTask).toHaveBeenCalledOnce();
-    const [task, context] = runBackgroundTask.mock.calls[0] ?? [];
-    expect(task?.id).toBe("alarms.delivery");
-    expect(context?.clock).toHaveProperty("now");
-    expect(context?.shutdownSignal).toBeInstanceOf(AbortSignal);
+    expect(runBackgroundTask).toHaveBeenCalledTimes(2);
+    expect(runBackgroundTask.mock.calls.map(([task]) => task.id)).toEqual([
+      "alarms.delivery",
+      "alarms.retention",
+    ]);
+    for (const [, context] of runBackgroundTask.mock.calls) {
+      expect(context.clock).toHaveProperty("now");
+      expect(context.shutdownSignal).toBeInstanceOf(AbortSignal);
+    }
   });
 
   it("returns a fatal result after scheduler failure and service cleanup", async () => {

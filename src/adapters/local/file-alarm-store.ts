@@ -101,6 +101,23 @@ export function createFileAlarmStore(
         const state = await readState(options.filePath, fileSystem);
         return state.alarms.map((alarm) => ({ ...alarm }));
       }),
+    removeTerminalBefore: (cutoff) =>
+      enqueue(async () => {
+        const state = await readState(options.filePath, fileSystem);
+        const alarms = state.alarms.filter(
+          (alarm) =>
+            alarm.terminalAt === undefined || alarm.terminalAt >= cutoff,
+        );
+        const removed = state.alarms.length - alarms.length;
+        if (removed > 0) {
+          await writeState(
+            options.filePath,
+            { alarms, version: 3 },
+            fileSystem,
+          );
+        }
+        return removed;
+      }),
     update: (update) =>
       enqueue(async () => {
         const state = await readState(options.filePath, fileSystem);

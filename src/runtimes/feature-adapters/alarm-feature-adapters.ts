@@ -13,6 +13,7 @@ import {
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import { runAlarmScheduler } from "../alarm/alarm-scheduler.js";
+import { runAlarmRetention } from "../alarm/alarm-retention.js";
 import type { RuntimeBackgroundTaskContext } from "../background-task.js";
 
 export function createAlarmFeatureRegistryEntry(
@@ -78,6 +79,19 @@ function createAlarmComposition(
             reportDeliveryFailure: ({ error }) => {
               context.reportFailure(error);
             },
+            shutdownSignal: context.shutdownSignal,
+            store: alarmStore,
+            ...(context.timer ? { timer: context.timer } : {}),
+          }),
+      },
+      {
+        failureReason: "alarm retention cleanup failed",
+        id: "alarms.retention",
+        run: (context: RuntimeBackgroundTaskContext) =>
+          runAlarmRetention({
+            clock: context.clock,
+            intervalMs: 24 * 60 * 60_000,
+            retentionMs: 30 * 24 * 60 * 60_000,
             shutdownSignal: context.shutdownSignal,
             store: alarmStore,
             ...(context.timer ? { timer: context.timer } : {}),

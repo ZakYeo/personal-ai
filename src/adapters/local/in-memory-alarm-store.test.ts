@@ -119,4 +119,44 @@ describe("createInMemoryAlarmStore", () => {
       ),
     ).rejects.toThrow("Alarm lifecycle update is invalid.");
   });
+
+  it("removes only terminal alarms older than the retention cutoff", async () => {
+    let nextId = 0;
+    const store = createInMemoryAlarmStore({
+      createId: () => `alarm-${++nextId}`,
+      now: () => new Date("2026-06-01T09:00:00.000Z"),
+    });
+    const oldTerminal = await store.add({
+      label: "old",
+      scheduledFor: "2026-06-01T09:10:00.000Z",
+    });
+    const cutoffTerminal = await store.add({
+      label: "cutoff",
+      scheduledFor: "2026-06-01T09:20:00.000Z",
+    });
+    await store.add({
+      label: "active",
+      scheduledFor: "2026-08-01T09:00:00.000Z",
+    });
+    await store.update({
+      changes: { nextDeliveryAt: null, status: "cancelled" },
+      expectedRevision: oldTerminal.revision,
+      id: oldTerminal.id,
+      updatedAt: "2026-06-30T08:59:59.999Z",
+    });
+    await store.update({
+      changes: { nextDeliveryAt: null, status: "cancelled" },
+      expectedRevision: cutoffTerminal.revision,
+      id: cutoffTerminal.id,
+      updatedAt: "2026-06-30T09:00:00.000Z",
+    });
+
+    await expect(
+      store.removeTerminalBefore("2026-06-30T09:00:00.000Z"),
+    ).resolves.toBe(1);
+    await expect(store.list()).resolves.toEqual([
+      expect.objectContaining({ label: "cutoff", status: "cancelled" }),
+      expect.objectContaining({ label: "active", status: "scheduled" }),
+    ]);
+  });
 });

@@ -167,6 +167,9 @@ service runtime only owns task startup, shutdown, diagnostics, and fatal
 outcomes. This keeps restart recovery and delivery claims on one serialized
 state boundary without turning the generic registry into an optional resource
 bag.
+A second neutral alarm task removes terminal history older than 30 days at
+service startup and daily. It shares the selected store, whose serialization
+keeps cleanup ordered with feature mutations and scheduler claims.
 
 Expected runtimes:
 

@@ -22,6 +22,10 @@ when unacknowledged, and stop after acknowledgement or dismissal. After restart,
 alarms overdue by no more than 15 minutes are delivered; older untouched alarms
 are recorded as missed. Delivery is claimed durably before audio output so a
 restart does not replay a completed final attempt.
+The service also removes terminal alarm history older than 30 days at startup
+and daily. Cleanup uses the same serialized persistent store, retains active
+alarms, and turns failures into the same orderly non-zero service exit used by
+other fatal background tasks.
 
 ## Device prerequisites
 

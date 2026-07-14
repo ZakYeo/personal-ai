@@ -4,6 +4,8 @@
 
 Personal AI is a private, voice-activated assistant intended to feel like a smarter, configurable Alexa. It runs on a developer machine and has a dedicated Raspberry Pi service runtime without changing the assistant core. The repository now includes a tested systemd unit and operator guide for installation, upgrades, rollback, credentials, logs, and durable local state. Long-running voice services can schedule persistent one-shot, daily, and weekly alarms, recover them after restart, and deliver them through the configured speech path.
 
+Terminal alarm history is retained locally for 30 days so recent outcomes remain available for inspection without allowing the state file to grow forever.
+
 The assistant should support natural voice commands such as:
 
 - "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?"

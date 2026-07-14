@@ -25,6 +25,14 @@ export function createInMemoryAlarmStore(
       return Promise.resolve({ ...storedAlarm });
     },
     list: () => Promise.resolve(alarms.map((alarm) => ({ ...alarm }))),
+    removeTerminalBefore: (cutoff) => {
+      const retained = alarms.filter(
+        (alarm) => alarm.terminalAt === undefined || alarm.terminalAt >= cutoff,
+      );
+      const removed = alarms.length - retained.length;
+      alarms.splice(0, alarms.length, ...retained);
+      return Promise.resolve(removed);
+    },
     update: (update) => {
       const index = alarms.findIndex((alarm) => alarm.id === update.id);
       const current = alarms[index];

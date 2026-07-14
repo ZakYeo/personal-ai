@@ -258,6 +258,7 @@ describe("createAssistant", () => {
             scheduledFor: "2026-06-26T09:10:00.000Z",
           }),
         ]),
+      removeTerminalBefore: () => Promise.resolve(0),
       update: () => Promise.resolve(undefined),
     };
     const assistant = createAssistant({

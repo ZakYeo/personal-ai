@@ -37,6 +37,10 @@ describe("createConfiguredFeatures", () => {
         failureReason: "alarm scheduler failed",
         id: "alarms.delivery",
       }),
+      expect.objectContaining({
+        failureReason: "alarm retention cleanup failed",
+        id: "alarms.retention",
+      }),
     ]);
     expect(
       selection.features.find((feature) => feature.id === "alarms"),

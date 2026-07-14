@@ -115,6 +115,7 @@ function createTestAlarmStore(): AlarmStore {
     add: (alarm) =>
       Promise.resolve(createScheduledAlarmRecord({ ...alarm, id: "alarm-1" })),
     list: () => Promise.resolve([]),
+    removeTerminalBefore: () => Promise.resolve(0),
     update: () => Promise.resolve(undefined),
   };
 }

@@ -144,6 +144,39 @@ describe("createFileAlarmStore", () => {
     await expect(readJson(filePath)).resolves.toMatchObject({ version: 3 });
   });
 
+  it("persists terminal-history cleanup without removing active alarms", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-alarms-"));
+    const filePath = join(directory, "alarms.json");
+    await writeFile(
+      filePath,
+      JSON.stringify({
+        alarms: [
+          persistedAlarm({
+            id: "old-terminal",
+            nextDeliveryAt: undefined,
+            status: "cancelled",
+            terminalAt: "2026-06-30T08:59:59.999Z",
+          }),
+          persistedAlarm({
+            id: "active",
+            nextDeliveryAt: "2026-07-14T09:10:00.000Z",
+            status: "scheduled",
+            terminalAt: undefined,
+          }),
+        ],
+        version: 3,
+      }),
+    );
+    const store = createFileAlarmStore({ filePath });
+
+    await expect(
+      store.removeTerminalBefore("2026-06-30T09:00:00.000Z"),
+    ).resolves.toBe(1);
+    await expect(createFileAlarmStore({ filePath }).list()).resolves.toEqual([
+      expect.objectContaining({ id: "active", status: "scheduled" }),
+    ]);
+  });
+
   it("migrates version-two terminal timestamps deterministically", async () => {
     const directory = await mkdtemp(join(tmpdir(), "personal-ai-alarms-"));
     const filePath = join(directory, "alarms.json");
@@ -333,6 +366,42 @@ describe("createFileAlarmStore", () => {
     ]);
 
     await expect(store.list()).resolves.toHaveLength(2);
+  });
+
+  it("serializes retention cleanup with concurrent lifecycle writes", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-alarms-"));
+    const filePath = join(directory, "alarms.json");
+    await writeFile(
+      filePath,
+      JSON.stringify({
+        alarms: [
+          persistedAlarm({
+            id: "old-terminal",
+            nextDeliveryAt: undefined,
+            status: "cancelled",
+            terminalAt: "2026-06-01T09:00:00.000Z",
+          }),
+        ],
+        version: 3,
+      }),
+    );
+    const store = createFileAlarmStore({
+      createId: () => "new-active",
+      filePath,
+      now: () => new Date("2026-07-14T09:00:00.000Z"),
+    });
+
+    await Promise.all([
+      store.removeTerminalBefore("2026-06-30T09:00:00.000Z"),
+      store.add({
+        label: "new active",
+        scheduledFor: "2026-07-14T09:10:00.000Z",
+      }),
+    ]);
+
+    await expect(store.list()).resolves.toEqual([
+      expect.objectContaining({ id: "new-active", status: "scheduled" }),
+    ]);
   });
 
   it("persists revision-checked lifecycle updates across instances", async () => {

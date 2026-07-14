@@ -253,6 +253,10 @@ Creation optionally accepts a daily or weekly recurrence plus a required IANA
 timezone. Recurring completion advances through the adapter-owned lifecycle
 state machine, preserving local wall-clock time and stable identity rather than
 creating a replacement alarm record.
+The alarms adapter also contributes a neutral retention task alongside delivery.
+It closes over the same store and removes only terminal records older than 30
+days, keeping retention serialized with lifecycle commands without exposing an
+alarm-specific resource to generic service composition.
 
 Example command:
 

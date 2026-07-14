@@ -402,6 +402,12 @@ should also guard against subtler boundary and abstraction drift.
   the earlier occurrence when a local time repeats, skips elapsed occurrences
   after downtime, and schedules the next occurrence atomically on the same ID.
   Cancellation terminates the whole recurring alarm rather than advancing it.
+- Terminal-history retention uses the injected live clock and an asynchronous,
+  serialized store operation. Long-running services run it at startup and then
+  daily, removing only completed, dismissed, cancelled, or missed records whose
+  terminal timestamp is strictly older than 30 days. Active alarms and records
+  exactly at the cutoff are retained. Cleanup failures follow the shared fatal
+  background-task boundary and keep raw state diagnostics off human output.
 - Persist an alarm delivery result before reporting its delivery diagnostic.
   Diagnostic sinks are best effort at this boundary and cannot strand a claimed
   attempt when logging itself fails.

@@ -412,8 +412,11 @@ human-facing language. Daily and weekly recurring alarms use an explicit IANA
 timezone and the same state machine for command and scheduler completion. They
 preserve local wall-clock time across daylight-saving changes, skip elapsed
 occurrences after downtime, and persist the next occurrence before another
-runtime observes the record. Terminal-history cleanup remains Milestone 8.1
-work.
+runtime observes the record. The terminal-history cleanup task runs immediately
+when a configured service starts and then every 24 hours, using the live clock
+to remove terminal records strictly older than 30 days through the same
+serialized store. Failures request orderly service shutdown through the shared
+background-task boundary.
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
 writing state, resumes the validated command after an explicit yes, asserts the
