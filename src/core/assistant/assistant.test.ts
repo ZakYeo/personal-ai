@@ -207,6 +207,64 @@ describe("createAssistant", () => {
     });
     expect(execute).not.toHaveBeenCalled();
   });
+
+  it("stops on failure and identifies failed and skipped plan work", async () => {
+    const laterExecute = vi.fn(() => Promise.resolve({ text: "Too late." }));
+    const assistant = createAssistant({
+      clock,
+      config: createAssistantConfig({
+        first: { enabled: true },
+        second: { enabled: true },
+      }),
+      features: [
+        createFeature({
+          id: "first",
+          capability: {
+            name: "first.read",
+            risk: "low",
+            summary: "Read the first item.",
+            parameters: {},
+          },
+          execute: () => Promise.reject(new Error("provider detail")),
+        }),
+        createFeature({
+          id: "second",
+          capability: {
+            name: "second.write",
+            risk: "low",
+            summary: "Write the second item.",
+            parameters: {},
+          },
+          execute: laterExecute,
+        }),
+      ],
+      intentInterpreter: createInterpreter({
+        kind: "plan",
+        plan: {
+          commands: [
+            createCommand("first.read"),
+            createCommand("second.write"),
+          ],
+        },
+      }),
+    });
+
+    await expect(
+      assistant.handleTextWithDiagnostics("do both"),
+    ).resolves.toMatchObject({
+      plan: {
+        steps: [
+          { capability: "first.read", status: "failed" },
+          { capability: "second.write", status: "skipped" },
+        ],
+      },
+      response: {
+        status: "error",
+        text: "I could not complete this step: Read the first item. I did not attempt this remaining step: Write the second item.",
+      },
+    });
+    expect(laterExecute).not.toHaveBeenCalled();
+  });
   it("routes interpreted commands to an enabled feature", async () => {
     const command = createCommand("test.echo", { message: "hello" });
     const execute = vi.fn(() =>

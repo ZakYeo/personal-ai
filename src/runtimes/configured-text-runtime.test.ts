@@ -17,6 +17,29 @@ import {
 import type { Assistant } from "../core/assistant/assistant.js";
 
 describe("createConfiguredTextRuntime", () => {
+  it("smoke-executes a calendar and alarm plan after one exact confirmation", async () => {
+    const assistant = await createConfiguredTextRuntimeHarness();
+
+    await expect(
+      assistant.handleText(
+        "Hey Jarvis, check my calendar for upcoming events and set an alarm to tea in 10 minutes",
+      ),
+    ).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: "Please confirm this plan: 1. set the tea alarm for 2026-06-26T09:10:00.000Z. Say yes or no.",
+    });
+    await expect(assistant.handleText("yes")).resolves.toEqual({
+      status: "ok",
+      text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12, all day. Alarm set for 2026-06-26T09:10:00.000Z (tea).",
+    });
+    await expect(
+      assistant.handleText("Hey Jarvis, list my alarms"),
+    ).resolves.toMatchObject({
+      status: "ok",
+      text: expect.stringContaining("tea") as string,
+    });
+  });
   it("wires enabled features into the assistant", async () => {
     const assistant = await createConfiguredTextRuntimeHarness();
 

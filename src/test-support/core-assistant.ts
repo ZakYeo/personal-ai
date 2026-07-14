@@ -158,6 +158,9 @@ export function createFeature<
     capabilities: {
       [capability.name]: defineCapability({
         risk: capability.risk,
+        ...(capability.summary === undefined
+          ? {}
+          : { summary: capability.summary }),
         ...(capability.requiresConfirmation === undefined
           ? {}
           : { requiresConfirmation: capability.requiresConfirmation }),

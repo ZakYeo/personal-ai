@@ -410,18 +410,21 @@ async function executeValidatedPlan(
       step.status === "succeeded" && step.response ? [step.response.text] : [],
     )
     .join(" ");
-  const failedStep = stepOutcomes.find((step) => step.status === "failed");
-  const skippedCount = stepOutcomes.filter(
-    (step) => step.status === "skipped",
-  ).length;
+  const failedIndex = stepOutcomes.findIndex(
+    (step) => step.status === "failed",
+  );
+  const failedStep = stepOutcomes[failedIndex];
+  const skippedActions = stepOutcomes.flatMap((step, index) =>
+    step.status === "skipped" ? [formatPlanAction(steps[index]!)] : [],
+  );
   const response = failedStep
     ? {
         status: "error" as const,
         text: [
           completedText,
-          failedStep.response?.text ?? "A plan step failed.",
-          skippedCount > 0
-            ? `${skippedCount} remaining ${skippedCount === 1 ? "step was" : "steps were"} not attempted.`
+          `I could not complete this step: ${formatPlanAction(steps[failedIndex]!)}.`,
+          skippedActions.length > 0
+            ? `I did not attempt ${skippedActions.length === 1 ? "this remaining step" : "these remaining steps"}: ${skippedActions.join("; ")}.`
             : undefined,
         ]
           .filter((part): part is string => Boolean(part))
@@ -435,6 +438,13 @@ async function executeValidatedPlan(
     plan: { steps: stepOutcomes },
     response,
   };
+}
+
+function formatPlanAction(step: ValidatedPlanStep): string {
+  return (
+    step.route.capability.summary?.replace(/\.$/u, "") ??
+    step.route.feature.displayName
+  );
 }
 
 async function executeCommand(input: {
