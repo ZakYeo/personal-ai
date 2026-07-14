@@ -433,6 +433,35 @@ describe("createAlarmFeature", () => {
     );
   });
 
+  it("ignores retained same-label history when one alarm is eligible", async () => {
+    const store = createTestAlarmStore();
+    const retained = await store.add({
+      label: "tea",
+      scheduledFor: "2026-06-26T08:00:00.000Z",
+    });
+    await store.update({
+      changes: { nextDeliveryAt: null, status: "cancelled" },
+      expectedRevision: retained.revision,
+      id: retained.id,
+      updatedAt: "2026-06-26T09:00:00.000Z",
+    });
+    const active = await store.add({
+      label: "tea",
+      scheduledFor: "2026-06-26T09:10:00.000Z",
+    });
+
+    await expectDecodedFeatureExecution(
+      createAlarmFeature(store),
+      "alarm.cancel",
+      { label: "tea" },
+      {
+        data: { id: active.id, label: "tea", status: "cancelled" },
+        text: "Cancelled the tea alarm.",
+      },
+      context,
+    );
+  });
+
   it("pins a selected alarm across an optimistic update conflict", async () => {
     const first = createScheduledAlarmRecord({
       deliveryAttempts: 1,
@@ -477,7 +506,9 @@ describe("createAlarmFeature", () => {
       },
       context,
     );
-    expect(update).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: "alarm-a" }));
+    expect(update).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "alarm-a" }),
+    );
   });
 
   it("waits for store failures instead of reporting success early", async () => {

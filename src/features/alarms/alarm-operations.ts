@@ -297,16 +297,19 @@ function selectAlarm(
   args: AlarmTargetArgs,
   allowedStatuses: readonly AlarmStatus[],
 ): AlarmSelection {
-  const matches = args.id
+  const target = args.id ?? args.label ?? allowedStatuses.join(" or ");
+  const candidates = args.id
     ? alarms.filter((alarm) => alarm.id === args.id)
     : args.label
       ? alarms.filter(
           (alarm) => alarm.label.toLowerCase() === args.label?.toLowerCase(),
         )
-      : alarms.filter((alarm) => allowedStatuses.includes(alarm.status));
-  const target = args.id ?? args.label ?? allowedStatuses.join(" or ");
+      : alarms;
+  const matches = candidates.filter((alarm) =>
+    allowedStatuses.includes(alarm.status),
+  );
 
-  if (matches.length === 0) {
+  if (candidates.length === 0) {
     return { kind: "response", text: `I could not find the ${target} alarm.` };
   }
   if (matches.length > 1) {
@@ -315,12 +318,12 @@ function selectAlarm(
       text: `More than one alarm is labelled ${target}. Please use its ID.`,
     };
   }
-
-  const alarm = matches[0]!;
-  if (!allowedStatuses.includes(alarm.status)) {
+  const alarm = matches[0];
+  if (!alarm) {
+    const ineligible = candidates[0]!;
     return {
       kind: "response",
-      text: `The ${alarm.label} alarm cannot be changed while it is ${alarm.status}.`,
+      text: `The ${ineligible.label} alarm cannot be changed while it is ${ineligible.status}.`,
     };
   }
   return { alarm, kind: "alarm" };
