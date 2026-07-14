@@ -36,7 +36,8 @@ describe("desktop voice config parsing", () => {
       },
       textToSpeech: {
         command: "fake-tts",
-        args: ["--text", "{text}", "--output", "{output}"],
+        args: ["--output", "{output}"],
+        stdin: "{text}",
       },
     };
 

@@ -30,13 +30,13 @@ case "${1:-}" in
       --form response_format=text
     ;;
   speak)
-    if [ "$#" -ne 3 ]; then
-      echo "Usage: openai-audio-command.sh speak text output-file" >&2
+    if [ "$#" -ne 2 ]; then
+      echo "Usage: openai-audio-command.sh speak output-file" >&2
       exit 2
     fi
 
-    jq -n --arg input "$2" \
-      '{model:"gpt-4o-mini-tts", voice:"coral", input:$input, instructions:"Speak clearly and concisely.", response_format:"wav"}' |
+    jq -Rs \
+      '{model:"gpt-4o-mini-tts", voice:"coral", input:., instructions:"Speak clearly and concisely.", response_format:"wav"}' |
       request_with_auth \
         --fail \
         --silent \
@@ -44,7 +44,7 @@ case "${1:-}" in
         --url https://api.openai.com/v1/audio/speech \
         --header "Content-Type: application/json" \
         --data-binary @- \
-        --output "$3"
+        --output "$2"
     ;;
   *)
     echo "Usage: openai-audio-command.sh transcribe|speak arguments..." >&2

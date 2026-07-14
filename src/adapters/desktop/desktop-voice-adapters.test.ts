@@ -84,11 +84,8 @@ describe("desktop voice adapters", () => {
   it("synthesizes speech to a file with a configured command", async () => {
     const adapter = new CommandTextToSpeech(
       {
-        ...createShellCommand(
-          'printf \'%s\' "$1" > "$2"',
-          "{text}",
-          "{output}",
-        ),
+        ...createShellCommand('cat > "$1"', "{output}"),
+        stdin: "{text}",
       },
       createTestTempFiles(),
     );

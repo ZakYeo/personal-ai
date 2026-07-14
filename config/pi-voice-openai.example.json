@@ -141,9 +141,9 @@
       "args": [
         "/opt/personal-ai/scripts/openai-audio-command.sh",
         "speak",
-        "{text}",
         "{output}"
       ],
+      "stdin": "{text}",
       "timeoutMs": 30000
     },
     "audioOutput": {

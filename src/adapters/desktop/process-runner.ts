@@ -23,8 +23,17 @@ export async function runCommand(
   const commandProcess = startCommandProcess(request, {
     captureStdout: true,
     detached: true,
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: [request.stdin === undefined ? "ignore" : "pipe", "pipe", "pipe"],
   });
+
+  if (request.stdin !== undefined) {
+    try {
+      await commandProcess.writeStdin(Buffer.from(request.stdin, "utf8"));
+      await commandProcess.endStdin();
+    } catch (error) {
+      return commandProcess.terminateInputFailure(error);
+    }
+  }
 
   return commandProcess.waitForSuccess();
 }

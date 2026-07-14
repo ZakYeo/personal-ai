@@ -2,6 +2,7 @@ export interface DesktopCommandConfig {
   args?: string[];
   command: string;
   environmentAllowlist?: string[];
+  stdin?: string;
   timeoutMs?: number;
 }
 

@@ -208,6 +208,9 @@ async function runConfiguredCommand(
     ),
     command: config.command,
     environment,
+    ...(config.stdin === undefined
+      ? {}
+      : { stdin: replaceCommandPlaceholders(config.stdin, replacements) }),
     ...(processControl ? { processControl } : {}),
     ...(signal ? { signal } : {}),
     ...(config.timeoutMs ? { timeoutMs: config.timeoutMs } : {}),

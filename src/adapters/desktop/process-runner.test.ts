@@ -38,6 +38,15 @@ describe("runCommand", () => {
     }
   });
 
+  it("writes private command input through stdin", async () => {
+    await expect(
+      runCommand({
+        command: "/bin/cat",
+        stdin: "private assistant response",
+      }),
+    ).resolves.toMatchObject({ stdout: "private assistant response" });
+  });
+
   it("captures stdout and stderr from a successful command", async () => {
     await expect(
       runCommand(

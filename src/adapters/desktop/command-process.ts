@@ -7,6 +7,7 @@ export interface RunCommandRequest {
   environment?: Record<string, string | undefined>;
   processControl?: ProcessControl;
   signal?: AbortSignal;
+  stdin?: string;
   terminationGraceMs?: number;
   timeoutMs?: number;
 }

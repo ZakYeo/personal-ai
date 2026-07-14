@@ -12,6 +12,8 @@ The command-based OpenAI STT/TTS fallbacks call
 `scripts/openai-audio-command.sh`; it reads `OPENAI_API_KEY` from the service
 environment and supplies the authorization header to curl through a private file
 descriptor so the credential is not exposed in curl's process arguments.
+Text-to-speech content is likewise sent over stdin rather than appearing in the
+helper's process arguments.
 
 ## Device prerequisites
 

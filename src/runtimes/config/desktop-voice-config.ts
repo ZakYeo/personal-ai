@@ -196,6 +196,10 @@ function parseVoiceCommand<TKey extends ParsedDesktopVoiceCommandKey>(
   const timeoutMs = value.timeoutMs;
   const environmentAllowlist = value.environmentAllowlist;
 
+  if (value.stdin !== undefined && typeof value.stdin !== "string") {
+    throw new Error(`Config desktopVoice.${key}.stdin must be a string.`);
+  }
+
   if (
     environmentAllowlist !== undefined &&
     (!Array.isArray(environmentAllowlist) ||
@@ -233,6 +237,7 @@ function parseVoiceCommand<TKey extends ParsedDesktopVoiceCommandKey>(
       command: value.command,
       ...(value.args ? { args: value.args } : {}),
       ...(Array.isArray(environmentAllowlist) ? { environmentAllowlist } : {}),
+      ...(typeof value.stdin === "string" ? { stdin: value.stdin } : {}),
       ...(timeoutMs ? { timeoutMs } : {}),
     },
   } as Pick<ParsedDesktopVoiceConfig, TKey>;

@@ -57,7 +57,15 @@ describe("Raspberry Pi systemd service", () => {
     expect(JSON.parse(piConfig)).toMatchObject({
       desktopVoice: {
         speechToText: { environmentAllowlist: ["OPENAI_API_KEY"] },
-        textToSpeech: { environmentAllowlist: ["OPENAI_API_KEY"] },
+        textToSpeech: {
+          args: [
+            "/opt/personal-ai/scripts/openai-audio-command.sh",
+            "speak",
+            "{output}",
+          ],
+          environmentAllowlist: ["OPENAI_API_KEY"],
+          stdin: "{text}",
+        },
       },
     });
     expect(piConfig).toContain(

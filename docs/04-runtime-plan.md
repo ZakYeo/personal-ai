@@ -249,7 +249,8 @@ state under `/var/lib/personal-ai`. Pi-specific command choices belong in local
 config, not in the checked-in default config.
 The example's command-based OpenAI audio fallbacks use the deployed
 `openai-audio-command.sh` helper, which reads credentials from the environment
-and passes authorization to curl outside process arguments.
+and passes authorization to curl outside process arguments. Synthesized
+assistant text reaches the helper over command stdin rather than an argument.
 
 ## Configuration
 
