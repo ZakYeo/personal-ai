@@ -66,13 +66,18 @@ export function createCapabilityRoutingIndex<
         );
       }
 
-      routes.set(capability.name, { capability, feature });
+      const frozenCapability = freezeCapability(capability);
+
+      routes.set(capability.name, {
+        capability: frozenCapability,
+        feature,
+      });
       catalog.push(
         Object.freeze({
-          capability: freezeCapability(capability),
+          capability: frozenCapability,
           featureId: feature.id,
           featureName: feature.displayName,
-          parameterText: formatCapabilityParameters(capability),
+          parameterText: formatCapabilityParameters(frozenCapability),
         }),
       );
     }

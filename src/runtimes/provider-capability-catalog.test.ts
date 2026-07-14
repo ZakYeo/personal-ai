@@ -1,4 +1,5 @@
 import type { FeaturePlugin } from "../ports/feature.js";
+import { createCapabilityRoutingIndex } from "../ports/capability-catalog.js";
 import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
 
 describe("createProviderCapabilityCatalog", () => {
@@ -79,6 +80,19 @@ describe("createProviderCapabilityCatalog", () => {
         capability: { name: "calendar.delete", risk: "high" },
       });
     }).toThrow();
+  });
+
+  it("shares one frozen capability between routing and provider metadata", () => {
+    const feature = createFeature("calendar", "calendar.list");
+    const routing = createCapabilityRoutingIndex([feature]);
+    const catalogCapability = routing.catalog[0]?.capability;
+    const routedCapability = routing.get("calendar.list")?.capability;
+
+    expect(routedCapability).toBe(catalogCapability);
+    expect(Object.isFrozen(routedCapability)).toBe(true);
+
+    feature.capabilities[0]!.risk = "high";
+    expect(routedCapability?.risk).toBe("low");
   });
 });
 
