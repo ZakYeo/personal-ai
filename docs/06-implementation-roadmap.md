@@ -625,8 +625,9 @@ Implemented structure:
 - Temporary voice capture and speech files are cleaned up after each service
   turn.
 - ARM64 Docker/QEMU userland smoke commands are documented as optional
-  compatibility checks. Automated Raspberry Pi OS provisioning and `systemd`
-  validation remain deferred.
+  compatibility checks. At this milestone, automated Raspberry Pi OS
+  provisioning and `systemd` validation were deferred; Milestone 7 later added
+  portable structural validation for the unit and an operator deployment path.
 
 ### Milestone 5.3: Raspberry Pi OS QEMU Smoke Support
 
