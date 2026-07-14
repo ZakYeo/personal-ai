@@ -1,6 +1,7 @@
 import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
 import {
   applyAlarmLifecycleUpdate,
+  cloneAlarmRecord,
   createScheduledAlarm,
 } from "./alarm-record.js";
 
@@ -22,9 +23,9 @@ export function createInMemoryAlarmStore(
 
       alarms.push(storedAlarm);
 
-      return Promise.resolve({ ...storedAlarm });
+      return Promise.resolve(cloneAlarmRecord(storedAlarm));
     },
-    list: () => Promise.resolve(alarms.map((alarm) => ({ ...alarm }))),
+    list: () => Promise.resolve(alarms.map(cloneAlarmRecord)),
     removeTerminalBefore: (cutoff) => {
       const retained = alarms.filter(
         (alarm) => alarm.terminalAt === undefined || alarm.terminalAt >= cutoff,
@@ -47,7 +48,7 @@ export function createInMemoryAlarmStore(
       }
 
       alarms[index] = updated;
-      return Promise.resolve({ ...updated });
+      return Promise.resolve(cloneAlarmRecord(updated));
     },
   };
 }

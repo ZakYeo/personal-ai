@@ -38,6 +38,37 @@ describe("createInMemoryAlarmStore", () => {
     await expect(store.list()).resolves.toEqual([alarm]);
   });
 
+  it("defensively clones nested recurrence input and output", async () => {
+    const store = createInMemoryAlarmStore({
+      now: () => new Date("2026-06-26T09:00:00.000Z"),
+    });
+    const recurrence: {
+      frequency: "daily" | "weekly";
+      timeZone: string;
+    } = { frequency: "daily", timeZone: "Europe/London" };
+
+    await store.add({
+      label: "tea",
+      recurrence,
+      scheduledFor: "2026-06-26T09:10:00.000Z",
+    });
+    recurrence.frequency = "weekly";
+    const listed = await store.list();
+    const listedRecurrence = listed[0]?.recurrence as
+      | { frequency: "daily" | "weekly"; timeZone: string }
+      | undefined;
+    if (listedRecurrence) {
+      listedRecurrence.timeZone = "UTC";
+    }
+
+    await expect(store.list()).resolves.toEqual([
+      expect.objectContaining({
+        recurrence: { frequency: "daily", timeZone: "Europe/London" },
+        revision: 1,
+      }),
+    ]);
+  });
+
   it("applies lifecycle updates only at the expected revision", async () => {
     const store = createInMemoryAlarmStore({
       now: () => new Date("2026-06-26T09:00:00.000Z"),

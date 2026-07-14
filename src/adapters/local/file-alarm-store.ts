@@ -14,6 +14,7 @@ import {
 import {
   applyAlarmLifecycleUpdate,
   assertValidAlarmRecord,
+  cloneAlarmRecord,
   createScheduledAlarm,
 } from "./alarm-record.js";
 
@@ -94,12 +95,12 @@ export function createFileAlarmStore(
           fileSystem,
         );
 
-        return { ...storedAlarm };
+        return cloneAlarmRecord(storedAlarm);
       }),
     list: () =>
       enqueue(async () => {
         const state = await readState(options.filePath, fileSystem);
-        return state.alarms.map((alarm) => ({ ...alarm }));
+        return state.alarms.map(cloneAlarmRecord);
       }),
     removeTerminalBefore: (cutoff) =>
       enqueue(async () => {
@@ -137,7 +138,7 @@ export function createFileAlarmStore(
         alarms[index] = updated;
         await writeState(options.filePath, { alarms, version: 3 }, fileSystem);
 
-        return { ...updated };
+        return cloneAlarmRecord(updated);
       }),
   };
 }

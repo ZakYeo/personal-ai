@@ -8,8 +8,8 @@ export type AlarmStatus =
   | "missed";
 
 export interface AlarmRecurrence {
-  frequency: "daily" | "weekly";
-  timeZone: string;
+  readonly frequency: "daily" | "weekly";
+  readonly timeZone: string;
 }
 
 export interface AlarmRecord {

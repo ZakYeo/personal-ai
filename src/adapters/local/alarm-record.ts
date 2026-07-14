@@ -14,6 +14,7 @@ export function createScheduledAlarm(
 
   const stored: AlarmRecord = {
     ...alarm,
+    ...(alarm.recurrence ? { recurrence: { ...alarm.recurrence } } : {}),
     createdAt: timestamp,
     deliveryAttempts: 0,
     id,
@@ -26,6 +27,13 @@ export function createScheduledAlarm(
 
   assertValidAlarmRecord(stored);
   return stored;
+}
+
+export function cloneAlarmRecord(alarm: AlarmRecord): AlarmRecord {
+  return {
+    ...alarm,
+    ...(alarm.recurrence ? { recurrence: { ...alarm.recurrence } } : {}),
+  };
 }
 
 export function applyAlarmLifecycleUpdate(
