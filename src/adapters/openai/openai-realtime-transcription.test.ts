@@ -276,17 +276,19 @@ describe("OpenAIRealtimeTranscription", () => {
 
   it("rejects an unexpected socket close and removes session listeners", async () => {
     const socket = new TestRealtimeSocket();
+    const audio = createControlledAudioStream();
     const adapter = createRealtimeTranscriptionAdapter({
       socket,
       timeoutMs: 5,
     });
     const transcription = adapter.transcribeStream({
-      chunks: createControlledAudioStream().chunks,
+      chunks: audio.chunks,
     });
 
     socket.emitOpen();
     await new Promise<void>((resolve) => queueMicrotask(resolve));
     socket.emitClose({ code: 1006 });
+    audio.finish();
 
     await expect(transcription).rejects.toMatchObject({
       event: { code: 1006 },
@@ -298,14 +300,16 @@ describe("OpenAIRealtimeTranscription", () => {
   it("preserves provider failure when closing the socket also fails", async () => {
     const closeError = new Error("socket close failed");
     const socket = new TestRealtimeSocket({ closeError });
+    const audio = createControlledAudioStream();
     const adapter = createRealtimeTranscriptionAdapter({ socket });
     const transcription = adapter.transcribeStream({
-      chunks: createControlledAudioStream().chunks,
+      chunks: audio.chunks,
     });
 
     socket.emitOpen();
     await new Promise<void>((resolve) => queueMicrotask(resolve));
     socket.emitError({ code: "ECONNRESET" });
+    audio.finish();
 
     await expect(transcription).rejects.toMatchObject({
       cause: closeError,
@@ -334,6 +338,32 @@ describe("OpenAIRealtimeTranscription", () => {
       cause: cleanupError,
       message: "audio input failed",
     });
+  });
+
+  it("waits for audio iterator cleanup before rejecting the turn", async () => {
+    const socket = new TestRealtimeSocket();
+    const inputError = new Error("audio input failed");
+    let finishCleanup: () => void = () => {};
+    const cleanup = new Promise<void>((resolve) => {
+      finishCleanup = resolve;
+    });
+    const chunks: AsyncIterable<Uint8Array> = {
+      [Symbol.asyncIterator]: () => ({
+        next: () => Promise.reject(inputError),
+        return: () => cleanup.then(() => ({ done: true, value: undefined })),
+      }),
+    };
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+    const transcription = adapter.transcribeStream({ chunks });
+    const settled = vi.fn();
+    void transcription.catch(settled);
+
+    socket.emitOpen();
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(settled).not.toHaveBeenCalled();
+    finishCleanup();
+    await expect(transcription).rejects.toBe(inputError);
   });
 
   it("removes all session listeners after successful transcription", async () => {

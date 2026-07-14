@@ -26,10 +26,7 @@ export async function streamAudioToSocket(
     const primaryError = toError(error);
 
     try {
-      const cleanup = iterator.return?.();
-      void cleanup?.catch((cleanupError: unknown) => {
-        attachSecondaryCause(primaryError, cleanupError);
-      });
+      await iterator.return?.();
     } catch (cleanupError) {
       attachSecondaryCause(primaryError, cleanupError);
     }
