@@ -124,7 +124,9 @@ async function handleTextInternal(
   const context: AssistantContext = {
     clock: dependencies.clock,
     config: dependencies.config,
-    resultReferences: resultReferences.publicReferences(),
+    ...(resultReferences.publicReferences().length > 0
+      ? { resultReferences: resultReferences.publicReferences() }
+      : {}),
   };
   const interpretation = await dependencies.intentInterpreter.interpret(
     normalizedText,
@@ -187,13 +189,20 @@ function executeValidatedPlan(
       ? { now: () => new Date(plan.validatedAt) }
       : dependencies.clock,
     config: dependencies.config,
-    resultReferences: resultReferences.publicReferences(),
+    ...(resultReferences.publicReferences().length > 0
+      ? { resultReferences: resultReferences.publicReferences() }
+      : {}),
   };
+  const publicReferences = resultReferences.publicReferences();
   const executionContext = {
     ...context,
     capabilityCatalog: dependencies.capabilityRouting.catalog,
-    resolveResultReference: (reference: string) =>
-      resultReferences.resolve(reference),
+    ...(publicReferences.length > 0
+      ? {
+          resolveResultReference: (reference: string) =>
+            resultReferences.resolve(reference),
+        }
+      : {}),
   };
 
   return executeAssistantPlan(plan, (step) =>

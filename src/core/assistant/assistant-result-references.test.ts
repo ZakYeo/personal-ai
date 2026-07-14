@@ -35,7 +35,7 @@ describe("assistant result references", () => {
     await assistant.handleText("turn two");
     await assistant.handleText("turn three");
     await assistant.handleText("expired");
-    expect(contexts[4]?.resultReferences).toEqual([]);
+    expect(contexts[4]?.resultReferences).toBeUndefined();
   });
 
   it("keeps references process-local to one assistant instance", async () => {
@@ -53,7 +53,7 @@ describe("assistant result references", () => {
     await first.handleText("show events");
     await second.handleText("the first one");
 
-    expect(secondContexts[0]?.resultReferences).toEqual([]);
+    expect(secondContexts[0]?.resultReferences).toBeUndefined();
   });
 
   it("clears references immediately when conversation compacts", async () => {
@@ -74,7 +74,7 @@ describe("assistant result references", () => {
     await assistant.handleText("tell me something");
     await assistant.handleText("the first one");
 
-    expect(contexts[2]?.resultReferences).toEqual([]);
+    expect(contexts[2]?.resultReferences).toBeUndefined();
   });
 });
 
