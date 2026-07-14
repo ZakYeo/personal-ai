@@ -248,13 +248,18 @@ async function updateSelectedAlarm(
   allowedStatuses: readonly AlarmStatus[],
   mutation: (current: AlarmRecord) => AlarmMutation,
 ): Promise<FeatureResult> {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const selection = selectAlarm(await store.list(), args, allowedStatuses);
-    if (selection.kind === "response") {
-      return { text: selection.text };
-    }
+  const initialSelection = selectAlarm(
+    await store.list(),
+    args,
+    allowedStatuses,
+  );
+  if (initialSelection.kind === "response") {
+    return { text: initialSelection.text };
+  }
+  const selectedId = initialSelection.alarm.id;
+  let current = initialSelection.alarm;
 
-    const current = selection.alarm;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     const selectedMutation = mutation(current);
     const updated = await store.update({
       changes: selectedMutation.changes,
@@ -265,6 +270,19 @@ async function updateSelectedAlarm(
     if (updated) {
       return selectedMutation.result(updated);
     }
+    if (attempt === 2) {
+      break;
+    }
+
+    const refreshed = selectAlarm(
+      await store.list(),
+      { id: selectedId },
+      allowedStatuses,
+    );
+    if (refreshed.kind === "response") {
+      return { text: refreshed.text };
+    }
+    current = refreshed.alarm;
   }
 
   throw new Error("Alarm changed repeatedly during lifecycle update.");

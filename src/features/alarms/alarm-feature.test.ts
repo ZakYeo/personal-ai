@@ -1,5 +1,6 @@
 import { createAlarmFeature } from "./alarm-feature.js";
 import { createTestAlarmStore } from "../../test-support/alarm-store.js";
+import { createScheduledAlarmRecord } from "../../test-support/primitives.js";
 import type { AlarmRecurrence, AlarmStore } from "../../ports/alarm-store.js";
 import {
   createFeatureContext,
@@ -430,6 +431,53 @@ describe("createAlarmFeature", () => {
       },
       context,
     );
+  });
+
+  it("pins a selected alarm across an optimistic update conflict", async () => {
+    const first = createScheduledAlarmRecord({
+      deliveryAttempts: 1,
+      id: "alarm-a",
+      label: "tea",
+      nextDeliveryAt: "2026-06-26T09:01:00.000Z",
+      scheduledFor: "2026-06-26T09:00:00.000Z",
+      status: "ringing",
+    });
+    const completed = createScheduledAlarmRecord({
+      ...first,
+      nextDeliveryAt: undefined,
+      revision: 2,
+      status: "completed",
+      successfulDeliveries: 1,
+      terminalAt: "2026-06-26T09:00:30.000Z",
+    });
+    const second = createScheduledAlarmRecord({
+      deliveryAttempts: 1,
+      id: "alarm-b",
+      label: "coffee",
+      nextDeliveryAt: "2026-06-26T09:01:00.000Z",
+      scheduledFor: "2026-06-26T09:00:00.000Z",
+      status: "ringing",
+    });
+    let lists = 0;
+    const update = vi.fn(() => Promise.resolve(undefined));
+    const store: AlarmStore = {
+      add: () => Promise.reject(new Error("not used")),
+      list: () =>
+        Promise.resolve(lists++ === 0 ? [first] : [completed, second]),
+      removeTerminalBefore: () => Promise.resolve(0),
+      update,
+    };
+
+    await expectDecodedFeatureExecution(
+      createAlarmFeature(store),
+      "alarm.snooze",
+      { minutesFromNow: 5 },
+      {
+        text: "The tea alarm cannot be changed while it is completed.",
+      },
+      context,
+    );
+    expect(update).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: "alarm-a" }));
   });
 
   it("waits for store failures instead of reporting success early", async () => {
