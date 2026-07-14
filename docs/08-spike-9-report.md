@@ -18,15 +18,15 @@ production implementation.
 
 ## Candidate Comparison
 
-| Candidate                     | User value                                  | Architectural fit                                                             | Main uncertainty                                                       | Decision                    |
-| ----------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------- |
-| Compound command plans        | High across every feature                   | Extends interpretation and core orchestration while reusing feature contracts | Safe confirmation and partial-failure semantics                        | Implement next              |
-| Calendar result follow-ups    | High for the existing real calendar adapter | Adds session-owned opaque result references; calendar remains read-only       | Reference expiry and ambiguity                                         | Implement after plans       |
-| Local STT                     | High privacy and offline value              | Existing batch and streaming ports are suitable                               | Pi latency, accuracy, memory, and model packaging                      | Benchmark, then implement   |
-| Local TTS                     | High privacy and offline value              | Existing synthesis and output ports are suitable                              | Voice quality, first-audio latency, packaging, and license obligations | Benchmark, then implement   |
-| Real messaging                | Potentially high                            | Existing feature shape is useful but provider semantics vary substantially    | Which account and service should be integrated; end-to-end encryption  | Prove one target first      |
-| Another cloud intent provider | Moderate resilience and choice              | Existing intent registry is designed for it                                   | Limited new user outcome                                               | Defer                       |
-| Local intent provider         | High offline value after local voice        | Existing intent port is suitable                                              | Structured-command accuracy on target hardware                         | Benchmark after local voice |
+| Candidate                  | User value                                  | Architectural fit                                                             | Main uncertainty                                                       | Decision                    |
+| -------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------- |
+| Compound command plans     | High across every feature                   | Extends interpretation and core orchestration while reusing feature contracts | Safe confirmation and partial-failure semantics                        | Implement next              |
+| Calendar result follow-ups | High for the existing real calendar adapter | Adds session-owned opaque result references; calendar remains read-only       | Reference expiry and ambiguity                                         | Implement after plans       |
+| Local STT                  | High privacy and offline value              | Existing batch and streaming ports are suitable                               | Pi latency, accuracy, memory, and model packaging                      | Benchmark, then implement   |
+| Local TTS                  | High privacy and offline value              | Existing synthesis and output ports are suitable                              | Voice quality, first-audio latency, packaging, and license obligations | Benchmark, then implement   |
+| Real messaging             | Potentially high                            | Existing feature shape is useful but provider semantics vary substantially    | Which account and service should be integrated; end-to-end encryption  | Prove one target first      |
+| Anthropic cloud intent     | Moderate resilience and choice              | Existing intent registry can add an adapter for strict schema tool calls      | A second cloud credential and cost without a new user outcome          | Defer                       |
+| Local intent provider      | High offline value after local voice        | Existing intent port is suitable                                              | Structured-command accuracy on target hardware                         | Benchmark after local voice |
 
 ## Recommendation 1: Compound Command Plans
 
@@ -136,9 +136,13 @@ not duplicate protection.
 
 ## Recommendation 5: Defer Another Intent Provider
 
-An additional cloud provider fits the existing registry but adds provider
-choice more than a new user outcome. It should follow compound commands,
-calendar follow-ups, and local voice.
+Anthropic is a credible additional cloud provider: its current API accepts
+JSON-schema client tools and offers strict schema-conforming tool inputs. It
+fits the existing registry, but it requires another cloud credential, billed
+network calls, provider-specific transport and parser maintenance, and sending
+utterance/capability data off device while adding provider choice more than a
+new user outcome. It should follow compound commands, calendar follow-ups, and
+local voice unless provider resilience becomes an explicit priority.
 
 A local provider is more strategically useful because it completes an offline
 path. Ollama currently supports JSON-schema structured outputs and tool
@@ -163,30 +167,28 @@ same application validation as every other intent adapter.
 
 ## Evidence
 
-- [OpenAI function calling](https://developers.openai.com/api/docs/guides/function-calling)
-  supports schema-described application tools and is compatible with proposing
-  more than one tool call, while application code remains responsible for
-  execution and results.
-- [OpenAI Realtime](https://developers.openai.com/api/docs/guides/realtime)
-  supports low-latency audio and function-calling flows; it does not remove the
-  need for application-owned validation and confirmation.
-- [Google Calendar events.list](https://developers.google.com/workspace/calendar/api/v3/reference/events/list)
-  provides bounded event queries and stable event identifiers suitable for
-  opaque session references.
-- [Matrix Client-Server API](https://spec.matrix.org/latest/client-server-api/)
-  defines authenticated synchronization and room messaging for user clients.
-- [Telegram Bot API](https://core.telegram.org/bots/api) defines bot tokens,
-  bot-visible updates, long polling or webhooks, and bot message methods.
-- [WhatsApp Cloud API overview](https://developers.facebook.com/docs/whatsapp/cloud-api/overview)
-  describes Meta's business messaging model.
-- [`whisper.cpp`](https://github.com/ggml-org/whisper.cpp) documents quantized
-  Whisper inference and its real-time microphone example.
-- [`sherpa-onnx`](https://github.com/k2-fsa/sherpa-onnx) documents streaming and
-  non-streaming ASR, VAD, TTS, Node.js bindings, and Raspberry Pi support.
-- [Piper](https://github.com/OHF-Voice/piper1-gpl) documents its current local
-  TTS implementation and GPL-3.0 license.
-- [Ollama structured outputs](https://docs.ollama.com/capabilities/structured-outputs)
-  documents JSON and JSON-schema constrained responses.
+All sources below were accessed on 2026-07-14. Provider features and commercial
+terms are mutable; implementation spikes must pin the selected API/model version
+and recheck current pricing and data-handling terms before code begins.
+
+| Candidate                  | Material constraints recorded for this decision                                                                                                                                               | Primary evidence                                                                                                                                                                                  | Decision impact                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| OpenAI compound intent     | Existing API key and billed network path; utterance and capability catalog leave the device; schema/tool calls are available, but application validation and measured latency remain required | [Function calling](https://developers.openai.com/api/docs/guides/function-calling) and [Realtime](https://developers.openai.com/api/docs/guides/realtime)                                         | Extend the existing opt-in provider after deterministic plan contracts  |
+| Anthropic cloud intent     | Additional API key, billed network calls, off-device request data, and a new transport/parser; strict JSON-schema tool inputs are available                                                   | [Anthropic tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) and [strict tool use](https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use) | Technically viable, but defer because it adds no immediate user outcome |
+| Google Calendar follow-ups | Existing OAuth credential; read-only network lookup; no new per-feature provider choice; follow-up latency remains one bounded calendar request when cached fields are insufficient           | [Events list](https://developers.google.com/workspace/calendar/api/v3/reference/events/list)                                                                                                      | Implement session references without widening calendar permissions      |
+| Matrix messaging           | User access token, synchronization state, network service, and potentially substantial encrypted-room key/session handling                                                                    | [Client-Server API](https://spec.matrix.org/latest/client-server-api/)                                                                                                                            | Preferred personal-inbox semantics, gated by encryption proof           |
+| Telegram messaging         | Bot token; only bot-visible updates/chats; network service and bot identity rather than a general personal inbox                                                                              | [Bot API](https://core.telegram.org/bots/api)                                                                                                                                                     | Use only if bot-mediated product semantics are explicitly selected      |
+| WhatsApp messaging         | Meta business account/phone-number and webhook setup; network service and business messaging semantics                                                                                        | [Cloud API overview](https://developers.facebook.com/docs/whatsapp/cloud-api/overview)                                                                                                            | Do not promise arbitrary personal-inbox access                          |
+| `whisper.cpp` STT          | Offline after model installation with no per-request provider fee; local CPU, memory, model license/source, accuracy, and Pi finalization latency must be measured                            | [`whisper.cpp`](https://github.com/ggml-org/whisper.cpp)                                                                                                                                          | Benchmark against explicit device thresholds before selection           |
+| `sherpa-onnx` voice        | Offline after model installation with no per-request provider fee; local CPU, memory, model licenses, accuracy/quality, and streaming latency must be measured                                | [`sherpa-onnx`](https://github.com/k2-fsa/sherpa-onnx)                                                                                                                                            | Benchmark as the streaming STT and alternate TTS candidate              |
+| Piper TTS                  | Offline after model installation with no per-request provider fee; GPL-3.0 implementation, voice-model obligations, local memory, and first-audio latency                                     | [Piper](https://github.com/OHF-Voice/piper1-gpl)                                                                                                                                                  | Benchmark and review distribution obligations before bundling           |
+| Ollama local intent        | No cloud credential or per-request provider fee for local models; model storage, memory, cold start, structured-command accuracy, and Pi latency must be measured                             | [Structured outputs](https://docs.ollama.com/capabilities/structured-outputs) and [tool calling](https://docs.ollama.com/capabilities/tool-calling)                                               | Evaluate only after local voice establishes the offline device path     |
+
+The local benchmark pass/fail thresholds are deliberately assigned to Spike 12
+and Spike 18 because no target-device measurements exist yet. Those spikes must
+record numeric latency, memory, accuracy, and real-time-factor thresholds before
+selecting an implementation; absence of measurements is not evidence of
+fitness.
 
 ## Decision Boundaries
 

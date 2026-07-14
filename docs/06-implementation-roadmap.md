@@ -91,6 +91,9 @@ Outcome:
   service dependency.
 - Calendar follow-ups follow compound plans and stay read-only.
 - Local voice and local intent choices are gated by target-device benchmarks.
+- Anthropic strict tool use is a credible alternate cloud-intent path, but it is
+  deferred because another credential, billed network adapter, and off-device
+  data path add no immediate user outcome.
 - Messaging is gated by a target and encryption proof because Matrix user
   clients, Telegram bots, and WhatsApp business messaging do not expose the
   same product semantics.
