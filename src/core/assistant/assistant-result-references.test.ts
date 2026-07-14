@@ -56,6 +56,25 @@ describe("assistant result references", () => {
     expect(secondContexts[0]?.resultReferences).toBeUndefined();
   });
 
+  it("serializes reference retention before a concurrent follow-up", async () => {
+    const contexts: AssistantContext[] = [];
+    let call = 0;
+    const assistant = createReferenceAssistant(contexts, () =>
+      call++ === 0
+        ? { command: createCommand(), kind: "command" as const }
+        : unknownInterpretation,
+    );
+
+    await Promise.all([
+      assistant.handleText("show events"),
+      assistant.handleText("the first one"),
+    ]);
+
+    expect(contexts[1]?.resultReferences?.[0]?.reference).toBe(
+      "calendar-event-1",
+    );
+  });
+
   it("clears references immediately when conversation compacts", async () => {
     const contexts: AssistantContext[] = [];
     let call = 0;

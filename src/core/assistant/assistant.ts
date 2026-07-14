@@ -70,7 +70,7 @@ export function createAssistant(
     text: string,
   ): Promise<AssistantOutcome> {
     let retainedReferences = false;
-    const outcome = await confirmation.run(
+    return confirmation.run(
       text,
       () =>
         handleTextInternal(
@@ -87,9 +87,10 @@ export function createAssistant(
         executeValidatedPlan(plan, dependencies, resultReferences, () => {
           retainedReferences = true;
         }),
+      () => {
+        if (!retainedReferences) resultReferences.completeTurn();
+      },
     );
-    if (!retainedReferences) resultReferences.completeTurn();
-    return outcome;
   }
 
   return {

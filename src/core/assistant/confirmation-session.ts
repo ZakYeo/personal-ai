@@ -10,6 +10,7 @@ export interface ConfirmationSession {
     input: string,
     handle: () => Promise<AssistantOutcome>,
     execute: (plan: ValidatedAssistantPlan) => Promise<AssistantOutcome>,
+    onCompleted: () => void,
   ): Promise<AssistantOutcome>;
 }
 
@@ -25,22 +26,30 @@ export function createConfirmationSession(): ConfirmationSession {
 
       return prompt;
     },
-    run(input, handle, execute) {
-      const turn = queue.then(() => {
+    run(input, handle, execute, onCompleted) {
+      const turn = queue.then(async () => {
+        let outcome: AssistantOutcome;
         if (!pending) {
-          return handle();
+          outcome = await handle();
+          onCompleted();
+          return outcome;
         }
 
         const decision = parseConfirmation(input);
 
         if (decision === "pending") {
-          return pending.prompt;
+          outcome = pending.prompt;
+          onCompleted();
+          return outcome;
         }
 
         const plan = pending.plan;
         pending = undefined;
 
-        return decision === "confirmed" ? execute(plan) : cancelledOutcome;
+        outcome =
+          decision === "confirmed" ? await execute(plan) : cancelledOutcome;
+        onCompleted();
+        return outcome;
       });
 
       queue = turn.then(
