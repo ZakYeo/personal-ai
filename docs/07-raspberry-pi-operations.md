@@ -214,3 +214,11 @@ capture, transcription, confirmation follow-up, speech output, alarm persistence
 across `systemctl restart`, delivery of a due alarm, its one-minute repeat when
 unacknowledged, acknowledgement or dismissal, and graceful shutdown on the
 actual Pi.
+
+Future local STT and TTS providers are gated by Spike 12 rather than added to
+this deployment path speculatively. That benchmark must record the exact Pi
+model and operating system, latency, command accuracy or intelligibility,
+memory, CPU, model size, licenses, checksums, startup, and shutdown behavior.
+Normal installation continues to use explicit command or streaming provider
+configuration until Milestones 13 and 14 select and document first-class local
+adapters.

@@ -21,6 +21,7 @@
     "contextlib",
     "Knip",
     "LLM",
+    "Ollama",
     "OpenAI",
     "Piper",
     "QEMU",

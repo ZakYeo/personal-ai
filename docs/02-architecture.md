@@ -153,6 +153,21 @@ Implemented real-provider adapters include:
 Future providers such as Anthropic, local models, local STT/TTS, or real
 messaging integrations should be added behind the same application-owned ports.
 
+## Planned Compound Command Boundary
+
+Milestone 10 will extend intent interpretation to return either one decoded
+command or one application-owned `AssistantPlan` of at most three decoded
+commands. Core, not the provider or a feature, will validate the full plan,
+aggregate confirmation, retain the exact pending plan, execute its steps in
+order, stop on the first failure, and combine diagnostic-aware outcomes.
+
+Plans compose existing capabilities through the immutable routing index.
+Feature plugins will continue to execute one validated command at a time and
+will not import or call one another. The first plan boundary will not bind one
+step's output into another step's arguments or run a provider-directed tool
+loop. Calendar result references planned for Milestone 11 remain bounded,
+opaque, and assistant-session-owned.
+
 ## Runtimes
 
 Runtimes wire the application together for a specific environment.

@@ -121,6 +121,14 @@ the intent provider. An explicit yes executes the already decoded command, an
 explicit no discards it, and unrelated input leaves it pending. Pending
 confirmation state is process-local and is discarded on restart.
 
+Milestone 10 extends the same fail-closed rule from one command to a bounded
+plan. The core must validate every step before any execution, aggregate every
+required confirmation into one human-facing prompt, and retain the exact
+validated plan without reinterpretation. Plans execute sequentially in
+utterance order and stop on the first failure. Later steps must not execute
+after failure, and provider-directed loops, implicit output binding, parallel
+execution, and rollback claims are outside the first compound-command boundary.
+
 ## Shared Runtime Ownership
 
 When two runtimes share a control-loop behavior, result shape, fallback policy,

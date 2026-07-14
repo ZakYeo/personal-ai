@@ -632,6 +632,21 @@ Runtime code should prefer the assistant's diagnostic-aware outcome method over 
 
 For voice runtimes, producing some response is more important than preserving the exact internal error message. If command handling fails, the runtime should attempt a spoken fallback. If speech output fails, it should fall back to text or logs rather than silently ending the interaction.
 
+## Planned Compound Turn Semantics
+
+Milestone 10 keeps one spoken utterance and one assistant response while allowing
+the interpreted request to contain up to three fully resolved commands. The
+assistant transaction validates the whole plan, requests one aggregate
+confirmation when any step requires it, and resumes the exact plan on an
+explicit yes without another provider interpretation. Voice runtimes reuse the
+existing no-wake follow-up signal for that confirmation.
+
+After confirmation, steps run sequentially in utterance order and stop on the
+first failure. Runtimes receive one diagnostic-aware plan outcome containing
+per-step metadata; shared human-boundary helpers log internal diagnostics and
+emit only the safe combined response. Runtime loops do not execute plan steps,
+choose rollback policy, or infer plan success from spoken output.
+
 ## Deployment Notes
 
 The implemented Raspberry Pi deployment uses

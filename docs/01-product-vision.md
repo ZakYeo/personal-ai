@@ -11,6 +11,8 @@ The assistant should support natural voice commands such as:
 - "Hey Jarvis, can you check my calendar for the date of the upcoming wedding please?"
 - "Hey Jarvis, can you respond to that WhatsApp message for me?"
 - "Hey Jarvis, set an alarm to ping me in 10 minutes."
+- "Hey Jarvis, check my upcoming events and set an alarm for 10 minutes to
+  remind me to ask you again."
 
 ## Goals
 
@@ -41,6 +43,17 @@ The assistant should support natural voice commands such as:
 - The first version should be boring, deterministic, and heavily testable.
 - Voice is an input/output adapter around the assistant, not the center of the architecture.
 - The LLM should assist with interpretation and response generation, but the core should validate structured commands before side effects occur.
+- One utterance may request a small ordered plan, but the core must validate the
+  whole plan, aggregate required confirmation, and stop on the first failed
+  step. This is planned product behavior, not autonomous agent execution.
+
+## Near-Term Direction
+
+Spike 9 prioritizes compound command plans and read-only calendar result
+follow-ups. Local voice and local intent providers follow only after reproducible
+desktop and Raspberry Pi benchmarks. Real messaging follows a target-specific
+proof because Matrix clients, Telegram bots, and WhatsApp business messaging do
+not represent the same user outcome. See `docs/08-spike-9-report.md`.
 
 ## Documentation Maintenance
 

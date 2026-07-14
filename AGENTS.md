@@ -11,6 +11,7 @@
   - `docs/05-feature-plugin-model.md`
   - `docs/06-implementation-roadmap.md`
   - `docs/07-raspberry-pi-operations.md`
+  - `docs/08-spike-9-report.md`
 - Keep implementation changes aligned with the ports-and-adapters architecture and dependency boundaries documented there.
 - Break work into thin, committable slices using TDD: write or update the failing test first, implement the smallest change that passes it, then make that slice a singular commit before starting the next slice.
 - After implementing and validating every milestone, launch a fresh sub-agent that has not reviewed an earlier milestone and instruct it to use the `thermo-nuclear-code-quality-review` skill against the completed milestone work. The review sub-agent must report its findings and feedback to the parent agent rather than implement changes itself.
@@ -74,7 +75,9 @@
 - Lifecycle retries must pin the initially selected alarm ID, and label selection must calculate ambiguity only among alarms eligible for that operation so retained terminal history cannot block active alarms.
 - Every exact lifecycle fact emitted in alarm response text must also appear in `FeatureResult.data`, including snooze/terminal timestamps, recurrence rules/timezones, and the next recurring occurrence, so response rewriting cannot alter it silently.
 - Alarm retention is independent of notification delivery; every long-running alarm composition contributes retention, while only compositions with notification output contribute delivery scheduling.
-- Treat Spike 9 as future-milestone discovery, not an implementation milestone: compare messaging, intent providers, local STT/TTS, calendar follow-ups, and other candidates, then update the roadmap with separately numbered, bounded implementation milestones before building them.
+- Spike 9 is complete as future-milestone discovery; keep `docs/08-spike-9-report.md` and the separately numbered Milestones 10 through 19 aligned when evidence, priorities, or provider constraints change.
+- The next planned implementation milestone is compound command plans: interpret at most three fully resolved commands, validate the entire plan before execution, aggregate confirmation for every risky step, retain one exact process-local pending plan, execute sequentially in utterance order, and stop on the first failure.
+- Compound plans must preserve per-step diagnostic-aware outcomes and protected facts, serialize as one assistant transaction, and must not support provider-directed loops or output binding until a later milestone explicitly defines those semantics.
 - Keep persistence ports asynchronous so feature success is not returned before durable work completes.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Do not add `require*Config` identity wrappers for fields already required and resolved by `LoadedRuntimeConfig`; a resolver must prove a new invariant or narrow an optional shape.
