@@ -1,6 +1,9 @@
 import { createAssistant } from "./assistant.js";
 import { createCapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
+import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
+import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
+import { createScheduledAlarmRecord } from "../../test-support/primitives.js";
 import {
   createAssistantConfig,
   createCommand,
@@ -132,6 +135,81 @@ describe("assistant compound plans", () => {
       expect.objectContaining({ args: { label: "tea", minutesFromNow: 10 } }),
       expect.any(Object),
     );
+  });
+
+  it("executes a relative alarm at the exact time shown before the clock advances", async () => {
+    let now = new Date("2026-06-26T09:00:00.000Z");
+    const mutableClock = { now: () => now };
+    let storedAlarm: AlarmRecord | undefined;
+    const store: AlarmStore = {
+      add: (alarm) => {
+        storedAlarm = createScheduledAlarmRecord({
+          ...alarm,
+          id: "alarm-1",
+        });
+        return Promise.resolve(storedAlarm);
+      },
+      list: () => Promise.resolve(storedAlarm ? [storedAlarm] : []),
+      removeTerminalBefore: () => Promise.resolve(0),
+      update: () => Promise.resolve(undefined),
+    };
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([
+        createFeature(),
+        createAlarmFeature(store),
+      ]),
+      clock: mutableClock,
+      config: createAssistantConfig({
+        alarms: { enabled: true },
+        test: { enabled: true },
+      }),
+      intentInterpreter: createInterpreter({
+        kind: "plan",
+        plan: {
+          commands: [
+            createCommand("test.echo"),
+            createCommand("alarm.create", {
+              label: "tea",
+              minutesFromNow: 10,
+            }),
+          ],
+        },
+      }),
+    });
+
+    await expect(assistant.handleText("set a tea alarm")).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: "Please confirm this plan: 1. set the tea alarm for 2026-06-26T09:10:00.000Z. Say yes or no.",
+    });
+
+    now = new Date("2026-06-26T09:05:00.000Z");
+    await expect(
+      assistant.handleTextWithDiagnostics("yes"),
+    ).resolves.toMatchObject({
+      plan: {
+        steps: [
+          { capability: "test.echo", status: "succeeded" },
+          {
+            data: {
+              label: "tea",
+              scheduledFor: "2026-06-26T09:10:00.000Z",
+            },
+            status: "succeeded",
+          },
+        ],
+      },
+      response: {
+        status: "ok",
+        text: "Handled. Alarm set for 2026-06-26T09:10:00.000Z (tea).",
+      },
+    });
+    await expect(store.list()).resolves.toEqual([
+      expect.objectContaining({
+        label: "tea",
+        scheduledFor: "2026-06-26T09:10:00.000Z",
+      }),
+    ]);
   });
 
   it.each([
