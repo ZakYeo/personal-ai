@@ -77,6 +77,27 @@ describe("processAlarmSchedulerCycle", () => {
     ]);
   });
 
+  it("finalizes a failed attempt when diagnostic reporting also fails", async () => {
+    const fixture = await createFixture(
+      "2026-07-14T09:10:00.000Z",
+      { deliver: () => Promise.reject(new Error("speaker failure")) },
+      () => {
+        throw new Error("diagnostic writer failure");
+      },
+    );
+
+    await expect(fixture.runAt("2026-07-14T09:10:00.000Z")).resolves.toBe(
+      "2026-07-14T09:11:00.000Z",
+    );
+    await expect(fixture.store.list()).resolves.toEqual([
+      expect.objectContaining({
+        deliveryAttempts: 1,
+        status: "ringing",
+        successfulDeliveries: 0,
+      }),
+    ]);
+  });
+
   it("consumes an interrupted final claim without replaying delivery", async () => {
     const fixture = await createFixture("2026-07-14T09:10:00.000Z");
     const firstClaim = await fixture.store.update({
@@ -167,6 +188,7 @@ describe("runAlarmScheduler", () => {
 async function createFixture(
   scheduledFor: string,
   delivery?: AlarmDeliveryPort,
+  reportDeliveryFailure?: AlarmSchedulerDependencies["reportDeliveryFailure"],
 ) {
   const store = createInMemoryAlarmStore({
     now: () => new Date("2026-07-14T09:00:00.000Z"),
@@ -182,9 +204,11 @@ async function createFixture(
         return Promise.resolve();
       },
     },
-    reportDeliveryFailure: (failure) => {
-      failures.push(failure);
-    },
+    reportDeliveryFailure:
+      reportDeliveryFailure ??
+      ((failure) => {
+        failures.push(failure);
+      }),
     store,
   };
 

@@ -388,6 +388,9 @@ should also guard against subtler boundary and abstraction drift.
   declared lifecycle fields, contradictory status/counter/delivery-time
   combinations fail closed, and terminal alarms cannot transition back to
   active states.
+- Persist an alarm delivery result before reporting its delivery diagnostic.
+  Diagnostic sinks are best effort at this boundary and cannot strand a claimed
+  attempt when logging itself fails.
 - New file-backed alarm state directories and files use restrictive `0700` and
   `0600` modes so private labels are not exposed by the host's default umask.
 - Treat duplication reports as design prompts. A small clone may be acceptable,

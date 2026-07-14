@@ -146,6 +146,7 @@ async function claimAndDeliver(
   }
 
   let delivered = false;
+  let deliveryFailure: AlarmDeliveryFailure | undefined;
   try {
     await dependencies.delivery.deliver(
       {
@@ -160,7 +161,7 @@ async function claimAndDeliver(
     );
     delivered = true;
   } catch (error) {
-    dependencies.reportDeliveryFailure({ alarmId: claimed.id, error });
+    deliveryFailure = { alarmId: claimed.id, error };
   }
 
   const successfulDeliveries =
@@ -176,6 +177,21 @@ async function claimAndDeliver(
     id: claimed.id,
     updatedAt: dependencies.clock.now().toISOString(),
   });
+
+  if (deliveryFailure) {
+    reportDeliveryFailureBestEffort(dependencies, deliveryFailure);
+  }
+}
+
+function reportDeliveryFailureBestEffort(
+  dependencies: AlarmSchedulerDependencies,
+  failure: AlarmDeliveryFailure,
+): void {
+  try {
+    dependencies.reportDeliveryFailure(failure);
+  } catch {
+    // Diagnostic sinks cannot alter durable alarm lifecycle progress.
+  }
 }
 
 async function finalizeAlarm(
