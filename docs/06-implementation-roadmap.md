@@ -256,6 +256,19 @@ Excluded:
   repository default.
 - Local TTS or local intent interpretation.
 
+Thin slices:
+
+1. Add focused local-STT config fixtures, parse the selected adapter's typed
+   config, and fail preflight cleanly when its model is unavailable.
+2. Implement batch transcription against shared adapter contracts with timeout,
+   abort, malformed-output, and cleanup tests.
+3. Add the cohesive streaming capture/transcription path only if Spike 12
+   selected and benchmarked streaming.
+4. Register the adapter through the provider-neutral desktop/Pi voice registry
+   and prove one-change selection and invalid-config cases.
+5. Add opt-in desktop and Pi smokes plus model checksum, license, setup, and
+   operator documentation.
+
 Acceptance criteria:
 
 - Config selects the adapter without provider-specific types leaking into
@@ -287,6 +300,19 @@ Excluded:
 
 - Bundled voice models, voice cloning, or automatic model downloads.
 - Changing assistant response text or response-rewriter ownership.
+
+Thin slices:
+
+1. Add focused local-TTS config fixtures, typed parsing, voice/model preflight,
+   and invalid-config tests.
+2. Implement synthesis through stdin or a native boundary with timeout, abort,
+   malformed-output, and cleanup contracts.
+3. Add cohesive streaming synthesis/playback only if Spike 12 selected and
+   benchmarked it.
+4. Register the adapter in desktop/Pi composition and prove output-coordinator
+   serialization for normal speech and alarm delivery.
+5. Add text fallback tests, opt-in device smokes, and model/license/operator
+   documentation.
 
 Acceptance criteria:
 
@@ -350,6 +376,19 @@ Excluded:
 - Sending, background full-history synchronization, cross-provider aggregation,
   and unsupported encrypted conversations.
 
+Thin slices:
+
+1. Freeze the Spike 15 target semantics in narrow read/draft ports and add
+   target-specific config and credential fixtures.
+2. Implement authenticated bounded retrieval, structural response parsing, and
+   pagination or synchronization-token contracts.
+3. Add stable opaque references, deduplication, restart, and unsupported-chat or
+   encryption tests.
+4. Compose read-only retrieval through the feature registry and protect every
+   displayed sender, destination, time, and message fact.
+5. Add provider-independent drafting, runtime-boundary failures, an opt-in live
+   read smoke, and operator documentation.
+
 Acceptance criteria:
 
 - Reads are bounded, resumable without silent duplication, and limited to the
@@ -378,6 +417,19 @@ Excluded:
 
 - Autonomous replies, bulk sends, scheduled sends, or silent retries where the
   provider cannot prove duplicate safety.
+
+Thin slices:
+
+1. Add the high-risk send capability and its typed deterministic confirmation
+   renderer for exact recipient, destination, and body facts.
+2. Define and test the durable prepared, sending/unknown, and confirmed send
+   lifecycle before adding provider transport.
+3. Implement target transport with provider idempotency keys where available,
+   structural response parsing, and safe failure classification.
+4. Integrate single-command and compound-plan confirmation without
+   reinterpretation and add crash-window/restart tests.
+5. Add an opt-in disposable-destination live smoke and explicit retry/operator
+   guidance.
 
 Acceptance criteria:
 
@@ -436,6 +488,19 @@ Excluded:
 
 - Bundled model weights, implicit downloads, provider-specific types in ports,
   or bypassing core validation and confirmation.
+
+Thin slices:
+
+1. Add focused local-intent config fixtures, adapter-owned parsing, model
+   preflight, and registry selection tests.
+2. Build single-command and proposed-plan requests from the shared immutable
+   capability catalog.
+3. Parse raw structured output from `unknown`, rejecting malformed, duplicate,
+   incomplete, and out-of-catalog proposals before core validation.
+4. Add timeout, abort, transport, and diagnostic-safe runtime composition tests
+   for desktop and Pi selections.
+5. Add opt-in benchmark-corpus smokes plus exact model, quantization, setup, and
+   operator documentation.
 
 Acceptance criteria:
 
