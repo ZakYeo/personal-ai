@@ -23,6 +23,23 @@ import {
 import { line } from "../../test-support/primitives.js";
 
 describe("mock voice runtime", () => {
+  it("smoke-speaks one aggregate confirmation for a compound plan", async () => {
+    const runtime = await createMockVoiceRuntime({
+      config: voiceEnabledDeterministicConfig,
+      now: () => deterministicNow,
+      utterance:
+        "Hey Jarvis, check my calendar for upcoming events and set an alarm to tea in 10 minutes",
+    });
+
+    await expect(runtime.runOnce()).resolves.toMatchObject({
+      response: {
+        expectsFollowUp: true,
+        status: "needs_confirmation",
+        text: "Please confirm this plan: 1. set the tea alarm for 2026-06-26T09:10:00.000Z. Say yes or no.",
+      },
+      status: "spoken",
+    });
+  });
   it("runs a simulated voice command through the assistant core", async () => {
     const runtime = await createMockVoiceRuntime({
       config: voiceEnabledDeterministicConfig,
