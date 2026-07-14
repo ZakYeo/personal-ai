@@ -6,6 +6,7 @@ import type { ServiceTurnFailureContext } from "../runtimes/service/service-runt
 import { writePersistentAlarmRuntimeConfig } from "./runtime-composition.js";
 
 interface PiServiceRawConfig extends Record<string, unknown> {
+  desktopVoice: Record<string, unknown>;
   features: Record<string, unknown>;
   intent: Record<string, unknown>;
 }
@@ -21,8 +22,9 @@ export async function createPiServiceAlarmFixture(): Promise<{
   statePath: string;
 }> {
   const rawConfig = await loadCheckedInPiServiceConfig();
-  const { configPath, statePath } =
-    await writePersistentAlarmRuntimeConfig(rawConfig);
+  const { configPath, statePath } = await writePersistentAlarmRuntimeConfig(
+    withPortablePiStartupCommand(rawConfig),
+  );
 
   return {
     cleanup: () => rm(dirname(configPath), { force: true, recursive: true }),
@@ -69,8 +71,10 @@ async function loadCheckedInPiServiceConfig(): Promise<PiServiceRawConfig> {
 
   if (
     !isRecord(parsed) ||
+    !isRecord(parsed.desktopVoice) ||
     !isRecord(parsed.features) ||
-    !isRecord(parsed.intent)
+    !isRecord(parsed.intent) ||
+    !isRecord(parsed.desktopVoice.wakeActivation)
   ) {
     throw new Error(
       "Checked-in Pi service config must contain object sections.",
@@ -79,7 +83,31 @@ async function loadCheckedInPiServiceConfig(): Promise<PiServiceRawConfig> {
 
   return {
     ...parsed,
+    desktopVoice: parsed.desktopVoice,
     features: parsed.features,
     intent: parsed.intent,
+  };
+}
+
+function withPortablePiStartupCommand(
+  config: PiServiceRawConfig,
+): PiServiceRawConfig {
+  const wakeActivation = config.desktopVoice.wakeActivation;
+
+  if (!isRecord(wakeActivation)) {
+    throw new Error(
+      "Checked-in Pi service config must contain wake activation config.",
+    );
+  }
+
+  return {
+    ...config,
+    desktopVoice: {
+      ...config.desktopVoice,
+      wakeActivation: {
+        ...wakeActivation,
+        command: "/bin/true",
+      },
+    },
   };
 }

@@ -1,4 +1,4 @@
-import { access } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import {
   createPiServiceAlarmFixture,
   createStopAfterPiServiceFailure,
@@ -11,6 +11,24 @@ describe("Pi service test support", () => {
 
     await expect(access(fixture.configPath)).resolves.toBeUndefined();
     expect(fixture.rawConfig.intent).toMatchObject({ provider: "openai" });
+    await expect(
+      readFile(fixture.configPath, "utf8").then(
+        (contents) => JSON.parse(contents) as unknown,
+      ),
+    ).resolves.toMatchObject({
+      desktopVoice: {
+        wakeActivation: {
+          args: [
+            "/opt/personal-ai/scripts/openwakeword-listener.py",
+            "--model",
+            "hey jarvis",
+            "--threshold",
+            "0.5",
+          ],
+          command: "/bin/true",
+        },
+      },
+    });
 
     await fixture.cleanup();
     await expect(access(fixture.configPath)).rejects.toMatchObject({
