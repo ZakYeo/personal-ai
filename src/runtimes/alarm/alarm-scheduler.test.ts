@@ -5,6 +5,7 @@ import type {
 } from "../../ports/alarm-delivery.js";
 import {
   processAlarmSchedulerCycle,
+  runAlarmScheduler,
   type AlarmSchedulerDependencies,
 } from "./alarm-scheduler.js";
 
@@ -97,6 +98,53 @@ describe("processAlarmSchedulerCycle", () => {
     await expect(fixture.store.list()).resolves.toEqual([
       expect.objectContaining({ status: "completed" }),
     ]);
+  });
+});
+
+describe("runAlarmScheduler", () => {
+  it("bounds future waits and stops promptly through the shutdown signal", async () => {
+    const fixture = await createFixture("2026-07-14T10:00:00.000Z");
+    const shutdown = new AbortController();
+    const waits: number[] = [];
+
+    await runAlarmScheduler({
+      clock: { now: () => new Date("2026-07-14T09:00:00.000Z") },
+      clockRecheckMs: 1000,
+      config: { missedGraceMs, repeatAfterMs },
+      delivery: { deliver: () => Promise.resolve() },
+      reportDeliveryFailure: () => {},
+      shutdownSignal: shutdown.signal,
+      store: fixture.store,
+      timer: {
+        wait: (delayMs) => {
+          waits.push(delayMs);
+          shutdown.abort();
+          return Promise.resolve();
+        },
+      },
+    });
+
+    expect(waits).toEqual([1000]);
+    expect(fixture.delivered).toEqual([]);
+  });
+
+  it("does no work when shutdown was already requested", async () => {
+    const fixture = await createFixture("2026-07-14T09:00:00.000Z");
+    const shutdown = new AbortController();
+    shutdown.abort();
+
+    await runAlarmScheduler({
+      clock: { now: () => new Date("2026-07-14T09:00:00.000Z") },
+      clockRecheckMs: 1000,
+      config: { missedGraceMs, repeatAfterMs },
+      delivery: { deliver: () => Promise.resolve() },
+      reportDeliveryFailure: () => {},
+      shutdownSignal: shutdown.signal,
+      store: fixture.store,
+      timer: { wait: () => Promise.reject(new Error("must not wait")) },
+    });
+
+    expect(fixture.delivered).toEqual([]);
   });
 });
 
