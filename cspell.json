@@ -44,6 +44,7 @@
     "jscpd",
     "journalctl",
     "markdownlint",
+    "mktemp",
     "mmcblk",
     "netdev",
     "nologin",

@@ -89,6 +89,9 @@ describe("Raspberry Pi systemd service", () => {
     expect(guide).toMatch(/## Upgrade and rollback/u);
     expect(guide).toContain("/opt/personal-ai-releases/");
     expect(guide).toContain("readlink -f /opt/personal-ai");
+    expect(guide).toContain("mktemp -d");
+    expect(guide).toContain("trap 'if [ -n");
+    expect(guide).toContain('mv -T "$staging_dir" "$release_dir"');
     expect(guide).toContain("ln -sfn");
     expect(guide).toContain("mv -Tf");
     expect(guide).not.toContain(

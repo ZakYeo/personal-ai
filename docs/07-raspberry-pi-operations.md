@@ -55,12 +55,15 @@ release_id="$(git rev-parse --verify HEAD)"
 release_dir="/opt/personal-ai-releases/$release_id"
 sudo install -d -o root -g root -m 0755 /opt/personal-ai-releases
 sudo test ! -e "$release_dir"
-sudo install -d -o root -g root -m 0755 "$release_dir"
-sudo cp -a dist package.json package-lock.json scripts "$release_dir/"
-sudo npm ci --omit=dev --prefix "$release_dir"
-sudo "$release_dir/scripts/setup-openwakeword-venv.sh"
-sudo test -x "$release_dir/.venv/bin/python"
-sudo test -f "$release_dir/dist/runtimes/cli/main.js"
+staging_dir="$(sudo mktemp -d "/opt/personal-ai-releases/.staging.$release_id.XXXXXX")"
+trap 'if [ -n "$staging_dir" ]; then sudo rm -rf "$staging_dir"; fi' EXIT
+sudo cp -a dist package.json package-lock.json scripts "$staging_dir/"
+sudo npm ci --omit=dev --prefix "$staging_dir"
+sudo "$staging_dir/scripts/setup-openwakeword-venv.sh"
+sudo test -x "$staging_dir/.venv/bin/python"
+sudo test -f "$staging_dir/dist/runtimes/cli/main.js"
+sudo mv -T "$staging_dir" "$release_dir"
+staging_dir=""
 sudo ln -sfn "$release_dir" /opt/personal-ai.next
 sudo mv -Tf /opt/personal-ai.next /opt/personal-ai
 ```
@@ -141,12 +144,15 @@ previous_release="$(readlink -f /opt/personal-ai)"
 release_id="$(git rev-parse --verify HEAD)"
 release_dir="/opt/personal-ai-releases/$release_id"
 sudo test ! -e "$release_dir"
-sudo install -d -o root -g root -m 0755 "$release_dir"
-sudo cp -a dist package.json package-lock.json scripts "$release_dir/"
-sudo npm ci --omit=dev --prefix "$release_dir"
-sudo "$release_dir/scripts/setup-openwakeword-venv.sh"
-sudo test -x "$release_dir/.venv/bin/python"
-sudo test -f "$release_dir/dist/runtimes/cli/main.js"
+staging_dir="$(sudo mktemp -d "/opt/personal-ai-releases/.staging.$release_id.XXXXXX")"
+trap 'if [ -n "$staging_dir" ]; then sudo rm -rf "$staging_dir"; fi' EXIT
+sudo cp -a dist package.json package-lock.json scripts "$staging_dir/"
+sudo npm ci --omit=dev --prefix "$staging_dir"
+sudo "$staging_dir/scripts/setup-openwakeword-venv.sh"
+sudo test -x "$staging_dir/.venv/bin/python"
+sudo test -f "$staging_dir/dist/runtimes/cli/main.js"
+sudo mv -T "$staging_dir" "$release_dir"
+staging_dir=""
 sudo systemctl stop personal-ai.service
 sudo ln -sfn "$release_dir" /opt/personal-ai.next
 sudo mv -Tf /opt/personal-ai.next /opt/personal-ai
