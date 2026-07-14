@@ -89,4 +89,23 @@ describe("OpenAI realtime websocket factory", () => {
     expect(messages).toEqual([{ data: "response" }]);
     expect(mockWebSocketInstances[0]?.closed).toBe(true);
   });
+
+  it("retains an error sink until a closing socket emits close", () => {
+    const socket = createOpenAIRealtimeWebSocketFactory({
+      apiKey: "test-api-key",
+      url: "wss://api.openai.test/v1/realtime?intent=transcription",
+    });
+    const onError = vi.fn();
+
+    socket.addEventListener("error", onError);
+    socket.removeEventListener("error", onError);
+
+    expect(mockWebSocketInstances[0]?.listeners.error).toHaveLength(1);
+    socket.close();
+    expect(() =>
+      mockWebSocketInstances[0]?.emit("error", new Error("closed early")),
+    ).not.toThrow();
+    mockWebSocketInstances[0]?.emit("close");
+    expect(mockWebSocketInstances[0]?.listeners.error).toHaveLength(0);
+  });
 });

@@ -17,6 +17,14 @@ export const createOpenAIRealtimeWebSocketFactory: RealtimeSocketFactory = ({
     string,
     Map<SocketListener, SocketListener>
   >();
+  const closeErrorSink = (): void => {};
+  const releaseCloseErrorSink = (): void => {
+    socket.off("error", closeErrorSink);
+    socket.off("close", releaseCloseErrorSink);
+  };
+
+  socket.on("error", closeErrorSink);
+  socket.on("close", releaseCloseErrorSink);
 
   return {
     addEventListener: (type, listener) => {
