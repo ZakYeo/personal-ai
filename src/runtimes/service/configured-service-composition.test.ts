@@ -9,6 +9,7 @@ import { runConfiguredServiceRuntime } from "./configured-service-composition.js
 import { dirname } from "node:path";
 import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
 import type { AlarmSchedulerRuntimeDependencies } from "../alarm/alarm-scheduler.js";
+import { createFileAlarmStore } from "../../adapters/local/file-alarm-store.js";
 
 describe("runConfiguredServiceRuntime", () => {
   it("composes the configured text assistant from an injected config path", async () => {
@@ -144,5 +145,56 @@ describe("runConfiguredServiceRuntime", () => {
         delivery,
       }),
     );
+  });
+
+  it("delivers a persisted due alarm through configured service composition", async () => {
+    const { configPath, statePath } = await writePersistentAlarmRuntimeConfig(
+      enabledDeterministicConfig,
+      {
+        alarms: [
+          {
+            id: "due-alarm",
+            label: "tea",
+            scheduledFor: "2026-07-14T09:00:00.000Z",
+          },
+        ],
+      },
+    );
+    let resolveDelivered: (() => void) | undefined;
+    const delivered = new Promise<void>((resolve) => {
+      resolveDelivered = resolve;
+    });
+    const delivery: AlarmDeliveryPort = {
+      deliver: () => {
+        resolveDelivered?.();
+        return Promise.resolve();
+      },
+    };
+
+    await runConfiguredServiceRuntime(
+      {
+        alarmDelivery: delivery,
+        configPath,
+        now: () => new Date("2026-07-14T09:00:00.000Z"),
+      },
+      {
+        validateConfig: () => {},
+        runTurn: async (context) => {
+          await delivered;
+          context.requestShutdown("alarm delivered");
+        },
+      },
+    );
+
+    await expect(
+      createFileAlarmStore({ filePath: statePath }).list(),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        deliveryAttempts: 1,
+        id: "due-alarm",
+        status: "ringing",
+        successfulDeliveries: 1,
+      }),
+    ]);
   });
 });
