@@ -84,7 +84,7 @@ describe("createCapabilityInfoFeature", () => {
       {
         text: [
           "alarm.list (Local Alarms):",
-          "List the local alarms currently stored by this assistant runtime.",
+          "List local alarms with their human-facing lifecycle status.",
           "Risk: low.",
           "Parameters: none.",
         ].join(" "),

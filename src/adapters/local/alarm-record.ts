@@ -110,17 +110,30 @@ function assertValidLifecycleUpdate(
   const statusAllowed = allowedNextStatuses[previous.status].includes(
     updated.status,
   );
-  const editsAllowed =
-    updated.label === previous.label &&
-    updated.scheduledFor === previous.scheduledFor;
+  const snoozing =
+    previous.status === "ringing" && updated.status === "snoozed";
+  const labelChanged = updated.label !== previous.label;
+  const scheduleChanged = updated.scheduledFor !== previous.scheduledFor;
+  const labelEditAllowed =
+    !labelChanged ||
+    ((previous.status === "scheduled" || previous.status === "snoozed") &&
+      updated.status === previous.status);
+  const scheduleEditAllowed =
+    !scheduleChanged ||
+    ((previous.status === "scheduled" || previous.status === "snoozed") &&
+      updated.status === "scheduled");
+  const countersAllowed = snoozing
+    ? updated.deliveryAttempts === 0 && updated.successfulDeliveries === 0
+    : attemptsAdded >= 0 &&
+      attemptsAdded <= 1 &&
+      successesAdded >= 0 &&
+      successesAdded <= 1;
 
   if (
     !statusAllowed ||
-    attemptsAdded < 0 ||
-    attemptsAdded > 1 ||
-    successesAdded < 0 ||
-    successesAdded > 1 ||
-    !editsAllowed ||
+    !countersAllowed ||
+    !labelEditAllowed ||
+    !scheduleEditAllowed ||
     updated.updatedAt < previous.updatedAt ||
     (previous.status === "scheduled" &&
       updated.status === "ringing" &&
@@ -142,7 +155,7 @@ const allowedNextStatuses: Record<
   completed: [],
   dismissed: [],
   missed: [],
-  ringing: ["ringing", "completed", "dismissed", "missed"],
+  ringing: ["ringing", "snoozed", "completed", "dismissed", "missed"],
   scheduled: ["scheduled", "ringing", "cancelled", "missed"],
   snoozed: ["scheduled", "ringing", "cancelled", "missed"],
 };

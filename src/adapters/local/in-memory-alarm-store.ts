@@ -5,6 +5,7 @@ import {
 } from "./alarm-record.js";
 
 interface InMemoryAlarmStoreOptions {
+  createId?: () => string;
   now?: () => Date;
 }
 
@@ -12,15 +13,12 @@ export function createInMemoryAlarmStore(
   options: InMemoryAlarmStoreOptions = {},
 ): AlarmStore {
   const alarms: AlarmRecord[] = [];
+  const createId = options.createId ?? (() => `alarm-${alarms.length + 1}`);
   const now = options.now ?? (() => new Date());
 
   return {
     add: (alarm) => {
-      const storedAlarm = createScheduledAlarm(
-        alarm,
-        `alarm-${alarms.length + 1}`,
-        now(),
-      );
+      const storedAlarm = createScheduledAlarm(alarm, createId(), now());
 
       alarms.push(storedAlarm);
 

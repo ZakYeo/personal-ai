@@ -1,0 +1,282 @@
+import type { AssistantContext } from "../../ports/assistant.js";
+import type { FeatureResult } from "../../ports/feature.js";
+import type {
+  AlarmLifecycleUpdate,
+  AlarmRecord,
+  AlarmStatus,
+  AlarmStore,
+} from "../../ports/alarm-store.js";
+import type {
+  AlarmCreateArgs,
+  AlarmDelayTargetArgs,
+  AlarmEditArgs,
+  AlarmTargetArgs,
+} from "./alarm-feature-contract.js";
+
+export async function createAlarm(
+  args: AlarmCreateArgs,
+  context: AssistantContext,
+  store: AlarmStore,
+): Promise<FeatureResult> {
+  const label = args.label ?? "alarm";
+  const scheduledFor = relativeTime(context, args.minutesFromNow);
+  const alarm = await store.add({ label, scheduledFor });
+
+  return {
+    text: `Alarm set for ${scheduledFor} (${label}).`,
+    data: {
+      id: alarm.id,
+      label: alarm.label,
+      scheduledFor: alarm.scheduledFor,
+    },
+  };
+}
+
+export async function listAlarms(store: AlarmStore): Promise<FeatureResult> {
+  const alarms = await store.list();
+  if (alarms.length === 0) {
+    return { text: "There are no alarms set." };
+  }
+
+  return {
+    data: Object.fromEntries(
+      alarms.flatMap((alarm, index) => [
+        [`alarm${index}Id`, alarm.id],
+        [`alarm${index}Label`, alarm.label],
+        [`alarm${index}ScheduledFor`, alarm.scheduledFor],
+        [`alarm${index}Status`, alarm.status],
+      ]),
+    ),
+    text: alarms.map(formatAlarmStatus).join(" "),
+  };
+}
+
+export function acknowledgeAlarm(
+  args: AlarmTargetArgs,
+  context: AssistantContext,
+  store: AlarmStore,
+): Promise<FeatureResult> {
+  return transitionAlarm(args, context, store, ["ringing"], "completed", {
+    verb: "Acknowledged",
+  });
+}
+
+export function dismissAlarm(
+  args: AlarmTargetArgs,
+  context: AssistantContext,
+  store: AlarmStore,
+): Promise<FeatureResult> {
+  return transitionAlarm(args, context, store, ["ringing"], "dismissed", {
+    verb: "Dismissed",
+  });
+}
+
+export function cancelAlarm(
+  args: AlarmTargetArgs,
+  context: AssistantContext,
+  store: AlarmStore,
+): Promise<FeatureResult> {
+  return transitionAlarm(
+    args,
+    context,
+    store,
+    ["scheduled", "snoozed"],
+    "cancelled",
+    { verb: "Cancelled" },
+  );
+}
+
+export function snoozeAlarm(
+  args: AlarmDelayTargetArgs,
+  context: AssistantContext,
+  store: AlarmStore,
+): Promise<FeatureResult> {
+  const nextDeliveryAt = relativeTime(context, args.minutesFromNow);
+  return updateSelectedAlarm(args, context, store, ["ringing"], () => ({
+    changes: {
+      deliveryAttempts: 0,
+      nextDeliveryAt,
+      status: "snoozed",
+      successfulDeliveries: 0,
+    },
+    result: (alarm) => ({
+      data: {
+        id: alarm.id,
+        label: alarm.label,
+        nextDeliveryAt,
+        status: alarm.status,
+      },
+      text: `Snoozed the ${alarm.label} alarm until ${nextDeliveryAt}.`,
+    }),
+  }));
+}
+
+export function rescheduleAlarm(
+  args: AlarmDelayTargetArgs,
+  context: AssistantContext,
+  store: AlarmStore,
+): Promise<FeatureResult> {
+  const scheduledFor = relativeTime(context, args.minutesFromNow);
+  return updateSelectedAlarm(
+    args,
+    context,
+    store,
+    ["scheduled", "snoozed"],
+    () => ({
+      changes: {
+        deliveryAttempts: 0,
+        nextDeliveryAt: scheduledFor,
+        scheduledFor,
+        status: "scheduled",
+        successfulDeliveries: 0,
+      },
+      result: (alarm) => ({
+        data: {
+          id: alarm.id,
+          label: alarm.label,
+          scheduledFor: alarm.scheduledFor,
+          status: alarm.status,
+        },
+        text: `Rescheduled the ${alarm.label} alarm for ${scheduledFor}.`,
+      }),
+    }),
+  );
+}
+
+export function editAlarm(
+  args: AlarmEditArgs,
+  context: AssistantContext,
+  store: AlarmStore,
+): Promise<FeatureResult> {
+  return updateSelectedAlarm(
+    args,
+    context,
+    store,
+    ["scheduled", "snoozed"],
+    (current) => ({
+      changes: { label: args.newLabel },
+      result: (alarm) => ({
+        data: { id: alarm.id, label: alarm.label, status: alarm.status },
+        text: `Renamed the ${current.label} alarm to ${alarm.label}.`,
+      }),
+    }),
+  );
+}
+
+function transitionAlarm(
+  args: AlarmTargetArgs,
+  context: AssistantContext,
+  store: AlarmStore,
+  allowedStatuses: readonly AlarmStatus[],
+  nextStatus: AlarmStatus,
+  response: { verb: string },
+): Promise<FeatureResult> {
+  return updateSelectedAlarm(args, context, store, allowedStatuses, () => ({
+    changes: { nextDeliveryAt: null, status: nextStatus },
+    result: (alarm) => ({
+      data: { id: alarm.id, label: alarm.label, status: alarm.status },
+      text: `${response.verb} the ${alarm.label} alarm.`,
+    }),
+  }));
+}
+
+interface AlarmMutation {
+  changes: AlarmLifecycleUpdate["changes"];
+  result(alarm: AlarmRecord): FeatureResult;
+}
+
+async function updateSelectedAlarm(
+  args: AlarmTargetArgs,
+  context: AssistantContext,
+  store: AlarmStore,
+  allowedStatuses: readonly AlarmStatus[],
+  mutation: (current: AlarmRecord) => AlarmMutation,
+): Promise<FeatureResult> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const selection = selectAlarm(await store.list(), args, allowedStatuses);
+    if (selection.kind === "response") {
+      return { text: selection.text };
+    }
+
+    const current = selection.alarm;
+    const selectedMutation = mutation(current);
+    const updated = await store.update({
+      changes: selectedMutation.changes,
+      expectedRevision: current.revision,
+      id: current.id,
+      updatedAt: context.clock.now().toISOString(),
+    });
+    if (updated) {
+      return selectedMutation.result(updated);
+    }
+  }
+
+  throw new Error("Alarm changed repeatedly during lifecycle update.");
+}
+
+type AlarmSelection =
+  | { alarm: AlarmRecord; kind: "alarm" }
+  | { kind: "response"; text: string };
+
+function selectAlarm(
+  alarms: readonly AlarmRecord[],
+  args: AlarmTargetArgs,
+  allowedStatuses: readonly AlarmStatus[],
+): AlarmSelection {
+  const matches = args.id
+    ? alarms.filter((alarm) => alarm.id === args.id)
+    : args.label
+      ? alarms.filter(
+          (alarm) => alarm.label.toLowerCase() === args.label?.toLowerCase(),
+        )
+      : alarms.filter((alarm) => allowedStatuses.includes(alarm.status));
+  const target = args.id ?? args.label ?? allowedStatuses.join(" or ");
+
+  if (matches.length === 0) {
+    return { kind: "response", text: `I could not find the ${target} alarm.` };
+  }
+  if (matches.length > 1) {
+    return {
+      kind: "response",
+      text: `More than one alarm is labelled ${target}. Please use its ID.`,
+    };
+  }
+
+  const alarm = matches[0]!;
+  if (!allowedStatuses.includes(alarm.status)) {
+    return {
+      kind: "response",
+      text: `The ${alarm.label} alarm cannot be changed while it is ${alarm.status}.`,
+    };
+  }
+  return { alarm, kind: "alarm" };
+}
+
+function relativeTime(
+  context: AssistantContext,
+  minutesFromNow: number,
+): string {
+  return new Date(
+    context.clock.now().getTime() + minutesFromNow * 60_000,
+  ).toISOString();
+}
+
+function formatAlarmStatus(alarm: AlarmRecord): string {
+  const identity = `The ${alarm.label} alarm (${alarm.id})`;
+  switch (alarm.status) {
+    case "scheduled":
+      return `${identity} is scheduled for ${alarm.scheduledFor}.`;
+    case "snoozed":
+      return `${identity} is snoozed until ${alarm.nextDeliveryAt}.`;
+    case "ringing":
+      return `${identity} is ringing.`;
+    case "completed":
+      return `${identity} was completed at ${alarm.terminalAt}.`;
+    case "dismissed":
+      return `${identity} was dismissed at ${alarm.terminalAt}.`;
+    case "cancelled":
+      return `${identity} was cancelled at ${alarm.terminalAt}.`;
+    case "missed":
+      return `${identity} was missed at ${alarm.terminalAt}.`;
+  }
+}

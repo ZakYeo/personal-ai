@@ -111,7 +111,9 @@ function findNextActiveAlarm(
   return alarms
     .filter(
       (alarm) =>
-        (alarm.status === "scheduled" || alarm.status === "ringing") &&
+        (alarm.status === "scheduled" ||
+          alarm.status === "snoozed" ||
+          alarm.status === "ringing") &&
         alarm.nextDeliveryAt !== undefined,
     )
     .sort((left, right) =>

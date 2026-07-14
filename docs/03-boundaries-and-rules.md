@@ -390,6 +390,12 @@ should also guard against subtler boundary and abstraction drift.
   terminal alarms cannot transition back to active states. Version-one and
   version-two records migrate deterministically rather than being silently
   treated as current state.
+- Snooze, reschedule, label edit, acknowledgement, dismissal, and cancellation
+  use revision-checked store updates so scheduler observations cannot overwrite
+  a newer user action. Rescheduling and cancellation fail closed behind
+  confirmation; snooze and label-only edits are low risk. Snooze resets the
+  bounded delivery attempts and persists its new due time while preserving the
+  original alarm identity.
 - Persist an alarm delivery result before reporting its delivery diagnostic.
   Diagnostic sinks are best effort at this boundary and cannot strand a claimed
   attempt when logging itself fails.

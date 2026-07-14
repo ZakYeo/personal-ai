@@ -404,8 +404,12 @@ an alarm overdue by no more than 15 minutes is delivered; an older untouched
 alarm becomes missed. Its clock, timer, and shutdown dependencies are injected,
 and delivery failures retain safe internal diagnostics. A fatal scheduler
 failure requests orderly shutdown, runs normal cleanup, and returns a failed
-service result so the process exits non-zero. Recurrence, snooze,
-rescheduling, and terminal-history cleanup remain Milestone 8.1 work.
+service result so the process exits non-zero. Feature commands can now snooze a
+ringing alarm, rename a pending alarm, or reschedule it without changing its
+identity; rescheduling requires confirmation, and every mutation remains
+revision checked against scheduler work. Alarm lists render lifecycle state in
+human-facing language. Recurrence and terminal-history cleanup remain
+Milestone 8.1 work.
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
 writing state, resumes the validated command after an explicit yes, asserts the

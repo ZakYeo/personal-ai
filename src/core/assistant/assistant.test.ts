@@ -274,7 +274,7 @@ describe("createAssistant", () => {
 
     expect(outcome.response).toEqual({
       status: "ok",
-      text: "Alarms: alarm-1 at 2026-06-26T09:10:00.000Z (private appointment).",
+      text: "The private appointment alarm (alarm-1) is scheduled for 2026-06-26T09:10:00.000Z.",
     });
     expect(outcome.diagnostics).toEqual([
       expect.objectContaining({

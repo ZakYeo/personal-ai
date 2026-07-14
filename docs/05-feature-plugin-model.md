@@ -36,6 +36,11 @@ Examples:
 - `messaging.draft_reply`
 - `messaging.send_reply`
 - `alarm.create`
+- `alarm.snooze`
+- `alarm.reschedule`
+- `alarm.edit`
+- `alarm.acknowledge`
+- `alarm.dismiss`
 - `alarm.cancel`
 - `alarm.list`
 
@@ -231,16 +236,19 @@ Create a deterministic draft response. Do not send anything in the first milesto
 
 ### Alarms
 
-Local/in-memory or file-backed capability for creating, listing,
-acknowledging, dismissing, and cancelling alarms.
+Local/in-memory or file-backed capability for creating, listing, snoozing,
+rescheduling, renaming, acknowledging, dismissing, and cancelling alarms.
 Alarm identity belongs to the selected `AlarmStore`; feature logic provides the
 alarm details and reports the stored record returned by the port. The adapter
 contributes a neutral runtime task that closes over that same store; configured
 voice services run it with notification delivery while generic feature and
 service composition remain unaware of alarm-specific resources. The scheduler
 durably claims due attempts before speaking through the selected voice output.
-Acknowledgement and dismissal stop a ringing alarm; cancellation is a
-high-risk lifecycle change and requires confirmation by default.
+Acknowledgement and dismissal stop a ringing alarm. Snooze persists a new due
+time and resets its bounded delivery attempts. Rescheduling and label editing
+preserve stable alarm identity. Cancellation and rescheduling are high-risk
+lifecycle changes and require confirmation by default. List responses describe
+each alarm's status in human-facing language.
 
 Example command:
 

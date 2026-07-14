@@ -19,8 +19,9 @@ stable deployment paths, a dedicated service account, and operator guidance.
 Milestone 8 is implemented after its required independent maintainability
 review. It adds neutral runtime-owned scheduling, durable delivery claims,
 restart recovery, configured voice delivery, and lifecycle controls. Milestone
-8.1 follows with richer alarm usability and lifecycle controls. After that work
-is stable, Spike 9 will identify and define the next concrete implementation
+8.1 is in progress: snooze, rescheduling, label editing, and human-facing status
+are implemented, while recurrence and retention remain. After that work is
+stable, Spike 9 will identify and define the next concrete implementation
 milestones rather than treating a broad list of possible providers as one
 delivery milestone.
 
@@ -872,7 +873,7 @@ Acceptance criteria:
 
 ### Milestone 8.1: Alarm Usability and Lifecycle Controls
 
-Status: planned.
+Status: implementation in progress.
 
 Goal: make operational alarms convenient to manage after reliable one-shot
 delivery exists.
@@ -887,6 +888,13 @@ Included:
   unless technical detail is requested.
 - Retention and cleanup policy for completed or dismissed alarm history.
 - Confirmation policy for destructive or surprising lifecycle changes.
+
+Implemented slices:
+
+- Revision-checked snooze, reschedule, and label-edit commands with stable alarm
+  identity and confirmation for rescheduling.
+- Human-facing list responses for scheduled, snoozed, ringing, completed,
+  dismissed, cancelled, and missed alarms.
 
 Excluded:
 

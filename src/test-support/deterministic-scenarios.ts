@@ -46,7 +46,7 @@ export const deterministicScenarios = {
     text: "Hey Jarvis, list my alarms",
     response: {
       status: "ok",
-      text: "Alarms: alarm-1 at 2026-06-26T09:10:00.000Z (ping me).",
+      text: "The ping me alarm (alarm-1) is scheduled for 2026-06-26T09:10:00.000Z.",
     },
   },
   capabilityList: {

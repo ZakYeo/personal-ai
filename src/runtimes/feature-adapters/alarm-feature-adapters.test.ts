@@ -82,7 +82,7 @@ describe("alarm feature adapters", () => {
       assistant.handleText("Hey Jarvis, list my alarms"),
     ).resolves.toEqual({
       status: "ok",
-      text: "Alarms: persisted-alarm at 2026-07-13T17:00:00.000Z (tea).",
+      text: "The tea alarm (persisted-alarm) is scheduled for 2026-07-13T17:00:00.000Z.",
     });
   });
 
