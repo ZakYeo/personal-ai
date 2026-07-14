@@ -72,9 +72,9 @@ Current roadmap position:
   search, the neutral service runtime, the Raspberry Pi service command, opt-in
   Raspberry Pi OS QEMU smoke support, desktop voice service activation, and a
   JSON-file-backed alarm store with consistent runtime path resolution, and the
-  tested Raspberry Pi systemd deployment path. Milestone 8 implementation is
-  complete and awaiting its required independent maintainability review; it
-  adds runtime-owned alarm scheduling and desktop/Pi voice delivery.
+  tested Raspberry Pi systemd deployment path. Milestone 8 is implemented after
+  its required independent maintainability review; it adds runtime-owned alarm
+  scheduling and desktop/Pi voice delivery.
 - Milestone 8.1 next adds snooze, recurrence, editing, lifecycle status, and
   retention controls. Spike 9 will evaluate
   messaging, intent providers, local STT/TTS, calendar follow-ups, and other
