@@ -78,7 +78,8 @@ Current roadmap position:
 - Milestone 8.1 is implemented after its required independent maintainability
   review. It adds snooze, daily and weekly recurrence, rescheduling, label
   editing, human-facing lifecycle status, and 30-day terminal-history
-  retention. Spike 9 is implemented after its required independent review. Its
+  retention. Spike 9 is implemented, and every finding from its required
+  independent review is addressed. Its
   [discovery report](docs/08-spike-9-report.md) makes compound command plans the
   next milestone, followed by calendar result follow-ups, measured local voice,
   target-specific messaging, and a benchmarked local intent provider. Real

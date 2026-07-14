@@ -86,6 +86,10 @@ Outcome:
 
 - The evidence-backed comparison and decision record is in
   `docs/08-spike-9-report.md`.
+- The independent maintainability review findings are addressed through explicit
+  proposed/validated plan stages, deterministic confirmation facts, partial-step
+  outcomes, bounded calendar references, durable messaging send lifecycle,
+  complete thin slices, stronger evidence, and the implemented-milestone archive.
 - Compound command plans are the next implementation milestone because they
   increase the usefulness of every enabled feature without adding an external
   service dependency.
