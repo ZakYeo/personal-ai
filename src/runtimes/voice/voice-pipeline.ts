@@ -25,6 +25,7 @@ import type {
   StreamingVoiceInput,
   StreamingVoiceOutput,
 } from "./streaming-voice.js";
+import type { VoiceOutputCoordinator } from "./voice-output-coordinator.js";
 
 interface VoicePipelineConfig {
   initialCommandSource: "command-capture" | "wake-transcript";
@@ -37,6 +38,7 @@ interface VoicePipelineDependencies {
   audioOutput: AudioOutputPort;
   commandAudioInput: AudioInputPort;
   speechToText: SpeechToTextPort;
+  outputCoordinator?: VoiceOutputCoordinator;
   streamingInput?: StreamingVoiceInput;
   streamingOutput?: StreamingVoiceOutput;
   textToSpeech: TextToSpeechPort;

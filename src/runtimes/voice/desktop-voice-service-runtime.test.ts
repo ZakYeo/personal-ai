@@ -43,6 +43,8 @@ describe("runDesktopVoiceServiceRuntime", () => {
       ),
       createVoiceAdapters: () => ({
         ...createSuccessfulActivationAdapters(),
+      }),
+      createVoiceOutputAdapters: () => ({
         audioOutput: { play },
         textToSpeech: { synthesize },
       }),

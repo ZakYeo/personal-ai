@@ -11,9 +11,11 @@ import type {
 } from "../service/service-runtime.js";
 import { cleanupVoiceAdapters } from "./voice-cleanup.js";
 import {
+  createDesktopVoiceOutputAdapters,
   createDesktopVoiceServiceAdapters,
   resolveDesktopVoiceServiceAdapterConfig,
   type DesktopVoiceAdapterRuntimeDependencies,
+  type DesktopVoiceOutputAdapters,
   type DesktopVoiceServiceAdapters,
 } from "./desktop-voice-adapter-registry.js";
 import type { ProcessControl } from "../../ports/process-control.js";
@@ -30,6 +32,7 @@ import type { FeatureAdapterDependencies } from "../feature-adapter-registry.js"
 import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
 import { createVoiceAlarmDelivery } from "./voice-alarm-delivery.js";
 import type { runAlarmScheduler } from "../alarm/alarm-scheduler.js";
+import { createVoiceOutputCoordinator } from "./voice-output-coordinator.js";
 
 export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -45,6 +48,13 @@ export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
     >,
     dependencies: DesktopVoiceAdapterRuntimeDependencies,
   ) => DesktopVoiceServiceAdapters;
+  createVoiceOutputAdapters?: (
+    voiceConfig: ReturnType<typeof requireVoiceConfig>,
+    desktopVoiceConfig: ReturnType<
+      typeof resolveDesktopVoiceServiceAdapterConfig
+    >,
+    dependencies: DesktopVoiceAdapterRuntimeDependencies,
+  ) => DesktopVoiceOutputAdapters;
   io?: VoiceRuntimeIo;
   processControl?: ProcessControl;
   processSignals?: ServiceProcessSignals;
@@ -65,6 +75,7 @@ export function runConfiguredVoiceServiceRuntime(
   const fetch = options.fetch ?? globalThis.fetch;
   const processControl =
     options.processControl ?? createNodeProcessControl(process);
+  const outputCoordinator = createVoiceOutputCoordinator();
 
   return runConfiguredServiceRuntime(
     {
@@ -78,17 +89,17 @@ export function runConfiguredVoiceServiceRuntime(
 
         return createVoiceAlarmDelivery(
           (deliverySignal) =>
-            (options.createVoiceAdapters ?? createDesktopVoiceServiceAdapters)(
-              voiceConfig,
-              desktopVoiceConfig,
-              {
-                env,
-                fetch,
-                processControl,
-                shutdownSignal: deliverySignal ?? shutdownSignal,
-              },
-            ),
+            (
+              options.createVoiceOutputAdapters ??
+              createDesktopVoiceOutputAdapters
+            )(voiceConfig, desktopVoiceConfig, {
+              env,
+              fetch,
+              processControl,
+              shutdownSignal: deliverySignal ?? shutdownSignal,
+            }),
           options.io,
+          outputCoordinator,
         );
       },
     },
@@ -116,6 +127,7 @@ export function runConfiguredVoiceServiceRuntime(
               assistant,
               audioOutput: adapters.audioOutput,
               commandAudioInput: adapters.audioInput,
+              outputCoordinator,
               speechToText: adapters.speechToText,
               ...(adapters.streamingInput
                 ? { streamingInput: adapters.streamingInput }

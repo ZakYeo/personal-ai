@@ -100,6 +100,7 @@
 - Python sidecars that spawn recorder or helper processes must inherit or drain stderr and must terminate, wait, then kill and reap children that exceed a bounded shutdown grace period; process-exit races during signaling must not mask primary control flow.
 - Keep simulated spoken output separate from fallback text output; CLI boundaries should use explicit voice result metadata rather than inferring stdout writes from voice status.
 - Voice service progress logs are human-facing stdout output; keep internal diagnostics, adapter command output, provider details, credentials, and stack traces on stderr only.
+- Serialize normal response speech and alarm delivery through one runtime-owned output coordinator while leaving wake/input capture independent; alarm delivery must construct only the configured synthesis/output path, not microphone, wake, or transcription adapters.
 - Keep deterministic intent fixtures from becoming a central feature-specific branch list; when deterministic routing grows, move matching into data-backed rules or feature-local fixtures whose capability keys remain type-linked to the feature's declarations.
 - Author feature capabilities with `defineCapability`/`defineFeature` so decoded handler arguments stay structurally tied to declared parameter metadata.
 - Avoid hand-written feature `execute` switches in normal features; use dispatch maps and decoded `request.args` unless a test intentionally covers a lower-level malformed contract.

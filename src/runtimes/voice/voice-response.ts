@@ -8,9 +8,11 @@ import {
 } from "../human-boundary.js";
 import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
 import type { StreamingVoiceOutput } from "./streaming-voice.js";
+import type { VoiceOutputCoordinator } from "./voice-output-coordinator.js";
 
 interface VoiceSpeechDependencies {
   audioOutput: AudioOutputPort;
+  outputCoordinator?: VoiceOutputCoordinator;
   streamingOutput?: StreamingVoiceOutput;
   textToSpeech: TextToSpeechPort;
 }
@@ -40,6 +42,17 @@ export async function handleAssistantText(
 }
 
 export async function speakResponse(
+  dependencies: VoiceSpeechDependencies,
+  response: AssistantResponse,
+  io: VoiceRuntimeIo,
+): Promise<VoiceSpeechOutputResult> {
+  const speak = () => speakResponseSession(dependencies, response, io);
+  return dependencies.outputCoordinator
+    ? dependencies.outputCoordinator.run(speak)
+    : speak();
+}
+
+async function speakResponseSession(
   dependencies: VoiceSpeechDependencies,
   response: AssistantResponse,
   io: VoiceRuntimeIo,

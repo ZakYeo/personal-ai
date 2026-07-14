@@ -12,10 +12,12 @@ import {
 } from "./voice-timings.js";
 import type { VoiceTurnResult } from "./voice-turn-result.js";
 import type { StreamingVoiceOutput } from "./streaming-voice.js";
+import type { VoiceOutputCoordinator } from "./voice-output-coordinator.js";
 
 export interface VoiceCommandDependencies {
   assistant: Assistant;
   audioOutput: AudioOutputPort;
+  outputCoordinator?: VoiceOutputCoordinator;
   streamingOutput?: StreamingVoiceOutput;
   textToSpeech: TextToSpeechPort;
 }

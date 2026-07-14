@@ -17,11 +17,13 @@ import type {
   StreamingVoiceInput,
   StreamingVoiceOutput,
 } from "./streaming-voice.js";
+import type { VoiceOutputCoordinator } from "./voice-output-coordinator.js";
 
 export interface VoiceActivationDependencies {
   assistant: Assistant;
   audioOutput: AudioOutputPort;
   commandAudioInput: AudioInputPort;
+  outputCoordinator?: VoiceOutputCoordinator;
   speechToText: SpeechToTextPort;
   streamingInput?: StreamingVoiceInput;
   streamingOutput?: StreamingVoiceOutput;

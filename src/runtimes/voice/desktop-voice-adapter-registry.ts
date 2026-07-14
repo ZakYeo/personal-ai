@@ -11,6 +11,7 @@ import { createNodeVoiceTempFiles } from "./voice-temp-files.js";
 import type {
   DesktopVoiceAdapters,
   DesktopVoiceAdapterRuntimeDependencies,
+  DesktopVoiceOutputAdapters,
   DesktopVoiceServiceAdapters,
   ResolvedDesktopVoiceAdapterConfig,
   ResolvedDesktopVoiceServiceAdapterConfig,
@@ -18,6 +19,7 @@ import type {
 
 export type {
   DesktopVoiceAdapterRuntimeDependencies,
+  DesktopVoiceOutputAdapters,
   DesktopVoiceServiceAdapters,
 } from "./desktop-voice-adapter-types.js";
 
@@ -111,6 +113,20 @@ export function createDesktopVoiceAdapters(
   );
 }
 
+export function createDesktopVoiceOutputAdapters(
+  voice: ResolvedVoiceConfig,
+  desktopVoice: ResolvedDesktopVoiceAdapterConfig,
+  dependencies: DesktopVoiceAdapterRuntimeDependencies,
+): DesktopVoiceOutputAdapters {
+  const tempFiles = createNodeVoiceTempFiles();
+  return createDesktopVoiceOutputAdaptersWithTempFiles(
+    voice,
+    desktopVoice,
+    dependencies,
+    tempFiles,
+  );
+}
+
 function createDesktopVoiceAdaptersWithTempFiles(
   voice: ResolvedVoiceConfig,
   desktopVoice: ResolvedDesktopVoiceAdapterConfig,
@@ -118,18 +134,19 @@ function createDesktopVoiceAdaptersWithTempFiles(
   tempFiles: VoiceTempFilePort,
 ): DesktopVoiceAdapters {
   const context = { dependencies, tempFiles };
+  const outputAdapters = createDesktopVoiceOutputAdaptersWithTempFiles(
+    voice,
+    desktopVoice,
+    dependencies,
+    tempFiles,
+  );
 
   return {
+    ...outputAdapters,
     audioInput: createDesktopVoiceSlotAdapter(
       voice,
       desktopVoiceSlotTopology.audioInput,
       desktopVoice.audioInput,
-      context,
-    ),
-    audioOutput: createDesktopVoiceSlotAdapter(
-      voice,
-      desktopVoiceSlotTopology.audioOutput,
-      desktopVoice.audioOutput,
       context,
     ),
     speechToText: createDesktopVoiceSlotAdapter(
@@ -152,6 +169,40 @@ function createDesktopVoiceAdaptersWithTempFiles(
           },
         }
       : {}),
+    ...(desktopVoice.wakeActivation
+      ? {
+          wakeActivation: createDesktopVoiceSlotAdapter(
+            voice,
+            desktopVoiceSlotTopology.wakeActivation,
+            desktopVoice.wakeActivation,
+            context,
+          ),
+        }
+      : {}),
+    wakeWord: createDesktopVoiceSlotAdapter(
+      voice,
+      desktopVoiceSlotTopology.wakeWord,
+      undefined,
+      context,
+    ),
+  };
+}
+
+function createDesktopVoiceOutputAdaptersWithTempFiles(
+  voice: ResolvedVoiceConfig,
+  desktopVoice: ResolvedDesktopVoiceAdapterConfig,
+  dependencies: DesktopVoiceAdapterRuntimeDependencies,
+  tempFiles: VoiceTempFilePort,
+): DesktopVoiceOutputAdapters {
+  const context = { dependencies, tempFiles };
+
+  return {
+    audioOutput: createDesktopVoiceSlotAdapter(
+      voice,
+      desktopVoiceSlotTopology.audioOutput,
+      desktopVoice.audioOutput,
+      context,
+    ),
     ...(desktopVoice.streamingTextToSpeech
       ? {
           streamingOutput: {
@@ -170,22 +221,6 @@ function createDesktopVoiceAdaptersWithTempFiles(
       voice,
       desktopVoiceSlotTopology.textToSpeech,
       desktopVoice.textToSpeech,
-      context,
-    ),
-    ...(desktopVoice.wakeActivation
-      ? {
-          wakeActivation: createDesktopVoiceSlotAdapter(
-            voice,
-            desktopVoiceSlotTopology.wakeActivation,
-            desktopVoice.wakeActivation,
-            context,
-          ),
-        }
-      : {}),
-    wakeWord: createDesktopVoiceSlotAdapter(
-      voice,
-      desktopVoiceSlotTopology.wakeWord,
-      undefined,
       context,
     ),
     cleanup: () => tempFiles.cleanup(),

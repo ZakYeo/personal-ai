@@ -132,7 +132,9 @@ Deterministic and local adapters include:
 - Local/in-memory and versioned JSON-file alarm storage adapters implementing
   the alarm store port.
 - A voice alarm-delivery adapter that composes the configured synthesis and
-  audio-output path for each delivery attempt.
+  audio-output path for each delivery attempt. A runtime-owned output
+  coordinator serializes that path with ordinary response speech without
+  coupling or blocking wake/input capture.
 
 Implemented real-provider adapters include:
 

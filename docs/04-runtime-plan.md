@@ -395,7 +395,9 @@ device path. The alarm file is single-process-owned: operations are serialized
 within one adapter instance and reread current state, while cross-process locks
 remain outside the supported boundary. Configured desktop and Raspberry Pi
 voice services give that same store to the neutral alarm scheduler and deliver
-through their selected text-to-speech and audio-output adapters. The scheduler
+through their selected text-to-speech and audio-output adapters. Alarm delivery
+constructs only those output adapters and shares a serialized output coordinator
+with normal response speech; wake and command capture remain independent. The scheduler
 durably claims each due attempt before output, repeats an unacknowledged alarm
 once after 60 seconds, and stops after acknowledgement or dismissal. On startup,
 an alarm overdue by no more than 15 minutes is delivered; an older untouched

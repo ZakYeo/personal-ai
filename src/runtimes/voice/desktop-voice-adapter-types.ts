@@ -43,6 +43,11 @@ export interface DesktopVoiceServiceAdapters extends DesktopVoiceAdapters {
   wakeAudioInput: AudioInputPort;
 }
 
+export type DesktopVoiceOutputAdapters = Pick<
+  DesktopVoiceAdapters,
+  "audioOutput" | "cleanup" | "streamingOutput" | "textToSpeech"
+>;
+
 export interface ResolvedDesktopStreamingSpeechToTextConfig {
   audioInput: DesktopCommandConfig;
   transcription: ResolvedDesktopVoiceProviderAdapter<StreamingSpeechToTextPort>;

@@ -53,6 +53,27 @@ describe("desktop voice adapter registry", () => {
     expect(tempFileMocks.cleanup).toHaveBeenCalledTimes(1);
   });
 
+  it("composes alarm delivery without input, wake, or transcription adapters", async () => {
+    const { createDesktopVoiceOutputAdapters } =
+      await import("./desktop-voice-adapter-registry.js");
+
+    const adapters = createDesktopVoiceOutputAdapters(
+      createVoiceConfig(),
+      createDesktopVoiceServiceConfig(),
+      {
+        env: {},
+        fetch: vi.fn() as typeof fetch,
+        processControl: createProcessControl(),
+      },
+    );
+
+    expect(Object.keys(adapters).sort()).toEqual([
+      "audioOutput",
+      "cleanup",
+      "textToSpeech",
+    ]);
+  });
+
   it("creates streaming adapters as cohesive input and output paths", async () => {
     const { createDesktopVoiceServiceAdapters } =
       await import("./desktop-voice-adapter-registry.js");

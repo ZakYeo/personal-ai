@@ -1,6 +1,8 @@
-import type { DesktopVoiceServiceAdapters } from "./desktop-voice-adapter-types.js";
+import type { DesktopVoiceOutputAdapters } from "./desktop-voice-adapter-types.js";
 import { createVoiceAlarmDelivery } from "./voice-alarm-delivery.js";
 import { createCapturedWriter, line } from "../../test-support/primitives.js";
+import { createVoiceOutputCoordinator } from "./voice-output-coordinator.js";
+import { speakResponse } from "./voice-response.js";
 
 describe("createVoiceAlarmDelivery", () => {
   it("speaks an alarm through fresh configured output adapters", async () => {
@@ -62,20 +64,71 @@ describe("createVoiceAlarmDelivery", () => {
     ).rejects.toBe(outputFailure);
     expect(stderr.writes).toEqual([line("Runtime failure: cleanup failed")]);
   });
+
+  it("waits for ordinary speech before constructing alarm output adapters", async () => {
+    const coordinator = createVoiceOutputCoordinator();
+    let releaseOrdinary: (() => void) | undefined;
+    let ordinaryStarted: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => {
+      ordinaryStarted = resolve;
+    });
+    const ordinary = speakResponse(
+      {
+        audioOutput: {
+          play: () => {
+            ordinaryStarted?.();
+            return new Promise<void>((resolve) => {
+              releaseOrdinary = resolve;
+            });
+          },
+        },
+        outputCoordinator: coordinator,
+        textToSpeech: {
+          synthesize: (text) => Promise.resolve({ text }),
+        },
+      },
+      { status: "ok", text: "Your calendar is clear." },
+      {},
+    );
+    await started;
+
+    const createAlarmOutputAdapters = vi.fn(() =>
+      createAdaptersFixture({
+        cleanup: () => Promise.resolve(),
+        play: () => Promise.resolve(),
+        synthesize: (text) => Promise.resolve({ text }),
+      }),
+    );
+    const alarm = createVoiceAlarmDelivery(
+      createAlarmOutputAdapters,
+      {},
+      coordinator,
+    ).deliver(
+      {
+        attempt: 1,
+        id: "alarm-1",
+        label: "tea",
+        scheduledFor: "2026-07-14T09:00:00.000Z",
+      },
+      {},
+    );
+    await Promise.resolve();
+
+    expect(createAlarmOutputAdapters).not.toHaveBeenCalled();
+    releaseOrdinary?.();
+    await Promise.all([ordinary, alarm]);
+    expect(createAlarmOutputAdapters).toHaveBeenCalledOnce();
+  });
 });
 
 function createAdaptersFixture(input: {
   cleanup: () => Promise<void>;
-  play: DesktopVoiceServiceAdapters["audioOutput"]["play"];
-  synthesize: DesktopVoiceServiceAdapters["textToSpeech"]["synthesize"];
-}): DesktopVoiceServiceAdapters {
+  play: DesktopVoiceOutputAdapters["audioOutput"]["play"];
+  synthesize: DesktopVoiceOutputAdapters["textToSpeech"]["synthesize"];
+}): DesktopVoiceOutputAdapters {
   return {
-    audioInput: { capture: () => Promise.resolve({ text: "" }) },
     audioOutput: { play: input.play },
     cleanup: input.cleanup,
-    speechToText: { transcribe: () => Promise.resolve({ text: "" }) },
     textToSpeech: { synthesize: input.synthesize },
-    wakeAudioInput: { capture: () => Promise.resolve({ text: "" }) },
-    wakeWord: { detect: () => Promise.resolve({ detected: false }) },
   };
 }

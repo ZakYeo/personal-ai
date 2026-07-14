@@ -356,7 +356,10 @@ the configured text-to-speech and audio-output adapters, then repeated once
 after 60 seconds unless it is acknowledged or dismissed. On startup, alarms up
 to 15 minutes overdue are delivered; older alarms are marked missed. Delivery
 claims are persisted before audio output so an uncertain attempt is not replayed
-after restart. Cancelling a scheduled alarm requires confirmation.
+after restart. Normal responses and alarm speech share a serialized output
+session, while wake/input capture stays independent; alarm delivery constructs
+only synthesis and playback adapters. Cancelling a scheduled alarm requires
+confirmation.
 
 ## Scripts
 

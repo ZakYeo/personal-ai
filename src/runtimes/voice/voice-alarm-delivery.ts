@@ -1,34 +1,44 @@
 import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
-import type { DesktopVoiceServiceAdapters } from "./desktop-voice-adapter-types.js";
+import type { DesktopVoiceOutputAdapters } from "./desktop-voice-adapter-types.js";
 import { cleanupVoiceAdapters } from "./voice-cleanup.js";
 import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
+import {
+  createVoiceOutputCoordinator,
+  type VoiceOutputCoordinator,
+} from "./voice-output-coordinator.js";
 
 type CreateVoiceDeliveryAdapters = (
   shutdownSignal?: AbortSignal,
-) => DesktopVoiceServiceAdapters;
+) => DesktopVoiceOutputAdapters;
 
 export function createVoiceAlarmDelivery(
   createAdapters: CreateVoiceDeliveryAdapters,
   io: VoiceRuntimeIo = {},
+  outputCoordinator: VoiceOutputCoordinator = createVoiceOutputCoordinator(),
 ): AlarmDeliveryPort {
   return {
-    async deliver(alarm, context) {
-      const adapters = createAdapters(context.shutdownSignal);
-      const text = `Alarm: ${alarm.label}.`;
+    deliver: (alarm, context) =>
+      outputCoordinator.run(async () => {
+        const adapters = createAdapters(context.shutdownSignal);
+        const text = `Alarm: ${alarm.label}.`;
 
-      try {
-        if (adapters.streamingOutput) {
-          const speech =
-            await adapters.streamingOutput.textToSpeech.synthesizeStream(text);
-          await adapters.streamingOutput.audioOutput.playStream(speech.chunks);
-          return;
+        try {
+          if (adapters.streamingOutput) {
+            const speech =
+              await adapters.streamingOutput.textToSpeech.synthesizeStream(
+                text,
+              );
+            await adapters.streamingOutput.audioOutput.playStream(
+              speech.chunks,
+            );
+            return;
+          }
+
+          const speech = await adapters.textToSpeech.synthesize(text);
+          await adapters.audioOutput.play(speech);
+        } finally {
+          await cleanupVoiceAdapters(() => adapters.cleanup?.(), io);
         }
-
-        const speech = await adapters.textToSpeech.synthesize(text);
-        await adapters.audioOutput.play(speech);
-      } finally {
-        await cleanupVoiceAdapters(() => adapters.cleanup?.(), io);
-      }
-    },
+      }),
   };
 }
