@@ -75,10 +75,7 @@ export async function runCasualConversationStreamingSmoke(input: {
           command: null,
           kind: "conversation",
           plan: null,
-          response: {
-            status: "ok",
-            text: input.responseText,
-          },
+          response: null,
         }),
       }),
     )
