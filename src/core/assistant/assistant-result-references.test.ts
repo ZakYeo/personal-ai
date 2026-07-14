@@ -229,7 +229,7 @@ function createForgedReferenceFeature(): FeaturePlugin {
         ...(typeof request.args.ordinal === "number"
           ? { ordinal: request.args.ordinal }
           : {}),
-        rawText: context.trustedInputText,
+        rawText: context.trustedInputText ?? "",
         ...(typeof request.args.reference === "string"
           ? { reference: request.args.reference }
           : {}),
