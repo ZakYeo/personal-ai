@@ -13,6 +13,8 @@
   - `docs/07-raspberry-pi-operations.md`
 - Keep implementation changes aligned with the ports-and-adapters architecture and dependency boundaries documented there.
 - Break work into thin, committable slices using TDD: write or update the failing test first, implement the smallest change that passes it, then make that slice a singular commit before starting the next slice.
+- After implementing and validating every milestone, launch a fresh sub-agent that has not reviewed an earlier milestone and instruct it to use the `thermo-nuclear-code-quality-review` skill against the completed milestone work. The review sub-agent must report its findings and feedback to the parent agent rather than implement changes itself.
+- The parent agent must evaluate and implement every actionable thermonuclear review finding and item of feedback in thin, tested commits, rerun validation, and only then declare the milestone complete. A milestone is not complete merely because its initial implementation passes tests.
 - Follow the failure-handling rule documented in `docs/03-boundaries-and-rules.md` and `docs/04-runtime-plan.md`: low-level code may throw, but human-facing runtime boundaries must catch final failures, log useful diagnostics, and produce a graceful CLI/voice/service response whenever possible. Feature failure responses must preserve diagnostics internally without echoing raw provider, adapter, credential, or stack details to the user.
 - Runtime boundaries should use the assistant diagnostic-aware outcome path when they need internal diagnostics; keep `AssistantResponse` safe for humans.
 - Keep shared human-boundary fallback and diagnostic policy in the runtimes-owned helper instead of duplicating it across CLI, voice, or service loops.
