@@ -27,12 +27,16 @@ import {
 import type { VoiceRuntimeIo } from "./voice-turn.js";
 import { validateOpenWakeWordStartup } from "./openwakeword-startup-check.js";
 import type { FeatureAdapterDependencies } from "../feature-adapter-registry.js";
+import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
+import { createVoiceAlarmDelivery } from "./voice-alarm-delivery.js";
+import type { runAlarmScheduler } from "../alarm/alarm-scheduler.js";
 
 export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,
   "configDirectory" | "env" | "featureAdapterRegistry" | "fetch" | "now"
 > {
   config?: LoadedRuntimeConfig;
+  alarmDelivery?: AlarmDeliveryPort;
   configPath?: string;
   createVoiceAdapters?: (
     voiceConfig: ReturnType<typeof requireVoiceConfig>,
@@ -45,6 +49,7 @@ export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   processControl?: ProcessControl;
   processSignals?: ServiceProcessSignals;
   retryAfterFailure?: (context: ServiceTurnFailureContext) => Promise<void>;
+  runAlarmScheduler?: typeof runAlarmScheduler;
   runVoiceActivation?: (
     dependencies: VoiceActivationDependencies,
     io?: VoiceRuntimeIo,
@@ -61,54 +66,81 @@ export function runConfiguredVoiceServiceRuntime(
   const processControl =
     options.processControl ?? createNodeProcessControl(process);
 
-  return runConfiguredServiceRuntime(options, {
-    validateConfig: (config, dependencies) =>
-      validateVoiceServiceConfig(config, dependencies),
-    runTurn: async ({ assistant, config, shutdownSignal }) => {
-      const voiceConfig = requireVoiceConfig(config);
-      const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
-        voiceConfig,
-        config,
-      );
-      const adapters = (
-        options.createVoiceAdapters ?? createDesktopVoiceServiceAdapters
-      )(voiceConfig, desktopVoiceConfig, {
-        env,
-        fetch,
-        processControl,
-        shutdownSignal,
-      });
+  return runConfiguredServiceRuntime(
+    {
+      ...options,
+      createAlarmDelivery: ({ config, shutdownSignal }) => {
+        const voiceConfig = requireVoiceConfig(config);
+        const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
+          voiceConfig,
+          config,
+        );
 
-      try {
-        await (options.runVoiceActivation ?? runVoiceActivation)(
-          {
-            assistant,
-            audioOutput: adapters.audioOutput,
-            commandAudioInput: adapters.audioInput,
-            speechToText: adapters.speechToText,
-            ...(adapters.streamingInput
-              ? { streamingInput: adapters.streamingInput }
-              : {}),
-            ...(adapters.streamingOutput
-              ? { streamingOutput: adapters.streamingOutput }
-              : {}),
-            textToSpeech: adapters.textToSpeech,
-            turnConfig: {
-              wakePhrases: config.assistant.wakePhrases,
-            },
-            ...(adapters.wakeActivation
-              ? { wakeActivation: adapters.wakeActivation }
-              : {}),
-            wakeAudioInput: adapters.wakeAudioInput,
-            wakeWord: adapters.wakeWord,
-          },
+        return createVoiceAlarmDelivery(
+          (deliverySignal) =>
+            (options.createVoiceAdapters ?? createDesktopVoiceServiceAdapters)(
+              voiceConfig,
+              desktopVoiceConfig,
+              {
+                env,
+                fetch,
+                processControl,
+                shutdownSignal: deliverySignal ?? shutdownSignal,
+              },
+            ),
           options.io,
         );
-      } finally {
-        await cleanupVoiceAdapters(() => adapters.cleanup?.(), options.io);
-      }
+      },
     },
-  });
+    {
+      validateConfig: (config, dependencies) =>
+        validateVoiceServiceConfig(config, dependencies),
+      runTurn: async ({ assistant, config, shutdownSignal }) => {
+        const voiceConfig = requireVoiceConfig(config);
+        const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
+          voiceConfig,
+          config,
+        );
+        const adapters = (
+          options.createVoiceAdapters ?? createDesktopVoiceServiceAdapters
+        )(voiceConfig, desktopVoiceConfig, {
+          env,
+          fetch,
+          processControl,
+          shutdownSignal,
+        });
+
+        try {
+          await (options.runVoiceActivation ?? runVoiceActivation)(
+            {
+              assistant,
+              audioOutput: adapters.audioOutput,
+              commandAudioInput: adapters.audioInput,
+              speechToText: adapters.speechToText,
+              ...(adapters.streamingInput
+                ? { streamingInput: adapters.streamingInput }
+                : {}),
+              ...(adapters.streamingOutput
+                ? { streamingOutput: adapters.streamingOutput }
+                : {}),
+              textToSpeech: adapters.textToSpeech,
+              turnConfig: {
+                wakePhrases: config.assistant.wakePhrases,
+              },
+              ...(adapters.wakeActivation
+                ? { wakeActivation: adapters.wakeActivation }
+                : {}),
+              wakeAudioInput: adapters.wakeAudioInput,
+              wakeWord: adapters.wakeWord,
+            },
+            options.io,
+          );
+        } finally {
+          await cleanupVoiceAdapters(() => adapters.cleanup?.(), options.io);
+        }
+      },
+    },
+  );
 }
 
 async function validateVoiceServiceConfig(

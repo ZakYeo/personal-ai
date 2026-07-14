@@ -13,8 +13,58 @@ import { deterministicScenarios } from "../../test-support/deterministic-scenari
 import { createCapturedWriter, line } from "../../test-support/primitives.js";
 import { createServiceSignalController } from "../../test-support/service-runtime.js";
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
+import type { AlarmSchedulerRuntimeDependencies } from "../alarm/alarm-scheduler.js";
 
 describe("runDesktopVoiceServiceRuntime", () => {
+  it("delivers scheduled alarms through configured voice output", async () => {
+    const signals = createServiceSignalController();
+    const synthesize = vi.fn().mockResolvedValue({
+      filePath: "/tmp/alarm.wav",
+      text: "Alarm: tea.",
+    });
+    const play = vi.fn().mockResolvedValue(undefined);
+    const runAlarmScheduler = vi.fn(
+      async (dependencies: AlarmSchedulerRuntimeDependencies) => {
+        await dependencies.delivery.deliver(
+          {
+            attempt: 1,
+            id: "alarm-1",
+            label: "tea",
+            scheduledFor: "2026-07-14T09:00:00.000Z",
+          },
+          { shutdownSignal: dependencies.shutdownSignal },
+        );
+      },
+    );
+
+    await runDesktopVoiceServiceRuntime({
+      config: createDesktopVoiceConfig(
+        deterministicScenarios.alarmListEmpty.text,
+      ),
+      createVoiceAdapters: () => ({
+        ...createSuccessfulActivationAdapters(),
+        audioOutput: { play },
+        textToSpeech: { synthesize },
+      }),
+      processSignals: signals,
+      runAlarmScheduler,
+      runVoiceActivation: () => {
+        signals.emit("SIGTERM");
+        return Promise.resolve({
+          response: deterministicScenarios.alarmListEmpty.response,
+          status: "spoken",
+          textOutputWritten: false,
+        });
+      },
+    });
+
+    expect(synthesize).toHaveBeenCalledExactlyOnceWith("Alarm: tea.");
+    expect(play).toHaveBeenCalledExactlyOnceWith({
+      filePath: "/tmp/alarm.wav",
+      text: "Alarm: tea.",
+    });
+  });
+
   it("runs a configured voice activation through the service loop", async () => {
     const signals = createServiceSignalController();
     const stderr = createCapturedWriter();

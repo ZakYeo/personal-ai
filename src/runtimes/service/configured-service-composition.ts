@@ -35,6 +35,10 @@ interface ConfiguredServiceCompositionOptions extends Pick<
   "configDirectory" | "env" | "featureAdapterRegistry" | "fetch" | "now"
 > {
   alarmDelivery?: AlarmDeliveryPort;
+  createAlarmDelivery?: (context: {
+    config: LoadedRuntimeConfig;
+    shutdownSignal: AbortSignal;
+  }) => AlarmDeliveryPort;
   config?: LoadedRuntimeConfig;
   configPath?: string;
   io?: ServiceRuntimeIo;
@@ -83,6 +87,7 @@ export async function runConfiguredServiceRuntime(
   }
 
   let schedulerTask: Promise<void> | undefined;
+  let alarmDelivery = options.alarmDelivery;
   const result = await runServiceRuntime({
     ...(options.configPath ? { configPath: options.configPath } : {}),
     createAssistant: () => Promise.resolve(startup.assistant),
@@ -95,12 +100,19 @@ export async function runConfiguredServiceRuntime(
       ? { retryAfterFailure: options.retryAfterFailure }
       : {}),
     runTurn: (context) => {
-      if (!schedulerTask && startup.alarmStore && options.alarmDelivery) {
+      if (!alarmDelivery && options.createAlarmDelivery) {
+        alarmDelivery = options.createAlarmDelivery({
+          config: startup.config,
+          shutdownSignal: context.shutdownSignal,
+        });
+      }
+
+      if (!schedulerTask && startup.alarmStore && alarmDelivery) {
         schedulerTask = (options.runAlarmScheduler ?? runAlarmScheduler)({
           clock: { now: options.now ?? (() => new Date()) },
           clockRecheckMs: 1000,
           config: { missedGraceMs: 900_000, repeatAfterMs: 60_000 },
-          delivery: options.alarmDelivery,
+          delivery: alarmDelivery,
           reportDeliveryFailure: ({ error }) => {
             logRuntimeFailure(error, options.io ?? {});
           },
