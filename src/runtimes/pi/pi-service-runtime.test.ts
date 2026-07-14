@@ -3,6 +3,11 @@ import type { LoadedRuntimeConfig } from "../config/config.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import { createDesktopVoiceConfig } from "../../test-support/desktop-voice-runtime.js";
 import { createCapturedWriter, line } from "../../test-support/primitives.js";
+import {
+  createPiServiceAdapterDoubles,
+  createPiServiceAlarmFixture,
+  createStopAfterPiServiceFailure,
+} from "../../test-support/pi-service.js";
 import { createServiceSignalController } from "../../test-support/service-runtime.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
 import type {
@@ -141,6 +146,33 @@ describe("runPiServiceRuntime", () => {
     expect(stderr.writes).toContain(
       line("Runtime failure: raw pi voice failure"),
     );
+  });
+
+  it("stops smoke-style composition after its first activation failure", async () => {
+    const fixture = await createPiServiceAlarmFixture();
+    const signals = createServiceSignalController();
+    const runVoiceActivation = vi
+      .fn()
+      .mockRejectedValue(new Error("provider unavailable"));
+
+    try {
+      await expect(
+        runPiServiceRuntime({
+          configPath: fixture.configPath,
+          createVoiceAdapters: () => createPiServiceAdapterDoubles(),
+          env: { OPENAI_API_KEY: "test-key" },
+          fetch: vi.fn() as typeof fetch,
+          processSignals: signals,
+          retryAfterFailure: createStopAfterPiServiceFailure(signals),
+          runVoiceActivation,
+        }),
+      ).resolves.toEqual({ status: "stopped", turnsCompleted: 0 });
+
+      expect(runVoiceActivation).toHaveBeenCalledOnce();
+    } finally {
+      signals.emit("SIGTERM");
+      await fixture.cleanup();
+    }
   });
 
   it("returns a safe startup failure outcome when Pi voice config is invalid", async () => {
