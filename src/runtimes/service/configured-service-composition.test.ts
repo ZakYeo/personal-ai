@@ -10,6 +10,7 @@ import { dirname } from "node:path";
 import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
 import type { AlarmSchedulerRuntimeDependencies } from "../alarm/alarm-scheduler.js";
 import { createFileAlarmStore } from "../../adapters/local/file-alarm-store.js";
+import { safeRuntimeFallbackResponse } from "../human-boundary.js";
 
 describe("runConfiguredServiceRuntime", () => {
   it("composes the configured text assistant from an injected config path", async () => {
@@ -145,6 +146,52 @@ describe("runConfiguredServiceRuntime", () => {
         delivery,
       }),
     );
+  });
+
+  it("returns a fatal result after scheduler failure and service cleanup", async () => {
+    const shutdownHook = vi.fn().mockResolvedValue(undefined);
+    const stderr: string[] = [];
+    const schedulerFailure = new Error("scheduler state failure");
+
+    await expect(
+      runConfiguredServiceRuntime(
+        {
+          alarmDelivery: { deliver: () => Promise.resolve() },
+          config: enabledDeterministicConfig,
+          io: {
+            stderr: {
+              write: (chunk) => {
+                stderr.push(chunk);
+              },
+            },
+          },
+          runAlarmScheduler: () => Promise.reject(schedulerFailure),
+          shutdownHooks: [shutdownHook],
+        },
+        {
+          validateConfig: () => {},
+          runTurn: (context) =>
+            new Promise<void>((resolve) => {
+              context.shutdownSignal.addEventListener(
+                "abort",
+                () => resolve(),
+                {
+                  once: true,
+                },
+              );
+            }),
+        },
+      ),
+    ).resolves.toEqual({
+      response: safeRuntimeFallbackResponse,
+      status: "failed",
+      turnsCompleted: 1,
+    });
+
+    expect(shutdownHook).toHaveBeenCalledExactlyOnceWith({
+      reason: "alarm scheduler failed",
+    });
+    expect(stderr).toContain("Runtime failure: scheduler state failure\n");
   });
 
   it("delivers a persisted due alarm through configured service composition", async () => {

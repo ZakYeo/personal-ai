@@ -87,6 +87,7 @@ export async function runConfiguredServiceRuntime(
   }
 
   let schedulerTask: Promise<void> | undefined;
+  let schedulerFailed = false;
   let alarmDelivery = options.alarmDelivery;
   const result = await runServiceRuntime({
     ...(options.configPath ? { configPath: options.configPath } : {}),
@@ -119,7 +120,12 @@ export async function runConfiguredServiceRuntime(
           shutdownSignal: context.shutdownSignal,
           store: startup.alarmStore,
         }).catch((error: unknown) => {
-          logRuntimeFailure(error, options.io ?? {});
+          schedulerFailed = true;
+          try {
+            logRuntimeFailure(error, options.io ?? {});
+          } catch {
+            // Shutdown and the fatal service result must survive logging failure.
+          }
           context.requestShutdown("alarm scheduler failed");
         });
       }
@@ -133,6 +139,14 @@ export async function runConfiguredServiceRuntime(
   });
 
   await schedulerTask;
+  if (schedulerFailed) {
+    return {
+      response: safeRuntimeFallbackResponse,
+      status: "failed",
+      turnsCompleted: result.turnsCompleted,
+    };
+  }
+
   return result;
 }
 

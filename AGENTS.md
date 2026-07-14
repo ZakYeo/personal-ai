@@ -64,6 +64,7 @@
 - Operational alarm delivery is runtime-owned and uses the exact `AlarmStore` instance composed for the alarm feature; keep its clock, timer, shutdown, durable claim-before-delivery, 15-minute recovery grace, and one-minute single-repeat policy deterministic and shared by desktop/Pi services.
 - Validate alarm lifecycle state through the canonical adapter-layer state machine on creation, persistence parsing, and revision-checked updates; versioned state must not silently invent fields or permit terminal-state reactivation.
 - Alarm delivery outcome persistence must complete before best-effort diagnostic reporting; a failing diagnostic writer must not strand a claimed attempt or alter scheduler progress.
+- A fatal runtime-owned background task must request shutdown, preserve its failure through cleanup, and return a failed service result so CLI/systemd observes a non-zero exit rather than a clean stop.
 - The next planned product milestone is alarm usability and lifecycle controls: add snooze, recurrence, rescheduling, human status, and retention serialized with scheduler observation and covered by deterministic restart tests.
 - Treat Spike 9 as future-milestone discovery, not an implementation milestone: compare messaging, intent providers, local STT/TTS, calendar follow-ups, and other candidates, then update the roadmap with separately numbered, bounded implementation milestones before building them.
 - Keep persistence ports asynchronous so feature success is not returned before durable work completes.

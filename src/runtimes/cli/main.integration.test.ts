@@ -234,6 +234,24 @@ describe("personal-ai ask CLI", () => {
     expect(stderr).toEqual([]);
   });
 
+  it("returns non-zero when a Raspberry Pi background service task fails", async () => {
+    const { io, stdout, stderr } = createCliIo();
+
+    await expect(
+      main(["pi-service", "--config", "pi-config.json"], io, {
+        createPiServiceRuntime: () =>
+          Promise.resolve({
+            response: safeRuntimeFallbackResponse,
+            status: "failed",
+            turnsCompleted: 1,
+          }),
+      }),
+    ).resolves.toBe(1);
+
+    expect(stdout).toEqual([`${safeRuntimeFallbackResponse.text}\n`]);
+    expect(stderr).toEqual([]);
+  });
+
   it("prints a graceful response and diagnostics when desktop voice service startup fails", async () => {
     const { io, stdout, stderr } = createCliIo();
 

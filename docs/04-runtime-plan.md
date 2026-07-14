@@ -400,7 +400,9 @@ durably claims each due attempt before output, repeats an unacknowledged alarm
 once after 60 seconds, and stops after acknowledgement or dismissal. On startup,
 an alarm overdue by no more than 15 minutes is delivered; an older untouched
 alarm becomes missed. Its clock, timer, and shutdown dependencies are injected,
-and delivery failures retain safe internal diagnostics. Recurrence, snooze,
+and delivery failures retain safe internal diagnostics. A fatal scheduler
+failure requests orderly shutdown, runs normal cleanup, and returns a failed
+service result so the process exits non-zero. Recurrence, snooze,
 rescheduling, and terminal-history cleanup remain Milestone 8.1 work.
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
