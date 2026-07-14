@@ -105,8 +105,11 @@ minutes”.
 
 Included:
 
-- An application-owned `AssistantPlan` containing one to three fully decoded
-  commands.
+- An application-owned `ProposedAssistantPlan` containing one to three raw,
+  untrusted provider commands and parameters.
+- A separate immutable `ValidatedAssistantPlan` whose steps retain resolved
+  routes, decoded arguments, confirmation decisions, and deterministic
+  protected confirmation facts.
 - Intent provider schemas and deterministic fixtures that return either one
   command or one bounded plan.
 - Whole-plan validation against the immutable capability routing index before
@@ -127,8 +130,10 @@ Excluded:
 
 Thin slices:
 
-1. Add plan contracts and deterministic interpretation fixtures.
-2. Validate and route a plan without executing invalid steps.
+1. Add separate proposed and validated plan contracts plus deterministic
+   interpretation fixtures.
+2. Decode, validate, and route a whole proposed plan into an immutable validated
+   plan without executing invalid steps.
 3. Aggregate confirmation and resume the exact frozen plan.
 4. Execute sequentially with stop-on-first-failure outcomes.
 5. Compose safe combined responses through text and voice boundaries.

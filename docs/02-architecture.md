@@ -155,11 +155,19 @@ messaging integrations should be added behind the same application-owned ports.
 
 ## Planned Compound Command Boundary
 
-Milestone 10 will extend intent interpretation to return either one decoded
-command or one application-owned `AssistantPlan` of at most three decoded
-commands. Core, not the provider or a feature, will validate the full plan,
-aggregate confirmation, retain the exact pending plan, execute its steps in
-order, stop on the first failure, and combine diagnostic-aware outcomes.
+Milestone 10 has two explicit application-owned stages. Intent providers return
+either one raw proposed command or a `ProposedAssistantPlan` of at most three
+raw proposed commands. Parameters are still untrusted provider output at this
+boundary. Core resolves each capability route, decodes and validates every
+argument, evaluates confirmation policy, and deterministically renders the
+confirmation facts before constructing an immutable `ValidatedAssistantPlan`.
+Only that validated type may become pending or execute.
+
+The validated plan retains the stable capability and feature route, decoded
+arguments, confirmation decision and protected summary facts for every step.
+Core, not the provider or a feature, aggregates confirmation, retains the exact
+pending plan, executes its steps in order, stops on the first failure, and
+combines diagnostic-aware outcomes.
 
 Plans compose existing capabilities through the immutable routing index.
 Feature plugins will continue to execute one validated command at a time and

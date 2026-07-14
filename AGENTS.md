@@ -79,6 +79,7 @@
 - Spike 9 is complete as future-milestone discovery; keep `docs/08-spike-9-report.md` and the separately numbered Milestones 10 through 19 aligned when evidence, priorities, or provider constraints change.
 - The next planned implementation milestone is compound command plans: interpret at most three fully resolved commands, validate the entire plan before execution, aggregate confirmation for every risky step, retain one exact process-local pending plan, execute sequentially in utterance order, and stop on the first failure.
 - Compound plans must preserve per-step diagnostic-aware outcomes and protected facts, serialize as one assistant transaction, and must not support provider-directed loops or output binding until a later milestone explicitly defines those semantics.
+- Keep compound plan stages explicit: providers return untrusted raw `ProposedAssistantPlan` values; only core may decode arguments, resolve routes and confirmation policy, render protected confirmation facts, and construct an immutable `ValidatedAssistantPlan` that can become pending or execute.
 - Keep persistence ports asynchronous so feature success is not returned before durable work completes.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Do not add `require*Config` identity wrappers for fields already required and resolved by `LoadedRuntimeConfig`; a resolver must prove a new invariant or narrow an optional shape.

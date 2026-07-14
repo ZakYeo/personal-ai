@@ -36,10 +36,11 @@ most three independently resolvable commands. The example utterance becomes:
 1. `calendar.list_upcoming` with its complete arguments.
 2. `alarms.create` with `minutesFromNow: 10` and a complete label.
 
-The plan is not an autonomous agent loop. The provider proposes the full plan
-once, core validates every step against the immutable capability routing index,
-and the core executes the already decoded plan without asking the provider what
-to do next.
+The plan is not an autonomous agent loop. The provider returns one untrusted
+raw command or `ProposedAssistantPlan` once. Core resolves routes, decodes and
+validates arguments, evaluates confirmation policy, and creates an immutable
+`ValidatedAssistantPlan` without asking the provider what to do next. Only the
+validated type can become pending or execute.
 
 Safety rules:
 
@@ -58,9 +59,11 @@ Safety rules:
 - Serialize a whole plan with conversation history and confirmation state so
   concurrent callers cannot interleave its steps.
 
-This should introduce a neutral application-owned `AssistantPlan` contract and
-plan outcome metadata. It should not add batch execution to individual feature
-plugins or make one feature import another.
+The validated plan retains each stable route, decoded arguments, confirmation
+decision, and deterministic protected confirmation facts. The two plan types
+and plan outcome metadata remain neutral application-owned contracts. They do
+not add batch execution to individual feature plugins or make one feature
+import another.
 
 ## Recommendation 2: Calendar Result Follow-Ups
 
