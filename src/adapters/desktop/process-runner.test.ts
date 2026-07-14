@@ -257,6 +257,35 @@ describe("runCommandUntilStdoutLine", () => {
     expect(killedProcessGroups[0]).toBeLessThan(0);
     expect(signals).toEqual(["SIGTERM"]);
   });
+
+  it("preserves the selector failure when command termination also fails", async () => {
+    const parserError = new Error("wake output was invalid");
+    const processControl: ProcessControl = {
+      kill: () => {
+        throw new Error("signal failed");
+      },
+      platform: "linux",
+    };
+
+    const result = runCommandUntilStdoutLine(
+      {
+        args: ["-c", "printf 'invalid\\n'; sleep 0.1"],
+        command: "/bin/sh",
+        processControl,
+        terminationGraceMs: 1,
+      },
+      () => {
+        throw parserError;
+      },
+    );
+
+    await expect(result).rejects.toBe(parserError);
+    expect(parserError.cause).toEqual(
+      expect.objectContaining({
+        message: expect.stringContaining("did not exit") as string,
+      }),
+    );
+  });
 });
 
 describe("runCommandReadableStream", () => {

@@ -1,4 +1,5 @@
 import {
+  attachSecondaryCause,
   CommandExecutionError,
   type RunCommandRequest,
   type RunCommandResult,
@@ -60,7 +61,14 @@ export async function runCommandUntilStdoutLine<TLine>(
       output.stdout,
     );
   } catch (error) {
-    await commandProcess.terminateAndWait();
-    throw toError(error);
+    const primaryError = toError(error);
+
+    try {
+      await commandProcess.terminateAndWait();
+    } catch (cleanupError) {
+      attachSecondaryCause(primaryError, cleanupError);
+    }
+
+    throw primaryError;
   }
 }

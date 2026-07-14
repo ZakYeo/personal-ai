@@ -484,7 +484,7 @@ export function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
 
-function attachSecondaryCause<TError extends Error>(
+export function attachSecondaryCause<TError extends Error>(
   primaryError: TError,
   secondaryError: unknown,
 ): TError {
