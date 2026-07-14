@@ -27,10 +27,18 @@ export function validateAssistantPlan(input: {
     return invalidPlan("A compound plan must contain one to three commands.");
   }
 
+  const validatedAt = input.context.clock.now().toISOString();
+  const validationInput = {
+    ...input,
+    context: {
+      ...input.context,
+      clock: { now: () => new Date(validatedAt) },
+    },
+  };
   const steps: ValidatedAssistantPlan["steps"][number][] = [];
 
   for (const proposedCommand of input.commands) {
-    const result = validateStep(proposedCommand, input);
+    const result = validateStep(proposedCommand, validationInput);
     if (!result.ok) {
       return result;
     }
@@ -43,6 +51,7 @@ export function validateAssistantPlan(input: {
       kind: input.kind,
       originalText: input.originalText,
       steps: Object.freeze(steps),
+      validatedAt,
     }),
   };
 }

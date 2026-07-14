@@ -18,4 +18,5 @@ export interface ValidatedAssistantPlan {
   readonly kind: "single" | "compound";
   readonly originalText: string;
   readonly steps: readonly ValidatedAssistantPlanStep[];
+  readonly validatedAt: string;
 }

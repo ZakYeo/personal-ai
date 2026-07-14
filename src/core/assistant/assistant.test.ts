@@ -19,6 +19,7 @@ import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import { createScheduledAlarmRecord } from "../../test-support/primitives.js";
+import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
 
 const config = createAssistantConfig({
   test: { enabled: true },
@@ -662,6 +663,69 @@ describe("createAssistant", () => {
     });
     expect(interpret).toHaveBeenCalledTimes(1);
     expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("executes a relative alarm at the exact time shown before the clock advances", async () => {
+    let now = new Date("2026-06-26T09:00:00.000Z");
+    const mutableClock = { now: () => now };
+    const store = createInMemoryAlarmStore({ now: () => now });
+    const assistant = createAssistant({
+      clock: mutableClock,
+      config: createAssistantConfig({
+        alarms: { enabled: true },
+        test: { enabled: true },
+      }),
+      features: [createFeature(), createAlarmFeature(store)],
+      intentInterpreter: createInterpreter({
+        kind: "plan",
+        plan: {
+          commands: [
+            createCommand("test.echo"),
+            createCommand("alarm.create", {
+              label: "tea",
+              minutesFromNow: 10,
+            }),
+          ],
+        },
+      }),
+    });
+
+    await expect(assistant.handleText("set a tea alarm")).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: "Please confirm this plan: 1. set the tea alarm for 2026-06-26T09:10:00.000Z. Say yes or no.",
+    });
+
+    now = new Date("2026-06-26T09:05:00.000Z");
+    await expect(
+      assistant.handleTextWithDiagnostics("yes"),
+    ).resolves.toMatchObject({
+      plan: {
+        steps: [
+          {
+            capability: "test.echo",
+            status: "succeeded",
+          },
+          {
+            data: {
+              label: "tea",
+              scheduledFor: "2026-06-26T09:10:00.000Z",
+            },
+            status: "succeeded",
+          },
+        ],
+      },
+      response: {
+        status: "ok",
+        text: "Handled. Alarm set for 2026-06-26T09:10:00.000Z (tea).",
+      },
+    });
+    await expect(store.list()).resolves.toEqual([
+      expect.objectContaining({
+        label: "tea",
+        scheduledFor: "2026-06-26T09:10:00.000Z",
+      }),
+    ]);
   });
 
   it("cancels a pending command after an explicit rejection", async () => {

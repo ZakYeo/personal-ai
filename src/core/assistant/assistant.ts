@@ -151,7 +151,9 @@ function executeValidatedPlan(
   dependencies: AssistantDependencies,
 ): Promise<AssistantOutcome> {
   const context: AssistantContext = {
-    clock: dependencies.clock,
+    clock: planRequiresConfirmation(plan)
+      ? { now: () => new Date(plan.validatedAt) }
+      : dependencies.clock,
     config: dependencies.config,
   };
   const executionContext = {
