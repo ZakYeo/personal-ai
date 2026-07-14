@@ -106,11 +106,35 @@ describe("OpenAIIntentInterpreter", () => {
     );
   });
 
+  it("rejects a command branch with a populated plan", async () => {
+    const interpreter = createInterpreter({
+      fetch: createFetchStub(
+        jsonResponse({
+          output_text: JSON.stringify({
+            command: {
+              capability: "alarm.list",
+              parameters: [],
+              rawText: "list alarms",
+            },
+            kind: "command",
+            plan: { commands: [] },
+            response: null,
+          }),
+        }),
+      ),
+    });
+
+    await expect(interpreter.interpret("list alarms", context)).rejects.toThrow(
+      "OpenAI intent command response must set plan to null.",
+    );
+  });
+
   it("returns a command from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({
         output_text: JSON.stringify({
           kind: "command",
+          plan: null,
           command: {
             capability: "calendar.search_events",
             parameters: [{ name: "query", value: "upcoming wedding" }],
@@ -222,6 +246,7 @@ describe("OpenAIIntentInterpreter", () => {
         output_text: JSON.stringify({
           kind: "conversation",
           command: null,
+          plan: null,
           response: null,
         }),
       }),
@@ -235,12 +260,13 @@ describe("OpenAIIntentInterpreter", () => {
     });
   });
 
-  it("returns a conversation classification when provider includes fallback response text", async () => {
+  it("rejects conversation output with fallback response text", async () => {
     const fetch = createFetchStub(
       jsonResponse({
         output_text: JSON.stringify({
           kind: "conversation",
           command: null,
+          plan: null,
           response: {
             status: "ok",
             text: "I am doing well.",
@@ -252,9 +278,9 @@ describe("OpenAIIntentInterpreter", () => {
 
     await expect(
       interpreter.interpret("Hey Jarvis, how are you today?", context),
-    ).resolves.toEqual({
-      kind: "conversation",
-    });
+    ).rejects.toThrow(
+      "OpenAI intent conversation response must set command, plan, and response to null.",
+    );
   });
 
   it("returns an unsupported response from structured provider output", async () => {
@@ -263,6 +289,7 @@ describe("OpenAIIntentInterpreter", () => {
         output_text: JSON.stringify({
           kind: "unsupported",
           command: null,
+          plan: null,
           response: {
             status: "unsupported",
             text: "I cannot do that.",
@@ -292,6 +319,7 @@ describe("OpenAIIntentInterpreter", () => {
               {
                 text: JSON.stringify({
                   kind: "command",
+                  plan: null,
                   command: {
                     capability: "alarm.list",
                     parameters: [],
@@ -388,6 +416,7 @@ describe("OpenAIIntentInterpreter", () => {
         jsonResponse({
           output_text: JSON.stringify({
             kind: "command",
+            plan: null,
             command: {
               capability: "alarm.create",
               parameters: [{ name: "nested", value: { unsafe: true } }],
@@ -412,6 +441,7 @@ describe("OpenAIIntentInterpreter", () => {
         jsonResponse({
           output_text: JSON.stringify({
             kind: "command",
+            plan: null,
             command: {
               capability: "alarm.create",
               parameters: [

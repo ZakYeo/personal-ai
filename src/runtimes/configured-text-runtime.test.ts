@@ -107,6 +107,7 @@ describe("createConfiguredTextRuntime", () => {
         JSON.stringify({
           output_text: JSON.stringify({
             kind: "command",
+            plan: null,
             command: {
               capability: "alarm.list",
               parameters: [],
@@ -144,6 +145,7 @@ describe("createConfiguredTextRuntime", () => {
             output_text: JSON.stringify({
               command: null,
               kind: "conversation",
+              plan: null,
               response: null,
             }),
           }),
@@ -176,6 +178,7 @@ describe("createConfiguredTextRuntime", () => {
             output_text: JSON.stringify({
               command: null,
               kind: "conversation",
+              plan: null,
               response: null,
             }),
           }),
@@ -220,6 +223,7 @@ describe("createConfiguredTextRuntime", () => {
             output_text: JSON.stringify({
               command: null,
               kind: "conversation",
+              plan: null,
               response: null,
             }),
           }),

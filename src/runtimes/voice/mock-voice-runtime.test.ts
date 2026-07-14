@@ -85,6 +85,7 @@ describe("mock voice runtime", () => {
       jsonResponse({
         output_text: JSON.stringify({
           kind: "command",
+          plan: null,
           command: {
             capability: "alarm.list",
             parameters: [],
@@ -120,6 +121,7 @@ describe("mock voice runtime", () => {
         output_text: JSON.stringify({
           command: null,
           kind: "conversation",
+          plan: null,
           response: null,
         }),
       }),

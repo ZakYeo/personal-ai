@@ -74,6 +74,7 @@ export async function runCasualConversationStreamingSmoke(input: {
         output_text: JSON.stringify({
           command: null,
           kind: "conversation",
+          plan: null,
           response: {
             status: "ok",
             text: input.responseText,
@@ -137,6 +138,7 @@ export function createFollowUpRealtimeSmoke(): {
           output_text: JSON.stringify({
             command: null,
             kind: "conversation",
+            plan: null,
             response: null,
           }),
         }),
@@ -159,6 +161,7 @@ export function createFollowUpRealtimeSmoke(): {
               rawText: followUpUtterance,
             },
             kind: "command",
+            plan: null,
             response: null,
           }),
         }),

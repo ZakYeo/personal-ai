@@ -30,6 +30,11 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
         "OpenAI intent command response must set response to null.",
       );
     }
+    if (value.plan !== null) {
+      throw new OpenAIIntentError(
+        "OpenAI intent command response must set plan to null.",
+      );
+    }
 
     return {
       command: parseCommand(value.command),
@@ -51,9 +56,13 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   if (value.kind === "conversation") {
-    if (value.command !== null) {
+    if (
+      value.command !== null ||
+      value.plan !== null ||
+      value.response !== null
+    ) {
       throw new OpenAIIntentError(
-        "OpenAI intent conversation response must set command to null.",
+        "OpenAI intent conversation response must set command, plan, and response to null.",
       );
     }
 
@@ -66,6 +75,11 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
     if (value.command !== null) {
       throw new OpenAIIntentError(
         "OpenAI intent fallback response must set command to null.",
+      );
+    }
+    if (value.plan !== null) {
+      throw new OpenAIIntentError(
+        "OpenAI intent fallback response must set plan to null.",
       );
     }
 
