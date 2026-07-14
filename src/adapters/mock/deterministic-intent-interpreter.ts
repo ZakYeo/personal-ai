@@ -32,7 +32,11 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
       this.rules,
     );
     if (clauseInterpretation) {
-      if (clauseInterpretation.requestedCount > 3) {
+      if (
+        clauseInterpretation.requestedCount > 3 &&
+        (clauseInterpretation.explicitSequence ||
+          clauseInterpretation.fullyResolved)
+      ) {
         return Promise.resolve({
           kind: "unsupported",
           response: {
@@ -42,7 +46,10 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
         });
       }
 
-      if (!clauseInterpretation.fullyResolved) {
+      if (
+        !clauseInterpretation.fullyResolved &&
+        clauseInterpretation.explicitSequence
+      ) {
         return Promise.resolve({
           kind: "unsupported",
           response: {
@@ -52,10 +59,12 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
         });
       }
 
-      return Promise.resolve({
-        kind: "plan",
-        plan: { commands: clauseInterpretation.commands },
-      });
+      if (clauseInterpretation.fullyResolved) {
+        return Promise.resolve({
+          kind: "plan",
+          plan: { commands: clauseInterpretation.commands },
+        });
+      }
     }
 
     const commands: AssistantCommand[] = [];
@@ -79,7 +88,17 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
     }
 
     if (commands.length > 1) {
-      return Promise.resolve({ kind: "plan", plan: { commands } });
+      return Promise.resolve(
+        clauseInterpretation
+          ? {
+              kind: "unsupported",
+              response: {
+                status: "unsupported",
+                text: "I could not resolve every command in that request.",
+              },
+            }
+          : { kind: "plan", plan: { commands } },
+      );
     }
 
     return Promise.resolve({
@@ -99,6 +118,7 @@ function interpretClauses(
 ):
   | {
       commands: AssistantCommand[];
+      explicitSequence: boolean;
       fullyResolved: boolean;
       requestedCount: number;
     }
@@ -128,7 +148,12 @@ function interpretClauses(
     fullyResolved &&= resolved;
   }
 
-  return { commands, fullyResolved, requestedCount: clauses.length };
+  return {
+    commands,
+    explicitSequence: /\b(?:and then|then)\b/u.test(normalizedText),
+    fullyResolved,
+    requestedCount: clauses.length,
+  };
 }
 
 export function normalizeCommandText(

@@ -196,6 +196,31 @@ describe("DeterministicIntentInterpreter", () => {
     });
   });
 
+  it("preserves conjunctions inside a single command argument", async () => {
+    const interpreter = new DeterministicIntentInterpreter([
+      {
+        capability: "alarm.create",
+        match: (text) =>
+          text === "set an alarm to fish and chips in 10 minutes"
+            ? { label: "fish and chips", minutesFromNow: 10 }
+            : undefined,
+      },
+    ]);
+
+    await expect(
+      interpreter.interpret(
+        "Set an alarm to fish and chips in 10 minutes",
+        context,
+      ),
+    ).resolves.toMatchObject({
+      command: {
+        capability: "alarm.create",
+        parameters: { label: "fish and chips", minutesFromNow: 10 },
+      },
+      kind: "command",
+    });
+  });
+
   it("does not own feature-specific default routing rules", async () => {
     const interpreter = new DeterministicIntentInterpreter();
 
