@@ -1,3 +1,6 @@
+import type { AssistantContext } from "./assistant.js";
+import type { ConfirmationDeclaration } from "./feature.js";
+
 export interface FeatureCapability {
   name: string;
   risk: "low" | "high";
@@ -6,6 +9,10 @@ export interface FeatureCapability {
   description?: string;
   requiresConfirmation?: boolean;
   parameters?: Record<string, FeatureCapabilityParameter>;
+  renderConfirmation?: (
+    args: Record<string, string | number | boolean | undefined>,
+    context: AssistantContext,
+  ) => ConfirmationDeclaration;
 }
 
 export interface FeatureCapabilityParameter {

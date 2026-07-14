@@ -32,7 +32,7 @@ export const deterministicScenarios = {
     response: {
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "I need confirmation before doing that. Please confirm yes or no.",
+      text: "Please confirm: 1. set the ping me alarm for 2026-06-26T09:10:00.000Z. Say yes or no.",
     },
   },
   alarmListEmpty: {

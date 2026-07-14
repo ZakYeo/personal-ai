@@ -132,6 +132,81 @@ describe("createAssistant", () => {
     });
     expect(execute).not.toHaveBeenCalled();
   });
+
+  it("aggregates exact confirmation declarations and resumes the frozen plan", async () => {
+    const execute = vi.fn(() => Promise.resolve({ text: "Alarm created." }));
+    const interpret = vi.fn(() =>
+      Promise.resolve({
+        kind: "plan" as const,
+        plan: {
+          commands: [
+            createCommand("test.echo"),
+            createCommand("alarm.create", { label: "tea", minutesFromNow: 10 }),
+          ],
+        },
+      }),
+    );
+    const assistant = createAssistant({
+      clock,
+      config: createAssistantConfig({
+        alarms: { enabled: true },
+        test: { enabled: true },
+      }),
+      features: [
+        createFeature(),
+        createFeature({
+          id: "alarms",
+          capability: {
+            name: "alarm.create",
+            risk: "high",
+            parameters: {
+              label: { type: "string" },
+              minutesFromNow: { type: "number", required: true },
+            },
+          },
+          confirmation: (args) => ({
+            facts: { label: args.label, minutesFromNow: args.minutesFromNow },
+            text: `set the ${String(args.label)} alarm in ${String(args.minutesFromNow)} minutes`,
+          }),
+          execute,
+        }),
+      ],
+      intentInterpreter: { interpret },
+    });
+
+    await expect(assistant.handleText("do both")).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: "Please confirm this plan: 1. set the tea alarm in 10 minutes. Say yes or no.",
+    });
+    await expect(assistant.handleText("yes")).resolves.toMatchObject({
+      status: "ok",
+      text: "Handled. Alarm created.",
+    });
+    expect(interpret).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed when a high-risk capability lacks confirmation rendering", async () => {
+    const execute = vi.fn(() => Promise.resolve({ text: "Unsafe." }));
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [
+        createFeature({
+          capability: { name: "test.echo", risk: "high", parameters: {} },
+          execute,
+        }),
+      ],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+    });
+
+    await expect(assistant.handleText("do it")).resolves.toEqual({
+      status: "error",
+      text: "I could not complete that command.",
+    });
+    expect(execute).not.toHaveBeenCalled();
+  });
   it("routes interpreted commands to an enabled feature", async () => {
     const command = createCommand("test.echo", { message: "hello" });
     const execute = vi.fn(() =>

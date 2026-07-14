@@ -8,7 +8,11 @@ import type {
   AssistantResponse,
   ClockPort,
 } from "../../ports/assistant.js";
-import type { FeatureArguments, FeaturePlugin } from "../../ports/feature.js";
+import type {
+  ConfirmationDeclaration,
+  FeatureArguments,
+  FeaturePlugin,
+} from "../../ports/feature.js";
 import type {
   CapabilityRoute,
   CapabilityRoutingIndex,
@@ -162,16 +166,33 @@ async function handleTextInternal(
     );
 
     if (confirmationError) {
-      return confirmation.request(() =>
-        executeCommand({
-          command,
-          context,
-          decodedArgs: decodedCommand.args,
-          dependencies,
-          executionContext,
-          feature,
-          normalizedText,
-        }),
+      const declaration = renderConfirmation(
+        capability,
+        decodedCommand.args,
+        context,
+      );
+      if (capability.risk === "high" && !declaration) {
+        return featureFailureOutcome(
+          new Error(
+            `${capability.name} requires a deterministic confirmation renderer.`,
+          ),
+          capability.name,
+        );
+      }
+      return confirmation.request(
+        () =>
+          executeCommand({
+            command,
+            context,
+            decodedArgs: decodedCommand.args,
+            dependencies,
+            executionContext,
+            feature,
+            normalizedText,
+          }),
+        declaration
+          ? createConfirmationPrompt([declaration], false)
+          : undefined,
       );
     }
 
@@ -191,6 +212,7 @@ async function handleTextInternal(
 
 interface ValidatedPlanStep {
   command: AssistantCommand;
+  confirmation?: ConfirmationDeclaration;
   decodedArgs: FeatureArguments;
   route: CapabilityRoute<FeaturePlugin>;
 }
@@ -241,12 +263,28 @@ async function handleProposedPlan(input: {
       return outcomeFromError(decoded.error);
     }
 
-    requiresConfirmation ||=
+    const confirmationRequired =
       evaluateConfirmationPolicy(
         feature,
         route.capability,
         input.dependencies.config,
       ) !== undefined;
+    requiresConfirmation ||= confirmationRequired;
+    const confirmation = confirmationRequired
+      ? renderConfirmation(route.capability, decoded.args, input.context)
+      : undefined;
+    if (
+      confirmationRequired &&
+      route.capability.risk === "high" &&
+      !confirmation
+    ) {
+      return featureFailureOutcome(
+        new Error(
+          `${route.capability.name} requires a deterministic confirmation renderer.`,
+        ),
+        route.capability.name,
+      );
+    }
     steps.push(
       Object.freeze({
         command: Object.freeze({
@@ -254,6 +292,7 @@ async function handleProposedPlan(input: {
           parameters: Object.freeze({ ...command.parameters }),
         }),
         decodedArgs: Object.freeze({ ...decoded.args }),
+        ...(confirmation ? { confirmation: Object.freeze(confirmation) } : {}),
         route,
       }),
     );
@@ -268,7 +307,59 @@ async function handleProposedPlan(input: {
       normalizedText: input.normalizedText,
     });
 
-  return requiresConfirmation ? input.confirmation.request(execute) : execute();
+  return requiresConfirmation
+    ? input.confirmation.request(
+        execute,
+        createConfirmationPrompt(
+          validatedSteps.flatMap((step) =>
+            step.confirmation ? [step.confirmation] : [],
+          ),
+          true,
+        ),
+      )
+    : execute();
+}
+
+function renderConfirmation(
+  capability: CapabilityRoute<FeaturePlugin>["capability"],
+  args: FeatureArguments,
+  context: AssistantContext,
+): ConfirmationDeclaration | undefined {
+  const declaration = capability.renderConfirmation?.(args, context);
+
+  return declaration
+    ? {
+        facts: Object.freeze({ ...declaration.facts }),
+        text: declaration.text,
+      }
+    : undefined;
+}
+
+function createConfirmationPrompt(
+  declarations: readonly ConfirmationDeclaration[],
+  plan: boolean,
+): AssistantOutcome {
+  if (declarations.length === 0) {
+    return {
+      response: {
+        expectsFollowUp: true,
+        status: "needs_confirmation",
+        text: "I need confirmation before doing that. Please confirm yes or no.",
+      },
+    };
+  }
+
+  const actions = declarations
+    .map((declaration, index) => `${index + 1}. ${declaration.text}.`)
+    .join(" ");
+
+  return {
+    response: {
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: `${plan ? "Please confirm this plan" : "Please confirm"}: ${actions} Say yes or no.`,
+    },
+  };
 }
 
 async function executeValidatedPlan(

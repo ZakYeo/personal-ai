@@ -101,6 +101,27 @@ describe("createAlarmFeature", () => {
     expectFeatureHandles(feature, "alarm.list", "calendar.search_events");
   });
 
+  it("renders exact confirmation facts for risky alarm changes", () => {
+    const feature = createAlarmFeature(createTestAlarmStore());
+    const create = feature.capabilities.find(
+      (capability) => capability.name === "alarm.create",
+    );
+
+    expect(
+      create?.renderConfirmation?.(
+        { label: "tea", minutesFromNow: 10 },
+        context,
+      ),
+    ).toEqual({
+      facts: {
+        label: "tea",
+        minutesFromNow: 10,
+        scheduledFor: "2026-06-26T09:10:00.000Z",
+      },
+      text: "set the tea alarm for 2026-06-26T09:10:00.000Z",
+    });
+  });
+
   it("creates deterministic alarms using the injected clock", async () => {
     await expectDecodedFeatureExecution(
       createAlarmFeature(createTestAlarmStore()),

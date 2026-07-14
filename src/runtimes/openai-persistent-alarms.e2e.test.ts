@@ -27,7 +27,7 @@ describe.skipIf(!runOpenAIE2E)("OpenAI persistent alarms live E2E", () => {
     ).resolves.toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "I need confirmation before doing that. Please confirm yes or no.",
+      text: "Please confirm: 1. set the tea alarm for 2026-07-13T16:10:00.000Z. Say yes or no.",
     });
     await expect(access(statePath)).rejects.toMatchObject({ code: "ENOENT" });
 

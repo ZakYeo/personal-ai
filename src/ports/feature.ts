@@ -28,6 +28,11 @@ export interface FeatureResult {
   data?: AssistantCommandParameters;
 }
 
+export interface ConfirmationDeclaration {
+  facts: AssistantCommandParameters;
+  text: string;
+}
+
 export type FeatureArgumentValue = string | number | boolean | undefined;
 export type FeatureArguments = Record<string, FeatureArgumentValue>;
 
@@ -89,6 +94,11 @@ type MaybePromise<TValue> = TValue | Promise<TValue>;
 type DefinedCapability<
   TParameters extends FeatureCapabilityParameters = FeatureCapabilityParameters,
 > = Omit<FeatureCapability, "name" | "parameters"> & {
+  confirmation?(
+    this: void,
+    args: FeatureArgsFromParameters<TParameters>,
+    context: AssistantContext,
+  ): ConfirmationDeclaration;
   parameters: TParameters;
   execute(
     this: void,
@@ -107,6 +117,7 @@ export function defineCapability<
 }
 
 type AnyDefinedCapability = Omit<FeatureCapability, "name" | "parameters"> & {
+  confirmation?: unknown;
   parameters: FeatureCapabilityParameters;
   execute: unknown;
 };
@@ -175,6 +186,13 @@ export function defineFeature<
       ...(handler.requiresConfirmation === undefined
         ? {}
         : { requiresConfirmation: handler.requiresConfirmation }),
+      ...(typeof handler.confirmation === "function"
+        ? {
+            renderConfirmation: handler.confirmation as NonNullable<
+              FeatureCapability["renderConfirmation"]
+            >,
+          }
+        : {}),
       parameters: handler.parameters,
     })),
     ...(definition.canHandle

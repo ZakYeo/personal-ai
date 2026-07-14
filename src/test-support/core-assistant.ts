@@ -16,6 +16,7 @@ import type {
   FeatureArgsFromParameters,
   FeatureCapability,
   FeatureCapabilityParameters,
+  ConfirmationDeclaration,
   FeatureExecutionRequest,
   FeaturePlugin,
   FeatureResult,
@@ -149,6 +150,7 @@ export function createFeature<
       Promise.resolve({
         text: "Handled.",
       }));
+  const confirmation = overrides.confirmation;
 
   return defineFeature({
     id: overrides.id ?? "test",
@@ -160,6 +162,7 @@ export function createFeature<
           ? {}
           : { requiresConfirmation: capability.requiresConfirmation }),
         parameters,
+        ...(confirmation ? { confirmation } : {}),
         execute,
       }),
     },
@@ -183,6 +186,10 @@ interface TestFeatureOverrides<
     >,
     context: AssistantContext,
   ) => Promise<FeatureResult>;
+  confirmation?: (
+    args: FeatureArgsFromParameters<TParameters>,
+    context: AssistantContext,
+  ) => ConfirmationDeclaration;
 }
 
 export function createRawFeature(

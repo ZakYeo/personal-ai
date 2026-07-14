@@ -1,7 +1,10 @@
 import type { AssistantOutcome } from "../../ports/assistant.js";
 
 export interface ConfirmationSession {
-  request(execute: () => Promise<AssistantOutcome>): AssistantOutcome;
+  request(
+    execute: () => Promise<AssistantOutcome>,
+    prompt?: AssistantOutcome,
+  ): AssistantOutcome;
   run(
     input: string,
     handle: () => Promise<AssistantOutcome>,
@@ -9,14 +12,16 @@ export interface ConfirmationSession {
 }
 
 export function createConfirmationSession(): ConfirmationSession {
-  let pending: (() => Promise<AssistantOutcome>) | undefined;
+  let pending:
+    | { execute: () => Promise<AssistantOutcome>; prompt: AssistantOutcome }
+    | undefined;
   let queue = Promise.resolve();
 
   return {
-    request(execute) {
-      pending = execute;
+    request(execute, prompt = confirmationPrompt) {
+      pending = { execute, prompt };
 
-      return confirmationPrompt;
+      return prompt;
     },
     run(input, handle) {
       const turn = queue.then(() => {
@@ -27,10 +32,10 @@ export function createConfirmationSession(): ConfirmationSession {
         const decision = parseConfirmation(input);
 
         if (decision === "pending") {
-          return confirmationPrompt;
+          return pending.prompt;
         }
 
-        const execute = pending;
+        const execute = pending.execute;
         pending = undefined;
 
         return decision === "confirmed" ? execute() : cancelledOutcome;

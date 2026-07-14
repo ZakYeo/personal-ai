@@ -46,6 +46,13 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
           spokenSummary: "manage local alarms",
           requiresConfirmation: true,
           parameters: alarmTargetParameters,
+          confirmation: (args) => ({
+            facts: {
+              ...(args.id ? { id: args.id } : {}),
+              ...(args.label ? { label: args.label } : {}),
+            },
+            text: `cancel the ${formatAlarmTarget(args)} alarm`,
+          }),
           execute: (request, context) =>
             cancelAlarm(request.args, context, store),
         }),
@@ -58,6 +65,31 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
           spokenSummary: "manage local alarms",
           requiresConfirmation: true,
           parameters: alarmCreateParameters,
+          confirmation: (args, context) => {
+            const scheduledFor = relativeTime(
+              context.clock.now(),
+              args.minutesFromNow,
+            );
+            const label = args.label ?? "alarm";
+            return {
+              facts: {
+                label,
+                minutesFromNow: args.minutesFromNow,
+                ...(args.recurrenceFrequency
+                  ? { recurrenceFrequency: args.recurrenceFrequency }
+                  : {}),
+                ...(args.recurrenceTimeZone
+                  ? { recurrenceTimeZone: args.recurrenceTimeZone }
+                  : {}),
+                scheduledFor,
+              },
+              text: `set the ${label} alarm for ${scheduledFor}${
+                args.recurrenceFrequency && args.recurrenceTimeZone
+                  ? `, repeating ${args.recurrenceFrequency} in ${args.recurrenceTimeZone}`
+                  : ""
+              }`,
+            };
+          },
           execute: (request, context: AssistantContext) =>
             createAlarm(request.args, context, store),
         }),
@@ -97,6 +129,21 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
           spokenSummary: "manage local alarms",
           requiresConfirmation: true,
           parameters: alarmDelayTargetParameters,
+          confirmation: (args, context) => {
+            const scheduledFor = relativeTime(
+              context.clock.now(),
+              args.minutesFromNow,
+            );
+            return {
+              facts: {
+                ...(args.id ? { id: args.id } : {}),
+                ...(args.label ? { label: args.label } : {}),
+                minutesFromNow: args.minutesFromNow,
+                scheduledFor,
+              },
+              text: `reschedule the ${formatAlarmTarget(args)} alarm for ${scheduledFor}`,
+            };
+          },
           execute: (request, context) =>
             rescheduleAlarm(request.args, context, store),
         }),
@@ -114,4 +161,12 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
     }),
     alarmDeterministicIntentRules,
   );
+}
+
+function relativeTime(now: Date, minutesFromNow: number): string {
+  return new Date(now.getTime() + minutesFromNow * 60_000).toISOString();
+}
+
+function formatAlarmTarget(input: { id?: string; label?: string }): string {
+  return input.label ?? input.id ?? "selected";
 }
