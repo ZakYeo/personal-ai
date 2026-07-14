@@ -80,6 +80,7 @@ function createAlarmComposition(
             },
             shutdownSignal: context.shutdownSignal,
             store: alarmStore,
+            ...(context.timer ? { timer: context.timer } : {}),
           }),
       },
     ],

@@ -139,6 +139,42 @@ describe("processAlarmSchedulerCycle", () => {
 });
 
 describe("runAlarmScheduler", () => {
+  it("rechecks a live clock and delivers after a forward wall-clock jump", async () => {
+    let now = new Date("2026-07-14T09:00:00.000Z");
+    const shutdown = new AbortController();
+    const waits: number[] = [];
+    const delivered: AlarmDeliveryRequest[] = [];
+    const fixture = await createFixture("2026-07-14T09:10:00.000Z");
+
+    await runAlarmScheduler({
+      clock: { now: () => now },
+      clockRecheckMs: 1000,
+      config: { missedGraceMs, repeatAfterMs },
+      delivery: {
+        deliver: (alarm) => {
+          delivered.push(alarm);
+          shutdown.abort();
+          return Promise.resolve();
+        },
+      },
+      reportDeliveryFailure: () => {},
+      shutdownSignal: shutdown.signal,
+      store: fixture.store,
+      timer: {
+        wait: (delayMs) => {
+          waits.push(delayMs);
+          now = new Date("2026-07-14T09:10:00.000Z");
+          return Promise.resolve();
+        },
+      },
+    });
+
+    expect(waits).toEqual([1000]);
+    expect(delivered).toEqual([
+      expect.objectContaining({ id: fixture.alarm.id }),
+    ]);
+  });
+
   it("bounds future waits and stops promptly through the shutdown signal", async () => {
     const fixture = await createFixture("2026-07-14T10:00:00.000Z");
     const shutdown = new AbortController();

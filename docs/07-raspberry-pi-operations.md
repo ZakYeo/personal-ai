@@ -193,9 +193,11 @@ for an operator-chosen observation period.
 and deterministic service behavior without network or Pi hardware.
 
 `npm run test:e2e:openai:pi` is an opt-in live-provider smoke. It uses live
-OpenAI intent routing through Pi service composition, confirms an alarm, checks
-durable state, lists the alarm, and verifies clean service shutdown. It does not
-validate microphone, speaker, ALSA, SoX, wake-word, or other audio hardware.
+OpenAI intent routing through Pi service composition, confirms an alarm,
+advances it to its due time, delivers it through injected output adapters,
+acknowledges it, checks durable lifecycle state, lists it, and verifies clean
+service shutdown. It does not validate microphone, speaker, ALSA, SoX,
+wake-word, or other audio hardware.
 
 `npm run smoke:pi:qemu -- --config path/to/pi-config.json --image
 path/to/raspios.img --kernel path/to/kernel8.img --dtb path/to/pi.dtb` prints a

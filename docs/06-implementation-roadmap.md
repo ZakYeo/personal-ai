@@ -844,8 +844,9 @@ Included:
   from repeatedly firing after process restart.
 - Human-facing acknowledgement, dismissal, and cancellation paths with internal
   diagnostics and graceful delivery-failure responses.
-- Deterministic scheduler, restart, clock-change, shutdown, and delivery-failure
-  tests, plus explicit opt-in device smoke coverage.
+- Deterministic scheduler, full-composition restart, clock-change, shutdown, and
+  delivery-failure tests, plus an explicit opt-in Pi composition delivery smoke
+  and a separate manual hardware checklist.
 
 Excluded:
 

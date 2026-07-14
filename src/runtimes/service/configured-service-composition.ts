@@ -41,6 +41,7 @@ interface ConfiguredServiceCompositionOptions extends Pick<
   }) => NotificationDeliveryPort;
   config?: LoadedRuntimeConfig;
   configPath?: string;
+  backgroundTaskTimer?: RuntimeBackgroundTaskContext["timer"];
   io?: ServiceRuntimeIo;
   processSignals?: ServiceProcessSignals;
   retryAfterFailure?: (context: ServiceTurnFailureContext) => Promise<void>;
@@ -113,6 +114,9 @@ export async function runConfiguredServiceRuntime(
                   logRuntimeFailure(error, options.io ?? {});
                 },
                 shutdownSignal: context.shutdownSignal,
+                ...(options.backgroundTaskTimer
+                  ? { timer: options.backgroundTaskTimer }
+                  : {}),
               });
             } catch (error) {
               backgroundTaskFailed = true;

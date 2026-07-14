@@ -42,6 +42,7 @@ export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   "configDirectory" | "env" | "featureAdapterRegistry" | "fetch" | "now"
 > {
   config?: LoadedRuntimeConfig;
+  backgroundTaskTimer?: RuntimeBackgroundTaskContext["timer"];
   notificationDelivery?: NotificationDeliveryPort;
   configPath?: string;
   createVoiceAdapters?: (

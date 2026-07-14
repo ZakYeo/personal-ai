@@ -12,18 +12,31 @@ import { runPiServiceRuntime } from "./pi-service-runtime.js";
 const runOpenAIE2E = env.PERSONAL_AI_RUN_OPENAI_E2E === "1";
 
 describe.skipIf(!runOpenAIE2E)("Pi service OpenAI alarms live E2E", () => {
-  it("confirms and persists an OpenAI-routed alarm through Pi composition", async () => {
+  it("confirms, delivers, and acknowledges an OpenAI-routed alarm through Pi composition", async () => {
     const fixture = await createPiServiceAlarmFixture();
     const signals = createServiceSignalController();
     let activationError: Error | undefined;
+    let now = new Date("2026-07-13T16:00:00.000Z");
+    const spokenNotifications: string[] = [];
 
     try {
       const result = await runPiServiceRuntime({
         configPath: fixture.configPath,
         createVoiceAdapters: () => createPiServiceAdapterDoubles(),
+        createVoiceOutputAdapters: () => ({
+          audioOutput: {
+            play: (speech) => {
+              spokenNotifications.push(speech.text ?? "");
+              return Promise.resolve();
+            },
+          },
+          textToSpeech: {
+            synthesize: (text) => Promise.resolve({ text }),
+          },
+        }),
         env: { OPENAI_API_KEY: env.OPENAI_API_KEY },
         fetch: globalThis.fetch,
-        now: () => new Date("2026-07-13T16:00:00.000Z"),
+        now: () => now,
         processSignals: signals,
         retryAfterFailure: createStopAfterPiServiceFailure(signals),
         runVoiceActivation: async ({ assistant }) => {
@@ -41,6 +54,29 @@ describe.skipIf(!runOpenAIE2E)("Pi service OpenAI alarms live E2E", () => {
               status: "ok",
               text: "Alarm set for 2026-07-13T16:10:00.000Z (tea).",
             });
+            now = new Date("2026-07-13T16:10:00.000Z");
+            await vi.waitFor(
+              () => {
+                expect(spokenNotifications).toEqual(["Alarm: tea."]);
+              },
+              { timeout: 3000 },
+            );
+            await vi.waitFor(
+              async () => {
+                await expect(
+                  createFileAlarmStore({ filePath: fixture.statePath }).list(),
+                ).resolves.toEqual([
+                  expect.objectContaining({
+                    status: "ringing",
+                    successfulDeliveries: 1,
+                  }),
+                ]);
+              },
+              { timeout: 3000 },
+            );
+            await expect(
+              assistant.handleText("Acknowledge the tea alarm."),
+            ).resolves.toMatchObject({ status: "ok" });
             const response = await assistant.handleText("List my alarms.");
             expect(response.text).toContain("2026-07-13T16:10:00.000Z (tea)");
 
@@ -72,6 +108,7 @@ describe.skipIf(!runOpenAIE2E)("Pi service OpenAI alarms live E2E", () => {
         {
           label: "tea",
           scheduledFor: "2026-07-13T16:10:00.000Z",
+          status: "completed",
         },
       ]);
       expect(signals.listenerCount("SIGTERM")).toBe(0);
