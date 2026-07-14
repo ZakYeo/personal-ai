@@ -177,7 +177,7 @@ async function answerCalendarFollowUp(
   const selected = context.selectResultReference?.({
     ...(args.detail === "next" ? { next: true } : {}),
     ...(args.ordinal === undefined ? {} : { ordinal: args.ordinal }),
-    rawText: context.trustedInputText,
+    rawText: context.trustedInputText ?? "",
     ...(args.reference === undefined ? {} : { reference: args.reference }),
   });
 

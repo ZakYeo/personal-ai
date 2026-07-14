@@ -203,11 +203,11 @@ function executeValidatedPlan(
   const executionContext = {
     ...context,
     capabilityCatalog: dependencies.capabilityRouting.catalog,
-    trustedInputText: plan.originalText,
     ...(publicReferences.length > 0
       ? {
           selectResultReference: (request: ResultReferenceSelectionRequest) =>
             resultReferences.select(request),
+          trustedInputText: plan.originalText,
         }
       : {}),
   };
