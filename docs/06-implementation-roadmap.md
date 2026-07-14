@@ -14,9 +14,11 @@ with in-memory chat history are implemented.
 
 The file-backed alarm store establishes local state that survives restarts, and
 config-directory-relative paths now flow consistently through text, voice, and
-service composition. The next milestone hardens Raspberry Pi device operations.
-Alarm scheduling and notification delivery remain separate product work rather
-than implied outcomes of persistence.
+service composition. Raspberry Pi operations now include a tested systemd unit,
+stable deployment paths, a dedicated service account, and operator guidance.
+The next milestone adds another real capability. Alarm scheduling and
+notification delivery remain separate product work rather than implied outcomes
+of persistence.
 
 ## Milestone 1: Deterministic Text Assistant
 
@@ -782,7 +784,7 @@ Acceptance criteria:
 
 ## Milestone 7: Raspberry Pi Operations Hardening
 
-Status: next.
+Status: implemented.
 
 Goal: turn the implemented Pi service command into an operator-friendly device
 deployment path without making default validation depend on Raspberry Pi
@@ -795,6 +797,10 @@ Included:
 - Log and restart guidance for long-running service operation.
 - Optional smoke or checklist coverage for generated service files and expected
   command invocation.
+- A dedicated `personal-ai` service account with `/opt/personal-ai`,
+  `/etc/personal-ai`, and `/var/lib/personal-ai` ownership boundaries.
+- An opt-in live OpenAI smoke proving confirmed durable alarm creation through
+  Pi service composition without claiming audio hardware coverage.
 
 Excluded:
 

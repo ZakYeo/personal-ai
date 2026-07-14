@@ -16,7 +16,7 @@ SoX, curl, and jq using the Raspberry Pi OS package and Node installation method
 you trust. Confirm these commands before continuing:
 
 ```bash
-node --version
+/usr/bin/node --version
 npm --version
 python3 --version
 rec --version
@@ -24,6 +24,10 @@ play --version
 curl --version
 jq --version
 ```
+
+The committed unit invokes `/usr/bin/node`. If the trusted system installation
+puts Node elsewhere, update `ExecStart` in the local unit before installing it
+and keep the final absolute path under static review.
 
 Create a non-login service account. The systemd unit adds the process to the
 `audio` supplementary group while it runs.

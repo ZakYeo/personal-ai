@@ -423,6 +423,14 @@ should also guard against subtler boundary and abstraction drift.
 - Catching final unhandled errors before they cross the human interaction boundary.
 - Running CLI, desktop voice, or Raspberry Pi service loops.
 
+Installed Raspberry Pi process ownership remains outside the application
+layers. The systemd unit must run as the non-login `personal-ai` account, keep
+application files root-owned and read-only to the service, load credentials from
+an operator-owned environment file rather than the unit, and restrict durable
+writes to `/var/lib/personal-ai`. Static deployment validation belongs in the
+default gate; live providers, QEMU, and device audio remain explicit opt-in
+checks.
+
 ## Tooling
 
 The initial implementation should include architecture enforcement tooling.

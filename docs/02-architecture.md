@@ -158,6 +158,9 @@ Expected runtimes:
   signal, and shutdown behavior.
 - Raspberry Pi service runtime for deployment as a long-running device process
   using explicit local command-based voice configuration.
+- Raspberry Pi systemd composition outside the TypeScript runtime: root-owned
+  application files in `/opt/personal-ai`, operator config and credentials in
+  `/etc/personal-ai`, and service-owned durable state in `/var/lib/personal-ai`.
 
 The assistant core should not contain desktop-specific or Raspberry Pi-specific imports.
 

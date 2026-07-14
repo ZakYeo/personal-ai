@@ -231,7 +231,7 @@ It should:
 - Load device-specific configuration.
 - Log in a way that is suitable for a service.
 - Keep the service loop alive for recoverable command failures.
-- Eventually run under `systemd`.
+- Run under the tested systemd unit for installed device deployments.
 
 The first implemented service command is:
 
@@ -244,8 +244,9 @@ assistant core with the existing service loop, shared voice activation
 orchestration, and configured command-based voice adapters. The
 `config/pi-voice-openai.example.json` file shows the same openWakeWord and
 streaming OpenAI adapter IDs used by desktop with Pi-compatible command
-boundaries. Pi-specific command choices belong in local config, not in the
-checked-in default config.
+boundaries. Its deployed paths target `/opt/personal-ai` and persistent alarm
+state under `/var/lib/personal-ai`. Pi-specific command choices belong in local
+config, not in the checked-in default config.
 
 ## Configuration
 
@@ -594,13 +595,14 @@ For voice runtimes, producing some response is more important than preserving th
 
 ## Deployment Notes
 
-The first Raspberry Pi deployment should be intentionally simple:
-
-- Install Node.js.
-- Install application dependencies.
-- Provide environment-specific config.
-- Run `npm run cli -- pi-service --config path/to/pi-config.json`.
-- Later wrap it in `systemd`.
+The implemented Raspberry Pi deployment uses
+`deploy/systemd/personal-ai.service` and the operator procedure in
+`docs/07-raspberry-pi-operations.md`. It runs the built CLI as the dedicated
+`personal-ai` account, keeps application files in `/opt/personal-ai`, reads
+root-managed config and environment from `/etc/personal-ai`, and gives the
+service write access only to `/var/lib/personal-ai` plus its private temporary
+directory. The unit restarts on failure and preserves audio device access rather
+than enabling systemd's private-device isolation.
 
 An optional ARM64 Linux container smoke check can validate Pi-like userland
 compatibility without real hardware:
@@ -618,8 +620,9 @@ docker run --privileged --rm tonistiigi/binfmt --install arm64
 ```
 
 This container smoke path does not emulate Raspberry Pi audio hardware,
-firmware, GPIO, or `systemd`. Automated Raspberry Pi OS provisioning and
-`systemd` validation remain deferred.
+firmware, GPIO, or a running systemd manager. Static unit and deployment-guide
+validation is part of `npm run check`; automated Raspberry Pi OS provisioning
+remains deferred.
 
 The first Raspberry Pi OS QEMU smoke path is opt-in and operator-driven:
 
@@ -637,7 +640,8 @@ Dry-run QEMU and follow-up service commands shell-quote operator-provided paths
 so the printed form remains reproducible without evaluating embedded shell
 syntax.
 The command does not download Raspberry Pi OS images, kernels, or DTBs, does not
-provision `systemd`, and is not part of the deterministic `npm run check` gate.
+provision the committed systemd unit, and is not part of the deterministic
+`npm run check` gate.
 The executable wrapper owns process argv/env, exit code, filesystem lookup, and
 spawn wiring; parse, preflight, command construction, and run behavior live in
 injectable helpers.

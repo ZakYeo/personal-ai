@@ -10,6 +10,7 @@
   - `docs/04-runtime-plan.md`
   - `docs/05-feature-plugin-model.md`
   - `docs/06-implementation-roadmap.md`
+  - `docs/07-raspberry-pi-operations.md`
 - Keep implementation changes aligned with the ports-and-adapters architecture and dependency boundaries documented there.
 - Break work into thin, committable slices using TDD: write or update the failing test first, implement the smallest change that passes it, then make that slice a singular commit before starting the next slice.
 - Follow the failure-handling rule documented in `docs/03-boundaries-and-rules.md` and `docs/04-runtime-plan.md`: low-level code may throw, but human-facing runtime boundaries must catch final failures, log useful diagnostics, and produce a graceful CLI/voice/service response whenever possible. Feature failure responses must preserve diagnostics internally without echoing raw provider, adapter, credential, or stack details to the user.
@@ -56,7 +57,8 @@
 - The file-backed alarm store is selected with `features.alarms.adapter: "file"` and `features.alarms.state.path`; keep `config/default.json` on the deterministic in-memory `local` adapter, parse persisted data from `unknown`, sync file contents before atomic same-directory replacement, sync the parent directory afterward, and preserve primary and secondary cleanup diagnostics internally.
 - Resolve relative local state paths from the selected config file's directory and forward that source context through CLI, desktop voice, and Pi service composition; callers that inject parsed config must also inject `configDirectory` for relative state paths.
 - Treat a file-backed alarm state file as single-process-owned; operations are serialized per adapter instance, but cross-process locking and background scheduling are not provided.
-- The next planned product milestone is Raspberry Pi operations hardening with a tested `systemd` unit, dedicated service user, stable config/state paths, and operator logging/restart guidance.
+- Raspberry Pi deployment uses the tested `deploy/systemd/personal-ai.service` unit, the dedicated `personal-ai` account, `/opt/personal-ai` application files, `/etc/personal-ai` config and environment, and `/var/lib/personal-ai` durable state; keep credentials out of the unit and repository.
+- The next planned product milestone is an additional real capability behind an existing or new port, without weakening confirmation or deterministic validation boundaries.
 - Keep persistence ports asynchronous so feature success is not returned before durable work completes.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
 - Do not add `require*Config` identity wrappers for fields already required and resolved by `LoadedRuntimeConfig`; a resolver must prove a new invariant or narrow an optional shape.
@@ -129,6 +131,7 @@
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run test:e2e:openai` - run the opt-in live OpenAI intent routing E2E test with `.env`.
 - `npm run test:e2e:openai:alarms` - run the focused opt-in live OpenAI persistent-alarm creation-safety, listing, and restart smoke with `.env`.
+- `npm run test:e2e:openai:pi` - run the focused opt-in live OpenAI confirmed-alarm smoke through Raspberry Pi service composition without audio hardware.
 - `npm run build` - compile the production JavaScript output.
 - `npm start` - run the default desktop OpenAI voice service with `config/local-desktop-voice-openai.json`.
 - `npm run cli -- ask "..."` - run the deterministic text CLI in development; loads `.env` when present.

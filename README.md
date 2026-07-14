@@ -24,6 +24,8 @@ Implemented today:
   shutdown behavior.
 - Raspberry Pi service command that runs configured command-based voice turns in
   a long-running service loop.
+- Tested Raspberry Pi systemd deployment using a dedicated service account,
+  stable application/config/state paths, restart policy, and operator guidance.
 - Config-driven adapter selection for intent, features, and voice components.
 - Explicit nested feature adapter registration whose selected entries parse,
   retain, construct, and preflight their own typed adapter configuration.
@@ -59,20 +61,20 @@ Implemented today:
   unused-code, typecheck, test, and binary validation scripts.
 
 See the [implementation roadmap](docs/06-implementation-roadmap.md) for
-milestones, completed work, and planned state-lifecycle, Raspberry Pi operations,
-and additional provider work.
+milestones, completed work, and planned capability and provider work.
 
 Current roadmap position:
 
-- Milestones 1 through 6.2 are implemented in the repository, including the
+- Milestones 1 through 7 are implemented in the repository, including the
   deterministic text assistant, safety pipeline, harness hardening, tooling,
   mock and desktop voice runtimes, OpenAI intent routing, Google Calendar
   search, the neutral service runtime, the Raspberry Pi service command, opt-in
   Raspberry Pi OS QEMU smoke support, desktop voice service activation, and a
-  JSON-file-backed alarm store with consistent runtime path resolution.
-- The next planned product milestone adds Raspberry Pi `systemd` installation,
-  restart, logging, and device validation guidance. Additional real providers
-  remain later work outside the default deterministic validation gate.
+  JSON-file-backed alarm store with consistent runtime path resolution, and the
+  tested Raspberry Pi systemd deployment path.
+- The next planned product milestone adds another real capability after local
+  state and Pi operations. Real providers and hardware validation remain opt-in
+  work outside the default deterministic validation gate.
 
 ## Requirements
 
@@ -230,6 +232,11 @@ Run the Raspberry Pi service loop with local command-based voice config:
 npm run cli -- pi-service --config path/to/pi-config.json
 ```
 
+For a device deployment under systemd, follow the
+[Raspberry Pi operations guide](docs/07-raspberry-pi-operations.md). It installs
+the built CLI under `/opt/personal-ai`, operator config under
+`/etc/personal-ai`, and persistent alarm state under `/var/lib/personal-ai`.
+
 Run an optional ARM64 Linux container smoke check for Pi-like userland
 compatibility:
 
@@ -287,6 +294,8 @@ creation through the configured assistant, listing, and restart behavior, uses
 Run `npm run test:e2e:openai:alarms` for only the persistent-alarm smoke. These
 tests are not part of `npm run check`; normal validation remains deterministic
 and network-free.
+Run `npm run test:e2e:openai:pi` for the focused live alarm flow through Pi
+service composition. It does not validate physical audio hardware.
 
 Generate a local Google Calendar refresh token:
 
@@ -364,6 +373,8 @@ Common development commands:
   Raspberry Pi service loop.
 - `npm run smoke:pi:qemu -- --config path/to/pi-config.json --image path/to/raspios.img --kernel path/to/kernel8.img --dtb path/to/pi.dtb` -
   print an opt-in Raspberry Pi OS QEMU smoke command.
+- `npm run test:e2e:openai:pi` - run the opt-in live OpenAI alarm flow through
+  Pi service composition without physical audio hardware.
 - `npm run architecture:check` - enforce dependency boundaries.
 - `npm run check` - run the full validation suite.
 
@@ -387,6 +398,8 @@ The files in `docs/` are the source of truth for implementation decisions:
   capability authoring model.
 - [Implementation Roadmap](docs/06-implementation-roadmap.md) - milestones,
   acceptance criteria, and current implementation status.
+- [Raspberry Pi Operations](docs/07-raspberry-pi-operations.md) - systemd
+  installation, permissions, logs, validation, upgrades, and rollback.
 
 ## Development Workflow
 
