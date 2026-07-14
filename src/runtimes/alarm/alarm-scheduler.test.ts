@@ -81,16 +81,32 @@ describe("processAlarmSchedulerCycle", () => {
     const fixture = await createFixture("2026-07-14T09:10:00.000Z");
     const firstClaim = await fixture.store.update({
       changes: {
-        deliveryAttempts: 2,
-        nextDeliveryAt: null,
+        deliveryAttempts: 1,
+        nextDeliveryAt: "2026-07-14T09:11:00.000Z",
         status: "ringing",
-        successfulDeliveries: 1,
       },
       expectedRevision: fixture.alarm.revision,
       id: fixture.alarm.id,
-      updatedAt: "2026-07-14T09:11:00.000Z",
+      updatedAt: "2026-07-14T09:10:00.000Z",
     });
     expect(firstClaim).toBeDefined();
+    const delivered = await fixture.store.update({
+      changes: { status: "ringing", successfulDeliveries: 1 },
+      expectedRevision: firstClaim?.revision ?? 0,
+      id: fixture.alarm.id,
+      updatedAt: "2026-07-14T09:10:30.000Z",
+    });
+    const finalClaim = await fixture.store.update({
+      changes: {
+        deliveryAttempts: 2,
+        nextDeliveryAt: null,
+        status: "ringing",
+      },
+      expectedRevision: delivered?.revision ?? 0,
+      id: fixture.alarm.id,
+      updatedAt: "2026-07-14T09:11:00.000Z",
+    });
+    expect(finalClaim).toBeDefined();
 
     await fixture.runAt("2026-07-14T09:12:00.000Z");
 

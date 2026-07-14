@@ -167,6 +167,52 @@ describe("createFileAlarmStore", () => {
       ],
       version: 1,
     },
+    {
+      alarms: [persistedAlarm({ revision: undefined })],
+      version: 2,
+    },
+    {
+      alarms: [persistedAlarm({ nextDeliveryAt: undefined })],
+      version: 2,
+    },
+    {
+      alarms: [persistedAlarm({ status: "completed" })],
+      version: 2,
+    },
+    {
+      alarms: [persistedAlarm({ deliveryAttempts: 0, status: "ringing" })],
+      version: 2,
+    },
+    {
+      alarms: [
+        persistedAlarm({
+          deliveryAttempts: 0,
+          nextDeliveryAt: undefined,
+          status: "dismissed",
+        }),
+      ],
+      version: 2,
+    },
+    {
+      alarms: [
+        persistedAlarm({
+          deliveryAttempts: 1,
+          nextDeliveryAt: undefined,
+          status: "cancelled",
+        }),
+      ],
+      version: 2,
+    },
+    {
+      alarms: [
+        persistedAlarm({
+          nextDeliveryAt: undefined,
+          status: "missed",
+          successfulDeliveries: 1,
+        }),
+      ],
+      version: 2,
+    },
   ])("rejects invalid persisted state %#", async (state) => {
     const directory = await mkdtemp(join(tmpdir(), "personal-ai-alarms-"));
     const filePath = join(directory, "alarms.json");
@@ -295,6 +341,22 @@ describe("createFileAlarmStore", () => {
     );
   });
 });
+
+function persistedAlarm(overrides: Record<string, unknown> = {}) {
+  return {
+    createdAt: "2026-07-13T16:00:00.000Z",
+    deliveryAttempts: 0,
+    id: "alarm-v2",
+    label: "tea",
+    nextDeliveryAt: "2026-07-13T17:00:00.000Z",
+    revision: 1,
+    scheduledFor: "2026-07-13T17:00:00.000Z",
+    status: "scheduled",
+    successfulDeliveries: 0,
+    updatedAt: "2026-07-13T16:00:00.000Z",
+    ...overrides,
+  };
+}
 
 async function readJson(filePath: string): Promise<unknown> {
   return JSON.parse(await readFile(filePath, "utf8")) as unknown;

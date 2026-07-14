@@ -11,7 +11,7 @@ export function createScheduledAlarm(
 ): AlarmRecord {
   const timestamp = now.toISOString();
 
-  return {
+  const stored: AlarmRecord = {
     ...alarm,
     createdAt: timestamp,
     deliveryAttempts: 0,
@@ -22,6 +22,9 @@ export function createScheduledAlarm(
     successfulDeliveries: 0,
     updatedAt: timestamp,
   };
+
+  assertValidAlarmRecord(stored);
+  return stored;
 }
 
 export function applyAlarmLifecycleUpdate(
@@ -62,23 +65,107 @@ export function applyAlarmLifecycleUpdate(
     delete updated.nextDeliveryAt;
   }
 
-  assertValidLifecycleUpdate(updated);
+  assertValidLifecycleUpdate(alarm, updated);
 
   return updated;
 }
 
-function assertValidLifecycleUpdate(alarm: AlarmRecord): void {
+export function assertValidAlarmRecord(alarm: AlarmRecord): void {
   if (
+    alarm.id.length === 0 ||
+    alarm.label.length === 0 ||
+    !isCanonicalIsoTimestamp(alarm.createdAt) ||
+    !isCanonicalIsoTimestamp(alarm.scheduledFor) ||
     !isCanonicalIsoTimestamp(alarm.updatedAt) ||
     (alarm.nextDeliveryAt !== undefined &&
       !isCanonicalIsoTimestamp(alarm.nextDeliveryAt)) ||
     !Number.isInteger(alarm.deliveryAttempts) ||
     alarm.deliveryAttempts < 0 ||
+    alarm.deliveryAttempts > 2 ||
     !Number.isInteger(alarm.successfulDeliveries) ||
     alarm.successfulDeliveries < 0 ||
-    alarm.successfulDeliveries > alarm.deliveryAttempts
+    alarm.successfulDeliveries > alarm.deliveryAttempts ||
+    !hasConsistentStatusFields(alarm)
   ) {
     throw new Error("Alarm lifecycle update is invalid.");
+  }
+}
+
+function assertValidLifecycleUpdate(
+  previous: AlarmRecord,
+  updated: AlarmRecord,
+): void {
+  assertValidAlarmRecord(updated);
+
+  const attemptsAdded = updated.deliveryAttempts - previous.deliveryAttempts;
+  const successesAdded =
+    updated.successfulDeliveries - previous.successfulDeliveries;
+  const statusAllowed = allowedNextStatuses[previous.status].includes(
+    updated.status,
+  );
+  const editsAllowed =
+    updated.label === previous.label &&
+    updated.scheduledFor === previous.scheduledFor;
+
+  if (
+    !statusAllowed ||
+    attemptsAdded < 0 ||
+    attemptsAdded > 1 ||
+    successesAdded < 0 ||
+    successesAdded > 1 ||
+    !editsAllowed ||
+    updated.updatedAt < previous.updatedAt ||
+    (previous.status === "scheduled" &&
+      updated.status === "ringing" &&
+      attemptsAdded !== 1) ||
+    (previous.status === "ringing" &&
+      updated.status === "ringing" &&
+      attemptsAdded === 1 &&
+      successesAdded !== 0)
+  ) {
+    throw new Error("Alarm lifecycle update is invalid.");
+  }
+}
+
+const allowedNextStatuses: Record<
+  AlarmRecord["status"],
+  AlarmRecord["status"][]
+> = {
+  cancelled: [],
+  completed: [],
+  dismissed: [],
+  missed: [],
+  ringing: ["ringing", "completed", "dismissed", "missed"],
+  scheduled: ["scheduled", "ringing", "cancelled", "missed"],
+};
+
+function hasConsistentStatusFields(alarm: AlarmRecord): boolean {
+  switch (alarm.status) {
+    case "scheduled":
+      return (
+        alarm.deliveryAttempts === 0 &&
+        alarm.successfulDeliveries === 0 &&
+        alarm.nextDeliveryAt !== undefined
+      );
+    case "ringing":
+      return (
+        alarm.deliveryAttempts >= 1 &&
+        (alarm.deliveryAttempts === 1) === (alarm.nextDeliveryAt !== undefined)
+      );
+    case "cancelled":
+      return (
+        alarm.deliveryAttempts === 0 &&
+        alarm.successfulDeliveries === 0 &&
+        alarm.nextDeliveryAt === undefined
+      );
+    case "completed":
+      return alarm.deliveryAttempts >= 1 && alarm.nextDeliveryAt === undefined;
+    case "dismissed":
+      return alarm.deliveryAttempts >= 1 && alarm.nextDeliveryAt === undefined;
+    case "missed":
+      return (
+        alarm.successfulDeliveries === 0 && alarm.nextDeliveryAt === undefined
+      );
   }
 }
 

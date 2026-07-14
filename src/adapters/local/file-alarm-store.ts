@@ -13,6 +13,7 @@ import {
 } from "./atomic-file-replacement.js";
 import {
   applyAlarmLifecycleUpdate,
+  assertValidAlarmRecord,
   createScheduledAlarm,
 } from "./alarm-record.js";
 
@@ -221,30 +222,33 @@ function parseAlarmRecord(value: unknown): AlarmRecord {
     !isNonNegativeInteger(value.successfulDeliveries) ||
     value.successfulDeliveries > value.deliveryAttempts ||
     !isCanonicalIsoTimestamp(value.updatedAt) ||
-    (value.revision !== undefined && !isPositiveInteger(value.revision)) ||
+    !isPositiveInteger(value.revision) ||
     (value.nextDeliveryAt !== undefined &&
       !isCanonicalIsoTimestamp(value.nextDeliveryAt))
   ) {
     throw new Error("Alarm state file is invalid.");
   }
 
-  const revision = value.revision ?? 1;
-  const nextDeliveryAt =
-    value.nextDeliveryAt ??
-    (value.status === "scheduled" ? value.scheduledFor : undefined);
-
-  return {
+  const alarm: AlarmRecord = {
     createdAt: value.createdAt,
     deliveryAttempts: value.deliveryAttempts,
     id: value.id,
     label: value.label,
-    ...(nextDeliveryAt ? { nextDeliveryAt } : {}),
-    revision,
+    ...(value.nextDeliveryAt ? { nextDeliveryAt: value.nextDeliveryAt } : {}),
+    revision: value.revision,
     scheduledFor: value.scheduledFor,
     status: value.status,
     successfulDeliveries: value.successfulDeliveries,
     updatedAt: value.updatedAt,
   };
+
+  try {
+    assertValidAlarmRecord(alarm);
+  } catch {
+    throw new Error("Alarm state file is invalid.");
+  }
+
+  return alarm;
 }
 
 function isAlarmStatus(value: unknown): value is AlarmRecord["status"] {

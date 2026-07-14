@@ -74,4 +74,49 @@ describe("createInMemoryAlarmStore", () => {
       }),
     ).resolves.toBeUndefined();
   });
+
+  it("rejects illegal lifecycle transitions and contradictory states", async () => {
+    const store = createInMemoryAlarmStore({
+      now: () => new Date("2026-06-26T09:00:00.000Z"),
+    });
+    const alarm = await store.add({
+      label: "tea",
+      scheduledFor: "2026-06-26T09:10:00.000Z",
+    });
+
+    await expect(
+      Promise.resolve().then(() =>
+        store.update({
+          changes: {
+            deliveryAttempts: 99,
+            nextDeliveryAt: null,
+            status: "ringing",
+          },
+          expectedRevision: alarm.revision,
+          id: alarm.id,
+          updatedAt: "2026-06-26T09:10:00.000Z",
+        }),
+      ),
+    ).rejects.toThrow("Alarm lifecycle update is invalid.");
+
+    const cancelled = await store.update({
+      changes: { nextDeliveryAt: null, status: "cancelled" },
+      expectedRevision: alarm.revision,
+      id: alarm.id,
+      updatedAt: "2026-06-26T09:05:00.000Z",
+    });
+    await expect(
+      Promise.resolve().then(() =>
+        store.update({
+          changes: {
+            nextDeliveryAt: "2026-06-26T09:20:00.000Z",
+            status: "scheduled",
+          },
+          expectedRevision: cancelled?.revision ?? 0,
+          id: alarm.id,
+          updatedAt: "2026-06-26T09:06:00.000Z",
+        }),
+      ),
+    ).rejects.toThrow("Alarm lifecycle update is invalid.");
+  });
 });

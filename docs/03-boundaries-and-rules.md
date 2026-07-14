@@ -383,6 +383,11 @@ should also guard against subtler boundary and abstraction drift.
   feature composition so lifecycle commands and delivery claims remain
   serialized. It claims due work durably before output and uses revision-checked
   updates so stale observations cannot overwrite newer user actions.
+- Alarm creation, persisted version parsing, and lifecycle updates share one
+  strict adapter-layer state-machine invariant. Version-two state requires its
+  declared lifecycle fields, contradictory status/counter/delivery-time
+  combinations fail closed, and terminal alarms cannot transition back to
+  active states.
 - New file-backed alarm state directories and files use restrictive `0700` and
   `0600` modes so private labels are not exposed by the host's default umask.
 - Treat duplication reports as design prompts. A small clone may be acceptable,
