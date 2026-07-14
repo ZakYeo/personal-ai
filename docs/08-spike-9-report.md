@@ -126,9 +126,13 @@ licenses, hardware expectations, and offline startup preflight must be explicit.
 The next messaging work should therefore be a target-selection and authentication
 proof, not a generic “real messaging” adapter. Matrix is the default
 recommendation if the user is willing to use Matrix. Read and draft should ship
-before send. Sending remains high risk, requires confirmation by default, and
-needs provider idempotency or an application-owned durable send record before a
-retry can be considered safe.
+before send. Sending remains high risk and requires confirmation by default. A
+durable pre-send lifecycle must persist `prepared` before transport, transition
+to `sending/unknown` before the request can be accepted, and reach `confirmed`
+only from a structurally validated provider result. A `sending/unknown` record
+is never retried automatically. Provider idempotency keys are additionally
+required wherever the selected API supports them; an after-send record alone is
+not duplicate protection.
 
 ## Recommendation 5: Defer Another Intent Provider
 

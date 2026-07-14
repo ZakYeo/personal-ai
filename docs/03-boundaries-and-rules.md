@@ -138,6 +138,13 @@ not sufficient. Plan outcomes classify every step as `succeeded`, `failed`, or
 must identify completed actions, the failed action, and actions not attempted so
 a user is not encouraged to repeat an already completed side effect.
 
+External sends require a durable pre-send lifecycle: persist `prepared`, move to
+`sending/unknown` before transport can be accepted, and mark `confirmed` only
+from a validated provider response. Never automatically retry
+`sending/unknown`; require reconciliation or an explicit new human decision.
+Use provider idempotency keys wherever available because an application record
+written after a send cannot close the crash window by itself.
+
 ## Shared Runtime Ownership
 
 When two runtimes share a control-loop behavior, result shape, fallback policy,

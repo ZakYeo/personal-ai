@@ -417,7 +417,11 @@ Included:
 
 - High-risk send capability metadata and aggregate-plan confirmation support.
 - Exact recipient, destination, and message fact protection.
-- Provider idempotency or an application-owned durable send-attempt record.
+- A durable pre-send lifecycle that persists `prepared`, transitions to
+  `sending/unknown` before transport, and records `confirmed` only after a
+  structurally validated provider result.
+- Provider idempotency keys wherever the selected API supports them; durable
+  state does not substitute for provider idempotency.
 - Safe retry classification, delivery receipt metadata where available, and an
   opt-in live send smoke against a disposable destination.
 
@@ -445,7 +449,10 @@ Acceptance criteria:
   recipient and body without reinterpretation.
 - Ambiguous recipients and unsupported destinations fail closed.
 - A timeout or uncertain provider result is never reported as success and is not
-  retried when duplicate safety is unknown.
+  retried automatically when its durable state is `sending/unknown`.
+- Deterministic crash-window tests cover restart before transport, during an
+  unknown provider outcome, and after provider confirmation; none can duplicate
+  a send.
 - `npm run check` passes.
 
 ## Spike 18: Local Intent Accuracy Benchmark
