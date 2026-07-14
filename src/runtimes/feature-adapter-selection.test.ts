@@ -47,6 +47,20 @@ describe("createConfiguredFeatures", () => {
     ).toBeDefined();
   });
 
+  it("contributes alarm retention without notification delivery", () => {
+    const selection = createConfiguredFeatureSelection(
+      enabledDeterministicConfig,
+      { dependencies: featureAdapterDependencies },
+    );
+
+    expect(selection.backgroundTasks).toEqual([
+      expect.objectContaining({
+        failureReason: "alarm retention cleanup failed",
+        id: "alarms.retention",
+      }),
+    ]);
+  });
+
   it("parses selected adapter config through the same typed registry entry that creates it", () => {
     let observedContext:
       | {

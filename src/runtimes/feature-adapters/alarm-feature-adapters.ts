@@ -54,8 +54,21 @@ function createAlarmComposition(
   dependencies: FeatureAdapterDependencies,
 ) {
   const feature = createAlarmFeature(alarmStore);
+  const retentionTask = {
+    failureReason: "alarm retention cleanup failed",
+    id: "alarms.retention",
+    run: (context: RuntimeBackgroundTaskContext) =>
+      runAlarmRetention({
+        clock: context.clock,
+        intervalMs: 24 * 60 * 60_000,
+        retentionMs: 30 * 24 * 60 * 60_000,
+        shutdownSignal: context.shutdownSignal,
+        store: alarmStore,
+        ...(context.timer ? { timer: context.timer } : {}),
+      }),
+  };
   if (!dependencies.notificationDelivery) {
-    return { feature };
+    return { backgroundTasks: [retentionTask], feature };
   }
 
   const notificationDelivery = dependencies.notificationDelivery;
@@ -84,19 +97,7 @@ function createAlarmComposition(
             ...(context.timer ? { timer: context.timer } : {}),
           }),
       },
-      {
-        failureReason: "alarm retention cleanup failed",
-        id: "alarms.retention",
-        run: (context: RuntimeBackgroundTaskContext) =>
-          runAlarmRetention({
-            clock: context.clock,
-            intervalMs: 24 * 60 * 60_000,
-            retentionMs: 30 * 24 * 60 * 60_000,
-            shutdownSignal: context.shutdownSignal,
-            store: alarmStore,
-            ...(context.timer ? { timer: context.timer } : {}),
-          }),
-      },
+      retentionTask,
     ],
     feature,
   };
