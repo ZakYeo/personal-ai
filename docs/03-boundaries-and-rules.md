@@ -408,6 +408,19 @@ should also guard against subtler boundary and abstraction drift.
   terminal timestamp is strictly older than 30 days. Active alarms and records
   exactly at the cutoff are retained. Cleanup failures follow the shared fatal
   background-task boundary and keep raw state diagnostics off human output.
+- Alarm lifecycle retries select once and pin the alarm ID across optimistic
+  conflicts. Label ambiguity is calculated only among records eligible for the
+  requested operation, so retained terminal history cannot redirect or block a
+  mutation of the sole eligible alarm.
+- Version-two alarm state rejects snooze, recurrence, and terminal timestamp
+  fields introduced by version three. Version-three terminal timestamps equal
+  the transition update timestamp. Shared lifecycle policy owns these schema,
+  status, recurrence, and timestamp rules instead of duplicating them across
+  feature, record, and file parsing paths.
+- Stores defensively clone nested recurrence input and output. Callers cannot
+  change recurrence without a validated, revision-checked store transition.
+- Every exact lifecycle fact present in alarm response text must also be present
+  in diagnostic-safe feature result data so response rewriting protects it.
 - Persist an alarm delivery result before reporting its delivery diagnostic.
   Diagnostic sinks are best effort at this boundary and cannot strand a claimed
   attempt when logging itself fails.

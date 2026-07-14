@@ -170,6 +170,9 @@ bag.
 A second neutral alarm task removes terminal history older than 30 days at
 service startup and daily. It shares the selected store, whose serialization
 keeps cleanup ordered with feature mutations and scheduler claims.
+Shared alarm lifecycle policy owns status predicates, canonical recurrence and
+timestamp validation, strict persisted-version parsing, and explicit recurring
+completion. Store adapters clone nested recurrence values at their boundaries.
 
 Expected runtimes:
 

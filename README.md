@@ -75,10 +75,10 @@ Current roadmap position:
   tested Raspberry Pi systemd deployment path. Milestone 8 is implemented after
   its required independent maintainability review; it adds runtime-owned alarm
   scheduling and desktop/Pi voice delivery.
-- Milestone 8.1 is in progress. Snooze, daily and weekly recurrence,
-  rescheduling, label editing, and human-facing lifecycle status are
-  implemented. Thirty-day terminal-history retention is also implemented; the
-  milestone now awaits its required independent review. Spike 9 will evaluate
+- Milestone 8.1 is implemented after its required independent maintainability
+  review. It adds snooze, daily and weekly recurrence, rescheduling, label
+  editing, human-facing lifecycle status, and 30-day terminal-history
+  retention. Spike 9 will evaluate
   messaging, intent providers, local STT/TTS, calendar follow-ups, and other
   candidates, then turn the selected direction into concrete future
   implementation milestones. Real providers and hardware validation remain

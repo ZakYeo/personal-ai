@@ -417,6 +417,8 @@ when a configured service starts and then every 24 hours, using the live clock
 to remove terminal records strictly older than 30 days through the same
 serialized store. Failures request orderly service shutdown through the shared
 background-task boundary.
+Retention is contributed even when notification delivery is unavailable; alarm
+delivery scheduling remains conditional on a configured notification output.
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
 writing state, resumes the validated command after an explicit yes, asserts the

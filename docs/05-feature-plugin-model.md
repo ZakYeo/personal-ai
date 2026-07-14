@@ -257,6 +257,11 @@ The alarms adapter also contributes a neutral retention task alongside delivery.
 It closes over the same store and removes only terminal records older than 30
 days, keeping retention serialized with lifecycle commands without exposing an
 alarm-specific resource to generic service composition.
+Lifecycle mutations pin their initial target ID across revision conflicts and
+ignore ineligible retained history when deciding label ambiguity. Alarm list
+and mutation results project every spoken timestamp, recurrence rule, timezone,
+status, ID, and label into result data so the core response rewriter protects
+the exact facts.
 
 Example command:
 
