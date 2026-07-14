@@ -116,9 +116,12 @@ Included:
   any execution.
 - One aggregate confirmation for every confirmation-required step, with the
   exact validated plan retained process-locally.
+- Capability-owned deterministic confirmation renderers tied to decoded
+  arguments, with all material action facts protected from provider rewriting.
 - Sequential execution in utterance order, stopping on the first failure.
-- Per-step diagnostic-aware outcomes, protected facts, response metadata, and
-  one concise combined human response.
+- Per-step `succeeded`, `failed`, or `skipped` diagnostic-aware outcomes,
+  protected facts, response metadata, and one concise combined human response
+  that makes partial completion explicit.
 - Text, simulated voice, desktop voice, and Pi service integration coverage.
 
 Excluded:
@@ -134,8 +137,10 @@ Thin slices:
    interpretation fixtures.
 2. Decode, validate, and route a whole proposed plan into an immutable validated
    plan without executing invalid steps.
-3. Aggregate confirmation and resume the exact frozen plan.
-4. Execute sequentially with stop-on-first-failure outcomes.
+3. Add capability-owned deterministic confirmation rendering, aggregate every
+   risky step's protected exact facts, and resume the exact frozen plan.
+4. Execute sequentially with explicit succeeded, failed, and skipped
+   stop-on-first-failure outcomes.
 5. Compose safe combined responses through text and voice boundaries.
 6. Add the opt-in live OpenAI compound-command smoke.
 
@@ -146,8 +151,11 @@ Acceptance criteria:
 - No step executes when any plan command is invalid or cannot be routed.
 - An explicit yes resumes the already validated plan without reinterpretation;
   no discards it; unrelated input preserves the prompt.
+- Aggregate confirmation states every material decoded fact for each risky step
+  using deterministic application-owned rendering.
 - A failed step prevents later steps from executing and preserves internal
-  diagnostics without exposing them to the user.
+  diagnostics without exposing them to the user; the response unambiguously
+  distinguishes completed, failed, and skipped actions.
 - Concurrent calls cannot interleave plan execution, pending confirmation, or
   conversation-history commits.
 - Existing single-command behavior remains compatible and `npm run check`

@@ -10,6 +10,13 @@ each feature still validates and executes only its own decoded command. A plan
 must not make one feature import another or add a feature-specific switch to
 core orchestration.
 
+Capabilities that can require confirmation must also declare an
+application-owned deterministic confirmation renderer tied to their decoded
+argument type. It returns concise human text plus protected exact facts such as
+recipient, destination, message body, alarm label, and due time. Providers may
+not author or rewrite confirmation text. The same renderer is used for a single
+command and for each risky step in an aggregate plan prompt.
+
 ## Feature Contract
 
 The implementation should define a feature contract similar to:

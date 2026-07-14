@@ -45,14 +45,19 @@ validated type can become pending or execute.
 Safety rules:
 
 - Validate the entire plan before executing any step.
-- Aggregate all confirmation-required steps into one concise prompt that names
-  every proposed action.
+- Aggregate all confirmation-required steps into one concise prompt rendered by
+  capability-owned deterministic confirmation declarations. Protect and state
+  every material decoded fact, including recipients, destinations, message
+  bodies, labels, dates, and times; a provider-authored generic action name is
+  insufficient.
 - Keep one process-local pending plan per assistant instance. An explicit yes
   resumes that exact frozen plan, an explicit no discards all of it, and other
   input keeps the prompt active.
 - Execute sequentially in utterance order and stop on the first failure.
-- Preserve per-step response facts, metadata, and internal diagnostics, then
-  produce one safe human-facing response.
+- Classify every step outcome as `succeeded`, `failed`, or `skipped`, while
+  preserving response facts, metadata, and internal diagnostics. After partial
+  success, the safe response must identify what completed, what failed, and what
+  was not attempted so retrying cannot silently duplicate completed work.
 - Do not support output binding in the first version. Each step must be complete
   from the original utterance, so “set an alarm when the first event starts” is
   deferred while “check my events and set an alarm for ten minutes” is valid.

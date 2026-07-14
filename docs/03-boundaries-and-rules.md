@@ -129,6 +129,15 @@ utterance order and stop on the first failure. Later steps must not execute
 after failure, and provider-directed loops, implicit output binding, parallel
 execution, and rollback claims are outside the first compound-command boundary.
 
+Every confirmation-required capability must deterministically render its exact
+decoded action through an application-owned declaration. Aggregate prompts must
+include every risky step's protected recipient, destination, content, label,
+date, time, or other material fact; provider-authored generic confirmation is
+not sufficient. Plan outcomes classify every step as `succeeded`, `failed`, or
+`skipped`. If execution stops after partial success, the safe combined response
+must identify completed actions, the failed action, and actions not attempted so
+a user is not encouraged to repeat an already completed side effect.
+
 ## Shared Runtime Ownership
 
 When two runtimes share a control-loop behavior, result shape, fallback policy,
