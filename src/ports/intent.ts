@@ -6,6 +6,10 @@ import type {
 
 export type IntentInterpretation =
   | {
+      kind: "plan";
+      plan: ProposedAssistantPlan;
+    }
+  | {
       command: AssistantCommand;
       kind: "command";
     }
@@ -20,6 +24,10 @@ export type IntentInterpretation =
       kind: "unsupported";
       response: AssistantResponse;
     };
+
+export interface ProposedAssistantPlan {
+  commands: readonly AssistantCommand[];
+}
 
 export interface IntentInterpreterPort {
   interpret(

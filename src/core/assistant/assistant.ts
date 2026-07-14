@@ -113,6 +113,15 @@ async function handleTextInternal(
     return handleConversation(normalizedText, context, conversation);
   }
 
+  if (interpretation.kind === "plan") {
+    return {
+      response: {
+        status: "unsupported",
+        text: "Compound command plans are not available yet.",
+      },
+    };
+  }
+
   const command = interpretation.command;
   const route = dependencies.capabilityRouting.get(command.capability);
   const feature = route?.feature;

@@ -44,6 +44,45 @@ describe("DeterministicIntentInterpreter", () => {
     });
   });
 
+  it("interprets every distinct matching capability as one ordered plan", async () => {
+    const interpreter = new DeterministicIntentInterpreter([
+      {
+        capability: "calendar.search_events",
+        match: (text) => (text.includes("calendar") ? {} : undefined),
+      },
+      {
+        capability: "alarm.create",
+        match: (text) =>
+          text.includes("alarm") ? { minutesFromNow: 10 } : undefined,
+      },
+    ]);
+
+    await expect(
+      interpreter.interpret(
+        "Hey Jarvis, check my calendar and set an alarm in 10 minutes",
+        context,
+      ),
+    ).resolves.toEqual({
+      kind: "plan",
+      plan: {
+        commands: [
+          {
+            capability: "calendar.search_events",
+            parameters: {},
+            rawText:
+              "Hey Jarvis, check my calendar and set an alarm in 10 minutes",
+          },
+          {
+            capability: "alarm.create",
+            parameters: { minutesFromNow: 10 },
+            rawText:
+              "Hey Jarvis, check my calendar and set an alarm in 10 minutes",
+          },
+        ],
+      },
+    });
+  });
+
   it("does not own feature-specific default routing rules", async () => {
     const interpreter = new DeterministicIntentInterpreter();
 

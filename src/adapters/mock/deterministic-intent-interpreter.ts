@@ -26,15 +26,28 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
       context.config.assistant.wakePhrases,
     );
 
+    const commands: AssistantCommand[] = [];
+    const matchedCapabilities = new Set<string>();
+
     for (const rule of this.rules) {
+      if (matchedCapabilities.has(rule.capability)) {
+        continue;
+      }
+
       const parameters = rule.match(normalizedText);
 
       if (parameters) {
-        return Promise.resolve({
-          kind: "command",
-          command: createCommand(rule.capability, text, parameters),
-        });
+        matchedCapabilities.add(rule.capability);
+        commands.push(createCommand(rule.capability, text, parameters));
       }
+    }
+
+    if (commands.length === 1) {
+      return Promise.resolve({ kind: "command", command: commands[0]! });
+    }
+
+    if (commands.length > 1) {
+      return Promise.resolve({ kind: "plan", plan: { commands } });
     }
 
     return Promise.resolve({
