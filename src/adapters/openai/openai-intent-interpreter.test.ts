@@ -260,6 +260,41 @@ describe("OpenAIIntentInterpreter", () => {
     });
   });
 
+  it("provides only safe opaque calendar references to the provider", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        output_text: JSON.stringify({
+          command: null,
+          kind: "unknown",
+          plan: null,
+          response: { status: "unknown", text: "Unknown." },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({ fetch });
+
+    await interpreter.interpret("where is the first one?", {
+      ...context,
+      resultReferences: [
+        {
+          facts: {
+            date: "2026-07-17",
+            time: "11:00",
+            title: "Dentist",
+          },
+          kind: "calendar_event",
+          ordinal: 1,
+          reference: "calendar-event-1",
+        },
+      ],
+    });
+
+    const serializedInput = JSON.stringify(readRequestBody(fetch).input);
+    expect(serializedInput).toContain("calendar-event-1");
+    expect(serializedInput).toContain("Dentist on 2026-07-17 at 11:00");
+    expect(serializedInput).not.toContain("provider-secret-id");
+  });
+
   it("rejects conversation output with fallback response text", async () => {
     const fetch = createFetchStub(
       jsonResponse({
