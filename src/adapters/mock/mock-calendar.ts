@@ -14,6 +14,8 @@ const calendarEvents: CalendarEvent[] = [
 
 export function createMockCalendar(): CalendarSearchPort {
   return {
+    getEvent: (id) =>
+      Promise.resolve(calendarEvents.find((event) => event.id === id)),
     searchEvents: (criteria, options) =>
       Promise.resolve(
         calendarEvents.filter((event) =>

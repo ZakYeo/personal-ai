@@ -34,6 +34,32 @@ export async function fetchGoogleCalendarEvents(
   });
 }
 
+export async function fetchGoogleCalendarEvent(options: {
+  accessToken: string;
+  config: GoogleCalendarConfig;
+  fetch: typeof fetch;
+  id: string;
+}): Promise<unknown> {
+  return fetchProviderJson({
+    createError: ({ cause, message, responseBody, status }) =>
+      new GoogleCalendarError(message, status, responseBody, { cause }),
+    fetch: options.fetch,
+    invalidJsonMessage:
+      "Google Calendar event response body was not valid JSON.",
+    nonOkMessage: (status) =>
+      `Google Calendar event request failed with status ${status}.`,
+    request: {
+      headers: { authorization: `Bearer ${options.accessToken}` },
+      method: "GET",
+    },
+    timeoutMessage: `Google Calendar event request timed out after ${options.config.timeoutMs}ms.`,
+    timeoutMs: options.config.timeoutMs,
+    url: `${trimTrailingSlash(options.config.baseUrl)}/calendars/${encodeURIComponent(
+      options.config.calendarId,
+    )}/events/${encodeURIComponent(options.id)}`,
+  });
+}
+
 function createEventsUrl({
   config,
   criteria,

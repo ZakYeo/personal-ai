@@ -1,6 +1,7 @@
 import type {
   FeatureArgsFromParameters,
   FeatureCapabilityParameters,
+  FeatureExecutionContext,
   FeaturePlugin,
 } from "../../ports/feature.js";
 import type {
@@ -19,8 +20,17 @@ const calendarSearchEventsParameters = {
   startDate: { type: "string" },
 } as const satisfies FeatureCapabilityParameters;
 
+const calendarFollowUpParameters = {
+  detail: { type: "string", required: true },
+  ordinal: { type: "number" },
+  reference: { type: "string" },
+} as const satisfies FeatureCapabilityParameters;
+
 type CalendarSearchEventsArgs = FeatureArgsFromParameters<
   typeof calendarSearchEventsParameters
+>;
+type CalendarFollowUpArgs = FeatureArgsFromParameters<
+  typeof calendarFollowUpParameters
 >;
 
 interface CalendarFeatureOptions {
@@ -28,6 +38,19 @@ interface CalendarFeatureOptions {
 }
 
 const calendarDeterministicIntentRules = [
+  {
+    capability: "calendar.follow_up",
+    match: (text) => {
+      const ordinal = parseOrdinal(text);
+      if (text.includes("where is")) {
+        return { detail: "location", ...(ordinal ? { ordinal } : {}) };
+      }
+      if (text.includes("what comes after") || text.includes("what is after")) {
+        return { detail: "next", ...(ordinal ? { ordinal } : {}) };
+      }
+      return ordinal ? { detail: "summary", ordinal } : undefined;
+    },
+  },
   {
     capability: "calendar.search_events",
     match: (text) =>
@@ -57,6 +80,16 @@ export function createCalendarFeature(
       id: "calendar",
       displayName: "Calendar",
       capabilities: {
+        "calendar.follow_up": defineCapability({
+          description:
+            "Answer a read-only question about an opaque event reference from the most recent calendar results.",
+          risk: "low",
+          summary: "Answer a follow-up about a recent calendar result.",
+          spokenSummary: "ask about recent calendar results",
+          parameters: calendarFollowUpParameters,
+          execute: (request, context) =>
+            answerCalendarFollowUp(calendar, request.args, context),
+        }),
         "calendar.search_events": defineCapability({
           description:
             "Search configured calendar events by optional natural-language query and optional date range, or list upcoming events when no query is provided.",
@@ -87,14 +120,16 @@ async function searchEvents(
     (query === undefined && args.startDate === undefined
       ? formatDate(addUtcDays(now, options.upcomingWindowDays))
       : undefined);
-  const events = await calendar.searchEvents(
-    {
-      ...(endDate === undefined ? {} : { endDate }),
-      ...(query === undefined ? {} : { query }),
-      ...(args.startDate === undefined ? {} : { startDate: args.startDate }),
-    },
-    { now },
-  );
+  const events = (
+    await calendar.searchEvents(
+      {
+        ...(endDate === undefined ? {} : { endDate }),
+        ...(query === undefined ? {} : { query }),
+        ...(args.startDate === undefined ? {} : { startDate: args.startDate }),
+      },
+      { now },
+    )
+  ).slice(0, 10);
   const event = events[0];
 
   if (!event) {
@@ -115,18 +150,120 @@ async function searchEvents(
     return {
       text: `You have ${events.length} upcoming calendar ${eventLabel}: ${formatEventList(events)}.`,
       data: createUpcomingEventFacts(events),
+      resultReferences: createResultReferences(events),
     };
   }
 
   return {
     text: `${event.title} is ${formatEventStart(event)}.`,
     data: {
-      eventId: event.id,
       date: event.startDate,
       time: event.startTime ?? "all day",
       title: event.title,
     },
+    resultReferences: createResultReferences([event]),
   };
+}
+
+async function answerCalendarFollowUp(
+  calendar: CalendarSearchPort,
+  args: CalendarFollowUpArgs,
+  context: FeatureExecutionContext,
+) {
+  const references = context.resultReferences ?? [];
+  const selected = args.reference
+    ? references.find((item) => item.reference === args.reference)
+    : args.ordinal
+      ? references.find((item) => item.ordinal === args.ordinal)
+      : references.length === 1
+        ? references[0]
+        : undefined;
+
+  if (!selected) {
+    return clarify("I am not sure which recent calendar event you mean.");
+  }
+
+  const effectiveReference =
+    args.detail === "next"
+      ? references.find((item) => item.ordinal === selected.ordinal + 1)
+      : selected;
+  if (!effectiveReference) {
+    return clarify("There is no later event in those recent results.");
+  }
+
+  const target = context.resolveResultReference?.(effectiveReference.reference);
+  if (!target || target.kind !== "calendar_event") {
+    return clarify(
+      "That recent calendar result has expired. Please search again.",
+    );
+  }
+
+  const event = await calendar.getEvent(target.providerEventId, {
+    now: context.clock.now(),
+  });
+  if (!event) {
+    return clarify("I could not find that calendar event anymore.");
+  }
+
+  if (args.detail === "location") {
+    return {
+      data: {
+        date: event.startDate,
+        location: event.location ?? "not provided",
+        title: event.title,
+      },
+      text: event.location
+        ? `${event.title} is at ${event.location}.`
+        : `${event.title} does not include a location.`,
+    };
+  }
+
+  return {
+    data: {
+      date: event.startDate,
+      time: event.startTime ?? "all day",
+      title: event.title,
+    },
+    text: `${event.title} is ${formatEventStart(event)}.`,
+  };
+}
+
+function clarify(text: string) {
+  return { expectsFollowUp: true, text };
+}
+
+function createResultReferences(events: readonly CalendarEvent[]) {
+  return {
+    items: events.map((event) => ({
+      facts: {
+        date: event.startDate,
+        time: event.startTime ?? "all day",
+        title: event.title,
+      },
+      target: { kind: "calendar_event" as const, providerEventId: event.id },
+    })),
+    kind: "calendar_events" as const,
+  };
+}
+
+function parseOrdinal(text: string): number | undefined {
+  const word = text.match(
+    /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\b/u,
+  )?.[1];
+  return word
+    ? [
+        "first",
+        "second",
+        "third",
+        "fourth",
+        "fifth",
+        "sixth",
+        "seventh",
+        "eighth",
+        "ninth",
+        "tenth",
+      ].indexOf(word) + 1
+    : undefined;
 }
 
 function createUpcomingEventFacts(

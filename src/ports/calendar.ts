@@ -1,11 +1,16 @@
 export interface CalendarEvent {
   id: string;
+  location?: string;
   startDate: string;
   startTime?: string;
   title: string;
 }
 
 export interface CalendarSearchPort {
+  getEvent(
+    id: string,
+    options: CalendarSearchOptions,
+  ): Promise<CalendarEvent | undefined>;
   searchEvents(
     criteria: CalendarSearchCriteria,
     options: CalendarSearchOptions,

@@ -36,6 +36,80 @@ describe("createCalendarFeature", () => {
     );
   });
 
+  it("answers an ordinal location follow-up through an opaque reference", async () => {
+    const events: CalendarEvent[] = [
+      {
+        id: "dentist-provider-id",
+        location: "12 High Street",
+        startDate: "2026-07-17",
+        startTime: "11:00",
+        title: "Dentist",
+      },
+    ];
+    const followUpContext = {
+      ...context,
+      resultReferences: [
+        {
+          facts: { title: "Dentist" },
+          kind: "calendar_event" as const,
+          ordinal: 1,
+          reference: "calendar-event-1",
+        },
+      ],
+      resolveResultReference: (reference: string) =>
+        reference === "calendar-event-1"
+          ? {
+              kind: "calendar_event" as const,
+              providerEventId: "dentist-provider-id",
+            }
+          : undefined,
+    };
+
+    await expectDecodedFeatureExecution(
+      createCalendarFeature(createFakeCalendar(undefined, events)),
+      "calendar.follow_up",
+      { detail: "location", ordinal: 1 },
+      {
+        data: {
+          date: "2026-07-17",
+          location: "12 High Street",
+          title: "Dentist",
+        },
+        text: "Dentist is at 12 High Street.",
+      },
+      followUpContext,
+    );
+  });
+
+  it("asks for clarification rather than guessing an ambiguous event", async () => {
+    await expectDecodedFeatureExecution(
+      createFeature(),
+      "calendar.follow_up",
+      { detail: "location" },
+      {
+        expectsFollowUp: true,
+        text: "I am not sure which recent calendar event you mean.",
+      },
+      {
+        ...context,
+        resultReferences: [
+          {
+            facts: { title: "One" },
+            kind: "calendar_event",
+            ordinal: 1,
+            reference: "calendar-event-1",
+          },
+          {
+            facts: { title: "Two" },
+            kind: "calendar_event",
+            ordinal: 2,
+            reference: "calendar-event-2",
+          },
+        ],
+      },
+    );
+  });
+
   it("returns the fixture wedding date", async () => {
     await expectDecodedFeatureExecution(
       createFeature(),
@@ -44,11 +118,17 @@ describe("createCalendarFeature", () => {
       {
         text: "Upcoming wedding is on 2026-09-12, all day.",
         data: {
-          eventId: "wedding-2026",
           date: "2026-09-12",
           time: "all day",
           title: "Upcoming wedding",
         },
+        resultReferences: calendarResultReferences([
+          {
+            id: "wedding-2026",
+            startDate: "2026-09-12",
+            title: "Upcoming wedding",
+          },
+        ]),
       },
       context,
     );
@@ -67,6 +147,7 @@ describe("createCalendarFeature", () => {
           event0Time: "all day",
           event0Title: "Upcoming wedding",
         },
+        resultReferences: calendarResultReferences(),
       },
       context,
     );
@@ -102,6 +183,19 @@ describe("createCalendarFeature", () => {
           event1Time: "all day",
           event1Title: "Zak - Onsite Interview - Agentic Engineer",
         },
+        resultReferences: calendarResultReferences([
+          {
+            id: "haircut-2026",
+            startDate: "2026-07-17",
+            startTime: "11:00",
+            title: ".CLAY Studios: Gents Haircut",
+          },
+          {
+            id: "interview-2026",
+            startDate: "2026-07-20",
+            title: "Zak - Onsite Interview - Agentic Engineer",
+          },
+        ]),
       },
       context,
     );
@@ -147,6 +241,7 @@ describe("createCalendarFeature", () => {
           event0Time: "all day",
           event0Title: "Upcoming wedding",
         },
+        resultReferences: calendarResultReferences(),
       },
       context,
     );
@@ -188,11 +283,18 @@ describe("createCalendarFeature", () => {
       {
         text: "Zak - Onsite Interview - Agentic Engineer is on 2026-07-06 at 09:30.",
         data: {
-          eventId: "interview-2026",
           date: "2026-07-06",
           time: "09:30",
           title: "Zak - Onsite Interview - Agentic Engineer",
         },
+        resultReferences: calendarResultReferences([
+          {
+            id: "interview-2026",
+            startDate: "2026-07-06",
+            startTime: "09:30",
+            title: "Zak - Onsite Interview - Agentic Engineer",
+          },
+        ]),
       },
       createFeatureContext({
         assistant: {
@@ -218,6 +320,7 @@ function createFakeCalendar(
   ],
 ): CalendarSearchPort {
   return {
+    getEvent: (id) => Promise.resolve(events.find((event) => event.id === id)),
     searchEvents: (criteria) => {
       calls.push(criteria);
 
@@ -231,5 +334,27 @@ function createFakeCalendar(
             : [],
       );
     },
+  };
+}
+
+function calendarResultReferences(
+  events: CalendarEvent[] = [
+    {
+      id: "wedding-2026",
+      startDate: "2026-09-12",
+      title: "Upcoming wedding",
+    },
+  ],
+) {
+  return {
+    items: events.map((event) => ({
+      facts: {
+        date: event.startDate,
+        time: event.startTime ?? "all day",
+        title: event.title,
+      },
+      target: { kind: "calendar_event" as const, providerEventId: event.id },
+    })),
+    kind: "calendar_events" as const,
   };
 }

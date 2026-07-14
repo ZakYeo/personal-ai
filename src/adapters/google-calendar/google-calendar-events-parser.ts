@@ -15,10 +15,10 @@ export function parseGoogleCalendarEvents(value: unknown): CalendarEvent[] {
     );
   }
 
-  return value.items.map(parseEvent);
+  return value.items.map(parseGoogleCalendarEvent);
 }
 
-function parseEvent(value: unknown): CalendarEvent {
+export function parseGoogleCalendarEvent(value: unknown): CalendarEvent {
   if (!isRecord(value)) {
     throw new GoogleCalendarError(
       "Google Calendar event response item must be an object.",
@@ -41,6 +41,9 @@ function parseEvent(value: unknown): CalendarEvent {
 
   return {
     id: value.id,
+    ...(typeof value.location === "string" && value.location.length > 0
+      ? { location: value.location }
+      : {}),
     ...start,
     title: value.summary,
   };

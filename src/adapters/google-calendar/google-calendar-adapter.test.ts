@@ -16,6 +16,32 @@ import {
 } from "./google-calendar-adapter.js";
 
 describe("createGoogleCalendarAdapter", () => {
+  it("fetches one event by stable provider ID for a read-only follow-up", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "event/private id",
+        location: "12 High Street",
+        start: { dateTime: "2026-07-17T11:00:00+01:00" },
+        summary: "Dentist",
+      }),
+    );
+    const calendar = createAdapter({ fetch });
+
+    await expect(
+      calendar.getEvent("event/private id", { now: deterministicTestNow }),
+    ).resolves.toEqual({
+      id: "event/private id",
+      location: "12 High Street",
+      startDate: "2026-07-17",
+      startTime: "11:00",
+      title: "Dentist",
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      "https://calendar.example.test/v3/calendars/primary/events/event%2Fprivate%20id",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
   it("returns normalized events from Google Calendar output", async () => {
     const fetch = createFetchStub(
       jsonResponse({

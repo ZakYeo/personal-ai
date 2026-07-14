@@ -5,10 +5,16 @@ import type {
   CalendarSearchPort,
 } from "../../ports/calendar.js";
 import type { GoogleCalendarConfig } from "./google-calendar-config.js";
-import { fetchGoogleCalendarEvents } from "./google-calendar-client.js";
+import {
+  fetchGoogleCalendarEvent,
+  fetchGoogleCalendarEvents,
+} from "./google-calendar-client.js";
 import { resolveGoogleCalendarCredentials } from "./google-calendar-credentials.js";
 import { fetchGoogleCalendarAccessToken } from "./google-calendar-token.js";
-import { parseGoogleCalendarEvents } from "./google-calendar-events-parser.js";
+import {
+  parseGoogleCalendarEvent,
+  parseGoogleCalendarEvents,
+} from "./google-calendar-events-parser.js";
 
 export { GoogleCalendarError } from "./google-calendar-error.js";
 
@@ -22,9 +28,25 @@ export function createGoogleCalendarAdapter(
   options: GoogleCalendarAdapterOptions,
 ): CalendarSearchPort {
   return {
+    getEvent: (id) => getEvent(id, options),
     searchEvents: (criteria, searchOptions) =>
       searchEvents(criteria, searchOptions, options),
   };
+}
+
+async function getEvent(
+  id: string,
+  options: GoogleCalendarAdapterOptions,
+): Promise<CalendarEvent | undefined> {
+  const accessToken = await resolveAccessToken(options);
+  return parseGoogleCalendarEvent(
+    await fetchGoogleCalendarEvent({
+      accessToken,
+      config: options.config,
+      fetch: options.fetch,
+      id,
+    }),
+  );
 }
 
 async function searchEvents(
