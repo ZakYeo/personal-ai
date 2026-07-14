@@ -7,7 +7,11 @@ export interface AtomicFileHandle {
 }
 
 export interface AtomicFileSystem {
-  open(path: string, flags: "r" | "wx"): Promise<AtomicFileHandle>;
+  open(
+    path: string,
+    flags: "r" | "wx",
+    mode?: number,
+  ): Promise<AtomicFileHandle>;
   rename(from: string, to: string): Promise<void>;
   unlink(path: string): Promise<void>;
 }
@@ -41,6 +45,7 @@ export async function atomicReplaceFile(
     temporaryHandle = await options.fileSystem.open(
       options.temporaryPath,
       "wx",
+      0o600,
     );
     temporaryCreated = true;
     await temporaryHandle.writeFile(options.contents);

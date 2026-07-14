@@ -338,7 +338,8 @@ resolve from the directory containing the selected config, as demonstrated by
 The file store creates a missing state file on the first successful alarm
 write. It synchronizes the temporary contents before atomic replacement and
 synchronizes the containing directory before reporting success. Existing
-malformed or unsupported state fails safely: human-facing responses remain
+state directories and files are created with private `0700` and `0600` modes.
+Malformed or unsupported existing state fails safely: human-facing responses remain
 generic while runtime diagnostics retain the underlying cause.
 
 ## Scripts

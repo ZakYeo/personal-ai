@@ -13,7 +13,10 @@ import {
 } from "./atomic-file-replacement.js";
 
 export interface AlarmStoreFileSystem {
-  mkdir(path: string): Promise<unknown>;
+  mkdir(
+    path: string,
+    options: { mode: number; recursive: true },
+  ): Promise<unknown>;
   readFile(path: string): Promise<string>;
   replaceFile(options: {
     contents: string;
@@ -45,7 +48,7 @@ const nodeAtomicFileSystem: AtomicFileSystem = {
 };
 
 const nodeFileSystem: AlarmStoreFileSystem = {
-  mkdir: (path) => mkdir(path, { recursive: true }),
+  mkdir: (path, options) => mkdir(path, options),
   readFile: (path) => readFile(path, "utf8"),
   replaceFile: (options) =>
     atomicReplaceFile({ ...options, fileSystem: nodeAtomicFileSystem }),
@@ -170,7 +173,7 @@ async function writeState(
   );
 
   try {
-    await fileSystem.mkdir(directory);
+    await fileSystem.mkdir(directory, { mode: 0o700, recursive: true });
     await fileSystem.replaceFile({
       contents: `${JSON.stringify(state)}\n`,
       targetPath: filePath,

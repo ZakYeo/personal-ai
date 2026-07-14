@@ -380,6 +380,8 @@ should also guard against subtler boundary and abstraction drift.
   instance serializes its operations and rereads state for every operation, but
   no cross-process locking, cloud synchronization, or background delivery is
   implied.
+- New file-backed alarm state directories and files use restrictive `0700` and
+  `0600` modes so private labels are not exposed by the host's default umask.
 - Treat duplication reports as design prompts. A small clone may be acceptable,
   but repeated control-flow or policy duplication should trigger a search for
   the canonical owner before more branches are added.

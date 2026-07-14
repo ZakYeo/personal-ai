@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -46,6 +46,24 @@ describe("createFileAlarmStore", () => {
       ],
       version: 1,
     });
+  });
+
+  it("creates private state directories and files", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-alarms-"));
+    const stateDirectory = join(directory, "private-state");
+    const filePath = join(stateDirectory, "alarms.json");
+    const store = createFileAlarmStore({
+      createId: () => "alarm-private",
+      filePath,
+    });
+
+    await store.add({
+      label: "private appointment",
+      scheduledFor: "2026-07-13T17:00:00.000Z",
+    });
+
+    expect((await stat(stateDirectory)).mode & 0o777).toBe(0o700);
+    expect((await stat(filePath)).mode & 0o777).toBe(0o600);
   });
 
   it.each([

@@ -18,7 +18,7 @@ describe("atomicReplaceFile", () => {
     });
 
     expect(events).toEqual([
-      "open /state/.alarms.json.tmp wx",
+      "open /state/.alarms.json.tmp wx 600",
       "file write state",
       "file sync",
       "file close",
@@ -116,8 +116,10 @@ function createFileSystem(
   failures: FailureOptions = {},
 ): AtomicFileSystem {
   return {
-    open: (path, flags) => {
-      events.push(`open ${path} ${flags}`);
+    open: (path, flags, mode) => {
+      events.push(
+        `open ${path} ${flags}${mode === undefined ? "" : ` ${mode.toString(8)}`}`,
+      );
       return Promise.resolve(
         path === "/state"
           ? createHandle("directory", events, {
