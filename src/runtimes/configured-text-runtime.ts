@@ -42,6 +42,7 @@ export async function createConfiguredTextRuntimeComposition(
   const fetch = options.fetch ?? globalThis.fetch;
   const featureSelection = createConfiguredFeatureSelection(config, {
     dependencies: {
+      clock,
       ...(configSource.configDirectory
         ? { configDirectory: configSource.configDirectory }
         : {}),

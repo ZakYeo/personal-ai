@@ -28,6 +28,7 @@ const context = {
 const capabilityCatalog = createProviderCapabilityCatalog(
   createConfiguredFeatures(enabledDeterministicConfig, {
     dependencies: {
+      clock: { now: () => new Date() },
       env,
       fetch: globalThis.fetch,
     },

@@ -1,7 +1,9 @@
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { AlarmStore } from "../ports/alarm-store.js";
+import type { ClockPort } from "../ports/assistant.js";
 
 export interface FeatureAdapterDependencies {
+  clock: ClockPort;
   configDirectory?: string;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;

@@ -24,6 +24,7 @@ export function createAlarmFeatureRegistryEntry(
               adapterConfig.filePath,
               runtimeDependencies.configDirectory,
             ),
+            now: () => runtimeDependencies.clock.now(),
           });
 
           return { alarmStore, feature: createAlarmFeature(alarmStore) };
@@ -31,8 +32,10 @@ export function createAlarmFeatureRegistryEntry(
         parseConfig: parseFileAlarmStoreConfig,
       }),
       local: defineFeatureAdapterEntry({
-        create: () => {
-          const alarmStore = createInMemoryAlarmStore();
+        create: ({ dependencies: runtimeDependencies }) => {
+          const alarmStore = createInMemoryAlarmStore({
+            now: () => runtimeDependencies.clock.now(),
+          });
           return { alarmStore, feature: createAlarmFeature(alarmStore) };
         },
         parseConfig: () => {},

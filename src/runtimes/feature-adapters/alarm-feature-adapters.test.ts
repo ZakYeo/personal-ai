@@ -2,12 +2,35 @@ import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
-import { createConfiguredTextRuntime } from "../configured-text-runtime.js";
+import {
+  createConfiguredTextRuntime,
+  createConfiguredTextRuntimeComposition,
+} from "../configured-text-runtime.js";
 import { parseAssistantConfig } from "../config/config.js";
 import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
 import type { AlarmStoreFileSystem } from "../../adapters/local/file-alarm-store.js";
 
 describe("alarm feature adapters", () => {
+  it("uses the configured runtime clock for alarm lifecycle timestamps", async () => {
+    const now = new Date("2026-07-14T09:15:00.000Z");
+    const composition = await createConfiguredTextRuntimeComposition({
+      config: createLoadedRuntimeConfig({
+        alarms: { adapter: "local", enabled: true },
+      }),
+      now: () => now,
+    });
+
+    const stored = await composition.alarmStore?.add({
+      label: "tea",
+      scheduledFor: "2026-07-14T09:25:00.000Z",
+    });
+
+    expect(stored).toMatchObject({
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    });
+  });
+
   it("requires a nested state path for the file adapter", () => {
     expect(() =>
       parseAssistantConfig(

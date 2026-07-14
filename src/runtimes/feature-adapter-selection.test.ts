@@ -19,6 +19,7 @@ import {
 } from "./feature-adapter-selection.js";
 
 const featureAdapterDependencies: FeatureAdapterDependencies = {
+  clock: { now: () => new Date("2026-07-14T09:00:00.000Z") },
   env: {},
   fetch: vi.fn() as typeof fetch,
 };

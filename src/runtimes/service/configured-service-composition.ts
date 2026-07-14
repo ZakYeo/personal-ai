@@ -150,6 +150,7 @@ async function createConfiguredServiceStartup(
   const configSource = await loadServiceConfig(options);
   const { config } = configSource;
   const featureAdapterDependencies: FeatureAdapterDependencies = {
+    clock: { now: options.now ?? (() => new Date()) },
     env: options.env ?? process.env,
     fetch: options.fetch ?? globalThis.fetch,
     ...(configSource.configDirectory
