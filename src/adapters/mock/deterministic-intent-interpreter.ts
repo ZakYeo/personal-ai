@@ -26,6 +26,24 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
       context.config.assistant.wakePhrases,
     );
 
+    const clauseCommands = interpretClauses(normalizedText, text, this.rules);
+    if (clauseCommands.length > 1) {
+      if (clauseCommands.length > 3) {
+        return Promise.resolve({
+          kind: "unsupported",
+          response: {
+            status: "unsupported",
+            text: "I can handle at most three commands in one request.",
+          },
+        });
+      }
+
+      return Promise.resolve({
+        kind: "plan",
+        plan: { commands: clauseCommands },
+      });
+    }
+
     const commands: AssistantCommand[] = [];
     const matchedCapabilities = new Set<string>();
 
@@ -58,6 +76,32 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
       },
     });
   }
+}
+
+function interpretClauses(
+  normalizedText: string,
+  rawText: string,
+  rules: readonly DeterministicIntentRule[],
+): AssistantCommand[] {
+  const clauses = normalizedText
+    .split(/\s*(?:,\s*)?\b(?:and then|then|and)\b\s*/u)
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+
+  if (clauses.length < 2) {
+    return [];
+  }
+
+  return clauses.flatMap((clause) => {
+    for (const rule of rules) {
+      const parameters = rule.match(clause);
+      if (parameters) {
+        return [createCommand(rule.capability, rawText, parameters)];
+      }
+    }
+
+    return [];
+  });
 }
 
 export function normalizeCommandText(

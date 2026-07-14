@@ -83,6 +83,67 @@ describe("DeterministicIntentInterpreter", () => {
     });
   });
 
+  it("orders compound commands by their clauses rather than rule registration", async () => {
+    const interpreter = new DeterministicIntentInterpreter([
+      {
+        capability: "calendar.search_events",
+        match: (text) => (text.includes("calendar") ? {} : undefined),
+      },
+      {
+        capability: "alarm.create",
+        match: (text) => (text.includes("alarm") ? {} : undefined),
+      },
+    ]);
+
+    const result = await interpreter.interpret(
+      "Set an alarm and then check my calendar",
+      context,
+    );
+
+    expect(result).toMatchObject({
+      kind: "plan",
+      plan: {
+        commands: [
+          { capability: "alarm.create" },
+          { capability: "calendar.search_events" },
+        ],
+      },
+    });
+  });
+
+  it("retains utterance order for three independently matched clauses", async () => {
+    const interpreter = new DeterministicIntentInterpreter([
+      {
+        capability: "calendar.search_events",
+        match: (text) => (text.includes("calendar") ? {} : undefined),
+      },
+      {
+        capability: "messaging.draft_reply",
+        match: (text) => (text.includes("message") ? {} : undefined),
+      },
+      {
+        capability: "alarm.create",
+        match: (text) => (text.includes("alarm") ? {} : undefined),
+      },
+    ]);
+
+    const result = await interpreter.interpret(
+      "Draft a message, then set an alarm, then check my calendar",
+      context,
+    );
+
+    expect(result).toMatchObject({
+      kind: "plan",
+      plan: {
+        commands: [
+          { capability: "messaging.draft_reply" },
+          { capability: "alarm.create" },
+          { capability: "calendar.search_events" },
+        ],
+      },
+    });
+  });
+
   it("does not own feature-specific default routing rules", async () => {
     const interpreter = new DeterministicIntentInterpreter();
 
