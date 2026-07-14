@@ -78,10 +78,13 @@ references to the last displayed results and resolve phrases such as “the seco
 one”, “where is that?”, or “what comes after it?” without exposing provider IDs
 to the conversation provider.
 
-The reference store should belong to the assistant session, expire after a
-small number of turns, and contain only the fields needed for supported
-follow-ups. Calendar adapters remain read-only. Ambiguous, expired, or missing
-references should produce a clarification rather than guessing.
+The reference store should belong to the assistant session and retain only the
+latest displayed result set, capped at ten event references. A new calendar
+result replaces the prior set. References expire after three subsequent
+completed assistant turns or at conversation compaction, whichever comes first,
+and contain only the fields needed for supported follow-ups. Calendar adapters
+remain read-only. Ambiguous, expired, or missing references should produce a
+clarification rather than guessing.
 
 ## Recommendation 3: Benchmark Local Voice Before Selecting It
 

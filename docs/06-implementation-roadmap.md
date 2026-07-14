@@ -172,6 +172,9 @@ Included:
 
 - Process-local, bounded, opaque references to the last displayed calendar
   results.
+- Exactly one retained result set capped at ten events; a newer calendar result
+  replaces it, and it expires after three subsequent completed assistant turns
+  or conversation compaction, whichever occurs first.
 - Follow-up intents such as “the second one”, “where is that?”, and “what comes
   after it?”.
 - Stable provider-event lookup behind the existing calendar boundary or a
@@ -187,15 +190,20 @@ Excluded:
 
 Thin slices:
 
-1. Retain bounded opaque result references in assistant session state.
+1. Retain one opaque result set of at most ten events in assistant session
+   state, replacing the prior set on a new calendar result.
 2. Resolve ordinal references deterministically.
 3. Fetch or answer supported event details through the calendar port.
-4. Add ambiguity, expiry, compaction, concurrency, and voice follow-up tests.
+4. Expire references after three subsequent completed assistant turns or
+   compaction and add ambiguity, replacement, concurrency, and voice follow-up
+   tests.
 
 Acceptance criteria:
 
 - Follow-ups resolve only against unexpired results from the same assistant
   instance.
+- Tests prove the ten-event cap, newest-set replacement, three-turn expiry, and
+  immediate clearing during conversation compaction.
 - Ambiguous, missing, or expired references ask for clarification and never
   guess an event.
 - Provider IDs and raw event payloads do not enter user-facing responses or
