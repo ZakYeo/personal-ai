@@ -51,7 +51,10 @@ describe("createAssistant", () => {
       },
       execute: () => {
         calls.push("calendar");
-        return Promise.resolve({ text: "Calendar checked." });
+        return Promise.resolve({
+          data: { eventCount: 1 },
+          text: "Calendar checked.",
+        });
       },
     });
     const alarms = createFeature({
@@ -91,6 +94,7 @@ describe("createAssistant", () => {
         steps: [
           {
             capability: "calendar.search_events",
+            data: { eventCount: 1 },
             response: { status: "ok", text: "Calendar checked." },
             status: "succeeded",
           },
@@ -187,26 +191,50 @@ describe("createAssistant", () => {
     expect(execute).toHaveBeenCalledTimes(1);
   });
 
-  it("fails closed when a high-risk capability lacks confirmation rendering", async () => {
-    const execute = vi.fn(() => Promise.resolve({ text: "Unsafe." }));
-    const assistant = createAssistant({
-      clock,
+  it.each([
+    {
+      capability: { name: "test.echo", risk: "high" as const, parameters: {} },
       config,
-      features: [
-        createFeature({
-          capability: { name: "test.echo", risk: "high", parameters: {} },
-          execute,
-        }),
-      ],
-      intentInterpreter: createInterpreter(createCommand("test.echo")),
-    });
+      label: "high-risk metadata",
+    },
+    {
+      capability: {
+        name: "test.echo",
+        requiresConfirmation: true,
+        risk: "low" as const,
+        parameters: {},
+      },
+      config,
+      label: "confirmation-required metadata",
+    },
+    {
+      capability: { name: "test.echo", risk: "low" as const, parameters: {} },
+      config: requireConfirmationFor("test", ["test.echo"]),
+      label: "confirmation-required config",
+    },
+  ])(
+    "fails closed without confirmation rendering for $label",
+    async ({ capability, config: testConfig }) => {
+      const execute = vi.fn(() => Promise.resolve({ text: "Unsafe." }));
+      const assistant = createAssistant({
+        clock,
+        config: testConfig,
+        features: [
+          createFeature({
+            capability,
+            execute,
+          }),
+        ],
+        intentInterpreter: createInterpreter(createCommand("test.echo")),
+      });
 
-    await expect(assistant.handleText("do it")).resolves.toEqual({
-      status: "error",
-      text: "I could not complete that command.",
-    });
-    expect(execute).not.toHaveBeenCalled();
-  });
+      await expect(assistant.handleText("do it")).resolves.toEqual({
+        status: "error",
+        text: "I could not complete that command.",
+      });
+      expect(execute).not.toHaveBeenCalled();
+    },
+  );
 
   it("stops on failure and identifies failed and skipped plan work", async () => {
     const laterExecute = vi.fn(() => Promise.resolve({ text: "Too late." }));
@@ -836,6 +864,7 @@ describe("createAssistant", () => {
       },
       features: [
         createFeature({
+          confirmation: () => ({ facts: {}, text: "run the echo command" }),
           execute,
         }),
       ],
@@ -845,7 +874,7 @@ describe("createAssistant", () => {
     await expect(assistant.handleText("hello")).resolves.toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "I need confirmation before doing that. Please confirm yes or no.",
+      text: "Please confirm: 1. run the echo command. Say yes or no.",
     });
     expect(execute).not.toHaveBeenCalled();
   });
@@ -868,6 +897,10 @@ describe("createAssistant", () => {
             risk: "low",
             parameters: { message: { type: "string", required: true } },
           },
+          confirmation: (args) => ({
+            facts: { message: args.message },
+            text: `echo ${args.message}`,
+          }),
           execute,
         }),
       ],
@@ -889,7 +922,12 @@ describe("createAssistant", () => {
     const assistant = createAssistant({
       clock,
       config: requireConfirmationFor("test", ["test.echo"]),
-      features: [createFeature({ execute })],
+      features: [
+        createFeature({
+          confirmation: () => ({ facts: {}, text: "run the echo command" }),
+          execute,
+        }),
+      ],
       intentInterpreter: createInterpreter(createCommand("test.echo")),
     });
 

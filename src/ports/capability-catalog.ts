@@ -39,8 +39,8 @@ export type CapabilityCatalog = readonly CapabilityCatalogEntry[];
 export interface CapabilityRoute<
   TFeature extends CapabilityCatalogFeature = CapabilityCatalogFeature,
 > {
-  capability: FeatureCapability;
-  feature: TFeature;
+  readonly capability: FeatureCapability;
+  readonly feature: TFeature;
 }
 
 export interface CapabilityRoutingIndex<
@@ -74,10 +74,13 @@ export function createCapabilityRoutingIndex<
 
       const frozenCapability = freezeCapability(capability);
 
-      routes.set(capability.name, {
-        capability: frozenCapability,
-        feature,
-      });
+      routes.set(
+        capability.name,
+        Object.freeze({
+          capability: frozenCapability,
+          feature,
+        }),
+      );
       catalog.push(
         Object.freeze({
           capability: frozenCapability,

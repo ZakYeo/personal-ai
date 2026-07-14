@@ -46,6 +46,7 @@ export interface AssistantPlanOutcome {
 
 export interface AssistantPlanStepOutcome {
   capability: string;
+  data?: AssistantCommandParameters;
   diagnostics?: AssistantDiagnostic[];
   response?: AssistantResponse;
   status: "succeeded" | "failed" | "skipped";

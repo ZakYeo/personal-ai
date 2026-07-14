@@ -1,29 +1,31 @@
 import type { AssistantOutcome } from "../../ports/assistant.js";
+import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
 
 export interface ConfirmationSession {
   request(
-    execute: () => Promise<AssistantOutcome>,
-    prompt?: AssistantOutcome,
+    plan: ValidatedAssistantPlan,
+    prompt: AssistantOutcome,
   ): AssistantOutcome;
   run(
     input: string,
     handle: () => Promise<AssistantOutcome>,
+    execute: (plan: ValidatedAssistantPlan) => Promise<AssistantOutcome>,
   ): Promise<AssistantOutcome>;
 }
 
 export function createConfirmationSession(): ConfirmationSession {
   let pending:
-    | { execute: () => Promise<AssistantOutcome>; prompt: AssistantOutcome }
+    | { plan: ValidatedAssistantPlan; prompt: AssistantOutcome }
     | undefined;
   let queue = Promise.resolve();
 
   return {
-    request(execute, prompt = confirmationPrompt) {
-      pending = { execute, prompt };
+    request(plan, prompt) {
+      pending = { plan, prompt };
 
       return prompt;
     },
-    run(input, handle) {
+    run(input, handle, execute) {
       const turn = queue.then(() => {
         if (!pending) {
           return handle();
@@ -35,10 +37,10 @@ export function createConfirmationSession(): ConfirmationSession {
           return pending.prompt;
         }
 
-        const execute = pending.execute;
+        const plan = pending.plan;
         pending = undefined;
 
-        return decision === "confirmed" ? execute() : cancelledOutcome;
+        return decision === "confirmed" ? execute(plan) : cancelledOutcome;
       });
 
       queue = turn.then(
@@ -66,14 +68,6 @@ function parseConfirmation(
 
   return "pending";
 }
-
-const confirmationPrompt: AssistantOutcome = {
-  response: {
-    expectsFollowUp: true,
-    status: "needs_confirmation",
-    text: "I need confirmation before doing that. Please confirm yes or no.",
-  },
-};
 
 const cancelledOutcome: AssistantOutcome = {
   response: {
