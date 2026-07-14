@@ -3,6 +3,7 @@ Description=Personal AI Raspberry Pi voice service
 Wants=network-online.target
 After=network-online.target sound.target
 AssertPathExists=/etc/personal-ai/config.json
+AssertPathExists=/etc/personal-ai/environment
 
 [Service]
 Type=simple
@@ -11,7 +12,7 @@ Group=personal-ai
 SupplementaryGroups=audio
 WorkingDirectory=/opt/personal-ai
 Environment=NODE_ENV=production
-EnvironmentFile=-/etc/personal-ai/environment
+EnvironmentFile=/etc/personal-ai/environment
 ExecStart=/usr/bin/node /opt/personal-ai/dist/runtimes/cli/main.js pi-service --config /etc/personal-ai/config.json
 Restart=on-failure
 RestartSec=5s

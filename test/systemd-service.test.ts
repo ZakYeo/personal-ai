@@ -8,13 +8,14 @@ describe("Raspberry Pi systemd service", () => {
 
     expectDirective(unit, "Unit", "AssertPathExists", [
       "/etc/personal-ai/config.json",
+      "/etc/personal-ai/environment",
     ]);
     expectDirective(unit, "Service", "User", ["personal-ai"]);
     expectDirective(unit, "Service", "Group", ["personal-ai"]);
     expectDirective(unit, "Service", "SupplementaryGroups", ["audio"]);
     expectDirective(unit, "Service", "WorkingDirectory", ["/opt/personal-ai"]);
     expectDirective(unit, "Service", "EnvironmentFile", [
-      "-/etc/personal-ai/environment",
+      "/etc/personal-ai/environment",
     ]);
     expectDirective(unit, "Service", "ExecStart", [
       "/usr/bin/node /opt/personal-ai/dist/runtimes/cli/main.js pi-service --config /etc/personal-ai/config.json",

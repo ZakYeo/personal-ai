@@ -81,7 +81,9 @@ sudo install -o root -g root -m 0644 deploy/systemd/personal-ai.service /etc/sys
 Create `/etc/personal-ai/environment` as root with mode `0640`, owned by
 `root:personal-ai`. Put provider credentials there as plain systemd environment
 assignments; never add that file to the repository. For example, the OpenAI
-configuration requires an `OPENAI_API_KEY` assignment.
+configuration requires an `OPENAI_API_KEY` assignment. The unit treats this
+file as a required startup precondition so a missing credential file fails
+visibly instead of entering an application restart loop.
 
 ```bash
 sudo install -o root -g personal-ai -m 0640 /dev/null /etc/personal-ai/environment
