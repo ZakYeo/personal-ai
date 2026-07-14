@@ -27,6 +27,8 @@ describe("createFileAlarmStore", () => {
       deliveryAttempts: 0,
       id: "alarm-persisted",
       label: "tea",
+      nextDeliveryAt: "2026-07-13T17:00:00.000Z",
+      revision: 1,
       successfulDeliveries: 0,
       scheduledFor: "2026-07-13T17:00:00.000Z",
       status: "scheduled",
@@ -41,6 +43,8 @@ describe("createFileAlarmStore", () => {
         deliveryAttempts: 0,
         id: "alarm-persisted",
         label: "tea",
+        nextDeliveryAt: "2026-07-13T17:00:00.000Z",
+        revision: 1,
         successfulDeliveries: 0,
         scheduledFor: "2026-07-13T17:00:00.000Z",
         status: "scheduled",
@@ -54,6 +58,8 @@ describe("createFileAlarmStore", () => {
           deliveryAttempts: 0,
           id: "alarm-persisted",
           label: "tea",
+          nextDeliveryAt: "2026-07-13T17:00:00.000Z",
+          revision: 1,
           successfulDeliveries: 0,
           scheduledFor: "2026-07-13T17:00:00.000Z",
           status: "scheduled",
@@ -92,6 +98,8 @@ describe("createFileAlarmStore", () => {
         deliveryAttempts: 0,
         id: "legacy-alarm",
         label: "legacy tea",
+        nextDeliveryAt: "2026-07-13T17:00:00.000Z",
+        revision: 1,
         scheduledFor: "2026-07-13T17:00:00.000Z",
         status: "scheduled",
         successfulDeliveries: 0,
@@ -207,6 +215,42 @@ describe("createFileAlarmStore", () => {
     ]);
 
     await expect(store.list()).resolves.toHaveLength(2);
+  });
+
+  it("persists revision-checked lifecycle updates across instances", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-alarms-"));
+    const filePath = join(directory, "alarms.json");
+    const store = createFileAlarmStore({
+      createId: () => "alarm-lifecycle",
+      filePath,
+      now: () => new Date("2026-07-13T16:00:00.000Z"),
+    });
+    const alarm = await store.add({
+      label: "tea",
+      scheduledFor: "2026-07-13T17:00:00.000Z",
+    });
+
+    await expect(
+      store.update({
+        changes: {
+          deliveryAttempts: 1,
+          nextDeliveryAt: "2026-07-13T17:01:00.000Z",
+          status: "ringing",
+        },
+        expectedRevision: alarm.revision,
+        id: alarm.id,
+        updatedAt: "2026-07-13T17:00:00.000Z",
+      }),
+    ).resolves.toMatchObject({ revision: 2, status: "ringing" });
+
+    await expect(createFileAlarmStore({ filePath }).list()).resolves.toEqual([
+      expect.objectContaining({
+        deliveryAttempts: 1,
+        nextDeliveryAt: "2026-07-13T17:01:00.000Z",
+        revision: 2,
+        status: "ringing",
+      }),
+    ]);
   });
 
   it("writes through a same-directory atomic replacement and preserves its failure", async () => {

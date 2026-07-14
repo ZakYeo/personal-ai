@@ -13,6 +13,8 @@ export function createScheduledAlarmRecord(
   return {
     createdAt: deterministicTestNowIso,
     deliveryAttempts: 0,
+    nextDeliveryAt: input.scheduledFor,
+    revision: 1,
     status: "scheduled",
     successfulDeliveries: 0,
     updatedAt: deterministicTestNowIso,

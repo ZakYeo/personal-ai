@@ -2,8 +2,8 @@ import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { basename, dirname, join } from "node:path";
 import type {
+  AlarmLifecycleStore,
   AlarmRecord,
-  AlarmStore,
   NewAlarmRecord,
 } from "../../ports/alarm-store.js";
 import { isRecord } from "../parsing.js";
@@ -11,6 +11,10 @@ import {
   atomicReplaceFile,
   type AtomicFileSystem,
 } from "./atomic-file-replacement.js";
+import {
+  applyAlarmLifecycleUpdate,
+  createScheduledAlarm,
+} from "./alarm-record.js";
 
 export interface AlarmStoreFileSystem {
   mkdir(
@@ -57,7 +61,7 @@ const nodeFileSystem: AlarmStoreFileSystem = {
 
 export function createFileAlarmStore(
   options: FileAlarmStoreOptions,
-): AlarmStore {
+): AlarmLifecycleStore {
   const createId = options.createId ?? randomUUID;
   const fileSystem = options.fileSystem ?? nodeFileSystem;
   const now = options.now ?? (() => new Date());
@@ -96,6 +100,27 @@ export function createFileAlarmStore(
         const state = await readState(options.filePath, fileSystem);
         return state.alarms.map((alarm) => ({ ...alarm }));
       }),
+    update: (update) =>
+      enqueue(async () => {
+        const state = await readState(options.filePath, fileSystem);
+        const index = state.alarms.findIndex((alarm) => alarm.id === update.id);
+        const current = state.alarms[index];
+
+        if (!current) {
+          return;
+        }
+
+        const updated = applyAlarmLifecycleUpdate(current, update);
+        if (!updated) {
+          return;
+        }
+
+        const alarms = [...state.alarms];
+        alarms[index] = updated;
+        await writeState(options.filePath, { alarms, version: 2 }, fileSystem);
+
+        return { ...updated };
+      }),
   };
 }
 
@@ -109,17 +134,7 @@ function createStoredAlarm(
     throw new Error("Alarm store generated an invalid or duplicate ID.");
   }
 
-  const timestamp = now.toISOString();
-
-  return {
-    ...alarm,
-    createdAt: timestamp,
-    deliveryAttempts: 0,
-    id,
-    status: "scheduled",
-    successfulDeliveries: 0,
-    updatedAt: timestamp,
-  };
+  return createScheduledAlarm(alarm, id, now);
 }
 
 async function readState(
@@ -185,6 +200,8 @@ function migrateVersionOneAlarm(value: unknown): AlarmRecord {
     deliveryAttempts: 0,
     id: value.id,
     label: value.label,
+    nextDeliveryAt: value.scheduledFor,
+    revision: 1,
     scheduledFor: value.scheduledFor,
     status: "scheduled",
     successfulDeliveries: 0,
@@ -203,16 +220,26 @@ function parseAlarmRecord(value: unknown): AlarmRecord {
     !isAlarmStatus(value.status) ||
     !isNonNegativeInteger(value.successfulDeliveries) ||
     value.successfulDeliveries > value.deliveryAttempts ||
-    !isCanonicalIsoTimestamp(value.updatedAt)
+    !isCanonicalIsoTimestamp(value.updatedAt) ||
+    (value.revision !== undefined && !isPositiveInteger(value.revision)) ||
+    (value.nextDeliveryAt !== undefined &&
+      !isCanonicalIsoTimestamp(value.nextDeliveryAt))
   ) {
     throw new Error("Alarm state file is invalid.");
   }
+
+  const revision = value.revision ?? 1;
+  const nextDeliveryAt =
+    value.nextDeliveryAt ??
+    (value.status === "scheduled" ? value.scheduledFor : undefined);
 
   return {
     createdAt: value.createdAt,
     deliveryAttempts: value.deliveryAttempts,
     id: value.id,
     label: value.label,
+    ...(nextDeliveryAt ? { nextDeliveryAt } : {}),
+    revision,
     scheduledFor: value.scheduledFor,
     status: value.status,
     successfulDeliveries: value.successfulDeliveries,
@@ -233,6 +260,10 @@ function isAlarmStatus(value: unknown): value is AlarmRecord["status"] {
 
 function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0;
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
 }
 
 async function writeState(
