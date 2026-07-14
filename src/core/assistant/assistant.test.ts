@@ -16,10 +16,9 @@ import {
 } from "../../test-support/core-assistant.js";
 import type { ConversationState } from "../../ports/conversation.js";
 import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
-import type { AlarmStore } from "../../ports/alarm-store.js";
+import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import { createScheduledAlarmRecord } from "../../test-support/primitives.js";
-import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
 
 const config = createAssistantConfig({
   test: { enabled: true },
@@ -668,7 +667,19 @@ describe("createAssistant", () => {
   it("executes a relative alarm at the exact time shown before the clock advances", async () => {
     let now = new Date("2026-06-26T09:00:00.000Z");
     const mutableClock = { now: () => now };
-    const store = createInMemoryAlarmStore({ now: () => now });
+    let storedAlarm: AlarmRecord | undefined;
+    const store: AlarmStore = {
+      add: (alarm) => {
+        storedAlarm = createScheduledAlarmRecord({
+          ...alarm,
+          id: "alarm-1",
+        });
+        return Promise.resolve(storedAlarm);
+      },
+      list: () => Promise.resolve(storedAlarm ? [storedAlarm] : []),
+      removeTerminalBefore: () => Promise.resolve(0),
+      update: () => Promise.resolve(undefined),
+    };
     const assistant = createAssistant({
       clock: mutableClock,
       config: createAssistantConfig({
