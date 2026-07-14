@@ -9,6 +9,10 @@ import type {
   FeatureCapability,
   FeatureCapabilityParameter,
 } from "./capability-catalog.js";
+import type {
+  FeatureResultReferenceSet,
+  ResultReferenceTarget,
+} from "./result-reference.js";
 
 export type { ConfirmationDeclaration } from "./assistant.js";
 export type {
@@ -18,6 +22,7 @@ export type {
 
 export interface FeatureExecutionContext extends AssistantContext {
   capabilityCatalog: CapabilityCatalog;
+  resolveResultReference?(reference: string): ResultReferenceTarget | undefined;
 }
 
 export type FeatureCapabilityParameters = Record<
@@ -28,6 +33,8 @@ export type FeatureCapabilityParameters = Record<
 export interface FeatureResult {
   text: string;
   data?: AssistantCommandParameters;
+  expectsFollowUp?: boolean;
+  resultReferences?: FeatureResultReferenceSet;
 }
 
 export type FeatureArgumentValue = string | number | boolean | undefined;

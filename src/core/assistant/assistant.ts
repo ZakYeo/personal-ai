@@ -37,6 +37,8 @@ import {
 } from "./plan-execution.js";
 import { validateAssistantPlan } from "./plan-validation.js";
 import { protectResponseFacts } from "./response-fact-protection.js";
+import { createResultReferenceSession } from "./result-reference-session.js";
+import type { ResultReferenceSession } from "./result-reference-session.js";
 
 export interface AssistantDependencies {
   capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
@@ -55,19 +57,39 @@ export interface Assistant {
 export function createAssistant(
   dependencies: AssistantDependencies,
 ): Assistant {
+  const resultReferences = createResultReferenceSession();
   const conversation = dependencies.conversation
-    ? createConversationSession(dependencies.conversation)
+    ? createConversationSession({
+        ...dependencies.conversation,
+        onCompacted: () => resultReferences.clear(),
+      })
     : undefined;
   const confirmation = createConfirmationSession();
 
   async function handleTextWithDiagnostics(
     text: string,
   ): Promise<AssistantOutcome> {
-    return confirmation.run(
+    let retainedReferences = false;
+    const outcome = await confirmation.run(
       text,
-      () => handleTextInternal(text, dependencies, conversation, confirmation),
-      (plan) => executeValidatedPlan(plan, dependencies),
+      () =>
+        handleTextInternal(
+          text,
+          dependencies,
+          conversation,
+          confirmation,
+          resultReferences,
+          () => {
+            retainedReferences = true;
+          },
+        ),
+      (plan) =>
+        executeValidatedPlan(plan, dependencies, resultReferences, () => {
+          retainedReferences = true;
+        }),
     );
+    if (!retainedReferences) resultReferences.completeTurn();
+    return outcome;
   }
 
   return {
@@ -85,6 +107,8 @@ async function handleTextInternal(
   dependencies: AssistantDependencies,
   conversation: ConversationSession | undefined,
   confirmation: ConfirmationSession,
+  resultReferences: ResultReferenceSession,
+  onReferencesRetained: () => void,
 ): Promise<AssistantOutcome> {
   const normalizedText = text.trim();
 
@@ -100,6 +124,7 @@ async function handleTextInternal(
   const context: AssistantContext = {
     clock: dependencies.clock,
     config: dependencies.config,
+    resultReferences: resultReferences.publicReferences(),
   };
   const interpretation = await dependencies.intentInterpreter.interpret(
     normalizedText,
@@ -143,22 +168,32 @@ async function handleTextInternal(
     );
   }
 
-  return executeValidatedPlan(validation.plan, dependencies);
+  return executeValidatedPlan(
+    validation.plan,
+    dependencies,
+    resultReferences,
+    onReferencesRetained,
+  );
 }
 
 function executeValidatedPlan(
   plan: ValidatedAssistantPlan,
   dependencies: AssistantDependencies,
+  resultReferences: ResultReferenceSession,
+  onReferencesRetained: () => void,
 ): Promise<AssistantOutcome> {
   const context: AssistantContext = {
     clock: planRequiresConfirmation(plan)
       ? { now: () => new Date(plan.validatedAt) }
       : dependencies.clock,
     config: dependencies.config,
+    resultReferences: resultReferences.publicReferences(),
   };
   const executionContext = {
     ...context,
     capabilityCatalog: dependencies.capabilityRouting.catalog,
+    resolveResultReference: (reference: string) =>
+      resultReferences.resolve(reference),
   };
 
   return executeAssistantPlan(plan, (step) =>
@@ -170,6 +205,8 @@ function executeValidatedPlan(
       executionContext,
       feature: step.route.feature,
       normalizedText: plan.originalText,
+      onReferencesRetained,
+      resultReferences,
     }),
   );
 }
@@ -184,6 +221,8 @@ async function executeCommand(input: {
   };
   feature: FeaturePlugin;
   normalizedText: string;
+  onReferencesRetained: () => void;
+  resultReferences: ResultReferenceSession;
 }): Promise<CommandExecutionOutcome> {
   try {
     const result = await input.feature.execute(
@@ -196,9 +235,15 @@ async function executeCommand(input: {
     );
 
     const response: AssistantResponse = {
+      ...(result.expectsFollowUp ? { expectsFollowUp: true } : {}),
       status: "ok",
       text: result.text,
     };
+
+    if (result.resultReferences) {
+      input.resultReferences.retain(result.resultReferences);
+      input.onReferencesRetained();
+    }
 
     const outcome = await rewriteCommandResponse({
       command: input.command,

@@ -13,6 +13,7 @@ import type {
 export interface ConversationSessionDependencies {
   compactor: ConversationCompactorPort;
   history: ConversationHistoryConfig;
+  onCompacted?: () => void;
   responder: ConversationResponderPort;
 }
 
@@ -37,13 +38,14 @@ export function createConversationSession(
           context,
         );
         const candidateState = appendConversationTurn(state, input, response);
-        const nextState = await compactConversationIfNeeded(
+        const compaction = await compactConversationIfNeeded(
           candidateState,
           dependencies,
           context,
         );
 
-        state = cloneConversationState(nextState);
+        state = cloneConversationState(compaction.state);
+        if (compaction.compacted) dependencies.onCompacted?.();
 
         return response;
       });
@@ -62,15 +64,21 @@ async function compactConversationIfNeeded(
   state: ConversationState,
   dependencies: ConversationSessionDependencies,
   context: AssistantContext,
-): Promise<ConversationState> {
+): Promise<{ compacted: boolean; state: ConversationState }> {
   if (
     countUserTurns(state.recentTurns) <
     dependencies.history.maxTurnsBeforeCompaction
   ) {
-    return state;
+    return { compacted: false, state };
   }
 
-  return dependencies.compactor.compact(cloneConversationState(state), context);
+  return {
+    compacted: true,
+    state: await dependencies.compactor.compact(
+      cloneConversationState(state),
+      context,
+    ),
+  };
 }
 
 function appendConversationTurn(
