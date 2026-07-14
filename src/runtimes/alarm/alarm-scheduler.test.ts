@@ -1,0 +1,138 @@
+import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
+import type {
+  AlarmDeliveryPort,
+  AlarmDeliveryRequest,
+} from "../../ports/alarm-delivery.js";
+import {
+  processAlarmSchedulerCycle,
+  type AlarmSchedulerDependencies,
+} from "./alarm-scheduler.js";
+
+const repeatAfterMs = 60_000;
+const missedGraceMs = 15 * 60_000;
+
+describe("processAlarmSchedulerCycle", () => {
+  it("claims a due alarm before delivery and schedules one repeat", async () => {
+    const fixture = await createFixture("2026-07-14T09:10:00.000Z");
+
+    await fixture.runAt("2026-07-14T09:10:00.000Z");
+
+    expect(fixture.delivered).toEqual([
+      expect.objectContaining({ attempt: 1, id: fixture.alarm.id }),
+    ]);
+    await expect(fixture.store.list()).resolves.toEqual([
+      expect.objectContaining({
+        deliveryAttempts: 1,
+        nextDeliveryAt: "2026-07-14T09:11:00.000Z",
+        status: "ringing",
+        successfulDeliveries: 1,
+      }),
+    ]);
+
+    await fixture.runAt("2026-07-14T09:11:00.000Z");
+
+    expect(fixture.delivered).toHaveLength(2);
+    await expect(fixture.store.list()).resolves.toEqual([
+      expect.objectContaining({
+        deliveryAttempts: 2,
+        status: "completed",
+        successfulDeliveries: 2,
+      }),
+    ]);
+    expect((await fixture.store.list())[0]?.nextDeliveryAt).toBeUndefined();
+  });
+
+  it("delivers at the recovery grace boundary and misses older alarms", async () => {
+    const recoverable = await createFixture("2026-07-14T09:00:00.000Z");
+    await recoverable.runAt("2026-07-14T09:15:00.000Z");
+    expect(recoverable.delivered).toHaveLength(1);
+
+    const expired = await createFixture("2026-07-14T09:00:00.000Z");
+    await expired.runAt("2026-07-14T09:15:00.001Z");
+    expect(expired.delivered).toEqual([]);
+    await expect(expired.store.list()).resolves.toEqual([
+      expect.objectContaining({ status: "missed" }),
+    ]);
+  });
+
+  it("logs safe delivery diagnostics and marks two failed attempts missed", async () => {
+    const fixture = await createFixture("2026-07-14T09:10:00.000Z", {
+      deliver: () => Promise.reject(new Error("speaker secret")),
+    });
+
+    await fixture.runAt("2026-07-14T09:10:00.000Z");
+    await fixture.runAt("2026-07-14T09:11:00.000Z");
+
+    expect(fixture.failures).toEqual([
+      expect.objectContaining({ alarmId: fixture.alarm.id }),
+      expect.objectContaining({ alarmId: fixture.alarm.id }),
+    ]);
+    await expect(fixture.store.list()).resolves.toEqual([
+      expect.objectContaining({
+        deliveryAttempts: 2,
+        status: "missed",
+        successfulDeliveries: 0,
+      }),
+    ]);
+  });
+
+  it("consumes an interrupted final claim without replaying delivery", async () => {
+    const fixture = await createFixture("2026-07-14T09:10:00.000Z");
+    const firstClaim = await fixture.store.update({
+      changes: {
+        deliveryAttempts: 2,
+        nextDeliveryAt: null,
+        status: "ringing",
+        successfulDeliveries: 1,
+      },
+      expectedRevision: fixture.alarm.revision,
+      id: fixture.alarm.id,
+      updatedAt: "2026-07-14T09:11:00.000Z",
+    });
+    expect(firstClaim).toBeDefined();
+
+    await fixture.runAt("2026-07-14T09:12:00.000Z");
+
+    expect(fixture.delivered).toEqual([]);
+    await expect(fixture.store.list()).resolves.toEqual([
+      expect.objectContaining({ status: "completed" }),
+    ]);
+  });
+});
+
+async function createFixture(
+  scheduledFor: string,
+  delivery?: AlarmDeliveryPort,
+) {
+  const store = createInMemoryAlarmStore({
+    now: () => new Date("2026-07-14T09:00:00.000Z"),
+  });
+  const alarm = await store.add({ label: "tea", scheduledFor });
+  const delivered: AlarmDeliveryRequest[] = [];
+  const failures: Array<{ alarmId: string; error: unknown }> = [];
+  const dependencies: Omit<AlarmSchedulerDependencies, "clock"> = {
+    config: { missedGraceMs, repeatAfterMs },
+    delivery: delivery ?? {
+      deliver: (record) => {
+        delivered.push(record);
+        return Promise.resolve();
+      },
+    },
+    reportDeliveryFailure: (failure) => {
+      failures.push(failure);
+    },
+    store,
+  };
+
+  return {
+    alarm,
+    delivered,
+    failures,
+    runAt: (now: string) =>
+      processAlarmSchedulerCycle({
+        ...dependencies,
+        clock: { now: () => new Date(now) },
+      }),
+    store,
+  };
+}
