@@ -392,8 +392,16 @@ remains deterministic and uses mock/local adapters.
 The committed `config/persistent-alarms.example.json` keeps its state path local
 to the example config directory. A deployed service may instead use an absolute
 device path. The alarm file is single-process-owned: operations are serialized
-within one adapter instance and reread current state, while cross-process locks,
-background alarm delivery, and state cleanup are outside this milestone.
+within one adapter instance and reread current state, while cross-process locks
+remain outside the supported boundary. Configured desktop and Raspberry Pi
+voice services give that same store to the neutral alarm scheduler and deliver
+through their selected text-to-speech and audio-output adapters. The scheduler
+durably claims each due attempt before output, repeats an unacknowledged alarm
+once after 60 seconds, and stops after acknowledgement or dismissal. On startup,
+an alarm overdue by no more than 15 minutes is delivered; an older untouched
+alarm becomes missed. Its clock, timer, and shutdown dependencies are injected,
+and delivery failures retain safe internal diagnostics. Recurrence, snooze,
+rescheduling, and terminal-history cleanup remain Milestone 8.1 work.
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
 writing state, resumes the validated command after an explicit yes, asserts the

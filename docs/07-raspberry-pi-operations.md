@@ -15,6 +15,14 @@ descriptor so the credential is not exposed in curl's process arguments.
 Text-to-speech content is likewise sent over stdin rather than appearing in the
 helper's process arguments.
 
+The configured Pi voice service also runs the neutral alarm scheduler against
+the exact persistent store used by alarm commands. Due alarms are spoken through
+the configured synthesis and audio-output adapters, repeat once after 60 seconds
+when unacknowledged, and stop after acknowledgement or dismissal. After restart,
+alarms overdue by no more than 15 minutes are delivered; older untouched alarms
+are recorded as missed. Delivery is claimed durably before audio output so a
+restart does not replay a completed final attempt.
+
 ## Device prerequisites
 
 Install Node.js 22 or later, npm 10 or later, Python virtual-environment support,
@@ -197,4 +205,6 @@ Pi audio hardware or provider credentials.
 
 The final device check is intentionally manual: confirm wake activation,
 capture, transcription, confirmation follow-up, speech output, alarm persistence
-across `systemctl restart`, and graceful shutdown on the actual Pi.
+across `systemctl restart`, delivery of a due alarm, its one-minute repeat when
+unacknowledged, acknowledgement or dismissal, and graceful shutdown on the
+actual Pi.

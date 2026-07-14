@@ -378,8 +378,11 @@ should also guard against subtler boundary and abstraction drift.
   when it selects relative local state.
 - File-backed alarm state is owned by one assistant service process. Each adapter
   instance serializes its operations and rereads state for every operation, but
-  no cross-process locking, cloud synchronization, or background delivery is
-  implied.
+  no cross-process locking or cloud synchronization is implied. The configured
+  voice service scheduler must observe the exact adapter instance exposed by
+  feature composition so lifecycle commands and delivery claims remain
+  serialized. It claims due work durably before output and uses revision-checked
+  updates so stale observations cannot overwrite newer user actions.
 - New file-backed alarm state directories and files use restrictive `0700` and
   `0600` modes so private labels are not exposed by the host's default umask.
 - Treat duplication reports as design prompts. A small clone may be acceptable,

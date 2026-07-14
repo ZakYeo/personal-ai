@@ -50,7 +50,8 @@ Implemented today:
 - Provider adapter contract helpers for deterministic credentials, transport,
   provider response, timeout, and diagnostic tests.
 - Mock calendar and messaging features.
-- Local alarm feature backed by an adapter-owned store.
+- Local alarm feature backed by an adapter-owned store, durable lifecycle
+  state, runtime-owned scheduling, and configured voice delivery.
 - Built-in assistant capability catalog feature for listing and describing the
   currently enabled capabilities from feature metadata, with concise spoken
   summaries for normal voice answers.
@@ -71,9 +72,10 @@ Current roadmap position:
   search, the neutral service runtime, the Raspberry Pi service command, opt-in
   Raspberry Pi OS QEMU smoke support, desktop voice service activation, and a
   JSON-file-backed alarm store with consistent runtime path resolution, and the
-  tested Raspberry Pi systemd deployment path.
-- Milestone 8 next adds runtime-owned alarm scheduling and desktop/Pi delivery;
-  Milestone 8.1 then adds snooze, recurrence, editing, lifecycle status, and
+  tested Raspberry Pi systemd deployment path. Milestone 8 implementation is
+  complete and awaiting its required independent maintainability review; it
+  adds runtime-owned alarm scheduling and desktop/Pi voice delivery.
+- Milestone 8.1 next adds snooze, recurrence, editing, lifecycle status, and
   retention controls. Spike 9 will evaluate
   messaging, intent providers, local STT/TTS, calendar follow-ups, and other
   candidates, then turn the selected direction into concrete future
@@ -347,6 +349,14 @@ synchronizes the containing directory before reporting success. Existing
 state directories and files are created with private `0700` and `0600` modes.
 Malformed or unsupported existing state fails safely: human-facing responses remain
 generic while runtime diagnostics retain the underlying cause.
+
+Long-running desktop and Pi voice services schedule enabled alarms through the
+same store instance used by assistant commands. A due alarm is spoken through
+the configured text-to-speech and audio-output adapters, then repeated once
+after 60 seconds unless it is acknowledged or dismissed. On startup, alarms up
+to 15 minutes overdue are delivered; older alarms are marked missed. Delivery
+claims are persisted before audio output so an uncertain attempt is not replayed
+after restart. Cancelling a scheduled alarm requires confirmation.
 
 ## Scripts
 

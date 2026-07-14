@@ -16,10 +16,11 @@ The file-backed alarm store establishes local state that survives restarts, and
 config-directory-relative paths now flow consistently through text, voice, and
 service composition. Raspberry Pi operations now include a tested systemd unit,
 stable deployment paths, a dedicated service account, and operator guidance.
-The next milestone turns durable alarm records into operational alarms with
-runtime-owned scheduling and human-facing delivery. A follow-on alarm usability
-milestone adds richer alarm lifecycle controls. After those are stable, a
-discovery spike will identify and define the next concrete implementation
+Milestone 8 implementation now adds neutral runtime-owned scheduling, durable
+delivery claims, restart recovery, configured voice delivery, and lifecycle
+controls; its required independent maintainability review is pending. Milestone
+8.1 follows with richer alarm usability and lifecycle controls. After that work
+is stable, Spike 9 will identify and define the next concrete implementation
 milestones rather than treating a broad list of possible providers as one
 delivery milestone.
 
@@ -824,7 +825,7 @@ Acceptance criteria:
 
 ## Milestone 8: Operational Alarm Delivery
 
-Status: planned.
+Status: implementation complete; independent review pending.
 
 Goal: turn persisted alarm records into alarms that trigger reliably in the
 long-running desktop and Raspberry Pi service runtimes.

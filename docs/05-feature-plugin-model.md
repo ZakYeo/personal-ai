@@ -231,9 +231,14 @@ Create a deterministic draft response. Do not send anything in the first milesto
 
 ### Alarms
 
-Local or in-memory capability for creating and listing alarms.
+Local/in-memory or file-backed capability for creating, listing,
+acknowledging, dismissing, and cancelling alarms.
 Alarm identity belongs to the selected `AlarmStore`; feature logic provides the
-alarm details and reports the stored record returned by the port.
+alarm details and reports the stored record returned by the port. Configured
+voice services expose that same store to the runtime-owned scheduler, which
+durably claims due attempts before speaking through the selected voice output.
+Acknowledgement and dismissal stop a ringing alarm; cancellation is a
+high-risk lifecycle change and requires confirmation by default.
 
 Example command:
 
@@ -244,7 +249,9 @@ Hey Jarvis, set an alarm to ping me in 10 minutes.
 Expected behavior:
 
 ```text
-Create a deterministic alarm record only after confirmation policy allows execution.
+Create a durable alarm record only after confirmation policy allows execution.
+The long-running voice service delivers it at or after its due time, repeats it
+once when it is not acknowledged, and preserves lifecycle state across restart.
 ```
 
 ## Feature Registration

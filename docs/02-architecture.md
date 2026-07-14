@@ -106,7 +106,10 @@ Implemented application ports include:
 - Command response rewriting contracts.
 - Feature, capability metadata, execution context, and capability-catalog
   contracts.
-- `AlarmStore` for storing alarms and assigning storage-owned alarm IDs.
+- `AlarmStore` for storing alarms, assigning storage-owned alarm IDs, and
+  revision-checking durable lifecycle transitions.
+- `AlarmDeliveryPort` for runtime-owned delivery without coupling scheduling to
+  a particular voice or device adapter.
 - Calendar search and upcoming-event contracts.
 - Process shutdown and command-execution control contracts.
 - Batch and streaming voice input, wake activation, transcription, synthesis,
@@ -128,6 +131,8 @@ Deterministic and local adapters include:
 - Mock messaging adapter.
 - Local/in-memory and versioned JSON-file alarm storage adapters implementing
   the alarm store port.
+- A voice alarm-delivery adapter that composes the configured synthesis and
+  audio-output path for each delivery attempt.
 
 Implemented real-provider adapters include:
 
@@ -149,6 +154,10 @@ Runtime config loading retains the absolute directory of the selected config as
 composition context. Stateful feature registries use that context to resolve
 relative local paths before constructing adapters, so application ports and
 feature logic never receive file-system path policy.
+Configured service composition receives the exact `AlarmStore` constructed for
+the alarms feature and gives it to the neutral runtime-owned scheduler. This
+keeps feature commands, restart recovery, and delivery claims on one serialized
+state boundary instead of reconstructing storage policy in the service runtime.
 
 Expected runtimes:
 
