@@ -3,33 +3,41 @@ import { join } from "node:path";
 
 describe("Raspberry Pi systemd service", () => {
   it("runs the built Pi service with stable paths and restart policy", async () => {
-    const unit = await readServiceUnit();
+    expect.hasAssertions();
+    const unit = await readParsedServiceUnit();
 
-    expect(unit).toContain("User=personal-ai");
-    expect(unit).toContain("Group=personal-ai");
-    expect(unit).toContain("SupplementaryGroups=audio");
-    expect(unit).toContain("WorkingDirectory=/opt/personal-ai");
-    expect(unit).toContain("EnvironmentFile=-/etc/personal-ai/environment");
-    expect(unit).toContain(
-      "ExecStart=/usr/bin/node /opt/personal-ai/dist/runtimes/cli/main.js pi-service --config /etc/personal-ai/config.json",
-    );
-    expect(unit).toContain("StateDirectory=personal-ai");
-    expect(unit).toContain("StateDirectoryMode=0750");
-    expect(unit).toContain("Restart=on-failure");
-    expect(unit).toContain("RestartSec=5s");
-    expect(unit).toContain("WantedBy=multi-user.target");
+    expectDirective(unit, "Unit", "AssertPathExists", [
+      "/etc/personal-ai/config.json",
+    ]);
+    expectDirective(unit, "Service", "User", ["personal-ai"]);
+    expectDirective(unit, "Service", "Group", ["personal-ai"]);
+    expectDirective(unit, "Service", "SupplementaryGroups", ["audio"]);
+    expectDirective(unit, "Service", "WorkingDirectory", ["/opt/personal-ai"]);
+    expectDirective(unit, "Service", "EnvironmentFile", [
+      "-/etc/personal-ai/environment",
+    ]);
+    expectDirective(unit, "Service", "ExecStart", [
+      "/usr/bin/node /opt/personal-ai/dist/runtimes/cli/main.js pi-service --config /etc/personal-ai/config.json",
+    ]);
+    expectDirective(unit, "Service", "StateDirectory", ["personal-ai"]);
+    expectDirective(unit, "Service", "StateDirectoryMode", ["0750"]);
+    expectDirective(unit, "Service", "Restart", ["on-failure"]);
+    expectDirective(unit, "Service", "RestartSec", ["5s"]);
+    expectDirective(unit, "Install", "WantedBy", ["multi-user.target"]);
   });
 
   it("hardens the service without isolating audio devices", async () => {
-    const unit = await readServiceUnit();
+    const unit = await readParsedServiceUnit();
 
-    expect(unit).toContain("NoNewPrivileges=true");
-    expect(unit).toContain("PrivateTmp=true");
-    expect(unit).toContain("ProtectHome=true");
-    expect(unit).toContain("ProtectSystem=strict");
-    expect(unit).toContain("ReadWritePaths=/var/lib/personal-ai");
-    expect(unit).toContain("UMask=0027");
-    expect(unit).not.toContain("PrivateDevices=true");
+    expectDirective(unit, "Service", "NoNewPrivileges", ["true"]);
+    expectDirective(unit, "Service", "PrivateTmp", ["true"]);
+    expectDirective(unit, "Service", "ProtectHome", ["true"]);
+    expectDirective(unit, "Service", "ProtectSystem", ["strict"]);
+    expectDirective(unit, "Service", "ReadWritePaths", [
+      "/var/lib/personal-ai",
+    ]);
+    expectDirective(unit, "Service", "UMask", ["0027"]);
+    expect(unit.Service?.PrivateDevices).toBeUndefined();
   });
 
   it("does not embed provider credentials", async () => {
@@ -63,4 +71,52 @@ function readServiceUnit(): Promise<string> {
     join(process.cwd(), "deploy", "systemd", "personal-ai.service"),
     "utf8",
   );
+}
+
+type ParsedSystemdUnit = Record<string, Record<string, string[]>>;
+
+async function readParsedServiceUnit(): Promise<ParsedSystemdUnit> {
+  return parseSystemdUnit(await readServiceUnit());
+}
+
+function parseSystemdUnit(contents: string): ParsedSystemdUnit {
+  const unit: ParsedSystemdUnit = {};
+  let section: string | undefined;
+
+  for (const rawLine of contents.split("\n")) {
+    const line = rawLine.trim();
+
+    if (line.length === 0 || line.startsWith("#") || line.startsWith(";")) {
+      continue;
+    }
+
+    const sectionMatch = line.match(/^\[(?<section>[^\]]+)\]$/u);
+    if (sectionMatch?.groups?.section) {
+      section = sectionMatch.groups.section;
+      unit[section] ??= {};
+      continue;
+    }
+
+    const separator = line.indexOf("=");
+    if (!section || separator <= 0) {
+      throw new Error(`Invalid systemd unit line: ${line}`);
+    }
+
+    const key = line.slice(0, separator);
+    const value = line.slice(separator + 1);
+    const directives = unit[section] ?? {};
+    directives[key] = [...(directives[key] ?? []), value];
+    unit[section] = directives;
+  }
+
+  return unit;
+}
+
+function expectDirective(
+  unit: ParsedSystemdUnit,
+  section: string,
+  key: string,
+  expected: string[],
+): void {
+  expect(unit[section]?.[key]).toEqual(expected);
 }

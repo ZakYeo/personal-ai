@@ -2,7 +2,7 @@
 Description=Personal AI Raspberry Pi voice service
 Wants=network-online.target
 After=network-online.target sound.target
-ConditionPathExists=/etc/personal-ai/config.json
+AssertPathExists=/etc/personal-ai/config.json
 
 [Service]
 Type=simple
