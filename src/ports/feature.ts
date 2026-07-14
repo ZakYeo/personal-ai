@@ -2,6 +2,7 @@ import type {
   AssistantCommand,
   AssistantContext,
   AssistantCommandParameters,
+  ConfirmationDeclaration,
 } from "./assistant.js";
 import type {
   CapabilityCatalog,
@@ -9,6 +10,7 @@ import type {
   FeatureCapabilityParameter,
 } from "./capability-catalog.js";
 
+export type { ConfirmationDeclaration } from "./assistant.js";
 export type {
   FeatureCapability,
   FeatureCapabilityParameter,
@@ -26,11 +28,6 @@ export type FeatureCapabilityParameters = Record<
 export interface FeatureResult {
   text: string;
   data?: AssistantCommandParameters;
-}
-
-export interface ConfirmationDeclaration {
-  facts: AssistantCommandParameters;
-  text: string;
 }
 
 export type FeatureArgumentValue = string | number | boolean | undefined;

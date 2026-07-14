@@ -1,10 +1,6 @@
-import type { AssistantCommand } from "./assistant.js";
+import type { AssistantCommand, ConfirmationDeclaration } from "./assistant.js";
 import type { CapabilityRoute } from "./capability-catalog.js";
-import type {
-  ConfirmationDeclaration,
-  FeatureArguments,
-  FeaturePlugin,
-} from "./feature.js";
+import type { FeatureArguments, FeaturePlugin } from "./feature.js";
 
 export interface ValidatedAssistantPlanStep {
   readonly command: AssistantCommand;

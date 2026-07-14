@@ -1,5 +1,4 @@
-import type { AssistantContext } from "./assistant.js";
-import type { ConfirmationDeclaration } from "./feature.js";
+import type { AssistantContext, ConfirmationDeclaration } from "./assistant.js";
 
 export interface FeatureCapability {
   name: string;

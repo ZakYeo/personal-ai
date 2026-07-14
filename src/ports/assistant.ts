@@ -56,6 +56,11 @@ export type AssistantCommandParameters = Record<
   string | number | boolean | null | undefined
 >;
 
+export interface ConfirmationDeclaration {
+  facts: AssistantCommandParameters;
+  text: string;
+}
+
 export interface AssistantCommand {
   capability: string;
   parameters: AssistantCommandParameters;
