@@ -40,6 +40,98 @@ function createAssistant(
 }
 
 describe("createAssistant", () => {
+  it("validates a whole plan before executing its steps in order", async () => {
+    const calls: string[] = [];
+    const calendar = createFeature({
+      id: "calendar",
+      capability: {
+        name: "calendar.search_events",
+        risk: "low",
+        parameters: {},
+      },
+      execute: () => {
+        calls.push("calendar");
+        return Promise.resolve({ text: "Calendar checked." });
+      },
+    });
+    const alarms = createFeature({
+      id: "alarms",
+      capability: {
+        name: "alarm.list",
+        risk: "low",
+        parameters: {},
+      },
+      execute: () => {
+        calls.push("alarms");
+        return Promise.resolve({ text: "Alarms listed." });
+      },
+    });
+    const assistant = createAssistant({
+      clock,
+      config: createAssistantConfig({
+        alarms: { enabled: true },
+        calendar: { enabled: true },
+      }),
+      features: [calendar, alarms],
+      intentInterpreter: createInterpreter({
+        kind: "plan",
+        plan: {
+          commands: [
+            createCommand("calendar.search_events"),
+            createCommand("alarm.list"),
+          ],
+        },
+      }),
+    });
+
+    await expect(
+      assistant.handleTextWithDiagnostics("do both"),
+    ).resolves.toEqual({
+      plan: {
+        steps: [
+          {
+            capability: "calendar.search_events",
+            response: { status: "ok", text: "Calendar checked." },
+            status: "succeeded",
+          },
+          {
+            capability: "alarm.list",
+            response: { status: "ok", text: "Alarms listed." },
+            status: "succeeded",
+          },
+        ],
+      },
+      response: {
+        status: "ok",
+        text: "Calendar checked. Alarms listed.",
+      },
+    });
+    expect(calls).toEqual(["calendar", "alarms"]);
+  });
+
+  it("executes no plan steps when any command is invalid", async () => {
+    const execute = vi.fn(() => Promise.resolve({ text: "Executed." }));
+    const feature = createFeature({ execute });
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [feature],
+      intentInterpreter: createInterpreter({
+        kind: "plan",
+        plan: {
+          commands: [
+            createCommand("test.echo"),
+            createCommand("test.echo", { unsupported: true }),
+          ],
+        },
+      }),
+    });
+
+    await expect(assistant.handleText("do both")).resolves.toMatchObject({
+      status: "invalid",
+    });
+    expect(execute).not.toHaveBeenCalled();
+  });
   it("routes interpreted commands to an enabled feature", async () => {
     const command = createCommand("test.echo", { message: "hello" });
     const execute = vi.fn(() =>

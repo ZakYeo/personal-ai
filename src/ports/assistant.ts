@@ -37,6 +37,18 @@ export interface AssistantDiagnostic {
 export interface AssistantOutcome {
   response: AssistantResponse;
   diagnostics?: AssistantDiagnostic[];
+  plan?: AssistantPlanOutcome;
+}
+
+export interface AssistantPlanOutcome {
+  steps: readonly AssistantPlanStepOutcome[];
+}
+
+export interface AssistantPlanStepOutcome {
+  capability: string;
+  diagnostics?: AssistantDiagnostic[];
+  response?: AssistantResponse;
+  status: "succeeded" | "failed" | "skipped";
 }
 
 export type AssistantCommandParameters = Record<

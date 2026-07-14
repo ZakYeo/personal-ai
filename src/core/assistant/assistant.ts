@@ -9,7 +9,10 @@ import type {
   ClockPort,
 } from "../../ports/assistant.js";
 import type { FeatureArguments, FeaturePlugin } from "../../ports/feature.js";
-import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
+import type {
+  CapabilityRoute,
+  CapabilityRoutingIndex,
+} from "../../ports/capability-catalog.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import {
@@ -114,12 +117,14 @@ async function handleTextInternal(
   }
 
   if (interpretation.kind === "plan") {
-    return {
-      response: {
-        status: "unsupported",
-        text: "Compound command plans are not available yet.",
-      },
-    };
+    return handleProposedPlan({
+      commands: interpretation.plan.commands,
+      context,
+      dependencies,
+      executionContext,
+      normalizedText,
+      confirmation,
+    });
   }
 
   const command = interpretation.command;
@@ -182,6 +187,163 @@ async function handleTextInternal(
   } catch (error) {
     return featureFailureOutcome(error, command.capability);
   }
+}
+
+interface ValidatedPlanStep {
+  command: AssistantCommand;
+  decodedArgs: FeatureArguments;
+  route: CapabilityRoute<FeaturePlugin>;
+}
+
+async function handleProposedPlan(input: {
+  commands: readonly AssistantCommand[];
+  confirmation: ConfirmationSession;
+  context: AssistantContext;
+  dependencies: AssistantDependencies;
+  executionContext: AssistantContext & {
+    capabilityCatalog: AssistantDependencies["capabilityRouting"]["catalog"];
+  };
+  normalizedText: string;
+}): Promise<AssistantOutcome> {
+  if (input.commands.length < 1 || input.commands.length > 3) {
+    return outcomeFromError(
+      createAppError({
+        category: "validation",
+        message: "A compound plan must contain one to three commands.",
+      }),
+    );
+  }
+
+  const steps: ValidatedPlanStep[] = [];
+  let requiresConfirmation = false;
+
+  for (const command of input.commands) {
+    const route = input.dependencies.capabilityRouting.get(command.capability);
+    const feature = route?.feature;
+
+    if (
+      !route ||
+      !feature ||
+      !isFeatureEnabled(feature, input.dependencies.config) ||
+      feature.canHandle?.(command, input.context) === false
+    ) {
+      return outcomeFromError(
+        createAppError({
+          category: "unsupported",
+          capability: command.capability,
+          message: `No enabled feature can handle ${command.capability}.`,
+        }),
+      );
+    }
+
+    const decoded = decodeCommandForCapability(command, route.capability);
+    if (!decoded.ok) {
+      return outcomeFromError(decoded.error);
+    }
+
+    requiresConfirmation ||=
+      evaluateConfirmationPolicy(
+        feature,
+        route.capability,
+        input.dependencies.config,
+      ) !== undefined;
+    steps.push(
+      Object.freeze({
+        command: Object.freeze({
+          ...command,
+          parameters: Object.freeze({ ...command.parameters }),
+        }),
+        decodedArgs: Object.freeze({ ...decoded.args }),
+        route,
+      }),
+    );
+  }
+
+  const validatedSteps = Object.freeze(steps);
+  const execute = () =>
+    executeValidatedPlan(validatedSteps, {
+      context: input.context,
+      dependencies: input.dependencies,
+      executionContext: input.executionContext,
+      normalizedText: input.normalizedText,
+    });
+
+  return requiresConfirmation ? input.confirmation.request(execute) : execute();
+}
+
+async function executeValidatedPlan(
+  steps: readonly ValidatedPlanStep[],
+  input: {
+    context: AssistantContext;
+    dependencies: AssistantDependencies;
+    executionContext: AssistantContext & {
+      capabilityCatalog: AssistantDependencies["capabilityRouting"]["catalog"];
+    };
+    normalizedText: string;
+  },
+): Promise<AssistantOutcome> {
+  const stepOutcomes: NonNullable<AssistantOutcome["plan"]>["steps"][number][] =
+    [];
+  let failed = false;
+
+  for (const step of steps) {
+    if (failed) {
+      stepOutcomes.push({
+        capability: step.command.capability,
+        status: "skipped",
+      });
+      continue;
+    }
+
+    const outcome = await executeCommand({
+      command: step.command,
+      context: input.context,
+      decodedArgs: step.decodedArgs,
+      dependencies: input.dependencies,
+      executionContext: input.executionContext,
+      feature: step.route.feature,
+      normalizedText: input.normalizedText,
+    });
+    const succeeded = outcome.response.status === "ok";
+    failed = !succeeded;
+    stepOutcomes.push({
+      capability: step.command.capability,
+      ...(outcome.diagnostics ? { diagnostics: outcome.diagnostics } : {}),
+      response: outcome.response,
+      status: succeeded ? "succeeded" : "failed",
+    });
+  }
+
+  const completedText = stepOutcomes
+    .flatMap((step) =>
+      step.status === "succeeded" && step.response ? [step.response.text] : [],
+    )
+    .join(" ");
+  const failedStep = stepOutcomes.find((step) => step.status === "failed");
+  const skippedCount = stepOutcomes.filter(
+    (step) => step.status === "skipped",
+  ).length;
+  const response = failedStep
+    ? {
+        status: "error" as const,
+        text: [
+          completedText,
+          failedStep.response?.text ?? "A plan step failed.",
+          skippedCount > 0
+            ? `${skippedCount} remaining ${skippedCount === 1 ? "step was" : "steps were"} not attempted.`
+            : undefined,
+        ]
+          .filter((part): part is string => Boolean(part))
+          .join(" "),
+      }
+    : { status: "ok" as const, text: completedText };
+  const diagnostics = stepOutcomes.flatMap((step) => step.diagnostics ?? []);
+
+  return {
+    ...(diagnostics.length > 0 ? { diagnostics } : {}),
+    plan: { steps: stepOutcomes },
+    response,
+  };
 }
 
 async function executeCommand(input: {
