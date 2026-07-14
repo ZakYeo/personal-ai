@@ -18,4 +18,14 @@ describe("package scripts", () => {
 
     expect(packageJson.scripts?.["test:file"]).toBe("vitest --run");
   });
+
+  it("provides a focused live OpenAI Pi alarm smoke command", async () => {
+    const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.["test:e2e:openai:pi"]).toContain(
+      "pi-service-openai-alarms.e2e.test.ts",
+    );
+  });
 });
