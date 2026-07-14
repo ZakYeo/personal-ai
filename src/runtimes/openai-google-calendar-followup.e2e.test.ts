@@ -1,6 +1,7 @@
 import { env } from "node:process";
 
 import { createConfiguredTextRuntime } from "./configured-text-runtime.js";
+import { parseAssistantConfig } from "./config/config.js";
 
 const runLiveFollowUp =
   env.PERSONAL_AI_RUN_OPENAI_E2E === "1" &&
@@ -46,7 +47,7 @@ function requireFixtureQuery(): string {
 }
 
 function createLiveConfig() {
-  return {
+  return parseAssistantConfig({
     assistant: { name: "Jarvis", wakePhrases: ["hey jarvis"] },
     conversation: {
       history: { maxTurnsBeforeCompaction: 5 },
@@ -75,5 +76,5 @@ function createLiveConfig() {
       provider: "openai",
     },
     responseRewriter: { provider: "disabled" },
-  };
+  });
 }
