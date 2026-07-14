@@ -117,6 +117,13 @@ async function listAlarms(store: AlarmStore): Promise<FeatureResult> {
   }
 
   return {
+    data: Object.fromEntries(
+      alarms.flatMap((alarm, index) => [
+        [`alarm${index}Id`, alarm.id],
+        [`alarm${index}Label`, alarm.label],
+        [`alarm${index}ScheduledFor`, alarm.scheduledFor],
+      ]),
+    ),
     text: `Alarms: ${alarms
       .map((alarm) => `${alarm.id} at ${alarm.scheduledFor} (${alarm.label})`)
       .join("; ")}.`,

@@ -101,6 +101,11 @@ describe("createAlarmFeature", () => {
       executeFeature(feature, "alarm.list", {}, context),
     ).resolves.toEqual({
       text: "Alarms: alarm-1 at 2026-06-26T09:10:00.000Z (ping me).",
+      data: {
+        alarm0Id: "alarm-1",
+        alarm0Label: "ping me",
+        alarm0ScheduledFor: "2026-06-26T09:10:00.000Z",
+      },
     });
   });
 

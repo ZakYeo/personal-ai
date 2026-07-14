@@ -15,6 +15,8 @@ import {
   requireConfirmationFor,
 } from "../../test-support/core-assistant.js";
 import type { ConversationState } from "../../ports/conversation.js";
+import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
+import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
 
 const config = createAssistantConfig({
   test: { enabled: true },
@@ -234,6 +236,37 @@ describe("createAssistant", () => {
     expect(outcome.response).toEqual({
       status: "ok",
       text: "There are 2 upcoming events.",
+    });
+    expect(outcome.diagnostics).toEqual([
+      expect.objectContaining({
+        category: "response_rewrite_failure",
+        message:
+          "Response rewrite changed protected fact token __ASSISTANT_PROTECTED_FACT_0__.",
+      }),
+    ]);
+  });
+
+  it("falls back when a rewrite changes persisted alarm-list facts", async () => {
+    const store = createInMemoryAlarmStore();
+    await store.add({
+      label: "private appointment",
+      scheduledFor: "2026-06-26T09:10:00.000Z",
+    });
+    const assistant = createAssistant({
+      clock,
+      config: createAssistantConfig({ alarms: { enabled: true } }),
+      features: [createAlarmFeature(store)],
+      intentInterpreter: createInterpreter(createCommand("alarm.list")),
+      responseRewriter: {
+        rewrite: () => Promise.resolve({ text: "You have an alarm." }),
+      },
+    });
+
+    const outcome = await assistant.handleTextWithDiagnostics("list alarms");
+
+    expect(outcome.response).toEqual({
+      status: "ok",
+      text: "Alarms: alarm-1 at 2026-06-26T09:10:00.000Z (private appointment).",
     });
     expect(outcome.diagnostics).toEqual([
       expect.objectContaining({
