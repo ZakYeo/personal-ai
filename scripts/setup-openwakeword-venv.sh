@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 venv_path="${OPENWAKEWORD_VENV:-"$repo_root/.venv"}"
 python_command="${PYTHON:-python3}"
+requirements_path="$repo_root/scripts/openwakeword-requirements.lock"
 
 if ! command -v "$python_command" >/dev/null 2>&1; then
   echo "Python command not found: $python_command" >&2
@@ -12,8 +13,9 @@ if ! command -v "$python_command" >/dev/null 2>&1; then
 fi
 
 "$python_command" -m venv "$venv_path"
-"$venv_path/bin/python" -m pip install --upgrade pip
-"$venv_path/bin/python" -m pip install openwakeword
+"$venv_path/bin/python" -m pip install \
+  --disable-pip-version-check \
+  --requirement "$requirements_path"
 "$venv_path/bin/python" "$repo_root/scripts/openwakeword-listener.py" --startup-check
 
 echo "OpenWakeWord venv is ready at $venv_path"

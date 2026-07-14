@@ -74,6 +74,7 @@
 - `ResolvedVoiceConfig` must encode each selected streaming ID pair as both-present or both-absent and validate that invariant in `requireVoiceConfig`, before adapter registry resolution.
 - Intent, conversation, and response-rewriter provider registry entries must parse and capture their selected provider config and constructor during runtime config loading; central operation config retains only common fields, the provider ID, and a neutral resolved factory.
 - Desktop voice runtimes should use explicit local config for command-based STT/TTS, streaming STT/TTS, openWakeWord wake activation, and SoX input/output; keep machine-specific commands out of `config/default.json`.
+- Keep OpenWakeWord Python dependencies fully pinned in `scripts/openwakeword-requirements.lock`; setup and Pi releases must install that artifact without an unconditional pip upgrade.
 - Desktop OpenAI command capture should stop shortly after trailing silence while retaining a bounded maximum capture duration, and smoke tests should keep surfacing voice timing summaries for latency work.
 - Desktop voice temp capture/speech files are owned by runtime composition; adapters should receive an injectable temp-file owner and runtimes should clean up after each turn.
 - Treat cleanup as best-effort runtime resource release unless a stricter lifecycle guarantee is documented and tested; cleanup diagnostics should not accidentally change shared turn/retry semantics.

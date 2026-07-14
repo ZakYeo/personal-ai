@@ -123,6 +123,9 @@ If the venv should remain active in the current shell, source the setup script:
 source scripts/setup-openwakeword-venv.sh
 ```
 
+The setup installs the fully pinned dependency set in
+`scripts/openwakeword-requirements.lock` without upgrading pip implicitly.
+
 This command runs the desktop voice stack in a long-lived service loop. When
 `voice.wakeActivation` is configured, the service waits on a local wake
 activation adapter before it records or streams command audio. The checked-in

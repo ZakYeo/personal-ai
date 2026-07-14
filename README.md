@@ -87,10 +87,12 @@ config file. The default OpenAI desktop voice config uses openWakeWord for local
 realtime transcription. See the [runtime plan](docs/04-runtime-plan.md) for the
 desktop voice config shape. The checked-in default config expects the
 OpenWakeWord Python dependency in `.venv`; run `npm run setup:openwakeword` or
-source `scripts/setup-openwakeword-venv.sh` before `npm start`. It passes
-`--threshold 0.25` to the listener so local wake activation is more
-sensitive; tune that value in `config/local-desktop-voice-openai.json` if your
-room or microphone needs a different false-wake tradeoff.
+source `scripts/setup-openwakeword-venv.sh` before `npm start`. Setup passes the
+committed, fully pinned `scripts/openwakeword-requirements.lock` to pip so the
+same checkout resolves the same Python dependency versions. The checked-in
+desktop config passes `--threshold 0.25` to the listener for more sensitive
+local wake activation; tune that value if your room or microphone needs a
+different false-wake tradeoff.
 The default desktop command capture uses SoX silence detection after wake
 activation so recording stops shortly after trailing silence while retaining an
 eight-second maximum capture guard.
