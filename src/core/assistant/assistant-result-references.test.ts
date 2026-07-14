@@ -24,7 +24,7 @@ describe("assistant result references", () => {
 
     expect(contexts[1]?.resultReferences).toEqual([
       {
-        facts: { date: "2026-07-17", title: "Dentist" },
+        facts: { date: "2026-07-17", time: "11:00", title: "Dentist" },
         kind: "calendar_event",
         ordinal: 1,
         reference: "calendar-event-1",
@@ -116,7 +116,11 @@ function createReferenceAssistant(
         resultReferences: {
           items: [
             {
-              facts: { date: "2026-07-17", title: "Dentist" },
+              facts: {
+                date: "2026-07-17",
+                time: "11:00",
+                title: "Dentist",
+              },
               target: {
                 kind: "calendar_event" as const,
                 providerEventId: "provider-secret-id",

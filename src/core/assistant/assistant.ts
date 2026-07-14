@@ -39,6 +39,7 @@ import { validateAssistantPlan } from "./plan-validation.js";
 import { protectResponseFacts } from "./response-fact-protection.js";
 import { createResultReferenceSession } from "./result-reference-session.js";
 import type { ResultReferenceSession } from "./result-reference-session.js";
+import type { ResultReferenceSelectionRequest } from "../../ports/result-reference.js";
 
 export interface AssistantDependencies {
   capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
@@ -200,8 +201,8 @@ function executeValidatedPlan(
     capabilityCatalog: dependencies.capabilityRouting.catalog,
     ...(publicReferences.length > 0
       ? {
-          resolveResultReference: (reference: string) =>
-            resultReferences.resolve(reference),
+          selectResultReference: (request: ResultReferenceSelectionRequest) =>
+            resultReferences.select(request),
         }
       : {}),
   };

@@ -12,6 +12,7 @@ describe.skipIf(!runLiveFollowUp)(
   () => {
     it("searches a real result and resolves a read-only follow-up by opaque reference", async () => {
       const query = requireFixtureQuery();
+      const expectedDetail = requireExpectedDetail();
       const assistant = await createConfiguredTextRuntime({
         config: createLiveConfig(),
         env,
@@ -29,6 +30,8 @@ describe.skipIf(!runLiveFollowUp)(
 
       const followUp = await assistant.handleText("Where is the first one?");
       expect(followUp).toMatchObject({ status: "ok" });
+      expect(followUp.expectsFollowUp).not.toBe(true);
+      expect(followUp.text).toContain(expectedDetail);
       expect(followUp.text).not.toMatch(
         /calendar-event-|provider|credential/iu,
       );
@@ -44,6 +47,17 @@ function requireFixtureQuery(): string {
     );
   }
   return query;
+}
+
+function requireExpectedDetail(): string {
+  const detail =
+    env.PERSONAL_AI_GOOGLE_CALENDAR_FOLLOWUP_EXPECTED_DETAIL?.trim();
+  if (!detail) {
+    throw new Error(
+      "PERSONAL_AI_GOOGLE_CALENDAR_FOLLOWUP_EXPECTED_DETAIL must match the fixture title or location.",
+    );
+  }
+  return detail;
 }
 
 function createLiveConfig() {

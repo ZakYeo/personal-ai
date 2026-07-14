@@ -42,6 +42,54 @@ describe("createGoogleCalendarAdapter", () => {
     );
   });
 
+  it("maps a missing single event to undefined", async () => {
+    const calendar = createAdapter({
+      fetch: createFetchStub(providerErrorResponse(404, {}, "Not Found")),
+    });
+
+    await expect(
+      calendar.getEvent("missing", { now: deterministicTestNow }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("rejects malformed single-event output with adapter diagnostics", async () => {
+    const calendar = createAdapter({
+      fetch: createFetchStub(jsonResponse({ id: "event-1" })),
+    });
+
+    await expect(
+      calendar.getEvent("event-1", { now: deterministicTestNow }),
+    ).rejects.toThrow(
+      "Google Calendar event summary must be a non-empty string.",
+    );
+  });
+
+  it("applies the shared credential policy to single-event lookup", async () => {
+    const fetch = vi.fn();
+    const calendar = createAdapter({
+      env: createMissingProviderCredentialEnv(),
+      fetch,
+    });
+
+    await expect(
+      calendar.getEvent("event-1", { now: deterministicTestNow }),
+    ).rejects.toThrow(
+      "Google Calendar client ID environment variable GOOGLE_CALENDAR_CLIENT_ID is not set.",
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("times out single-event lookup through the shared transport", async () => {
+    const calendar = createAdapter({
+      fetch: createAbortingFetchStub(),
+      timeoutMs: 1,
+    });
+
+    await expect(
+      calendar.getEvent("event-1", { now: deterministicTestNow }),
+    ).rejects.toThrow("Google Calendar event request timed out after 1ms.");
+  });
+
   it("returns normalized events from Google Calendar output", async () => {
     const fetch = createFetchStub(
       jsonResponse({

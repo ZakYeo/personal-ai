@@ -15,6 +15,7 @@ import {
   parseGoogleCalendarEvent,
   parseGoogleCalendarEvents,
 } from "./google-calendar-events-parser.js";
+import { GoogleCalendarError } from "./google-calendar-error.js";
 
 export { GoogleCalendarError } from "./google-calendar-error.js";
 
@@ -39,14 +40,19 @@ async function getEvent(
   options: GoogleCalendarAdapterOptions,
 ): Promise<CalendarEvent | undefined> {
   const accessToken = await resolveAccessToken(options);
-  return parseGoogleCalendarEvent(
-    await fetchGoogleCalendarEvent({
-      accessToken,
-      config: options.config,
-      fetch: options.fetch,
-      id,
-    }),
-  );
+  try {
+    return parseGoogleCalendarEvent(
+      await fetchGoogleCalendarEvent({
+        accessToken,
+        config: options.config,
+        fetch: options.fetch,
+        id,
+      }),
+    );
+  } catch (error) {
+    if (error instanceof GoogleCalendarError && error.status === 404) return;
+    throw error;
+  }
 }
 
 async function searchEvents(

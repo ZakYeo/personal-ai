@@ -50,19 +50,28 @@ describe("createCalendarFeature", () => {
       ...context,
       resultReferences: [
         {
-          facts: { title: "Dentist" },
+          facts: { date: "2026-07-17", time: "11:00", title: "Dentist" },
           kind: "calendar_event" as const,
           ordinal: 1,
           reference: "calendar-event-1",
         },
       ],
-      resolveResultReference: (reference: string) =>
-        reference === "calendar-event-1"
-          ? {
-              kind: "calendar_event" as const,
-              providerEventId: "dentist-provider-id",
-            }
-          : undefined,
+      selectResultReference: () => ({
+        publicReference: {
+          facts: {
+            date: "2026-07-17",
+            time: "11:00",
+            title: "Dentist",
+          },
+          kind: "calendar_event" as const,
+          ordinal: 1,
+          reference: "calendar-event-1",
+        },
+        target: {
+          kind: "calendar_event" as const,
+          providerEventId: "dentist-provider-id",
+        },
+      }),
     };
 
     await expectDecodedFeatureExecution(
@@ -94,13 +103,13 @@ describe("createCalendarFeature", () => {
         ...context,
         resultReferences: [
           {
-            facts: { title: "One" },
+            facts: { date: "2026-07-17", time: "11:00", title: "One" },
             kind: "calendar_event",
             ordinal: 1,
             reference: "calendar-event-1",
           },
           {
-            facts: { title: "Two" },
+            facts: { date: "2026-07-18", time: "12:00", title: "Two" },
             kind: "calendar_event",
             ordinal: 2,
             reference: "calendar-event-2",
@@ -210,6 +219,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       { endDate: "2026-08-31", startDate: "2026-08-01" },
       {
+        resultReferences: calendarResultReferences([]),
         text: "I could not find any upcoming calendar events.",
       },
       context,
@@ -222,6 +232,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       { query: "dentist" },
       {
+        resultReferences: calendarResultReferences([]),
         text: 'I could not find a calendar event matching "dentist".',
       },
       context,
@@ -262,6 +273,7 @@ describe("createCalendarFeature", () => {
       "calendar.search_events",
       { endDate: "2026-08-31", startDate: "2026-08-01" },
       {
+        resultReferences: calendarResultReferences([]),
         text: "I could not find any upcoming calendar events.",
       },
       context,

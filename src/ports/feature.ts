@@ -11,7 +11,8 @@ import type {
 } from "./capability-catalog.js";
 import type {
   FeatureResultReferenceSet,
-  ResultReferenceTarget,
+  ResolvedResultReference,
+  ResultReferenceSelectionRequest,
 } from "./result-reference.js";
 
 export type { ConfirmationDeclaration } from "./assistant.js";
@@ -22,7 +23,9 @@ export type {
 
 export interface FeatureExecutionContext extends AssistantContext {
   capabilityCatalog: CapabilityCatalog;
-  resolveResultReference?(reference: string): ResultReferenceTarget | undefined;
+  selectResultReference?(
+    request: ResultReferenceSelectionRequest,
+  ): ResolvedResultReference | undefined;
 }
 
 export type FeatureCapabilityParameters = Record<

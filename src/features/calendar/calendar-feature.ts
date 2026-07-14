@@ -88,7 +88,12 @@ export function createCalendarFeature(
           spokenSummary: "ask about recent calendar results",
           parameters: calendarFollowUpParameters,
           execute: (request, context) =>
-            answerCalendarFollowUp(calendar, request.args, context),
+            answerCalendarFollowUp(
+              calendar,
+              request.args,
+              request.command.rawText,
+              context,
+            ),
         }),
         "calendar.search_events": defineCapability({
           description:
@@ -135,11 +140,13 @@ async function searchEvents(
   if (!event) {
     if (query === undefined) {
       return {
+        resultReferences: createResultReferences([]),
         text: "I could not find any upcoming calendar events.",
       };
     }
 
     return {
+      resultReferences: createResultReferences([]),
       text: `I could not find a calendar event matching "${query}".`,
     };
   }
@@ -170,37 +177,25 @@ async function searchEvents(
 async function answerCalendarFollowUp(
   calendar: CalendarSearchPort,
   args: CalendarFollowUpArgs,
+  rawText: string,
   context: FeatureExecutionContext,
 ) {
-  const references = context.resultReferences ?? [];
-  const selected = args.reference
-    ? references.find((item) => item.reference === args.reference)
-    : args.ordinal
-      ? references.find((item) => item.ordinal === args.ordinal)
-      : references.length === 1
-        ? references[0]
-        : undefined;
+  const selected = context.selectResultReference?.({
+    ...(args.detail === "next" ? { next: true } : {}),
+    ...(args.ordinal === undefined ? {} : { ordinal: args.ordinal }),
+    rawText,
+    ...(args.reference === undefined ? {} : { reference: args.reference }),
+  });
 
   if (!selected) {
-    return clarify("I am not sure which recent calendar event you mean.");
-  }
-
-  const effectiveReference =
-    args.detail === "next"
-      ? references.find((item) => item.ordinal === selected.ordinal + 1)
-      : selected;
-  if (!effectiveReference) {
-    return clarify("There is no later event in those recent results.");
-  }
-
-  const target = context.resolveResultReference?.(effectiveReference.reference);
-  if (!target || target.kind !== "calendar_event") {
     return clarify(
-      "That recent calendar result has expired. Please search again.",
+      args.detail === "next"
+        ? "I could not determine a later event from those recent results."
+        : "I am not sure which recent calendar event you mean.",
     );
   }
 
-  const event = await calendar.getEvent(target.providerEventId, {
+  const event = await calendar.getEvent(selected.target.providerEventId, {
     now: context.clock.now(),
   });
   if (!event) {
