@@ -8,6 +8,10 @@ from `/opt/personal-ai`, and keeps durable alarm state under
 
 The committed unit and config are examples. Review audio device names, commands,
 and provider choices on the target Pi before enabling the service.
+The command-based OpenAI STT/TTS fallbacks call
+`scripts/openai-audio-command.sh`; it reads `OPENAI_API_KEY` from the service
+environment and supplies the authorization header to curl through a private file
+descriptor so the credential is not exposed in curl's process arguments.
 
 ## Device prerequisites
 

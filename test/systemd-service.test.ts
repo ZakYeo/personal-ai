@@ -46,6 +46,17 @@ describe("Raspberry Pi systemd service", () => {
     expect(unit).not.toMatch(/OPENAI_API_KEY\s*=/u);
     expect(unit).not.toMatch(/GOOGLE_CALENDAR_(?:ACCESS|REFRESH)_TOKEN\s*=/u);
     expect(unit).not.toMatch(/Bearer\s+[A-Za-z0-9._-]+/u);
+
+    const piConfig = await readFile(
+      join(process.cwd(), "config", "pi-voice-openai.example.json"),
+      "utf8",
+    );
+    expect(piConfig).not.toMatch(
+      /desktopVoice[\s\S]*args[\s\S]*\$OPENAI_API_KEY/u,
+    );
+    expect(piConfig).toContain(
+      "/opt/personal-ai/scripts/openai-audio-command.sh",
+    );
   });
 
   it("documents installation, operation, validation, and rollback", async () => {

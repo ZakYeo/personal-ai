@@ -128,9 +128,8 @@
     "speechToText": {
       "command": "/bin/sh",
       "args": [
-        "-c",
-        "test -n \"$OPENAI_API_KEY\" || { echo 'OPENAI_API_KEY is not set' >&2; exit 2; }\ncurl --fail --silent --show-error --request POST --url https://api.openai.com/v1/audio/transcriptions --header \"Authorization: Bearer $OPENAI_API_KEY\" --header 'Content-Type: multipart/form-data' --form file=@\"$1\" --form model=gpt-4o-transcribe --form response_format=text",
-        "sh",
+        "/opt/personal-ai/scripts/openai-audio-command.sh",
+        "transcribe",
         "{input}"
       ],
       "timeoutMs": 30000
@@ -138,9 +137,8 @@
     "textToSpeech": {
       "command": "/bin/sh",
       "args": [
-        "-c",
-        "test -n \"$OPENAI_API_KEY\" || { echo 'OPENAI_API_KEY is not set' >&2; exit 2; }\njq -n --arg input \"$1\" '{model:\"gpt-4o-mini-tts\", voice:\"coral\", input:$input, instructions:\"Speak clearly and concisely.\", response_format:\"wav\"}' | curl --fail --silent --show-error https://api.openai.com/v1/audio/speech --header \"Authorization: Bearer $OPENAI_API_KEY\" --header 'Content-Type: application/json' --data-binary @- --output \"$2\"",
-        "sh",
+        "/opt/personal-ai/scripts/openai-audio-command.sh",
+        "speak",
         "{text}",
         "{output}"
       ],

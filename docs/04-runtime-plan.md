@@ -247,6 +247,9 @@ streaming OpenAI adapter IDs used by desktop with Pi-compatible command
 boundaries. Its deployed paths target `/opt/personal-ai` and persistent alarm
 state under `/var/lib/personal-ai`. Pi-specific command choices belong in local
 config, not in the checked-in default config.
+The example's command-based OpenAI audio fallbacks use the deployed
+`openai-audio-command.sh` helper, which reads credentials from the environment
+and passes authorization to curl outside process arguments.
 
 ## Configuration
 
