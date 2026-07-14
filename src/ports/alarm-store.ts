@@ -44,8 +44,5 @@ export interface AlarmLifecycleUpdate {
 export interface AlarmStore {
   add(alarm: NewAlarmRecord): Promise<AlarmRecord>;
   list(): Promise<AlarmRecord[]>;
-}
-
-export interface AlarmLifecycleStore extends AlarmStore {
   update(update: AlarmLifecycleUpdate): Promise<AlarmRecord | undefined>;
 }

@@ -1,7 +1,7 @@
 import type { AlarmDeliveryPort } from "../../ports/alarm-delivery.js";
 import type {
-  AlarmLifecycleStore,
   AlarmRecord,
+  AlarmStore,
   AlarmStatus,
 } from "../../ports/alarm-store.js";
 import type { ClockPort } from "../../ports/assistant.js";
@@ -22,7 +22,7 @@ export interface AlarmSchedulerDependencies {
   delivery: AlarmDeliveryPort;
   reportDeliveryFailure(failure: AlarmDeliveryFailure): void;
   shutdownSignal?: AbortSignal;
-  store: AlarmLifecycleStore;
+  store: AlarmStore;
 }
 
 export async function processAlarmSchedulerCycle(
@@ -141,7 +141,7 @@ async function claimAndDeliver(
 }
 
 async function finalizeAlarm(
-  store: AlarmLifecycleStore,
+  store: AlarmStore,
   alarm: AlarmRecord,
   now: Date,
 ): Promise<void> {

@@ -25,6 +25,31 @@ describe("createAlarmFeature", () => {
       },
     });
     expectCapabilityMetadata(feature, {
+      name: "alarm.acknowledge",
+      risk: "low",
+      parameters: {
+        id: { type: "string" },
+        label: { type: "string" },
+      },
+    });
+    expectCapabilityMetadata(feature, {
+      name: "alarm.dismiss",
+      risk: "low",
+      parameters: {
+        id: { type: "string" },
+        label: { type: "string" },
+      },
+    });
+    expectCapabilityMetadata(feature, {
+      name: "alarm.cancel",
+      risk: "high",
+      requiresConfirmation: true,
+      parameters: {
+        id: { type: "string" },
+        label: { type: "string" },
+      },
+    });
+    expectCapabilityMetadata(feature, {
       name: "alarm.list",
       risk: "low",
       parameters: {},
@@ -122,6 +147,106 @@ describe("createAlarmFeature", () => {
     );
   });
 
+  it("acknowledges the single ringing alarm and clears its repeat", async () => {
+    const store = createTestAlarmStore();
+    const alarm = await store.add({
+      label: "tea",
+      scheduledFor: "2026-06-26T09:00:00.000Z",
+    });
+    await store.update({
+      changes: {
+        deliveryAttempts: 1,
+        nextDeliveryAt: "2026-06-26T09:01:00.000Z",
+        status: "ringing",
+        successfulDeliveries: 1,
+      },
+      expectedRevision: alarm.revision,
+      id: alarm.id,
+      updatedAt: "2026-06-26T09:00:00.000Z",
+    });
+
+    await expectDecodedFeatureExecution(
+      createAlarmFeature(store),
+      "alarm.acknowledge",
+      {},
+      {
+        data: { id: alarm.id, label: "tea", status: "completed" },
+        text: "Acknowledged the tea alarm.",
+      },
+      context,
+    );
+    await expect(store.list()).resolves.toEqual([
+      expect.objectContaining({ status: "completed" }),
+    ]);
+    expect((await store.list())[0]?.nextDeliveryAt).toBeUndefined();
+  });
+
+  it("dismisses a ringing alarm by unambiguous label", async () => {
+    const store = createTestAlarmStore();
+    const alarm = await store.add({
+      label: "tea",
+      scheduledFor: "2026-06-26T09:00:00.000Z",
+    });
+    await store.update({
+      changes: { status: "ringing" },
+      expectedRevision: alarm.revision,
+      id: alarm.id,
+      updatedAt: "2026-06-26T09:00:00.000Z",
+    });
+
+    await expectDecodedFeatureExecution(
+      createAlarmFeature(store),
+      "alarm.dismiss",
+      { label: "TEA" },
+      {
+        data: { id: alarm.id, label: "tea", status: "dismissed" },
+        text: "Dismissed the tea alarm.",
+      },
+      context,
+    );
+  });
+
+  it("cancels a scheduled alarm by ID", async () => {
+    const store = createTestAlarmStore();
+    const alarm = await store.add({
+      label: "tea",
+      scheduledFor: "2026-06-26T09:10:00.000Z",
+    });
+
+    await expectDecodedFeatureExecution(
+      createAlarmFeature(store),
+      "alarm.cancel",
+      { id: alarm.id },
+      {
+        data: { id: alarm.id, label: "tea", status: "cancelled" },
+        text: "Cancelled the tea alarm.",
+      },
+      context,
+    );
+  });
+
+  it("keeps the prompt active when a lifecycle target is ambiguous", async () => {
+    const store = createTestAlarmStore();
+    await store.add({
+      label: "tea",
+      scheduledFor: "2026-06-26T09:10:00.000Z",
+    });
+    await store.add({
+      label: "tea",
+      scheduledFor: "2026-06-26T09:20:00.000Z",
+    });
+
+    await expectDecodedFeatureExecution(
+      createAlarmFeature(store),
+      "alarm.cancel",
+      { label: "tea" },
+      {
+        text: "More than one alarm is labelled tea. Please use its ID.",
+      },
+      context,
+    );
+  });
+
   it("waits for store failures instead of reporting success early", async () => {
     const failure = new Error("persistent alarm write failed");
     const store = createTestAlarmStore();
@@ -153,5 +278,44 @@ function createTestAlarmStore(idPrefix = "alarm"): AlarmStore {
       return Promise.resolve(storedAlarm);
     },
     list: () => Promise.resolve([...alarms]),
+    update: (update) => {
+      const index = alarms.findIndex((alarm) => alarm.id === update.id);
+      const alarm = alarms[index];
+      if (!alarm || alarm.revision !== update.expectedRevision) {
+        return Promise.resolve(undefined);
+      }
+
+      let updated: AlarmRecord = {
+        ...alarm,
+        revision: alarm.revision + 1,
+        updatedAt: update.updatedAt,
+      };
+      if (update.changes.deliveryAttempts !== undefined) {
+        updated = {
+          ...updated,
+          deliveryAttempts: update.changes.deliveryAttempts,
+        };
+      }
+      if (update.changes.status !== undefined) {
+        updated = { ...updated, status: update.changes.status };
+      }
+      if (update.changes.successfulDeliveries !== undefined) {
+        updated = {
+          ...updated,
+          successfulDeliveries: update.changes.successfulDeliveries,
+        };
+      }
+      if (typeof update.changes.nextDeliveryAt === "string") {
+        updated = {
+          ...updated,
+          nextDeliveryAt: update.changes.nextDeliveryAt,
+        };
+      }
+      if (update.changes.nextDeliveryAt === null) {
+        delete updated.nextDeliveryAt;
+      }
+      alarms[index] = updated;
+      return Promise.resolve(updated);
+    },
   };
 }

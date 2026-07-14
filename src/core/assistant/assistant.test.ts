@@ -258,6 +258,7 @@ describe("createAssistant", () => {
             scheduledFor: "2026-06-26T09:10:00.000Z",
           }),
         ]),
+      update: () => Promise.resolve(undefined),
     };
     const assistant = createAssistant({
       clock,

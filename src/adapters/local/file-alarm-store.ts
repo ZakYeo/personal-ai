@@ -2,8 +2,8 @@ import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { basename, dirname, join } from "node:path";
 import type {
-  AlarmLifecycleStore,
   AlarmRecord,
+  AlarmStore,
   NewAlarmRecord,
 } from "../../ports/alarm-store.js";
 import { isRecord } from "../parsing.js";
@@ -61,7 +61,7 @@ const nodeFileSystem: AlarmStoreFileSystem = {
 
 export function createFileAlarmStore(
   options: FileAlarmStoreOptions,
-): AlarmLifecycleStore {
+): AlarmStore {
   const createId = options.createId ?? randomUUID;
   const fileSystem = options.fileSystem ?? nodeFileSystem;
   const now = options.now ?? (() => new Date());

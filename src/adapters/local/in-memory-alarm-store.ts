@@ -1,7 +1,4 @@
-import type {
-  AlarmLifecycleStore,
-  AlarmRecord,
-} from "../../ports/alarm-store.js";
+import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
 import {
   applyAlarmLifecycleUpdate,
   createScheduledAlarm,
@@ -13,7 +10,7 @@ interface InMemoryAlarmStoreOptions {
 
 export function createInMemoryAlarmStore(
   options: InMemoryAlarmStoreOptions = {},
-): AlarmLifecycleStore {
+): AlarmStore {
   const alarms: AlarmRecord[] = [];
   const now = options.now ?? (() => new Date());
 
