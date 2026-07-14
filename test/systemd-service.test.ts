@@ -39,6 +39,23 @@ describe("Raspberry Pi systemd service", () => {
     expect(unit).not.toMatch(/GOOGLE_CALENDAR_(?:ACCESS|REFRESH)_TOKEN\s*=/u);
     expect(unit).not.toMatch(/Bearer\s+[A-Za-z0-9._-]+/u);
   });
+
+  it("documents installation, operation, validation, and rollback", async () => {
+    const guide = await readFile(
+      join(process.cwd(), "docs", "07-raspberry-pi-operations.md"),
+      "utf8",
+    );
+
+    expect(guide).toContain("useradd --system");
+    expect(guide).toContain("systemctl daemon-reload");
+    expect(guide).toContain("systemctl enable --now personal-ai.service");
+    expect(guide).toContain("journalctl -u personal-ai.service");
+    expect(guide).toContain("systemctl restart personal-ai.service");
+    expect(guide).toContain("npm run test:e2e:openai:pi");
+    expect(guide).toContain("npm run smoke:pi:qemu");
+    expect(guide).toMatch(/## Upgrade and rollback/u);
+    expect(guide).toMatch(/does not validate.*audio hardware/isu);
+  });
 });
 
 function readServiceUnit(): Promise<string> {

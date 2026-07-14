@@ -32,9 +32,9 @@
   },
   "desktopVoice": {
     "wakeActivation": {
-      "command": "python3",
+      "command": "/opt/personal-ai/.venv/bin/python",
       "args": [
-        "scripts/openwakeword-listener.py",
+        "/opt/personal-ai/scripts/openwakeword-listener.py",
         "--model",
         "hey jarvis",
         "--threshold",

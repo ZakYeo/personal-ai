@@ -107,6 +107,9 @@ describe("loadConfig", () => {
     const input: unknown = JSON.parse(
       await readFile("config/pi-voice-openai.example.json", "utf8"),
     );
+    const config = await loadConfig({
+      configPath: "config/pi-voice-openai.example.json",
+    });
 
     expect(input).toMatchObject({
       features: {
@@ -117,6 +120,12 @@ describe("loadConfig", () => {
         },
       },
     });
+    expect(config.desktopVoice?.wakeActivation?.command).toBe(
+      "/opt/personal-ai/.venv/bin/python",
+    );
+    expect(config.desktopVoice?.wakeActivation?.args).toContain(
+      "/opt/personal-ai/scripts/openwakeword-listener.py",
+    );
   });
 
   it("loads the checked-in persistent alarm example", async () => {
