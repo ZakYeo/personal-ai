@@ -46,6 +46,7 @@ export default tseslint.config(
       "node_modules/**",
       ".venv/**",
       ".vitest-attachments/**",
+      ".voice-benchmark/**",
     ],
   },
   js.configs.recommended,
