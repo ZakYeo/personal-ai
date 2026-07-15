@@ -15,6 +15,7 @@
   "scripts": {
     "architecture:check": "depcruise src --config .dependency-cruiser.cjs",
     "architecture:graph": "depcruise src --config .dependency-cruiser.cjs --output-type dot",
+    "benchmark:voice:capture": "node --import tsx src/runtimes/voice-benchmark/capture-main.ts",
     "bin:check": "npm run build && node scripts/check-bin.mjs",
     "build": "tsc -p tsconfig.build.json",
     "check": "npm run lint && npm run format:check && npm run package:sort:check && npm run docs:lint && npm run spellcheck && npm run secrets:check && npm run knip && npm run duplicates && npm run architecture:check && npm run bin:check && npm run test:run && npm run typecheck",

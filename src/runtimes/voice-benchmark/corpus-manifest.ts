@@ -1,16 +1,16 @@
-interface CorpusPhrase {
+export interface CorpusPhrase {
   active: boolean;
   capabilities: string[];
   id: string;
   text: string;
 }
 
-interface CorpusManifest {
+export interface CorpusManifest {
   phrases: CorpusPhrase[];
   schemaVersion: 1;
 }
 
-interface AcceptedRecording {
+export interface AcceptedRecording {
   bitsPerSample: 16;
   channels: 1;
   consentedAt: string;
@@ -23,7 +23,7 @@ interface AcceptedRecording {
   speechEndSample: number;
 }
 
-interface RecordingIndex {
+export interface RecordingIndex {
   recordings: AcceptedRecording[];
   schemaVersion: 1;
 }

@@ -19,6 +19,16 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.["test:file"]).toBe("vitest --run");
   });
 
+  it("provides the guided incremental voice corpus capture command", async () => {
+    const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.["benchmark:voice:capture"]).toBe(
+      "node --import tsx src/runtimes/voice-benchmark/capture-main.ts",
+    );
+  });
+
   it("provides a focused live OpenAI Pi alarm smoke command", async () => {
     const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
       scripts?: Record<string, string>;

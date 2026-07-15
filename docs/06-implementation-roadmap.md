@@ -137,6 +137,9 @@ Included:
   shutdown, and offline operation.
 - License, model-source, checksum, packaging, and Pi compatibility review.
 - A recorded selection or an explicit no-go threshold.
+- A capability-tagged personal corpus with immutable phrase IDs. Guided capture
+  records only active phrases without accepted audio, so future capabilities
+  add focused recordings without invalidating the existing corpus.
 
 Excluded:
 
