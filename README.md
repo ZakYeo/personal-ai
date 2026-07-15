@@ -296,6 +296,11 @@ offline, receives no credentials, and has a minimal environment. There are no
 automatic model downloads or upgrades; every version change repeats the review
 and cooling-off process.
 
+Pinned Python runtime dependencies may come only from immutable official PyPI
+wheel URLs in the allowlist. They are installed with package indexes and
+dependency resolution disabled; PyPI is never an allowed source for model or
+engine payloads, and every transitive wheel must be reviewed explicitly.
+
 For a device deployment under systemd, follow the
 [Raspberry Pi operations guide](docs/07-raspberry-pi-operations.md). It installs
 the built CLI under `/opt/personal-ai`, operator config under

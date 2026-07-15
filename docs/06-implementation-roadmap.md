@@ -150,7 +150,10 @@ Included:
   tooling only verifies separately reviewed operator-supplied files offline and
   fails closed; it never downloads, installs, extracts, imports, or executes
   third-party artifacts during verification. The allowlist enforces approved
-  official hosts and a minimum 30-day cooling-off period before use.
+  official hosts and a minimum 30-day cooling-off period before use. Immutable
+  official PyPI wheel URLs are permitted only for exact runtime dependencies;
+  installation disables indexes and dependency resolution, and every transitive
+  wheel is allowlisted explicitly.
 
 Excluded:
 

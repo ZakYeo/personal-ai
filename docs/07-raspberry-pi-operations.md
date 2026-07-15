@@ -231,6 +231,9 @@ must prevent the Pi benchmark from starting. Apply the supply-chain rules in
 `docs/03-boundaries-and-rules.md`: official immutable upstreams, 30-day
 cooling-off, SHA-256 and byte-count verification, link/traversal-safe archive
 inspection, private versioned extraction, no credentials, and offline use.
+Python runtime wheels must also be explicit allowlist entries from immutable
+official PyPI file URLs and installed with indexes and dependency resolution
+disabled; PyPI is not an approved model or engine source.
 Normal installation continues to use explicit command or streaming provider
 configuration until Milestones 13 and 14 select and document first-class local
 adapters.

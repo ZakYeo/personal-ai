@@ -157,8 +157,11 @@ written after a send cannot close the crash window by itself.
 Voice models and engines are opt-in local artifacts, not ordinary runtime
 dependencies. Acquisition is allowed only from the approved official GitHub or
 Hugging Face upstream at an immutable revision after at least 30 full days of
-cooling-off. Mutable `latest` or branch URLs, mirrors, community repackaging,
-implicit package-manager resolution, and automatic updates are not acceptable.
+cooling-off. Exact Python runtime dependencies may use immutable
+`files.pythonhosted.org` wheel URLs from official PyPI release metadata, but this
+exception does not apply to model or engine payloads. Mutable `latest` or branch
+URLs, mirrors, community repackaging, implicit package-manager resolution, and
+automatic updates are not acceptable.
 
 Executable and model payloads require an upstream-published byte count and
 SHA-256. Verify both before parsing, extracting, importing, or executing the
@@ -175,6 +178,9 @@ offline without credentials, inherit only an explicit minimal environment, and
 receive the narrowest required filesystem access. A matching checksum proves
 identity rather than safety, so version changes repeat provenance review,
 cooling-off, archive inspection, and isolated validation from the beginning.
+Python wheels are installed in a new private virtual environment with indexes
+and dependency resolution disabled; every transitive dependency must have its
+own reviewed allowlist entry.
 
 ## Shared Runtime Ownership
 

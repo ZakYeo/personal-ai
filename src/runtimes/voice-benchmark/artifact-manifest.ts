@@ -1,7 +1,7 @@
 import { join } from "node:path";
 
 type ArtifactArchitecture = "arm64" | "x64";
-type ArtifactKind = "corpus" | "engine" | "model";
+type ArtifactKind = "corpus" | "dependency" | "engine" | "model";
 
 interface VoiceArtifact {
   architectures: readonly ArtifactArchitecture[];
@@ -167,6 +167,17 @@ function parseArtifact(value: unknown, index: number): VoiceArtifact {
   const record = requireRecord(value, label);
   const id = requireSafeName(record.id, `${label}.id`);
   const fileName = requireSafeName(record.fileName, `${label}.fileName`);
+  const kind = record.kind;
+  if (
+    kind !== "corpus" &&
+    kind !== "dependency" &&
+    kind !== "engine" &&
+    kind !== "model"
+  ) {
+    throw new Error(
+      `${label}.kind must be corpus, dependency, engine, or model.`,
+    );
+  }
   const sourceUrl = requireString(record.sourceUrl, `${label}.sourceUrl`);
   let parsedUrl: URL;
   try {
@@ -179,12 +190,14 @@ function parseArtifact(value: unknown, index: number): VoiceArtifact {
   if (parsedUrl.protocol !== "https:") {
     throw new Error(`${label}.sourceUrl must be a valid HTTPS URL.`);
   }
-  if (
-    parsedUrl.hostname !== "github.com" &&
-    parsedUrl.hostname !== "huggingface.co"
-  ) {
+  const isTrustedProjectHost =
+    parsedUrl.hostname === "github.com" ||
+    parsedUrl.hostname === "huggingface.co";
+  const isTrustedDependencyHost =
+    kind === "dependency" && parsedUrl.hostname === "files.pythonhosted.org";
+  if (!isTrustedProjectHost && !isTrustedDependencyHost) {
     throw new Error(
-      `${label}.sourceUrl must use a trusted upstream host (github.com or huggingface.co).`,
+      `${label}.sourceUrl must use a trusted upstream host (github.com or huggingface.co; files.pythonhosted.org for dependencies only).`,
     );
   }
 
@@ -193,10 +206,6 @@ function parseArtifact(value: unknown, index: number): VoiceArtifact {
     throw new Error(`${label}.sha256 must be 64 lowercase hex characters.`);
   }
   const architectures = parseArchitectures(record.architectures, label);
-  const kind = record.kind;
-  if (kind !== "corpus" && kind !== "engine" && kind !== "model") {
-    throw new Error(`${label}.kind must be corpus, engine, or model.`);
-  }
   const releasedAt = requireString(record.releasedAt, `${label}.releasedAt`);
   const releasedDate = new Date(releasedAt);
   if (

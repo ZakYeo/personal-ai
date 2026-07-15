@@ -107,6 +107,42 @@
       "sizeBytes": 4888,
       "sourceRevision": "929396f9d01ab9078f9c29ef519c25d9d4940258",
       "sourceUrl": "https://huggingface.co/rhasspy/piper-voices/resolve/929396f9d01ab9078f9c29ef519c25d9d4940258/en/en_GB/alba/medium/en_GB-alba-medium.onnx.json"
+    },
+    {
+      "architectures": ["x64"],
+      "fileName": "onnxruntime-1.22.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+      "id": "piper-onnxruntime-linux-x64",
+      "kind": "dependency",
+      "license": "MIT",
+      "releasedAt": "2025-07-10T19:15:45.452Z",
+      "sha256": "2d39a530aff1ec8d02e365f35e503193991417788641b184f5b1e8c9a6d5ce8d",
+      "sizeBytes": 16475713,
+      "sourceRevision": "1.22.1",
+      "sourceUrl": "https://files.pythonhosted.org/packages/0a/50/519828a5292a6ccd8d5cd6d2f72c6b36ea528a2ef68eca69647732539ffa/onnxruntime-1.22.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl"
+    },
+    {
+      "architectures": ["arm64"],
+      "fileName": "onnxruntime-1.22.1-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl",
+      "id": "piper-onnxruntime-linux-arm64",
+      "kind": "dependency",
+      "license": "MIT",
+      "releasedAt": "2025-07-10T19:15:42.911Z",
+      "sha256": "984cea2a02fcc5dfea44ade9aca9fe0f7a8a2cd6f77c258fc4388238618f3928",
+      "sizeBytes": 14473861,
+      "sourceRevision": "1.22.1",
+      "sourceUrl": "https://files.pythonhosted.org/packages/29/e5/00b099b4d4f6223b610421080d0eed9327ef9986785c9141819bbba0d396/onnxruntime-1.22.1-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl"
+    },
+    {
+      "architectures": ["x64", "arm64"],
+      "fileName": "pathvalidate-3.3.1-py3-none-any.whl",
+      "id": "piper-pathvalidate",
+      "kind": "dependency",
+      "license": "MIT",
+      "releasedAt": "2025-06-15T09:07:19.117Z",
+      "sha256": "5263baab691f8e1af96092fa5137ee17df5bdfbd6cff1fcac4d6ef4bc2e1735f",
+      "sizeBytes": 24305,
+      "sourceRevision": "3.3.1",
+      "sourceUrl": "https://files.pythonhosted.org/packages/9a/70/875f4a23bfc4731703a5835487d0d2fb999031bd415e7d17c0ae615c18b7/pathvalidate-3.3.1-py3-none-any.whl"
     }
   ],
   "policy": { "minimumCoolingOffDays": 30 },

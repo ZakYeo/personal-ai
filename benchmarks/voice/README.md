@@ -19,10 +19,13 @@ npm run benchmark:voice:verify-artifacts -- \
 Use `arm64` on the Raspberry Pi. Verification streams each applicable file,
 checks both its byte count and SHA-256 digest, and fails closed on missing,
 mismatched, cooling-off, malformed, or empty architecture selections. The
-manifest enforces a minimum 30-day cooling-off period and accepts artifact URLs
-only from `github.com` and `huggingface.co`. A matching checksum proves identity,
-not safety; artifact review and execution isolation remain operator
-responsibilities.
+manifest enforces a minimum 30-day cooling-off period. Models and engines are
+accepted only from their official `github.com` or `huggingface.co` projects.
+Exact Python runtime dependencies may additionally use immutable
+`files.pythonhosted.org` wheel URLs recorded by official PyPI release metadata;
+that exception never applies to model or engine payloads. A matching checksum
+proves identity, not safety; artifact review and execution isolation remain
+operator responsibilities.
 
 Executable and model artifacts require an upstream-published SHA-256 and byte
 count. Piper's small, human-readable JSON companion is pinned to the same
@@ -30,6 +33,11 @@ immutable voice revision, inspected as data, and locked to the SHA-256 observed
 during its reviewed acquisition. The whisper.cpp engine remains a build from
 the signed v1.8.6 source commit rather than an upstream package that is not
 available for Linux.
+
+Python installation uses only the allowlisted wheel files with dependency
+resolution and indexes disabled (`--no-index --no-deps`) inside a new private
+virtual environment. Transitive dependencies must be explicit manifest entries;
+the package manager is never allowed to choose or fetch them.
 
 Before extraction or installation, archives must be checked for absolute paths,
 parent traversal, hard links, and symbolic links. Extraction goes to a new

@@ -8,5 +8,6 @@
     "coverage/**",
     ".venv/**",
     ".vitest-attachments/**",
+    ".voice-benchmark/**",
   ],
 }

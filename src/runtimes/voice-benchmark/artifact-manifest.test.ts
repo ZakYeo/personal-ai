@@ -12,7 +12,7 @@ describe("voice benchmark artifact manifest", () => {
       ) as unknown,
     );
 
-    expect(manifest.artifacts).toHaveLength(9);
+    expect(manifest.artifacts).toHaveLength(12);
     expect(manifest.policy.minimumCoolingOffDays).toBe(30);
   });
 
@@ -164,6 +164,37 @@ describe("voice benchmark artifact manifest", () => {
         artifacts: [{ ...artifact, sha256: "unknown" }],
       }),
     ).toThrow(/sha256/iu);
+  });
+
+  it("accepts pinned dependency wheels from official PyPI file storage", () => {
+    expect(() =>
+      parseVoiceArtifactManifest({
+        ...createManifest(),
+        artifacts: [
+          {
+            ...createManifest().artifacts[0],
+            fileName: "dependency.whl",
+            id: "runtime-dependency",
+            kind: "dependency",
+            sourceUrl:
+              "https://files.pythonhosted.org/packages/immutable/dependency.whl",
+          },
+        ],
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      parseVoiceArtifactManifest({
+        ...createManifest(),
+        artifacts: [
+          {
+            ...createManifest().artifacts[0],
+            sourceUrl:
+              "https://files.pythonhosted.org/packages/immutable/model.bin",
+          },
+        ],
+      }),
+    ).toThrow(/dependencies only/iu);
   });
 });
 
