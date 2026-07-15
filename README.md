@@ -287,6 +287,15 @@ npm run benchmark:voice:verify-artifacts -- \
 Use `arm64` on the Pi. Missing or mismatched artifacts fail closed; verification
 does not install, extract, import, or execute them.
 
+Voice models and engines follow a strict acquisition policy: official GitHub or
+Hugging Face upstreams only, immutable versions, at least 30 full days since
+release, exact byte counts and SHA-256 verification before extraction, and
+archive rejection for absolute paths, parent traversal, hard links, or symbolic
+links. Installation is private and versioned rather than global. Runtime use is
+offline, receives no credentials, and has a minimal environment. There are no
+automatic model downloads or upgrades; every version change repeats the review
+and cooling-off process.
+
 For a device deployment under systemd, follow the
 [Raspberry Pi operations guide](docs/07-raspberry-pi-operations.md). It installs
 the built CLI under `/opt/personal-ai`, operator config under

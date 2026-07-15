@@ -7,6 +7,7 @@ interface ArtifactVerifyCliDependencies {
   inspectFile(
     path: string,
   ): Promise<{ sha256: string; sizeBytes: number } | undefined>;
+  now(): Date;
   readTextFile(path: string): Promise<string>;
   writeLine(line: string): void;
 }
@@ -34,6 +35,7 @@ export async function runVoiceArtifactVerifyCli(
       manifest,
       paths.cacheDirectory,
       paths.architecture,
+      dependencies.now(),
       dependencies,
     );
     if (results.length === 0) {
@@ -49,6 +51,10 @@ export async function runVoiceArtifactVerifyCli(
       } else if (result.status === "missing") {
         dependencies.writeLine(
           `MISSING ${result.artifactId}: ${result.filePath}`,
+        );
+      } else if (result.status === "cooling-off") {
+        dependencies.writeLine(
+          `COOLING-OFF ${result.artifactId}: eligible ${result.eligibleAt}`,
         );
       } else {
         dependencies.writeLine(

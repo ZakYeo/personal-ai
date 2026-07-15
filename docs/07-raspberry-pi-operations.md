@@ -227,7 +227,10 @@ are never rerecorded merely because a new capability adds new phrases.
 Third-party benchmark models and engines are not downloaded by repository
 tooling. If an operator separately reviews and supplies them, run the committed
 allowlist verification with `--architecture arm64`; missing or mismatched files
-must prevent the Pi benchmark from starting.
+must prevent the Pi benchmark from starting. Apply the supply-chain rules in
+`docs/03-boundaries-and-rules.md`: official immutable upstreams, 30-day
+cooling-off, SHA-256 and byte-count verification, link/traversal-safe archive
+inspection, private versioned extraction, no credentials, and offline use.
 Normal installation continues to use explicit command or streaming provider
 configuration until Milestones 13 and 14 select and document first-class local
 adapters.

@@ -47,6 +47,7 @@
     "ggml",
     "githooks",
     "hostfwd",
+    "huggingface",
     "jscpd",
     "journalctl",
     "markdownlint",

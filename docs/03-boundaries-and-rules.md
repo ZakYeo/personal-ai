@@ -152,6 +152,30 @@ from a validated provider response. Never automatically retry
 Use provider idempotency keys wherever available because an application record
 written after a send cannot close the crash window by itself.
 
+## Third-Party Model Supply Chain
+
+Voice models and engines are opt-in local artifacts, not ordinary runtime
+dependencies. Acquisition is allowed only from the approved official GitHub or
+Hugging Face upstream at an immutable revision after at least 30 full days of
+cooling-off. Mutable `latest` or branch URLs, mirrors, community repackaging,
+implicit package-manager resolution, and automatic updates are not acceptable.
+
+Executable and model payloads require an upstream-published byte count and
+SHA-256. Verify both before parsing, extracting, importing, or executing the
+payload. A small human-readable companion configuration may be accepted only
+when it is pinned to the same immutable upstream revision, reviewed as data,
+and given a locally locked SHA-256 in the committed allowlist. Any mismatch,
+missing provenance, unsupported architecture, or incomplete cooling-off period
+fails closed.
+
+Inspect archives before extraction and reject absolute paths, parent traversal,
+hard links, and symbolic links. Extract only into a new private versioned
+directory and never overwrite an existing installation. Model processes run
+offline without credentials, inherit only an explicit minimal environment, and
+receive the narrowest required filesystem access. A matching checksum proves
+identity rather than safety, so version changes repeat provenance review,
+cooling-off, archive inspection, and isolated validation from the beginning.
+
 ## Shared Runtime Ownership
 
 When two runtimes share a control-loop behavior, result shape, fallback policy,

@@ -9,6 +9,7 @@ interface VoiceArtifact {
   id: string;
   kind: ArtifactKind;
   license: string;
+  releasedAt: string;
   sha256: string;
   sizeBytes: number;
   sourceRevision: string;
@@ -17,6 +18,7 @@ interface VoiceArtifact {
 
 interface VoiceArtifactManifest {
   artifacts: readonly VoiceArtifact[];
+  policy: Readonly<{ minimumCoolingOffDays: number }>;
   schemaVersion: 1;
 }
 
@@ -30,6 +32,13 @@ interface ArtifactVerificationDependencies {
 }
 
 type ArtifactVerification =
+  | {
+      artifactId: string;
+      eligibleAt: string;
+      filePath: string;
+      releasedAt: string;
+      status: "cooling-off";
+    }
   | {
       artifactId: string;
       filePath: string;
@@ -62,6 +71,16 @@ export function parseVoiceArtifactManifest(
       "Voice artifact manifest artifacts must be a nonempty array.",
     );
   }
+  const policyRecord = requireRecord(record.policy, "manifest.policy");
+  const minimumCoolingOffDays = requirePositiveInteger(
+    policyRecord.minimumCoolingOffDays,
+    "manifest.policy.minimumCoolingOffDays",
+  );
+  if (minimumCoolingOffDays < 30) {
+    throw new Error(
+      "manifest.policy.minimumCoolingOffDays must be at least 30.",
+    );
+  }
 
   const ids = new Set<string>();
   const fileNames = new Set<string>();
@@ -84,6 +103,7 @@ export function parseVoiceArtifactManifest(
 
   return Object.freeze({
     artifacts: Object.freeze(artifacts),
+    policy: Object.freeze({ minimumCoolingOffDays }),
     schemaVersion: 1 as const,
   });
 }
@@ -92,13 +112,31 @@ export async function verifyVoiceArtifacts(
   manifest: VoiceArtifactManifest,
   cacheDirectory: string,
   architecture: ArtifactArchitecture,
+  asOf: Date,
   dependencies: ArtifactVerificationDependencies,
 ): Promise<ArtifactVerification[]> {
+  if (Number.isNaN(asOf.getTime())) {
+    throw new Error("Artifact verification time must be a valid date.");
+  }
   const results: ArtifactVerification[] = [];
   for (const artifact of manifest.artifacts.filter((candidate) =>
     candidate.architectures.includes(architecture),
   )) {
     const filePath = join(cacheDirectory, artifact.fileName);
+    const eligibleAt = new Date(
+      new Date(artifact.releasedAt).getTime() +
+        manifest.policy.minimumCoolingOffDays * 24 * 60 * 60 * 1000,
+    );
+    if (asOf.getTime() < eligibleAt.getTime()) {
+      results.push({
+        artifactId: artifact.id,
+        eligibleAt: eligibleAt.toISOString(),
+        filePath,
+        releasedAt: artifact.releasedAt,
+        status: "cooling-off",
+      });
+      continue;
+    }
     const inspected = await dependencies.inspectFile(filePath);
     if (!inspected) {
       results.push({ artifactId: artifact.id, filePath, status: "missing" });
@@ -141,6 +179,14 @@ function parseArtifact(value: unknown, index: number): VoiceArtifact {
   if (parsedUrl.protocol !== "https:") {
     throw new Error(`${label}.sourceUrl must be a valid HTTPS URL.`);
   }
+  if (
+    parsedUrl.hostname !== "github.com" &&
+    parsedUrl.hostname !== "huggingface.co"
+  ) {
+    throw new Error(
+      `${label}.sourceUrl must use a trusted upstream host (github.com or huggingface.co).`,
+    );
+  }
 
   const sha256 = requireString(record.sha256, `${label}.sha256`);
   if (!/^[a-f\d]{64}$/u.test(sha256)) {
@@ -151,6 +197,14 @@ function parseArtifact(value: unknown, index: number): VoiceArtifact {
   if (kind !== "corpus" && kind !== "engine" && kind !== "model") {
     throw new Error(`${label}.kind must be corpus, engine, or model.`);
   }
+  const releasedAt = requireString(record.releasedAt, `${label}.releasedAt`);
+  const releasedDate = new Date(releasedAt);
+  if (
+    Number.isNaN(releasedDate.getTime()) ||
+    releasedDate.toISOString() !== releasedAt
+  ) {
+    throw new Error(`${label}.releasedAt must be a canonical ISO timestamp.`);
+  }
 
   return Object.freeze({
     architectures,
@@ -158,6 +212,7 @@ function parseArtifact(value: unknown, index: number): VoiceArtifact {
     id,
     kind,
     license: requireString(record.license, `${label}.license`),
+    releasedAt,
     sha256,
     sizeBytes: requirePositiveInteger(record.sizeBytes, `${label}.sizeBytes`),
     sourceRevision: requireString(

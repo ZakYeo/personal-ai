@@ -28,6 +28,7 @@ process.exitCode = await runVoiceArtifactVerifyCli(process.argv.slice(2), {
     }
     return { sha256: hash.digest("hex"), sizeBytes: fileSize };
   },
+  now: () => new Date(),
   readTextFile: (path) => readFile(path, "utf8"),
   writeLine: (line) => console.log(line),
 });

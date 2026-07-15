@@ -14,6 +14,7 @@ describe("voice benchmark artifact verification CLI", () => {
       ],
       {
         inspectFile: () => Promise.resolve(undefined),
+        now: () => new Date("2026-07-15T00:00:00.000Z"),
         readTextFile: () => Promise.resolve(JSON.stringify(createManifest())),
         writeLine: (line) => lines.push(line),
       },
@@ -40,6 +41,7 @@ describe("voice benchmark artifact verification CLI", () => {
       {
         inspectFile: () =>
           Promise.resolve({ sha256: "a".repeat(64), sizeBytes: 123 }),
+        now: () => new Date("2026-07-15T00:00:00.000Z"),
         readTextFile: () => Promise.resolve(JSON.stringify(createManifest())),
         writeLine: (line) => lines.push(line),
       },
@@ -57,6 +59,7 @@ describe("voice benchmark artifact verification CLI", () => {
     const lines: string[] = [];
     const exitCode = await runVoiceArtifactVerifyCli([], {
       inspectFile: () => Promise.resolve(undefined),
+      now: () => new Date("2026-07-15T00:00:00.000Z"),
       readTextFile: () => {
         reads += 1;
         return Promise.resolve("");
@@ -85,6 +88,7 @@ describe("voice benchmark artifact verification CLI", () => {
       ],
       {
         inspectFile: () => Promise.reject(new Error("must not inspect")),
+        now: () => new Date("2026-07-15T00:00:00.000Z"),
         readTextFile: () => Promise.resolve(JSON.stringify(manifest)),
         writeLine: (line) => lines.push(line),
       },
@@ -106,12 +110,15 @@ function createManifest() {
         id: "model",
         kind: "model",
         license: "MIT",
+        releasedAt: "2026-05-01T00:00:00.000Z",
         sha256: "a".repeat(64),
         sizeBytes: 123,
         sourceRevision: "commit-123",
-        sourceUrl: "https://example.com/immutable/model.bin",
+        sourceUrl:
+          "https://github.com/example/project/releases/download/v1/model.bin",
       },
     ],
+    policy: { minimumCoolingOffDays: 30 },
     schemaVersion: 1,
   };
 }

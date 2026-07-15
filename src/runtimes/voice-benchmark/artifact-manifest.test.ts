@@ -13,21 +13,28 @@ describe("voice benchmark artifact manifest", () => {
     );
 
     expect(manifest.artifacts).toHaveLength(9);
+    expect(manifest.policy.minimumCoolingOffDays).toBe(30);
   });
 
   it("parses an immutable allowlist and verifies operator-supplied files", async () => {
     const manifest = parseVoiceArtifactManifest(createManifest());
     const inspected: string[] = [];
 
-    const result = await verifyVoiceArtifacts(manifest, "/safe/cache", "x64", {
-      inspectFile: (path) => {
-        inspected.push(path);
-        return Promise.resolve({
-          sha256: "a".repeat(64),
-          sizeBytes: 123,
-        });
+    const result = await verifyVoiceArtifacts(
+      manifest,
+      "/safe/cache",
+      "x64",
+      new Date("2026-07-15T00:00:00.000Z"),
+      {
+        inspectFile: (path) => {
+          inspected.push(path);
+          return Promise.resolve({
+            sha256: "a".repeat(64),
+            sizeBytes: 123,
+          });
+        },
       },
-    });
+    );
 
     expect(inspected).toEqual(["/safe/cache/model.bin"]);
     expect(result).toEqual([
@@ -56,6 +63,7 @@ describe("voice benchmark artifact manifest", () => {
       manifest,
       "/safe/cache",
       "arm64",
+      new Date("2026-07-15T00:00:00.000Z"),
       {
         inspectFile: (path) => {
           if (path.endsWith("missing.bin")) {
@@ -85,13 +93,49 @@ describe("voice benchmark artifact manifest", () => {
     });
 
     await expect(
-      verifyVoiceArtifacts(manifest, "/safe/cache", "arm64", {
-        inspectFile: () => Promise.reject(new Error("must not inspect")),
-      }),
+      verifyVoiceArtifacts(
+        manifest,
+        "/safe/cache",
+        "arm64",
+        new Date("2026-07-15T00:00:00.000Z"),
+        {
+          inspectFile: () => Promise.reject(new Error("must not inspect")),
+        },
+      ),
     ).resolves.toEqual([]);
   });
 
-  it("rejects unsafe paths, mutable URLs, duplicate IDs, and invalid checksums", () => {
+  it("refuses artifacts still inside the cooling-off period", async () => {
+    const manifest = parseVoiceArtifactManifest({
+      ...createManifest(),
+      artifacts: [
+        {
+          ...createManifest().artifacts[0],
+          releasedAt: "2026-07-10T00:00:00.000Z",
+        },
+      ],
+    });
+
+    await expect(
+      verifyVoiceArtifacts(
+        manifest,
+        "/safe/cache",
+        "x64",
+        new Date("2026-07-15T00:00:00.000Z"),
+        {
+          inspectFile: () => Promise.reject(new Error("must not inspect")),
+        },
+      ),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        artifactId: "stt-model",
+        eligibleAt: "2026-08-09T00:00:00.000Z",
+        status: "cooling-off",
+      }),
+    ]);
+  });
+
+  it("rejects unsafe paths, untrusted hosts, duplicate IDs, and invalid checksums", () => {
     const artifact = createManifest().artifacts[0];
 
     expect(() =>
@@ -103,9 +147,11 @@ describe("voice benchmark artifact manifest", () => {
     expect(() =>
       parseVoiceArtifactManifest({
         ...createManifest(),
-        artifacts: [{ ...artifact, sourceUrl: "http://example.com/model" }],
+        artifacts: [
+          { ...artifact, sourceUrl: "https://untrusted.example/model" },
+        ],
       }),
-    ).toThrow(/HTTPS/iu);
+    ).toThrow(/trusted upstream/iu);
     expect(() =>
       parseVoiceArtifactManifest({
         ...createManifest(),
@@ -130,12 +176,15 @@ function createManifest() {
         id: "stt-model",
         kind: "model",
         license: "MIT",
+        releasedAt: "2026-05-01T00:00:00.000Z",
         sha256: "a".repeat(64),
         sizeBytes: 123,
         sourceRevision: "commit-123",
-        sourceUrl: "https://example.com/immutable/model.bin",
+        sourceUrl:
+          "https://github.com/example/project/releases/download/v1/model.bin",
       },
     ],
+    policy: { minimumCoolingOffDays: 30 },
     schemaVersion: 1,
   };
 }

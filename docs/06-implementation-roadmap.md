@@ -149,7 +149,8 @@ Included:
   architecture applicability, byte counts, and SHA-256 digests. Repository
   tooling only verifies separately reviewed operator-supplied files offline and
   fails closed; it never downloads, installs, extracts, imports, or executes
-  third-party artifacts during preparation.
+  third-party artifacts during verification. The allowlist enforces approved
+  official hosts and a minimum 30-day cooling-off period before use.
 
 Excluded:
 
