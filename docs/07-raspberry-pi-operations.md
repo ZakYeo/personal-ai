@@ -224,6 +224,10 @@ On the Pi with the deployment microphone selected, run
 personal corpus phrases. Review every playback carefully: consent promotes the
 accepted audio into permanent repository history. Existing stable phrase IDs
 are never rerecorded merely because a new capability adds new phrases.
+Third-party benchmark models and engines are not downloaded by repository
+tooling. If an operator separately reviews and supplies them, run the committed
+allowlist verification with `--architecture arm64`; missing or mismatched files
+must prevent the Pi benchmark from starting.
 Normal installation continues to use explicit command or streaming provider
 configuration until Milestones 13 and 14 select and document first-class local
 adapters.

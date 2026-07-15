@@ -29,6 +29,16 @@ describe("package scripts", () => {
     );
   });
 
+  it("provides an offline-only voice artifact verification command", async () => {
+    const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.["benchmark:voice:verify-artifacts"]).toBe(
+      "node --import tsx src/runtimes/voice-benchmark/artifact-verify-main.ts",
+    );
+  });
+
   it("provides a focused live OpenAI Pi alarm smoke command", async () => {
     const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
       scripts?: Record<string, string>;

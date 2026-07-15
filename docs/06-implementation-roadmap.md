@@ -145,6 +145,11 @@ Included:
   operation-specific startup, final-or-first-audio, CPU, memory, real-time
   factor, and shutdown telemetry as structurally validated JSON; TTS fixture
   text is supplied through stdin rather than process arguments.
+- A committed artifact allowlist with exact provenance, revisions, licenses,
+  architecture applicability, byte counts, and SHA-256 digests. Repository
+  tooling only verifies separately reviewed operator-supplied files offline and
+  fails closed; it never downloads, installs, extracts, imports, or executes
+  third-party artifacts during preparation.
 
 Excluded:
 

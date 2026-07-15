@@ -273,6 +273,20 @@ Each candidate gets one excluded warm-up followed by three measured runs per
 sample. STT drivers receive only a WAV path; TTS drivers receive fixture text
 through stdin, and all reported telemetry is validated before scoring.
 
+Third-party benchmark files are never fetched by repository tooling. After an
+operator separately reviews and supplies them, verify the committed allowlist
+offline before use:
+
+```bash
+npm run benchmark:voice:verify-artifacts -- \
+  --manifest benchmarks/voice/artifacts.json \
+  --cache .voice-benchmark/artifacts \
+  --architecture x64
+```
+
+Use `arm64` on the Pi. Missing or mismatched artifacts fail closed; verification
+does not install, extract, import, or execute them.
+
 For a device deployment under systemd, follow the
 [Raspberry Pi operations guide](docs/07-raspberry-pi-operations.md). It installs
 the built CLI under `/opt/personal-ai`, operator config under
@@ -431,6 +445,8 @@ Common development commands:
 - `npm run build` - compile production JavaScript.
 - `npm run benchmark:voice:capture -- --speaker primary` - capture only missing
   personal benchmark phrases through the target SoX microphone path.
+- `npm run benchmark:voice:verify-artifacts -- --manifest <path> --cache <dir> --architecture <x64|arm64>`
+  - offline-only verification for separately reviewed benchmark artifacts.
 - `npm run setup:google-calendar` - run the local OAuth loopback helper and
   print a `GOOGLE_CALENDAR_REFRESH_TOKEN` line for `.env`.
 - `npm run setup:openwakeword` - create or update `.venv` with the Python
