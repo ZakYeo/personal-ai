@@ -140,6 +140,11 @@ Included:
 - A capability-tagged personal corpus with immutable phrase IDs. Guided capture
   records only active phrases without accepted audio, so future capabilities
   add focused recordings without invalidating the existing corpus.
+- A process-isolated runner with one excluded warm-up and three measured
+  repetitions for every candidate and sample. Candidate drivers report
+  operation-specific startup, final-or-first-audio, CPU, memory, real-time
+  factor, and shutdown telemetry as structurally validated JSON; TTS fixture
+  text is supplied through stdin rather than process arguments.
 
 Excluded:
 

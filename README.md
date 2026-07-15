@@ -268,6 +268,11 @@ signal, and requires explicit consent before promoting it into tracked corpus
 history. Adding a capability adds new phrase IDs; it does not require recording
 the existing commands again.
 
+Benchmark candidate processes are isolated behind bounded command execution.
+Each candidate gets one excluded warm-up followed by three measured runs per
+sample. STT drivers receive only a WAV path; TTS drivers receive fixture text
+through stdin, and all reported telemetry is validated before scoring.
+
 For a device deployment under systemd, follow the
 [Raspberry Pi operations guide](docs/07-raspberry-pi-operations.md). It installs
 the built CLI under `/opt/personal-ai`, operator config under
