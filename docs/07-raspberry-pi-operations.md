@@ -219,6 +219,11 @@ Future local STT and TTS providers are gated by Spike 12 rather than added to
 this deployment path speculatively. That benchmark must record the exact Pi
 model and operating system, latency, command accuracy or intelligibility,
 memory, CPU, model size, licenses, checksums, startup, and shutdown behavior.
+On the Pi with the deployment microphone selected, run
+`npm run benchmark:voice:capture -- --speaker primary` to capture only missing
+personal corpus phrases. Review every playback carefully: consent promotes the
+accepted audio into permanent repository history. Existing stable phrase IDs
+are never rerecorded merely because a new capability adds new phrases.
 Normal installation continues to use explicit command or streaming provider
 configuration until Milestones 13 and 14 select and document first-class local
 adapters.

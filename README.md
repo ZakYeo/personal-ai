@@ -255,6 +255,19 @@ Run the Raspberry Pi service loop with local command-based voice config:
 npm run cli -- pi-service --config path/to/pi-config.json
 ```
 
+Spike 12 personal STT fixtures are captured incrementally on the target
+microphone:
+
+```bash
+npm run benchmark:voice:capture -- --speaker primary
+```
+
+The guided command records only active phrase IDs that do not already have an
+accepted recording, plays each take back, validates its PCM WAV structure and
+signal, and requires explicit consent before promoting it into tracked corpus
+history. Adding a capability adds new phrase IDs; it does not require recording
+the existing commands again.
+
 For a device deployment under systemd, follow the
 [Raspberry Pi operations guide](docs/07-raspberry-pi-operations.md). It installs
 the built CLI under `/opt/personal-ai`, operator config under
@@ -411,6 +424,8 @@ Common development commands:
 - `npm run format:check` - check Prettier formatting.
 - `npm run typecheck` - run TypeScript without emitting files.
 - `npm run build` - compile production JavaScript.
+- `npm run benchmark:voice:capture -- --speaker primary` - capture only missing
+  personal benchmark phrases through the target SoX microphone path.
 - `npm run setup:google-calendar` - run the local OAuth loopback helper and
   print a `GOOGLE_CALENDAR_REFRESH_TOKEN` line for `.env`.
 - `npm run setup:openwakeword` - create or update `.venv` with the Python

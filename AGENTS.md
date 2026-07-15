@@ -120,6 +120,7 @@
 - Voice service progress logs are human-facing stdout output; keep internal diagnostics, adapter command output, provider details, credentials, and stack traces on stderr only.
 - Serialize normal response speech and alarm delivery through one runtime-owned output coordinator while leaving wake/input capture independent; alarm delivery must construct only the configured synthesis/output path, not microphone, wake, or transcription adapters.
 - Keep deterministic intent fixtures from becoming a central feature-specific branch list; when deterministic routing grows, move matching into data-backed rules or feature-local fixtures whose capability keys remain type-linked to the feature's declarations.
+- Keep voice benchmark recordings incremental: give phrases immutable stable IDs, tag them with covered capability names, retire instead of rewriting recorded phrases, and capture only missing active IDs when capabilities are added.
 - Author feature capabilities with `defineCapability`/`defineFeature` so decoded handler arguments stay structurally tied to declared parameter metadata.
 - Avoid hand-written feature `execute` switches in normal features; use dispatch maps and decoded `request.args` unless a test intentionally covers a lower-level malformed contract.
 - Keep `README.md`, `AGENTS.md`, and every file in `docs/` updated and consistent with the codebase whenever behavior, architecture, tooling, or workflow changes.
@@ -164,6 +165,7 @@
 - `npm run test:e2e:openai:plans` - run the focused opt-in live OpenAI compound calendar-and-alarm plan smoke with `.env`.
 - `npm run test:e2e:openai:calendar-followup` - run the focused opt-in live OpenAI and Google Calendar result-follow-up smoke with `.env`.
 - `npm run test:e2e:openai:pi` - run the focused opt-in live OpenAI confirmed-alarm smoke through Raspberry Pi service composition without audio hardware.
+- `npm run benchmark:voice:capture -- --speaker primary` - interactively capture only missing personal voice benchmark phrases through SoX and require consent before promotion.
 - `npm run build` - compile the production JavaScript output.
 - `npm start` - run the default desktop OpenAI voice service with `config/local-desktop-voice-openai.json`.
 - `npm run cli -- ask "..."` - run the deterministic text CLI in development; loads `.env` when present.

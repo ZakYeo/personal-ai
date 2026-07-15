@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "phrases": [
+    {
+      "id": "assistant-capabilities-list-v1",
+      "text": "What can you do",
+      "capabilities": ["assistant.capabilities.list"],
+      "active": true
+    },
+    {
+      "id": "assistant-capabilities-describe-v1",
+      "text": "Tell me about your alarm capability",
+      "capabilities": ["assistant.capabilities.describe"],
+      "active": true
+    },
+    {
+      "id": "alarm-acknowledge-v1",
+      "text": "Acknowledge the ringing tea alarm",
+      "capabilities": ["alarm.acknowledge"],
+      "active": true
+    },
+    {
+      "id": "alarm-cancel-v1",
+      "text": "Cancel my exercise alarm",
+      "capabilities": ["alarm.cancel"],
+      "active": true
+    },
+    {
+      "id": "alarm-create-once-v1",
+      "text": "Set a tea alarm for ten minutes",
+      "capabilities": ["alarm.create"],
+      "active": true
+    },
+    {
+      "id": "alarm-create-daily-v1",
+      "text": "Set a daily medicine alarm for twenty minutes from now in Europe London",
+      "capabilities": ["alarm.create"],
+      "active": true
+    },
+    {
+      "id": "alarm-create-weekly-v1",
+      "text": "Set a weekly planning alarm for thirty minutes from now in Europe London",
+      "capabilities": ["alarm.create"],
+      "active": true
+    },
+    {
+      "id": "alarm-dismiss-v1",
+      "text": "Dismiss the ringing medicine alarm",
+      "capabilities": ["alarm.dismiss"],
+      "active": true
+    },
+    {
+      "id": "alarm-edit-v1",
+      "text": "Rename my exercise alarm to morning workout",
+      "capabilities": ["alarm.edit"],
+      "active": true
+    },
+    {
+      "id": "alarm-list-v1",
+      "text": "List my alarms",
+      "capabilities": ["alarm.list"],
+      "active": true
+    },
+    {
+      "id": "alarm-reschedule-v1",
+      "text": "Reschedule my tea alarm for fifteen minutes from now",
+      "capabilities": ["alarm.reschedule"],
+      "active": true
+    },
+    {
+      "id": "alarm-snooze-v1",
+      "text": "Snooze the ringing tea alarm for five minutes",
+      "capabilities": ["alarm.snooze"],
+      "active": true
+    },
+    {
+      "id": "calendar-follow-up-ordinal-v1",
+      "text": "What is the second one",
+      "capabilities": ["calendar.follow_up"],
+      "active": true
+    },
+    {
+      "id": "calendar-follow-up-location-v1",
+      "text": "Where is that event",
+      "capabilities": ["calendar.follow_up"],
+      "active": true
+    },
+    {
+      "id": "calendar-follow-up-next-v1",
+      "text": "What comes after it",
+      "capabilities": ["calendar.follow_up"],
+      "active": true
+    },
+    {
+      "id": "calendar-search-upcoming-v1",
+      "text": "What are my upcoming calendar events",
+      "capabilities": ["calendar.search_events"],
+      "active": true
+    },
+    {
+      "id": "calendar-search-query-v1",
+      "text": "Find the upcoming wedding in my calendar",
+      "capabilities": ["calendar.search_events"],
+      "active": true
+    },
+    {
+      "id": "calendar-search-dates-v1",
+      "text": "Search my calendar from Friday the seventeenth to Monday the twentieth",
+      "capabilities": ["calendar.search_events"],
+      "active": true
+    },
+    {
+      "id": "messaging-draft-reply-v1",
+      "text": "Draft a WhatsApp reply saying I will respond later",
+      "capabilities": ["messaging.draft_reply"],
+      "active": true
+    },
+    {
+      "id": "compound-calendar-alarm-v1",
+      "text": "Check my upcoming calendar events and set a tea alarm for ten minutes",
+      "capabilities": ["calendar.search_events", "alarm.create"],
+      "active": true
+    },
+    {
+      "id": "confirmation-yes-v1",
+      "text": "Yes confirm that",
+      "capabilities": ["alarm.create"],
+      "active": true
+    },
+    {
+      "id": "confirmation-no-v1",
+      "text": "No cancel that request",
+      "capabilities": ["alarm.cancel"],
+      "active": true
+    },
+    {
+      "id": "conversation-general-v1",
+      "text": "How are you today",
+      "capabilities": ["conversation.general"],
+      "active": true
+    },
+    {
+      "id": "conversation-follow-up-v1",
+      "text": "Could you explain that another way",
+      "capabilities": ["conversation.general"],
+      "active": true
+    }
+  ]
+}
