@@ -44,7 +44,7 @@ describe("voice corpus capture CLI", () => {
       playback: {
         args: ["-q", "/tmp/take.wav", "-t", "pulseaudio", "default"],
         command: "sox",
-        timeoutMs: 15_000,
+        timeoutMs: 20_000,
       },
       recording: {
         args: [
@@ -63,18 +63,18 @@ describe("voice corpus capture CLI", () => {
           "/tmp/take.wav",
           "trim",
           "0",
-          "8",
+          "15",
           "silence",
           "-l",
           "1",
           "0.1",
           "1%",
           "1",
-          "1.0",
+          "2.0",
           "1%",
         ],
         command: "sox",
-        timeoutMs: 11_000,
+        timeoutMs: 18_000,
       },
     });
     expect(selectCaptureAudioProfile(undefined)).toBeUndefined();
@@ -126,7 +126,7 @@ describe("voice corpus capture CLI", () => {
 
     expect(exitCode).toBe(0);
     expect(events).toContain(
-      "rec:-q -r 16000 -c 1 -b 16 -e signed-integer .voice-benchmark/capture/alarm-list-v1-1.wav trim 0 8 silence -l 1 0.1 1% 1 1.0 1%",
+      "rec:-q -r 16000 -c 1 -b 16 -e signed-integer .voice-benchmark/capture/alarm-list-v1-1.wav trim 0 15 silence -l 1 0.1 1% 1 2.0 1%",
     );
     expect(events).toContain(
       "play:-q .voice-benchmark/capture/alarm-list-v1-1.wav",

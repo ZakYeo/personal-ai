@@ -225,8 +225,8 @@ core personal corpus phrases; add `--all` to include missing extended phrases.
 Review every playback carefully: consent promotes the accepted audio into
 permanent repository history. Existing stable phrase IDs are never rerecorded
 merely because a new capability adds new phrases.
-Capture stops after and retains one second of trailing silence; a rejected take
-is rerecorded against the same immutable phrase ID.
+Capture allows up to 15 seconds, stops after and retains two seconds of trailing
+silence, and rerecords a rejected take against the same immutable phrase ID.
 Third-party benchmark models and engines are not downloaded by repository
 tooling. If an operator separately reviews and supplies them, run the committed
 allowlist verification with `--architecture arm64`; missing or mismatched files

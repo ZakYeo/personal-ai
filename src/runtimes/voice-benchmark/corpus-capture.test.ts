@@ -144,6 +144,17 @@ describe("personal corpus WAV inspection", () => {
     });
   });
 
+  it("accepts a long utterance within the fifteen-second capture bound", () => {
+    const wav = createVoiceBenchmarkWav([
+      ...Array.from({ length: 12 * 16_000 }, (_, index) =>
+        index % 20 < 10 ? 2_000 : -2_000,
+      ),
+      ...Array.from({ length: 16_000 }, () => 0),
+    ]);
+
+    expect(inspectCapturedPcmWav(wav).speechEndSample).toBe(12 * 16_000);
+  });
+
   it("rejects silence, clipping, invalid format, and bad duration", () => {
     expect(() =>
       inspectCapturedPcmWav(
@@ -166,6 +177,11 @@ describe("personal corpus WAV inspection", () => {
     expect(() =>
       inspectCapturedPcmWav(
         createVoiceBenchmarkWav(Array.from({ length: 1_000 }, () => 500)),
+      ),
+    ).toThrow(/duration/iu);
+    expect(() =>
+      inspectCapturedPcmWav(
+        createVoiceBenchmarkWav(Array.from({ length: 16 * 16_000 }, () => 500)),
       ),
     ).toThrow(/duration/iu);
   });

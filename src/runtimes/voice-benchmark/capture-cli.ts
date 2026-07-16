@@ -126,7 +126,7 @@ export async function runVoiceCorpusCaptureCli(
           await dependencies.removeFile(stagingPath);
           dependencies.writeLine(`\nPhrase ${phrase.id}:\n${phrase.text}`);
           await dependencies.question(
-            "Press Enter, speak after recording starts, then leave one second of silence: ",
+            "Press Enter, speak after recording starts, then leave two seconds of silence: ",
           );
           try {
             await dependencies.runCommand(
@@ -183,7 +183,7 @@ export function createCaptureAudioCommands(
     playback: {
       args: ["-q", filePath, ...profile.playback.afterFileArgs],
       command: profile.playback.command,
-      timeoutMs: 15_000,
+      timeoutMs: 20_000,
     },
     recording: {
       args: [
@@ -200,18 +200,18 @@ export function createCaptureAudioCommands(
         filePath,
         "trim",
         "0",
-        "8",
+        "15",
         "silence",
         "-l",
         "1",
         "0.1",
         "1%",
         "1",
-        "1.0",
+        "2.0",
         "1%",
       ],
       command: profile.recording.command,
-      timeoutMs: 11_000,
+      timeoutMs: 18_000,
     },
   };
 }

@@ -110,9 +110,9 @@ export function inspectCapturedPcmWav(wav: Buffer): RecordingInspection {
 
   const samples = readSamples(wav, format.dataOffset, format.dataBytes);
   const durationSeconds = samples.length / format.sampleRate;
-  if (durationSeconds < 0.5 || durationSeconds > 8) {
+  if (durationSeconds < 0.5 || durationSeconds > 15) {
     throw new Error(
-      "Personal corpus recording duration must be 0.5 to 8 seconds.",
+      "Personal corpus recording duration must be 0.5 to 15 seconds.",
     );
   }
 
