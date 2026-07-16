@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "candidates": [
+    {
+      "id": "whisper-base-en",
+      "operation": "stt",
+      "engine": "whisper.cpp",
+      "revision": "23ee03506a91ac3d3f0071b40e66a430eebdfa1d",
+      "artifactIds": ["whisper-base-en-model"],
+      "installDirectory": "whisper.cpp-v1.8.6-x64",
+      "executable": "build/bin/whisper-cli",
+      "modelFiles": ["ggml-base.en.bin"]
+    },
+    {
+      "id": "whisper-small-en",
+      "operation": "stt",
+      "engine": "whisper.cpp",
+      "revision": "23ee03506a91ac3d3f0071b40e66a430eebdfa1d",
+      "artifactIds": ["whisper-small-en-model"],
+      "installDirectory": "whisper.cpp-v1.8.6-x64",
+      "executable": "build/bin/whisper-cli",
+      "modelFiles": ["ggml-small.en.bin"]
+    },
+    {
+      "id": "sherpa-zipformer-en-20m-int8",
+      "operation": "stt",
+      "engine": "sherpa-onnx",
+      "revision": "v1.13.2",
+      "artifactIds": [
+        "sherpa-engine-linux-x64",
+        "sherpa-zipformer-en-20m-model"
+      ],
+      "installDirectory": "sherpa-onnx-v1.13.2-x64",
+      "executable": "bin/sherpa-onnx",
+      "modelFiles": [
+        "encoder-epoch-99-avg-1.int8.onnx",
+        "decoder-epoch-99-avg-1.int8.onnx",
+        "joiner-epoch-99-avg-1.int8.onnx",
+        "tokens.txt"
+      ]
+    },
+    {
+      "id": "piper-alba-medium",
+      "operation": "tts",
+      "engine": "piper",
+      "revision": "v1.4.2",
+      "artifactIds": [
+        "piper-engine-linux-x64",
+        "piper-alba-medium-model",
+        "piper-alba-medium-config"
+      ],
+      "installDirectory": "piper-v1.4.2-x64",
+      "executable": "bin/piper",
+      "modelFiles": ["en_GB-alba-medium.onnx", "en_GB-alba-medium.onnx.json"]
+    },
+    {
+      "id": "sherpa-amy-low",
+      "operation": "tts",
+      "engine": "sherpa-onnx",
+      "revision": "v1.13.2",
+      "artifactIds": ["sherpa-engine-linux-x64", "sherpa-amy-low-model"],
+      "installDirectory": "sherpa-onnx-v1.13.2-x64",
+      "executable": "bin/sherpa-onnx-offline-tts",
+      "modelFiles": ["en_US-amy-low.onnx", "tokens.txt", "espeak-ng-data"]
+    }
+  ]
+}

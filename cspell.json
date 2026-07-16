@@ -43,6 +43,7 @@
     "depcruise",
     "dtb",
     "dtype",
+    "espeak",
     "frombuffer",
     "flatbuffers",
     "getvalue",
