@@ -1,4 +1,8 @@
-import { runVoiceCorpusCaptureCli } from "./capture-cli.js";
+import {
+  createCaptureAudioCommands,
+  runVoiceCorpusCaptureCli,
+  selectCaptureAudioProfile,
+} from "./capture-cli.js";
 import { createVoiceBenchmarkWav } from "../../test-support/voice-benchmark.js";
 
 const phraseManifest = JSON.stringify({
@@ -14,6 +18,51 @@ const phraseManifest = JSON.stringify({
 });
 
 describe("voice corpus capture CLI", () => {
+  it("targets the explicit WSLg PulseAudio device for recording and playback", () => {
+    expect(
+      createCaptureAudioCommands(
+        "/tmp/take.wav",
+        selectCaptureAudioProfile("unix:/mnt/wslg/PulseServer"),
+      ),
+    ).toEqual({
+      playback: {
+        args: ["-q", "/tmp/take.wav", "-t", "pulseaudio", "default"],
+        command: "sox",
+        timeoutMs: 15_000,
+      },
+      recording: {
+        args: [
+          "-q",
+          "-t",
+          "pulseaudio",
+          "default",
+          "-r",
+          "16000",
+          "-c",
+          "1",
+          "-b",
+          "16",
+          "-e",
+          "signed-integer",
+          "/tmp/take.wav",
+          "trim",
+          "0",
+          "8",
+          "silence",
+          "1",
+          "0.1",
+          "1%",
+          "1",
+          "1.0",
+          "1%",
+        ],
+        command: "sox",
+        timeoutMs: 11_000,
+      },
+    });
+    expect(selectCaptureAudioProfile(undefined)).toBeUndefined();
+  });
+
   it("records missing phrases through SoX and persists consented metadata", async () => {
     const events: string[] = [];
     let writtenIndex = "";
@@ -50,6 +99,7 @@ describe("voice corpus capture CLI", () => {
         events.push(`${command}:${args?.join(" ") ?? ""}`);
         return Promise.resolve();
       },
+      writeDiagnostic: (error) => events.push(`diagnostic:${String(error)}`),
       writeLine: (line) => events.push(`line:${line}`),
       writeTextFile: (_path, contents) => {
         writtenIndex = contents;
@@ -93,6 +143,7 @@ describe("voice corpus capture CLI", () => {
         commandRan = true;
         return Promise.resolve();
       },
+      writeDiagnostic: (error) => lines.push(`diagnostic:${String(error)}`),
       writeLine: (line) => lines.push(line),
       writeTextFile: () => Promise.resolve(),
     });
@@ -100,5 +151,37 @@ describe("voice corpus capture CLI", () => {
     expect(exitCode).toBe(1);
     expect(commandRan).toBe(false);
     expect(lines.join("\n")).toMatch(/--speaker/iu);
+  });
+
+  it("turns recorder failures into safe microphone guidance", async () => {
+    const diagnostics: unknown[] = [];
+    const lines: string[] = [];
+    const exitCode = await runVoiceCorpusCaptureCli(["--speaker", "primary"], {
+      copyFile: () => Promise.resolve(),
+      makeDirectory: () => Promise.resolve(),
+      now: () => new Date(),
+      question: () => Promise.resolve(""),
+      readBinaryFile: () => Promise.resolve(Buffer.alloc(0)),
+      readTextFile: (path) =>
+        Promise.resolve(
+          path.endsWith("personal-phrases.json")
+            ? phraseManifest
+            : '{"schemaVersion":1,"recordings":[]}',
+        ),
+      removeFile: () => Promise.resolve(),
+      runCommand: () =>
+        Promise.reject(new Error("raw audio device diagnostics")),
+      writeDiagnostic: (error) => diagnostics.push(error),
+      writeLine: (line) => lines.push(line),
+      writeTextFile: () => Promise.resolve(),
+    });
+
+    expect(exitCode).toBe(1);
+    expect(lines.at(-1)).toBe(
+      "Voice corpus capture failed: Microphone recording failed. Check that the configured audio input is available and permitted, then try again.",
+    );
+    expect(lines.join("\n")).not.toContain("raw audio device diagnostics");
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toBeInstanceOf(Error);
   });
 });

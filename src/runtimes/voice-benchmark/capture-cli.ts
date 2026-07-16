@@ -14,7 +14,19 @@ const recordingIndexPath = "benchmarks/voice/corpus/personal-recordings.json";
 const personalAudioDirectory = "benchmarks/voice/corpus/personal";
 const stagingDirectory = ".voice-benchmark/capture";
 
+export interface CaptureAudioProfile {
+  playback: {
+    afterFileArgs: readonly string[];
+    command: string;
+  };
+  recording: {
+    command: string;
+    inputArgs: readonly string[];
+  };
+}
+
 interface CaptureCliDependencies {
+  audioProfile?: CaptureAudioProfile | undefined;
   copyFile(source: string, destination: string): Promise<void>;
   makeDirectory(path: string): Promise<void>;
   now(): Date;
@@ -25,6 +37,7 @@ interface CaptureCliDependencies {
   runCommand(
     request: Pick<RunCommandRequest, "args" | "command" | "timeoutMs">,
   ): Promise<void>;
+  writeDiagnostic(error: unknown): void;
   writeLine(line: string): void;
   writeTextFile(path: string, contents: string): Promise<void>;
 }
@@ -91,11 +104,10 @@ export async function runVoiceCorpusCaptureCli(
           inspectCapturedPcmWav(await dependencies.readBinaryFile(filePath)),
         now: () => dependencies.now(),
         playRecording: (filePath) =>
-          dependencies.runCommand({
-            args: ["-q", filePath],
-            command: "play",
-            timeoutMs: 15_000,
-          }),
+          dependencies.runCommand(
+            createCaptureAudioCommands(filePath, dependencies.audioProfile)
+              .playback,
+          ),
         promoteRecording: async ({ phraseId, stagingPath }) => {
           await dependencies.makeDirectory(personalAudioDirectory);
           const destination = `${personalAudioDirectory}/${phraseId}.wav`;
@@ -109,32 +121,17 @@ export async function runVoiceCorpusCaptureCli(
           await dependencies.question(
             "Press Enter, speak after recording starts, then leave one second of silence: ",
           );
-          await dependencies.runCommand({
-            args: [
-              "-q",
-              "-r",
-              "16000",
-              "-c",
-              "1",
-              "-b",
-              "16",
-              "-e",
-              "signed-integer",
-              stagingPath,
-              "trim",
-              "0",
-              "8",
-              "silence",
-              "1",
-              "0.1",
-              "1%",
-              "1",
-              "1.0",
-              "1%",
-            ],
-            command: "rec",
-            timeoutMs: 11_000,
-          });
+          try {
+            await dependencies.runCommand(
+              createCaptureAudioCommands(stagingPath, dependencies.audioProfile)
+                .recording,
+            );
+          } catch (error) {
+            throw new Error(
+              "Microphone recording failed. Check that the configured audio input is available and permitted, then try again.",
+              { cause: error },
+            );
+          }
           return stagingPath;
         },
         reportInvalidRecording: (error) => {
@@ -156,11 +153,76 @@ export async function runVoiceCorpusCaptureCli(
     );
     return 0;
   } catch (error) {
+    dependencies.writeDiagnostic(error);
     dependencies.writeLine(
       `Voice corpus capture failed: ${error instanceof Error ? error.message : "unknown failure"}`,
     );
     return 1;
   }
+}
+
+export function createCaptureAudioCommands(
+  filePath: string,
+  profile: CaptureAudioProfile = {
+    playback: { afterFileArgs: [], command: "play" },
+    recording: { command: "rec", inputArgs: [] },
+  },
+): {
+  playback: Pick<RunCommandRequest, "args" | "command" | "timeoutMs">;
+  recording: Pick<RunCommandRequest, "args" | "command" | "timeoutMs">;
+} {
+  return {
+    playback: {
+      args: ["-q", filePath, ...profile.playback.afterFileArgs],
+      command: profile.playback.command,
+      timeoutMs: 15_000,
+    },
+    recording: {
+      args: [
+        "-q",
+        ...profile.recording.inputArgs,
+        "-r",
+        "16000",
+        "-c",
+        "1",
+        "-b",
+        "16",
+        "-e",
+        "signed-integer",
+        filePath,
+        "trim",
+        "0",
+        "8",
+        "silence",
+        "1",
+        "0.1",
+        "1%",
+        "1",
+        "1.0",
+        "1%",
+      ],
+      command: profile.recording.command,
+      timeoutMs: 11_000,
+    },
+  };
+}
+
+export function selectCaptureAudioProfile(
+  pulseServer: string | undefined,
+): CaptureAudioProfile | undefined {
+  if (!pulseServer) {
+    return undefined;
+  }
+  return {
+    playback: {
+      afterFileArgs: ["-t", "pulseaudio", "default"],
+      command: "sox",
+    },
+    recording: {
+      command: "sox",
+      inputArgs: ["-t", "pulseaudio", "default"],
+    },
+  };
 }
 
 function parseSpeakerId(args: readonly string[]): string | undefined {
