@@ -49,6 +49,7 @@ describe("voice corpus capture CLI", () => {
           "0",
           "8",
           "silence",
+          "-l",
           "1",
           "0.1",
           "1%",
@@ -109,7 +110,7 @@ describe("voice corpus capture CLI", () => {
 
     expect(exitCode).toBe(0);
     expect(events).toContain(
-      "rec:-q -r 16000 -c 1 -b 16 -e signed-integer .voice-benchmark/capture/alarm-list-v1-1.wav trim 0 8 silence 1 0.1 1% 1 1.0 1%",
+      "rec:-q -r 16000 -c 1 -b 16 -e signed-integer .voice-benchmark/capture/alarm-list-v1-1.wav trim 0 8 silence -l 1 0.1 1% 1 1.0 1%",
     );
     expect(events).toContain(
       "play:-q .voice-benchmark/capture/alarm-list-v1-1.wav",

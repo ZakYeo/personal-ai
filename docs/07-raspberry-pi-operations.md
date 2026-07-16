@@ -224,6 +224,8 @@ On the Pi with the deployment microphone selected, run
 personal corpus phrases. Review every playback carefully: consent promotes the
 accepted audio into permanent repository history. Existing stable phrase IDs
 are never rerecorded merely because a new capability adds new phrases.
+Capture stops after and retains one second of trailing silence; a rejected take
+is rerecorded against the same immutable phrase ID.
 Third-party benchmark models and engines are not downloaded by repository
 tooling. If an operator separately reviews and supplies them, run the committed
 allowlist verification with `--architecture arm64`; missing or mismatched files

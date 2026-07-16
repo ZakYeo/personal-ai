@@ -194,6 +194,7 @@ export function createCaptureAudioCommands(
         "0",
         "8",
         "silence",
+        "-l",
         "1",
         "0.1",
         "1%",

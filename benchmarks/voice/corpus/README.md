@@ -12,6 +12,8 @@ phrase and add a new versioned ID instead.
 The capture entry point selects explicit PulseAudio devices when
 `PULSE_SERVER` is present, as required by WSLg systems without `/dev/snd`.
 Otherwise it uses the host's configured SoX recording and playback defaults.
+Recording stops after one second of trailing silence and retains that silence
+in the WAV for corpus validation.
 
 Accepted recordings become permanent Git history. Phrase text must remain free
 of real names, appointments, messages, credentials, or other private facts.

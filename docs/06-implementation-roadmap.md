@@ -141,7 +141,8 @@ Included:
   records only active phrases without accepted audio, so future capabilities
   add focused recordings without invalidating the existing corpus. WSLg
   capture selects its explicit PulseAudio source and sink when `PULSE_SERVER`
-  is present; native Linux and Pi capture use configured SoX defaults.
+  is present; native Linux and Pi capture use configured SoX defaults. Capture
+  retains its one-second stop-detection silence for corpus validation.
 - A process-isolated runner with one excluded warm-up and three measured
   repetitions for every candidate and sample. Candidate drivers report
   operation-specific startup, final-or-first-audio, CPU, memory, real-time

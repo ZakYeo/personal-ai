@@ -266,7 +266,8 @@ The guided command records only active phrase IDs that do not already have an
 accepted recording, plays each take back, validates its PCM WAV structure and
 signal, and requires explicit consent before promoting it into tracked corpus
 history. Adding a capability adds new phrase IDs; it does not require recording
-the existing commands again. On WSLg, the capture runtime detects
+the existing commands again. Capture stops after one second of trailing silence
+and retains that silence for corpus validation. On WSLg, the runtime detects
 `PULSE_SERVER` and explicitly uses the PulseAudio input and output devices;
 native Linux and Raspberry Pi hosts retain SoX's configured default devices.
 
