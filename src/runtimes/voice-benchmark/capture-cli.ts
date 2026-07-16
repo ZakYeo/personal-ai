@@ -14,7 +14,7 @@ const recordingIndexPath = "benchmarks/voice/corpus/personal-recordings.json";
 const personalAudioDirectory = "benchmarks/voice/corpus/personal";
 const stagingDirectory = ".voice-benchmark/capture";
 
-export interface CaptureAudioProfile {
+interface CaptureAudioProfile {
   playback: {
     afterFileArgs: readonly string[];
     command: string;
