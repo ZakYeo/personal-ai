@@ -262,12 +262,13 @@ microphone:
 npm run benchmark:voice:capture -- --speaker primary
 ```
 
-The guided command records only active phrase IDs that do not already have an
-accepted recording, plays each take back, validates its PCM WAV structure and
-signal, and requires explicit consent before promoting it into tracked corpus
-history. Adding a capability adds new phrase IDs; it does not require recording
-the existing commands again. Capture stops after one second of trailing silence
-and retains that silence for corpus validation. On WSLg, the runtime detects
+The guided command defaults to missing core phrase IDs; add `--all` after the
+speaker ID to capture missing extended phrases later. It plays each take back,
+validates its PCM WAV structure and signal, and requires explicit consent before
+promoting it into tracked corpus history. Adding a capability adds new phrase
+IDs; it does not require recording the existing commands again. Capture stops
+after one second of trailing silence and retains that silence for corpus
+validation. On WSLg, the runtime detects
 `PULSE_SERVER` and explicitly uses the PulseAudio input and output devices;
 native Linux and Raspberry Pi hosts retain SoX's configured default devices.
 
@@ -461,7 +462,8 @@ Common development commands:
 - `npm run typecheck` - run TypeScript without emitting files.
 - `npm run build` - compile production JavaScript.
 - `npm run benchmark:voice:capture -- --speaker primary` - capture only missing
-  personal benchmark phrases through the target SoX microphone path.
+  core personal benchmark phrases through the target SoX microphone path; add
+  `--all` to include missing extended phrases.
 - `npm run benchmark:voice:verify-artifacts -- --manifest <path> --cache <dir> --architecture <x64|arm64>`
   - offline-only verification for separately reviewed benchmark artifacts.
 - `npm run setup:google-calendar` - run the local OAuth loopback helper and

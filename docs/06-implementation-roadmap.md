@@ -138,8 +138,9 @@ Included:
 - License, model-source, checksum, packaging, and Pi compatibility review.
 - A recorded selection or an explicit no-go threshold.
 - A capability-tagged personal corpus with immutable phrase IDs. Guided capture
-  records only active phrases without accepted audio, so future capabilities
-  add focused recordings without invalidating the existing corpus. WSLg
+  defaults to the core tier while an explicit `--all` includes extended phrases,
+  so future capabilities add focused recordings without invalidating the
+  existing corpus. WSLg
   capture selects its explicit PulseAudio source and sink when `PULSE_SERVER`
   is present; native Linux and Pi capture use configured SoX defaults. Capture
   retains its one-second stop-detection silence for corpus validation.

@@ -221,9 +221,10 @@ model and operating system, latency, command accuracy or intelligibility,
 memory, CPU, model size, licenses, checksums, startup, and shutdown behavior.
 On the Pi with the deployment microphone selected, run
 `npm run benchmark:voice:capture -- --speaker primary` to capture only missing
-personal corpus phrases. Review every playback carefully: consent promotes the
-accepted audio into permanent repository history. Existing stable phrase IDs
-are never rerecorded merely because a new capability adds new phrases.
+core personal corpus phrases; add `--all` to include missing extended phrases.
+Review every playback carefully: consent promotes the accepted audio into
+permanent repository history. Existing stable phrase IDs are never rerecorded
+merely because a new capability adds new phrases.
 Capture stops after and retains one second of trailing silence; a rejected take
 is rerecorded against the same immutable phrase ID.
 Third-party benchmark models and engines are not downloaded by repository

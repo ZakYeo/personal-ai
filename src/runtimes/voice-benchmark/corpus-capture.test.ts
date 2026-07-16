@@ -10,12 +10,14 @@ const manifest = parseCorpusManifest({
     {
       active: true,
       capabilities: ["alarm.create"],
+      captureTier: "core",
       id: "already-recorded-v1",
       text: "Set an alarm for ten minutes",
     },
     {
       active: true,
       capabilities: ["calendar.search_events"],
+      captureTier: "core",
       id: "new-calendar-v1",
       text: "What is next on my calendar",
     },
@@ -75,6 +77,7 @@ describe("incremental personal corpus capture", () => {
         return Promise.resolve(`/tmp/${phrase.id}-${attempt}.wav`);
       },
       reportInvalidRecording: () => Promise.resolve(),
+      scope: "all",
       speakerId: "primary",
     });
 
@@ -116,6 +119,7 @@ describe("incremental personal corpus capture", () => {
         },
         recordPhrase: () => Promise.resolve("/tmp/staged.wav"),
         reportInvalidRecording: () => Promise.resolve(),
+        scope: "all",
         speakerId: "primary",
       }),
     ).rejects.toThrow(/consent/iu);

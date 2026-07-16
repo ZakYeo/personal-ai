@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 import {
+  findMissingRecordings,
   findUncoveredCapabilities,
   parseCorpusManifest,
   parseRecordingIndex,
@@ -34,9 +35,26 @@ describe("committed voice benchmark corpus", () => {
 
     validateRecordingIndex(manifest, recordingIndex);
     expect(manifest.phrases.filter((phrase) => phrase.active)).toHaveLength(24);
+    expect(
+      manifest.phrases.filter(
+        (phrase) => phrase.active && phrase.captureTier === "core",
+      ),
+    ).toHaveLength(16);
     expect(recordingIndex.schemaVersion).toBe(1);
     expect(recordingIndex.recordings).toHaveLength(19);
     expect(findUncoveredCapabilities(capabilityNames, manifest)).toEqual([]);
+    expect(
+      findUncoveredCapabilities(capabilityNames, manifest, "core"),
+    ).toEqual([]);
+    expect(
+      findMissingRecordings(manifest, recordingIndex, "core").map(
+        (phrase) => phrase.id,
+      ),
+    ).toEqual([
+      "confirmation-yes-v1",
+      "confirmation-no-v1",
+      "conversation-general-v1",
+    ]);
 
     await Promise.all(
       recordingIndex.recordings.map(async (recording) => {

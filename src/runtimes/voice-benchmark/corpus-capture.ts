@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import type {
   AcceptedRecording,
+  CaptureScope,
   CorpusManifest,
   CorpusPhrase,
   RecordingIndex,
@@ -26,6 +27,7 @@ interface CaptureDependencies {
   now(): Date;
   playRecording(filePath: string): Promise<void>;
   reportInvalidRecording(error: unknown): Promise<void>;
+  scope: CaptureScope;
   promoteRecording(input: {
     phraseId: string;
     stagingPath: string;
@@ -48,7 +50,11 @@ export async function captureMissingCorpusRecordings(
   index: RecordingIndex,
   dependencies: CaptureDependencies,
 ): Promise<RecordingIndex> {
-  const missingPhrases = findMissingRecordings(manifest, index);
+  const missingPhrases = findMissingRecordings(
+    manifest,
+    index,
+    dependencies.scope,
+  );
   if (missingPhrases.length === 0) {
     return index;
   }

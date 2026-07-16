@@ -1,9 +1,13 @@
 export interface CorpusPhrase {
   active: boolean;
   capabilities: string[];
+  captureTier: CaptureTier;
   id: string;
   text: string;
 }
+
+export type CaptureScope = "all" | "core";
+export type CaptureTier = "core" | "extended";
 
 export interface CorpusManifest {
   phrases: CorpusPhrase[];
@@ -59,6 +63,7 @@ export function parseRecordingIndex(input: unknown): RecordingIndex {
 export function findMissingRecordings(
   manifest: CorpusManifest,
   index: RecordingIndex,
+  scope: CaptureScope = "all",
 ): CorpusPhrase[] {
   validateRecordingIndex(manifest, index);
   const recordedPhraseIds = new Set(
@@ -66,17 +71,24 @@ export function findMissingRecordings(
   );
 
   return manifest.phrases.filter(
-    (phrase) => phrase.active && !recordedPhraseIds.has(phrase.id),
+    (phrase) =>
+      phrase.active &&
+      (scope === "all" || phrase.captureTier === "core") &&
+      !recordedPhraseIds.has(phrase.id),
   );
 }
 
 export function findUncoveredCapabilities(
   capabilityNames: readonly string[],
   manifest: CorpusManifest,
+  scope: CaptureScope = "all",
 ): string[] {
   const coveredCapabilities = new Set(
     manifest.phrases
-      .filter((phrase) => phrase.active)
+      .filter(
+        (phrase) =>
+          phrase.active && (scope === "all" || phrase.captureTier === "core"),
+      )
       .flatMap((phrase) => phrase.capabilities),
   );
 
@@ -127,9 +139,20 @@ function parsePhrase(input: unknown, index: number): CorpusPhrase {
   return {
     active: requireBoolean(record.active, `phrases[${index}].active`),
     capabilities,
+    captureTier: requireCaptureTier(
+      record.captureTier,
+      `phrases[${index}].captureTier`,
+    ),
     id: requireStableId(record.id, `phrases[${index}].id`),
     text: requireNonEmptyString(record.text, `phrases[${index}].text`),
   };
+}
+
+function requireCaptureTier(input: unknown, label: string): CaptureTier {
+  if (input !== "core" && input !== "extended") {
+    throw new Error(`${label} must be core or extended.`);
+  }
+  return input;
 }
 
 function parseRecording(input: unknown, index: number): AcceptedRecording {

@@ -4,6 +4,7 @@ import {
   inspectCapturedPcmWav,
 } from "./corpus-capture.js";
 import {
+  type CaptureScope,
   findMissingRecordings,
   parseCorpusManifest,
   parseRecordingIndex,
@@ -46,10 +47,10 @@ export async function runVoiceCorpusCaptureCli(
   args: readonly string[],
   dependencies: CaptureCliDependencies,
 ): Promise<number> {
-  const speakerId = parseSpeakerId(args);
-  if (!speakerId) {
+  const captureArguments = parseCaptureArguments(args);
+  if (!captureArguments) {
     dependencies.writeLine(
-      "Usage: npm run benchmark:voice:capture -- --speaker <stable-speaker-id>",
+      "Usage: npm run benchmark:voice:capture -- --speaker <stable-speaker-id> [--all]",
     );
     return 1;
   }
@@ -63,16 +64,22 @@ export async function runVoiceCorpusCaptureCli(
     const existingIndex = parseRecordingIndex(
       parseJson(recordingIndexText, recordingIndexPath),
     );
-    const missing = findMissingRecordings(manifest, existingIndex);
+    const missing = findMissingRecordings(
+      manifest,
+      existingIndex,
+      captureArguments.scope,
+    );
     if (missing.length === 0) {
       dependencies.writeLine(
-        "All active personal corpus phrases are recorded.",
+        captureArguments.scope === "core"
+          ? "All core personal corpus phrases are recorded."
+          : "All active personal corpus phrases are recorded.",
       );
       return 0;
     }
 
     dependencies.writeLine(
-      `Capturing ${missing.length} missing phrase${missing.length === 1 ? "" : "s"}. Existing recordings will not be replaced.`,
+      `Capturing ${missing.length} missing ${captureArguments.scope === "core" ? "core " : ""}phrase${missing.length === 1 ? "" : "s"}. Existing recordings will not be replaced.`,
     );
     await dependencies.makeDirectory(stagingDirectory);
 
@@ -140,7 +147,8 @@ export async function runVoiceCorpusCaptureCli(
           );
           return Promise.resolve();
         },
-        speakerId,
+        scope: captureArguments.scope,
+        speakerId: captureArguments.speakerId,
       },
     );
 
@@ -226,14 +234,21 @@ export function selectCaptureAudioProfile(
   };
 }
 
-function parseSpeakerId(args: readonly string[]): string | undefined {
-  if (args.length !== 2 || args[0] !== "--speaker") {
+export function parseCaptureArguments(
+  args: readonly string[],
+): { scope: CaptureScope; speakerId: string } | undefined {
+  if (
+    (args.length !== 2 && args.length !== 3) ||
+    args[0] !== "--speaker" ||
+    (args.length === 3 && args[2] !== "--all")
+  ) {
     return undefined;
   }
   const speakerId = args[1];
-  return speakerId && /^[a-z\d]+(?:[._-][a-z\d]+)*$/u.test(speakerId)
-    ? speakerId
-    : undefined;
+  if (!speakerId || !/^[a-z\d]+(?:[._-][a-z\d]+)*$/u.test(speakerId)) {
+    return undefined;
+  }
+  return { scope: args.length === 3 ? "all" : "core", speakerId };
 }
 
 function parseJson(text: string, path: string): unknown {

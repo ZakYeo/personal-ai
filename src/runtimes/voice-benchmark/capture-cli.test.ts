@@ -1,5 +1,6 @@
 import {
   createCaptureAudioCommands,
+  parseCaptureArguments,
   runVoiceCorpusCaptureCli,
   selectCaptureAudioProfile,
 } from "./capture-cli.js";
@@ -10,6 +11,7 @@ const phraseManifest = JSON.stringify({
     {
       active: true,
       capabilities: ["alarm.list"],
+      captureTier: "core",
       id: "alarm-list-v1",
       text: "List my alarms",
     },
@@ -18,6 +20,20 @@ const phraseManifest = JSON.stringify({
 });
 
 describe("voice corpus capture CLI", () => {
+  it("defaults to core capture and accepts an explicit all-phrases scope", () => {
+    expect(parseCaptureArguments(["--speaker", "primary"])).toEqual({
+      scope: "core",
+      speakerId: "primary",
+    });
+    expect(parseCaptureArguments(["--speaker", "primary", "--all"])).toEqual({
+      scope: "all",
+      speakerId: "primary",
+    });
+    expect(parseCaptureArguments(["--speaker", "primary", "--unknown"])).toBe(
+      undefined,
+    );
+  });
+
   it("targets the explicit WSLg PulseAudio device for recording and playback", () => {
     expect(
       createCaptureAudioCommands(

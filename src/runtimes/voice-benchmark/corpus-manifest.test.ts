@@ -11,18 +11,21 @@ const manifestInput = {
     {
       active: true,
       capabilities: ["alarm.create"],
+      captureTier: "core",
       id: "alarm-create-relative-v1",
       text: "Set a tea alarm for ten minutes",
     },
     {
       active: true,
       capabilities: ["calendar.search_events"],
+      captureTier: "extended",
       id: "calendar-upcoming-v1",
       text: "What is next on my calendar",
     },
     {
       active: false,
       capabilities: ["alarm.list"],
+      captureTier: "core",
       id: "retired-alarm-list-v1",
       text: "Tell me my old alarms",
     },
@@ -78,6 +81,13 @@ describe("voice benchmark corpus manifests", () => {
         parseRecordingIndex(recordingInput),
       ).map((phrase) => phrase.id),
     ).toEqual(["calendar-upcoming-v1"]);
+    expect(
+      findMissingRecordings(
+        parseCorpusManifest(manifestInput),
+        parseRecordingIndex(recordingInput),
+        "core",
+      ),
+    ).toEqual([]);
   });
 
   it("reports only newly uncovered capabilities", () => {
@@ -85,8 +95,9 @@ describe("voice benchmark corpus manifests", () => {
       findUncoveredCapabilities(
         ["alarm.create", "calendar.search_events", "messaging.draft_reply"],
         parseCorpusManifest(manifestInput),
+        "core",
       ),
-    ).toEqual(["messaging.draft_reply"]);
+    ).toEqual(["calendar.search_events", "messaging.draft_reply"]);
   });
 
   it("rejects reused IDs whose spoken text changed and orphan recordings", () => {
