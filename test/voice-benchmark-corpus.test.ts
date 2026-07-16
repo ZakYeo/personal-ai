@@ -4,7 +4,9 @@ import {
   findUncoveredCapabilities,
   parseCorpusManifest,
   parseRecordingIndex,
+  validateRecordingIndex,
 } from "../src/runtimes/voice-benchmark/corpus-manifest.js";
+import { inspectCapturedPcmWav } from "../src/runtimes/voice-benchmark/corpus-capture.js";
 import { loadConfig } from "../src/runtimes/config/config.js";
 import { createConfiguredFeatures } from "../src/runtimes/feature-adapter-selection.js";
 
@@ -30,9 +32,26 @@ describe("committed voice benchmark corpus", () => {
       feature.capabilities.map((capability) => capability.name),
     );
 
+    validateRecordingIndex(manifest, recordingIndex);
     expect(manifest.phrases.filter((phrase) => phrase.active)).toHaveLength(24);
     expect(recordingIndex.schemaVersion).toBe(1);
+    expect(recordingIndex.recordings).toHaveLength(19);
     expect(findUncoveredCapabilities(capabilityNames, manifest)).toEqual([]);
+
+    await Promise.all(
+      recordingIndex.recordings.map(async (recording) => {
+        const inspection = inspectCapturedPcmWav(
+          await readFile(recording.filePath),
+        );
+        expect(inspection).toEqual({
+          bitsPerSample: recording.bitsPerSample,
+          channels: recording.channels,
+          sampleRate: recording.sampleRate,
+          sha256: recording.sha256,
+          speechEndSample: recording.speechEndSample,
+        });
+      }),
+    );
   });
 });
 
