@@ -1,5 +1,4 @@
 {
-  "schemaVersion": 1,
   "recordings": [
     {
       "bitsPerSample": 16,
@@ -228,6 +227,43 @@
       "sha256": "9976404aff2ab32ce3ee1269a09373491d844abb06cb903b00a0e8a6cee3be5e",
       "speakerId": "primary",
       "speechEndSample": 36960
+    },
+    {
+      "bitsPerSample": 16,
+      "channels": 1,
+      "sampleRate": 16000,
+      "sha256": "7aa53bb8703ac84966433e0fc9ed7c91dcc7dfa4e5071f782c27132ee9a5fd81",
+      "speechEndSample": 14400,
+      "consentedAt": "2026-07-16T14:06:58.812Z",
+      "filePath": "benchmarks/voice/corpus/personal/confirmation-yes-v1.wav",
+      "phraseId": "confirmation-yes-v1",
+      "phraseText": "Yes confirm that",
+      "speakerId": "primary"
+    },
+    {
+      "bitsPerSample": 16,
+      "channels": 1,
+      "sampleRate": 16000,
+      "sha256": "5e3a9fe7787450c42de3c7270f7d99e7592de9c59638bcb0101dae229cc109af",
+      "speechEndSample": 18240,
+      "consentedAt": "2026-07-16T14:06:58.812Z",
+      "filePath": "benchmarks/voice/corpus/personal/confirmation-no-v1.wav",
+      "phraseId": "confirmation-no-v1",
+      "phraseText": "No cancel that request",
+      "speakerId": "primary"
+    },
+    {
+      "bitsPerSample": 16,
+      "channels": 1,
+      "sampleRate": 16000,
+      "sha256": "4842815cd79ed2a4102c2e118f7266136bc5f7cf15e7b4de79a2c5c1ef521e03",
+      "speechEndSample": 10560,
+      "consentedAt": "2026-07-16T14:06:58.812Z",
+      "filePath": "benchmarks/voice/corpus/personal/conversation-general-v1.wav",
+      "phraseId": "conversation-general-v1",
+      "phraseText": "How are you today",
+      "speakerId": "primary"
     }
-  ]
+  ],
+  "schemaVersion": 1
 }

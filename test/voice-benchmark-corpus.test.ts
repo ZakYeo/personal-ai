@@ -41,7 +41,7 @@ describe("committed voice benchmark corpus", () => {
       ),
     ).toHaveLength(16);
     expect(recordingIndex.schemaVersion).toBe(1);
-    expect(recordingIndex.recordings).toHaveLength(19);
+    expect(recordingIndex.recordings).toHaveLength(22);
     expect(findUncoveredCapabilities(capabilityNames, manifest)).toEqual([]);
     expect(
       findUncoveredCapabilities(capabilityNames, manifest, "core"),
@@ -50,11 +50,7 @@ describe("committed voice benchmark corpus", () => {
       findMissingRecordings(manifest, recordingIndex, "core").map(
         (phrase) => phrase.id,
       ),
-    ).toEqual([
-      "confirmation-yes-v1",
-      "confirmation-no-v1",
-      "conversation-general-v1",
-    ]);
+    ).toEqual([]);
 
     await Promise.all(
       recordingIndex.recordings.map(async (recording) => {
