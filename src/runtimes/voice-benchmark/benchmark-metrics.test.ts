@@ -4,6 +4,7 @@ import {
   evaluateTtsMeasurements,
   normalizeTranscript,
   percentile,
+  selectDesktopWinner,
   selectPiSafeWinner,
 } from "./benchmark-metrics.js";
 import { parseVoiceBenchmarkPolicy } from "./benchmark-policy.js";
@@ -154,7 +155,45 @@ describe("voice benchmark metrics", () => {
       ]),
     ).toBeNull();
   });
+
+  it("selects only passing desktop candidates with deterministic tie-breaks", () => {
+    expect(
+      selectDesktopWinner([
+        createDesktopCandidate("slower", 0.98, 500),
+        createDesktopCandidate("accurate", 0.99, 700),
+        { ...createDesktopCandidate("failed", 1, 1), passed: false },
+      ]),
+    ).toBe("accurate");
+    expect(
+      selectDesktopWinner([
+        { ...createDesktopCandidate("b", 0.99, 500), quality: 4 },
+        { ...createDesktopCandidate("a", 0.99, 500), quality: 4 },
+      ]),
+    ).toBe("a");
+    expect(
+      selectDesktopWinner([
+        { ...createDesktopCandidate("failed", 1, 1), passed: false },
+      ]),
+    ).toBeNull();
+  });
 });
+
+function createDesktopCandidate(
+  candidateId: string,
+  correctness: number,
+  latencyMs: number,
+) {
+  return {
+    candidateId,
+    correctness,
+    installBytes: 500,
+    latencyMs,
+    passed: true,
+    peakRssBytes: 400,
+    quality: 0,
+    realTimeFactor: 0.4,
+  };
+}
 
 function createPolicy() {
   return parseVoiceBenchmarkPolicy({

@@ -44,6 +44,17 @@ interface CandidateSelectionResult {
   piPassed: boolean;
 }
 
+interface DesktopCandidateSelectionResult {
+  candidateId: string;
+  correctness: number;
+  installBytes: number;
+  latencyMs: number;
+  passed: boolean;
+  peakRssBytes: number;
+  quality: number;
+  realTimeFactor: number;
+}
+
 export function normalizeTranscript(transcript: string): string {
   return transcript
     .normalize("NFKC")
@@ -182,6 +193,23 @@ export function selectPiSafeWinner(
       left.candidateId.localeCompare(right.candidateId),
   );
 
+  return passing[0]?.candidateId ?? null;
+}
+
+export function selectDesktopWinner(
+  candidates: readonly DesktopCandidateSelectionResult[],
+): string | null {
+  const passing = candidates.filter((candidate) => candidate.passed);
+  passing.sort(
+    (left, right) =>
+      right.correctness - left.correctness ||
+      right.quality - left.quality ||
+      left.latencyMs - right.latencyMs ||
+      left.realTimeFactor - right.realTimeFactor ||
+      left.peakRssBytes - right.peakRssBytes ||
+      left.installBytes - right.installBytes ||
+      left.candidateId.localeCompare(right.candidateId),
+  );
   return passing[0]?.candidateId ?? null;
 }
 
