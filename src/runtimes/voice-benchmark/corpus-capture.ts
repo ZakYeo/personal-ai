@@ -22,11 +22,12 @@ interface RecordingInspection {
 
 interface CaptureDependencies {
   askForConsent(): Promise<boolean>;
-  chooseRecording(): Promise<"accept" | "rerecord">;
+  chooseRecording(): Promise<"accept" | "quit" | "rerecord">;
   inspectRecording(filePath: string): Promise<RecordingInspection>;
   now(): Date;
   playRecording(filePath: string): Promise<void>;
   reportInvalidRecording(error: unknown): Promise<void>;
+  saveRecordingIndex(index: RecordingIndex): Promise<void>;
   scope: CaptureScope;
   promoteRecording(input: {
     phraseId: string;
@@ -37,6 +38,10 @@ interface CaptureDependencies {
     phrase: CorpusPhrase;
   }): Promise<string>;
   speakerId: string;
+  startRecording(input: {
+    attempt: number;
+    phrase: CorpusPhrase;
+  }): Promise<"quit" | "record">;
 }
 
 interface StagedRecording {
@@ -45,54 +50,58 @@ interface StagedRecording {
   stagingPath: string;
 }
 
+interface CaptureResult {
+  index: RecordingIndex;
+  status: "completed" | "paused";
+}
+
 export async function captureMissingCorpusRecordings(
   manifest: CorpusManifest,
   index: RecordingIndex,
   dependencies: CaptureDependencies,
-): Promise<RecordingIndex> {
+): Promise<CaptureResult> {
   const missingPhrases = findMissingRecordings(
     manifest,
     index,
     dependencies.scope,
   );
   if (missingPhrases.length === 0) {
-    return index;
-  }
-
-  const stagedRecordings: StagedRecording[] = [];
-  for (const phrase of missingPhrases) {
-    stagedRecordings.push(await captureAcceptedPhrase(phrase, dependencies));
+    return { index, status: "completed" };
   }
 
   if (!(await dependencies.askForConsent())) {
-    throw new Error(
-      "Recording consent was declined; no staged personal recordings were promoted.",
-    );
+    return { index, status: "paused" };
   }
 
   const consentedAt = dependencies.now().toISOString();
-  const promoted: AcceptedRecording[] = [];
-  for (const staged of stagedRecordings) {
+  let updatedIndex = index;
+  for (const phrase of missingPhrases) {
+    const staged = await captureAcceptedPhrase(phrase, dependencies);
+    if (!staged) {
+      return { index: updatedIndex, status: "paused" };
+    }
     const filePath = await dependencies.promoteRecording({
       phraseId: staged.phrase.id,
       stagingPath: staged.stagingPath,
     });
-    promoted.push({
+    const recording: AcceptedRecording = {
       ...staged.inspection,
       consentedAt,
       filePath,
       phraseId: staged.phrase.id,
       phraseText: staged.phrase.text,
       speakerId: dependencies.speakerId,
-    });
+    };
+    const nextIndex: RecordingIndex = {
+      recordings: [...updatedIndex.recordings, recording],
+      schemaVersion: 1,
+    };
+    validateRecordingIndex(manifest, nextIndex);
+    await dependencies.saveRecordingIndex(nextIndex);
+    updatedIndex = nextIndex;
   }
 
-  const result: RecordingIndex = {
-    recordings: [...index.recordings, ...promoted],
-    schemaVersion: 1,
-  };
-  validateRecordingIndex(manifest, result);
-  return result;
+  return { index: updatedIndex, status: "completed" };
 }
 
 export function inspectCapturedPcmWav(wav: Buffer): RecordingInspection {
@@ -150,8 +159,11 @@ export function inspectCapturedPcmWav(wav: Buffer): RecordingInspection {
 async function captureAcceptedPhrase(
   phrase: CorpusPhrase,
   dependencies: CaptureDependencies,
-): Promise<StagedRecording> {
+): Promise<StagedRecording | undefined> {
   for (let attempt = 1; ; attempt += 1) {
+    if ((await dependencies.startRecording({ attempt, phrase })) === "quit") {
+      return undefined;
+    }
     const stagingPath = await dependencies.recordPhrase({ attempt, phrase });
     let inspection: RecordingInspection;
     try {
@@ -162,7 +174,11 @@ async function captureAcceptedPhrase(
     }
     await dependencies.playRecording(stagingPath);
 
-    if ((await dependencies.chooseRecording()) === "accept") {
+    const choice = await dependencies.chooseRecording();
+    if (choice === "quit") {
+      return undefined;
+    }
+    if (choice === "accept") {
       return { inspection, phrase, stagingPath };
     }
   }

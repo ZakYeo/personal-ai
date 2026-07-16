@@ -227,6 +227,9 @@ permanent repository history. Existing stable phrase IDs are never rerecorded
 merely because a new capability adds new phrases.
 Capture allows up to 15 seconds, stops after and retains two seconds of trailing
 silence, and rerecords a rejected take against the same immutable phrase ID.
+Consent is collected before recording. Every accepted take is saved before the
+next phrase, so `quit` at a prompt or `Ctrl-C` pauses safely and a later run
+resumes from the remaining phrase IDs.
 Third-party benchmark models and engines are not downloaded by repository
 tooling. If an operator separately reviews and supplies them, run the committed
 allowlist verification with `--architecture arm64`; missing or mismatched files

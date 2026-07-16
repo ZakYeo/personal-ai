@@ -15,6 +15,9 @@ The capture entry point selects explicit PulseAudio devices when
 Otherwise it uses the host's configured SoX recording and playback defaults.
 Recording allows up to 15 seconds, stops after two seconds of trailing silence,
 and retains that silence in the WAV for corpus validation.
+Session consent is collected before recording, and each accepted take is saved
+immediately. Type `quit` at a prompt or press `Ctrl-C` to pause;
+the next run resumes from the recording index.
 
 Accepted recordings become permanent Git history. Phrase text must remain free
 of real names, appointments, messages, credentials, or other private facts.

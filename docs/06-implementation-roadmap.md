@@ -144,7 +144,9 @@ Included:
   capture selects its explicit PulseAudio source and sink when `PULSE_SERVER`
   is present; native Linux and Pi capture use configured SoX defaults. Capture
   allows 15-second utterances and retains its two-second stop-detection silence
-  for corpus validation.
+  for corpus validation. Consent is collected before recording, each accepted
+  take is saved immediately, and prompt-level quit or `Ctrl-C` resumes
+  from the persisted index on the next run.
 - A process-isolated runner with one excluded warm-up and three measured
   repetitions for every candidate and sample. Candidate drivers report
   operation-specific startup, final-or-first-audio, CPU, memory, real-time

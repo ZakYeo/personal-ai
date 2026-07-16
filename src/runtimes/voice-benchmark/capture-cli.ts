@@ -36,8 +36,12 @@ interface CaptureCliDependencies {
   readTextFile(path: string): Promise<string>;
   removeFile(path: string): Promise<void>;
   runCommand(
-    request: Pick<RunCommandRequest, "args" | "command" | "timeoutMs">,
+    request: Pick<
+      RunCommandRequest,
+      "args" | "command" | "signal" | "timeoutMs"
+    >,
   ): Promise<void>;
+  shutdownSignal?: AbortSignal | undefined;
   writeDiagnostic(error: unknown): void;
   writeLine(line: string): void;
   writeTextFile(path: string, contents: string): Promise<void>;
@@ -83,7 +87,7 @@ export async function runVoiceCorpusCaptureCli(
     );
     await dependencies.makeDirectory(stagingDirectory);
 
-    const updatedIndex = await captureMissingCorpusRecordings(
+    const result = await captureMissingCorpusRecordings(
       manifest,
       existingIndex,
       {
@@ -93,46 +97,57 @@ export async function runVoiceCorpusCaptureCli(
           );
           return (
             (await dependencies.question(
-              'Type "I CONSENT" to promote every accepted recording: ',
+              'Type "I CONSENT" to begin, or "quit" to exit: ',
             )) === "I CONSENT"
           );
         },
         chooseRecording: async () => {
           const answer = (
             await dependencies.question(
-              'Type "accept" to keep this take, or press Enter to rerecord: ',
+              'Type "accept" to save this take, "quit" to exit, or press Enter to rerecord: ',
             )
           )
             .trim()
             .toLocaleLowerCase("en-GB");
-          return answer === "accept" ? "accept" : "rerecord";
+          if (answer === "accept" || answer === "quit") {
+            return answer;
+          }
+          return "rerecord";
         },
         inspectRecording: async (filePath) =>
           inspectCapturedPcmWav(await dependencies.readBinaryFile(filePath)),
         now: () => dependencies.now(),
         playRecording: (filePath) =>
-          dependencies.runCommand(
-            createCaptureAudioCommands(filePath, dependencies.audioProfile)
+          dependencies.runCommand({
+            ...createCaptureAudioCommands(filePath, dependencies.audioProfile)
               .playback,
-          ),
+            ...(dependencies.shutdownSignal
+              ? { signal: dependencies.shutdownSignal }
+              : {}),
+          }),
         promoteRecording: async ({ phraseId, stagingPath }) => {
-          await dependencies.makeDirectory(personalAudioDirectory);
-          const destination = `${personalAudioDirectory}/${phraseId}.wav`;
-          await dependencies.copyFile(stagingPath, destination);
-          return destination;
+          try {
+            await dependencies.makeDirectory(personalAudioDirectory);
+            const destination = `${personalAudioDirectory}/${phraseId}.wav`;
+            await dependencies.copyFile(stagingPath, destination);
+            return destination;
+          } catch (error) {
+            throw createCheckpointError(error);
+          }
         },
         recordPhrase: async ({ attempt, phrase }) => {
           const stagingPath = `${stagingDirectory}/${phrase.id}-${attempt}.wav`;
           await dependencies.removeFile(stagingPath);
-          dependencies.writeLine(`\nPhrase ${phrase.id}:\n${phrase.text}`);
-          await dependencies.question(
-            "Press Enter, speak after recording starts, then leave two seconds of silence: ",
-          );
           try {
-            await dependencies.runCommand(
-              createCaptureAudioCommands(stagingPath, dependencies.audioProfile)
-                .recording,
-            );
+            await dependencies.runCommand({
+              ...createCaptureAudioCommands(
+                stagingPath,
+                dependencies.audioProfile,
+              ).recording,
+              ...(dependencies.shutdownSignal
+                ? { signal: dependencies.shutdownSignal }
+                : {}),
+            });
           } catch (error) {
             throw new Error(
               "Microphone recording failed. Check that the configured audio input is available and permitted, then try again.",
@@ -147,26 +162,60 @@ export async function runVoiceCorpusCaptureCli(
           );
           return Promise.resolve();
         },
+        saveRecordingIndex: async (index) => {
+          try {
+            await dependencies.writeTextFile(
+              recordingIndexPath,
+              `${JSON.stringify(index, undefined, 2)}\n`,
+            );
+          } catch (error) {
+            throw createCheckpointError(error);
+          }
+        },
         scope: captureArguments.scope,
         speakerId: captureArguments.speakerId,
+        startRecording: async ({ phrase }) => {
+          dependencies.writeLine(`\nPhrase ${phrase.id}:\n${phrase.text}`);
+          const answer = (
+            await dependencies.question(
+              'Press Enter to record, speak after recording starts, then leave two seconds of silence; or type "quit" to exit: ',
+            )
+          )
+            .trim()
+            .toLocaleLowerCase("en-GB");
+          return answer === "quit" ? "quit" : "record";
+        },
       },
     );
 
-    await dependencies.writeTextFile(
-      recordingIndexPath,
-      `${JSON.stringify(updatedIndex, undefined, 2)}\n`,
-    );
+    const savedCount =
+      result.index.recordings.length - existingIndex.recordings.length;
     dependencies.writeLine(
-      `Saved ${updatedIndex.recordings.length - existingIndex.recordings.length} new consented recording entries.`,
+      result.status === "paused"
+        ? `Voice corpus capture paused. ${savedCount} accepted recording${savedCount === 1 ? " is" : "s are"} saved.`
+        : `Saved ${savedCount} new consented recording entries.`,
     );
     return 0;
   } catch (error) {
+    if (dependencies.shutdownSignal?.aborted) {
+      dependencies.writeLine(
+        "Voice corpus capture paused. Previously accepted recordings are saved.",
+      );
+      return 0;
+    }
     dependencies.writeDiagnostic(error);
     dependencies.writeLine(
       `Voice corpus capture failed: ${error instanceof Error ? error.message : "unknown failure"}`,
     );
     return 1;
   }
+}
+
+function createCheckpointError(cause: unknown): Error {
+  return new Error(
+    "Accepted recording could not be saved. Check repository write permissions, then retry.",
+    { cause },
+  );
 }
 
 export function createCaptureAudioCommands(

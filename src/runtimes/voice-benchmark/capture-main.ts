@@ -10,6 +10,10 @@ import {
 const input = process.stdin;
 const output = process.stdout;
 const questions = createInterface({ input, output });
+const shutdown = new AbortController();
+const requestShutdown = () => shutdown.abort(new Error("Capture interrupted."));
+process.once("SIGINT", requestShutdown);
+process.once("SIGTERM", requestShutdown);
 
 try {
   process.exitCode = await runVoiceCorpusCaptureCli(process.argv.slice(2), {
@@ -19,7 +23,8 @@ try {
       await mkdir(path, { recursive: true });
     },
     now: () => new Date(),
-    question: (prompt) => questions.question(prompt),
+    question: (prompt) =>
+      questions.question(prompt, { signal: shutdown.signal }),
     readBinaryFile: (path) => readFile(path),
     readTextFile: (path) => readFile(path, "utf8"),
     removeFile: (path) => rm(path, { force: true }),
@@ -32,10 +37,13 @@ try {
         },
       });
     },
+    shutdownSignal: shutdown.signal,
     writeDiagnostic: (error) => console.error(error),
     writeLine: (line) => console.log(line),
     writeTextFile: (path, contents) => writeFile(path, contents, "utf8"),
   });
 } finally {
+  process.removeListener("SIGINT", requestShutdown);
+  process.removeListener("SIGTERM", requestShutdown);
   questions.close();
 }

@@ -83,7 +83,7 @@ describe("voice corpus capture CLI", () => {
   it("records missing phrases through SoX and persists consented metadata", async () => {
     const events: string[] = [];
     let writtenIndex = "";
-    const answers = ["", "accept", "I CONSENT"];
+    const answers = ["I CONSENT", "", "accept"];
 
     const exitCode = await runVoiceCorpusCaptureCli(["--speaker", "primary"], {
       copyFile: (source, destination) => {
@@ -173,11 +173,12 @@ describe("voice corpus capture CLI", () => {
   it("turns recorder failures into safe microphone guidance", async () => {
     const diagnostics: unknown[] = [];
     const lines: string[] = [];
+    const answers = ["I CONSENT", ""];
     const exitCode = await runVoiceCorpusCaptureCli(["--speaker", "primary"], {
       copyFile: () => Promise.resolve(),
       makeDirectory: () => Promise.resolve(),
       now: () => new Date(),
-      question: () => Promise.resolve(""),
+      question: () => Promise.resolve(answers.shift() ?? ""),
       readBinaryFile: () => Promise.resolve(Buffer.alloc(0)),
       readTextFile: (path) =>
         Promise.resolve(
@@ -200,5 +201,110 @@ describe("voice corpus capture CLI", () => {
     expect(lines.join("\n")).not.toContain("raw audio device diagnostics");
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]).toBeInstanceOf(Error);
+  });
+
+  it("quits before a take without accessing the microphone", async () => {
+    const lines: string[] = [];
+    const answers = ["I CONSENT", "quit"];
+    let commandRan = false;
+
+    const exitCode = await runVoiceCorpusCaptureCli(["--speaker", "primary"], {
+      copyFile: () => Promise.resolve(),
+      makeDirectory: () => Promise.resolve(),
+      now: () => new Date(),
+      question: () => Promise.resolve(answers.shift() ?? ""),
+      readBinaryFile: () => Promise.resolve(Buffer.alloc(0)),
+      readTextFile: (path) =>
+        Promise.resolve(
+          path.endsWith("personal-phrases.json")
+            ? phraseManifest
+            : '{"schemaVersion":1,"recordings":[]}',
+        ),
+      removeFile: () => Promise.resolve(),
+      runCommand: () => {
+        commandRan = true;
+        return Promise.resolve();
+      },
+      writeDiagnostic: () => null,
+      writeLine: (line) => lines.push(line),
+      writeTextFile: () => Promise.resolve(),
+    });
+
+    expect(exitCode).toBe(0);
+    expect(commandRan).toBe(false);
+    expect(lines.at(-1)).toMatch(/paused.*saved/iu);
+  });
+
+  it("treats shutdown during recording as a graceful resumable exit", async () => {
+    const controller = new AbortController();
+    const diagnostics: unknown[] = [];
+    const lines: string[] = [];
+    const answers = ["I CONSENT", ""];
+    let commandSignal: AbortSignal | undefined;
+
+    const exitCode = await runVoiceCorpusCaptureCli(["--speaker", "primary"], {
+      copyFile: () => Promise.resolve(),
+      makeDirectory: () => Promise.resolve(),
+      now: () => new Date(),
+      question: () => Promise.resolve(answers.shift() ?? ""),
+      readBinaryFile: () => Promise.resolve(Buffer.alloc(0)),
+      readTextFile: (path) =>
+        Promise.resolve(
+          path.endsWith("personal-phrases.json")
+            ? phraseManifest
+            : '{"schemaVersion":1,"recordings":[]}',
+        ),
+      removeFile: () => Promise.resolve(),
+      runCommand: ({ signal }) => {
+        commandSignal = signal;
+        controller.abort(new Error("SIGINT"));
+        return Promise.reject(new Error("raw abort diagnostics"));
+      },
+      shutdownSignal: controller.signal,
+      writeDiagnostic: (error) => diagnostics.push(error),
+      writeLine: (line) => lines.push(line),
+      writeTextFile: () => Promise.resolve(),
+    });
+
+    expect(exitCode).toBe(0);
+    expect(commandSignal).toBe(controller.signal);
+    expect(diagnostics).toEqual([]);
+    expect(lines.at(-1)).toMatch(/paused.*saved/iu);
+  });
+
+  it("keeps checkpoint diagnostics internal at the CLI boundary", async () => {
+    const diagnostics: unknown[] = [];
+    const lines: string[] = [];
+    const answers = ["I CONSENT", "", "accept"];
+
+    const exitCode = await runVoiceCorpusCaptureCli(["--speaker", "primary"], {
+      copyFile: () => Promise.reject(new Error("raw private filesystem path")),
+      makeDirectory: () => Promise.resolve(),
+      now: () => new Date(),
+      question: () => Promise.resolve(answers.shift() ?? ""),
+      readBinaryFile: () =>
+        Promise.resolve(
+          createVoiceBenchmarkWav([
+            ...Array.from({ length: 16_000 }, () => 2_000),
+            ...Array.from({ length: 8_000 }, () => 0),
+          ]),
+        ),
+      readTextFile: (path) =>
+        Promise.resolve(
+          path.endsWith("personal-phrases.json")
+            ? phraseManifest
+            : '{"schemaVersion":1,"recordings":[]}',
+        ),
+      removeFile: () => Promise.resolve(),
+      runCommand: () => Promise.resolve(),
+      writeDiagnostic: (error) => diagnostics.push(error),
+      writeLine: (line) => lines.push(line),
+      writeTextFile: () => Promise.resolve(),
+    });
+
+    expect(exitCode).toBe(1);
+    expect(diagnostics).toHaveLength(1);
+    expect(lines.at(-1)).toMatch(/could not be saved/iu);
+    expect(lines.join("\n")).not.toContain("raw private filesystem path");
   });
 });

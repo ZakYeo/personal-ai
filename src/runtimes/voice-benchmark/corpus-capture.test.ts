@@ -2,7 +2,11 @@ import {
   captureMissingCorpusRecordings,
   inspectCapturedPcmWav,
 } from "./corpus-capture.js";
-import { parseCorpusManifest, parseRecordingIndex } from "./corpus-manifest.js";
+import {
+  parseCorpusManifest,
+  parseRecordingIndex,
+  type RecordingIndex,
+} from "./corpus-manifest.js";
 import { createVoiceBenchmarkWav } from "../../test-support/voice-benchmark.js";
 
 const manifest = parseCorpusManifest({
@@ -77,8 +81,15 @@ describe("incremental personal corpus capture", () => {
         return Promise.resolve(`/tmp/${phrase.id}-${attempt}.wav`);
       },
       reportInvalidRecording: () => Promise.resolve(),
+      saveRecordingIndex: (updatedIndex) => {
+        events.push(
+          `save:${updatedIndex.recordings.map((recording) => recording.phraseId).join(",")}`,
+        );
+        return Promise.resolve();
+      },
       scope: "all",
       speakerId: "primary",
+      startRecording: () => Promise.resolve("record"),
     });
 
     expect(events).toEqual([
@@ -89,41 +100,159 @@ describe("incremental personal corpus capture", () => {
       "inspect:/tmp/new-calendar-v1-2.wav",
       "play:/tmp/new-calendar-v1-2.wav",
       "promote:/tmp/new-calendar-v1-2.wav",
+      "save:already-recorded-v1,new-calendar-v1",
     ]);
-    expect(result.recordings.map((recording) => recording.phraseId)).toEqual([
-      "already-recorded-v1",
-      "new-calendar-v1",
-    ]);
+    expect(result).toMatchObject({ status: "completed" });
+    expect(
+      result.index.recordings.map((recording) => recording.phraseId),
+    ).toEqual(["already-recorded-v1", "new-calendar-v1"]);
   });
 
-  it("does not promote accepted staging recordings without final consent", async () => {
+  it("pauses before recording when session consent is declined", async () => {
     let promoted = false;
 
+    const result = await captureMissingCorpusRecordings(manifest, index, {
+      askForConsent: () => Promise.resolve(false),
+      chooseRecording: () => Promise.resolve("accept"),
+      inspectRecording: () =>
+        Promise.resolve({
+          bitsPerSample: 16,
+          channels: 1,
+          sampleRate: 16_000,
+          sha256: "b".repeat(64),
+          speechEndSample: 20_000,
+        }),
+      now: () => new Date("2026-07-15T10:00:00.000Z"),
+      playRecording: () => Promise.resolve(),
+      promoteRecording: () => {
+        promoted = true;
+        return Promise.resolve("unexpected.wav");
+      },
+      recordPhrase: () => Promise.resolve("/tmp/staged.wav"),
+      reportInvalidRecording: () => Promise.resolve(),
+      saveRecordingIndex: () => Promise.resolve(),
+      scope: "all",
+      speakerId: "primary",
+      startRecording: () => Promise.resolve("record"),
+    });
+
+    expect(result).toEqual({ index, status: "paused" });
+    expect(promoted).toBe(false);
+  });
+
+  it("checkpoints an accepted take before a later quit", async () => {
+    let starts = 0;
+    const saved: RecordingIndex[] = [];
+    const emptyIndex = parseRecordingIndex({
+      recordings: [],
+      schemaVersion: 1,
+    });
+
+    const result = await captureMissingCorpusRecordings(manifest, emptyIndex, {
+      askForConsent: () => Promise.resolve(true),
+      chooseRecording: () => Promise.resolve("accept"),
+      inspectRecording: () =>
+        Promise.resolve({
+          bitsPerSample: 16,
+          channels: 1,
+          sampleRate: 16_000,
+          sha256: "c".repeat(64),
+          speechEndSample: 20_000,
+        }),
+      now: () => new Date("2026-07-15T10:00:00.000Z"),
+      playRecording: () => Promise.resolve(),
+      promoteRecording: ({ phraseId }) =>
+        Promise.resolve(`personal/${phraseId}.wav`),
+      recordPhrase: ({ phrase }) => Promise.resolve(`/tmp/${phrase.id}.wav`),
+      reportInvalidRecording: () => Promise.resolve(),
+      saveRecordingIndex: (updatedIndex) => {
+        saved.push(updatedIndex);
+        return Promise.resolve();
+      },
+      scope: "all",
+      speakerId: "primary",
+      startRecording: () => Promise.resolve(starts++ === 0 ? "record" : "quit"),
+    });
+
+    expect(saved).toHaveLength(1);
+    expect(result.status).toBe("paused");
+    expect(
+      result.index.recordings.map((recording) => recording.phraseId),
+    ).toEqual(["already-recorded-v1"]);
+  });
+
+  it("can quit after playback without promoting the current take", async () => {
+    let promoted = false;
+    let saved = false;
+
+    const result = await captureMissingCorpusRecordings(manifest, index, {
+      askForConsent: () => Promise.resolve(true),
+      chooseRecording: () => Promise.resolve("quit"),
+      inspectRecording: () =>
+        Promise.resolve({
+          bitsPerSample: 16,
+          channels: 1,
+          sampleRate: 16_000,
+          sha256: "d".repeat(64),
+          speechEndSample: 20_000,
+        }),
+      now: () => new Date("2026-07-15T10:00:00.000Z"),
+      playRecording: () => Promise.resolve(),
+      promoteRecording: () => {
+        promoted = true;
+        return Promise.resolve("unexpected.wav");
+      },
+      recordPhrase: () => Promise.resolve("/tmp/staged.wav"),
+      reportInvalidRecording: () => Promise.resolve(),
+      saveRecordingIndex: () => {
+        saved = true;
+        return Promise.resolve();
+      },
+      scope: "all",
+      speakerId: "primary",
+      startRecording: () => Promise.resolve("record"),
+    });
+
+    expect(result).toEqual({ index, status: "paused" });
+    expect(promoted).toBe(false);
+    expect(saved).toBe(false);
+  });
+
+  it("stops before another phrase when checkpoint persistence fails", async () => {
+    let recordCount = 0;
+    const emptyIndex = parseRecordingIndex({
+      recordings: [],
+      schemaVersion: 1,
+    });
+
     await expect(
-      captureMissingCorpusRecordings(manifest, index, {
-        askForConsent: () => Promise.resolve(false),
+      captureMissingCorpusRecordings(manifest, emptyIndex, {
+        askForConsent: () => Promise.resolve(true),
         chooseRecording: () => Promise.resolve("accept"),
         inspectRecording: () =>
           Promise.resolve({
             bitsPerSample: 16,
             channels: 1,
             sampleRate: 16_000,
-            sha256: "b".repeat(64),
+            sha256: "e".repeat(64),
             speechEndSample: 20_000,
           }),
         now: () => new Date("2026-07-15T10:00:00.000Z"),
         playRecording: () => Promise.resolve(),
-        promoteRecording: () => {
-          promoted = true;
-          return Promise.resolve("unexpected.wav");
+        promoteRecording: ({ phraseId }) =>
+          Promise.resolve(`personal/${phraseId}.wav`),
+        recordPhrase: () => {
+          recordCount += 1;
+          return Promise.resolve("/tmp/staged.wav");
         },
-        recordPhrase: () => Promise.resolve("/tmp/staged.wav"),
         reportInvalidRecording: () => Promise.resolve(),
+        saveRecordingIndex: () => Promise.reject(new Error("disk full")),
         scope: "all",
         speakerId: "primary",
+        startRecording: () => Promise.resolve("record"),
       }),
-    ).rejects.toThrow(/consent/iu);
-    expect(promoted).toBe(false);
+    ).rejects.toThrow(/disk full/iu);
+    expect(recordCount).toBe(1);
   });
 });
 

@@ -265,9 +265,11 @@ npm run benchmark:voice:capture -- --speaker primary
 The guided command defaults to missing core phrase IDs; add `--all` after the
 speaker ID to capture missing extended phrases later. It plays each take back,
 validates its PCM WAV structure and signal, and requires explicit consent before
-promoting it into tracked corpus history. Adding a capability adds new phrase
-IDs; it does not require recording the existing commands again. Capture allows
-up to 15 seconds and stops after two seconds of trailing silence, retaining that
+recording. Each accepted take is immediately promoted into tracked corpus
+history, so `quit` at a prompt or `Ctrl-C` can pause safely and the next run
+continues with the remaining phrases. Adding a capability adds new phrase IDs;
+it does not require recording the existing commands again. Capture allows up to
+15 seconds and stops after two seconds of trailing silence, retaining that
 silence for corpus validation. On WSLg, the runtime detects
 `PULSE_SERVER` and explicitly uses the PulseAudio input and output devices;
 native Linux and Raspberry Pi hosts retain SoX's configured default devices.

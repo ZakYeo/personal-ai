@@ -167,7 +167,7 @@
 - `npm run test:e2e:openai:plans` - run the focused opt-in live OpenAI compound calendar-and-alarm plan smoke with `.env`.
 - `npm run test:e2e:openai:calendar-followup` - run the focused opt-in live OpenAI and Google Calendar result-follow-up smoke with `.env`.
 - `npm run test:e2e:openai:pi` - run the focused opt-in live OpenAI confirmed-alarm smoke through Raspberry Pi service composition without audio hardware.
-- `npm run benchmark:voice:capture -- --speaker primary` - interactively capture only missing core personal voice benchmark phrases through SoX, allow 15-second utterances, retain two seconds of trailing silence, and require consent before promotion; add `--all` for extended phrases.
+- `npm run benchmark:voice:capture -- --speaker primary` - interactively capture only missing core personal voice benchmark phrases through SoX, allow 15-second utterances, retain two seconds of trailing silence, checkpoint accepted takes for quit/`Ctrl-C` resumption, and require consent before recording; add `--all` for extended phrases.
 - `npm run benchmark:voice:verify-artifacts -- --manifest <path> --cache <dir> --architecture <x64|arm64>` - verify operator-supplied voice benchmark artifacts offline; it must never download, install, extract, import, or execute them.
 - `npm run build` - compile the production JavaScript output.
 - `npm start` - run the default desktop OpenAI voice service with `config/local-desktop-voice-openai.json`.
