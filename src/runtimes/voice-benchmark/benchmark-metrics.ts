@@ -1,9 +1,11 @@
+import type { VoiceBenchmarkPolicy } from "./benchmark-policy.js";
+
 type VoiceBenchmarkDevice = "desktop-wsl2" | "pi5";
 
 interface SharedPerformanceMeasurements {
   device: VoiceBenchmarkDevice;
   installBytes: number;
-  newThermalThrottling: boolean;
+  newThermalThrottling: boolean | "unavailable";
   offlineSucceeded: boolean;
   peakRssBytes: number;
   realTimeFactors: readonly number[];
@@ -41,8 +43,6 @@ interface CandidateSelectionResult {
   };
   piPassed: boolean;
 }
-
-const bytesPerGiB = 1024 ** 3;
 
 export function normalizeTranscript(transcript: string): string {
   return transcript
@@ -93,36 +93,35 @@ export function percentile(
 
 export function evaluateSttMeasurements(
   measurements: SttMeasurements,
+  policy: VoiceBenchmarkPolicy,
 ): BenchmarkGateResult {
   const failures: string[] = [];
-  const deviceThresholds =
-    measurements.device === "pi5"
-      ? { finalizationMs: 1_500, realTimeFactor: 0.75 }
-      : { finalizationMs: 750, realTimeFactor: 0.4 };
+  const devicePolicy = policy.devices[measurements.device];
 
   addFailure(
     failures,
-    measurements.commandMatches.length < 24 ||
+    measurements.commandMatches.length < policy.minimumPersonalSamples ||
       measurements.commandMatches.filter(Boolean).length /
         measurements.commandMatches.length <
-        0.95,
-    "Personal command corpus has fewer than 24 samples or exact-match accuracy is below 95%.",
+        policy.personalExactMatchRate,
+    `Personal command corpus has fewer than ${policy.minimumPersonalSamples} samples or exact-match accuracy is below ${policy.personalExactMatchRate * 100}%.`,
   );
   addFailure(
     failures,
-    mean(measurements.referenceWordErrorRates) > 0.12,
-    "Reference word error rate exceeds 12%.",
+    mean(measurements.referenceWordErrorRates) > policy.referenceWordErrorRate,
+    `Reference word error rate exceeds ${policy.referenceWordErrorRate * 100}%.`,
   );
   addFailure(
     failures,
     percentile(measurements.finalizationMs, 0.95) >
-      deviceThresholds.finalizationMs,
+      devicePolicy.sttFinalizationP95Ms,
     "Finalization latency exceeds the device threshold.",
   );
   addSharedPerformanceFailures(
     failures,
     measurements,
-    deviceThresholds.realTimeFactor,
+    devicePolicy.sttRealTimeFactorP95,
+    policy,
   );
 
   return { failures, passed: failures.length === 0 };
@@ -130,12 +129,10 @@ export function evaluateSttMeasurements(
 
 export function evaluateTtsMeasurements(
   measurements: TtsMeasurements,
+  policy: VoiceBenchmarkPolicy,
 ): BenchmarkGateResult {
   const failures: string[] = [];
-  const deviceThresholds =
-    measurements.device === "pi5"
-      ? { firstAudioMs: 750, realTimeFactor: 0.5 }
-      : { firstAudioMs: 400, realTimeFactor: 0.25 };
+  const devicePolicy = policy.devices[measurements.device];
 
   addFailure(
     failures,
@@ -144,23 +141,25 @@ export function evaluateTtsMeasurements(
   );
   addFailure(
     failures,
-    mean(measurements.intelligibilityRatings) < 4,
-    "Mean intelligibility is below 4/5.",
+    mean(measurements.intelligibilityRatings) < policy.ttsIntelligibilityMean,
+    `Mean intelligibility is below ${policy.ttsIntelligibilityMean}/5.`,
   );
   addFailure(
     failures,
-    mean(measurements.naturalnessRatings) < 3.5,
-    "Mean naturalness is below 3.5/5.",
+    mean(measurements.naturalnessRatings) < policy.ttsNaturalnessMean,
+    `Mean naturalness is below ${policy.ttsNaturalnessMean}/5.`,
   );
   addFailure(
     failures,
-    percentile(measurements.firstAudioMs, 0.95) > deviceThresholds.firstAudioMs,
+    percentile(measurements.firstAudioMs, 0.95) >
+      devicePolicy.ttsFirstAudioP95Ms,
     "First-audio latency exceeds the device threshold.",
   );
   addSharedPerformanceFailures(
     failures,
     measurements,
-    deviceThresholds.realTimeFactor,
+    devicePolicy.ttsRealTimeFactorP95,
+    policy,
   );
 
   return { failures, passed: failures.length === 0 };
@@ -190,6 +189,7 @@ function addSharedPerformanceFailures(
   failures: string[],
   measurements: SharedPerformanceMeasurements,
   realTimeFactorThreshold: number,
+  policy: VoiceBenchmarkPolicy,
 ): void {
   addFailure(
     failures,
@@ -198,27 +198,27 @@ function addSharedPerformanceFailures(
   );
   addFailure(
     failures,
-    measurements.peakRssBytes > 1.5 * bytesPerGiB,
+    measurements.peakRssBytes > policy.peakRssBytesMaximum,
     "Peak RSS exceeds 1.5 GiB.",
   );
   addFailure(
     failures,
-    measurements.installBytes > bytesPerGiB,
+    measurements.installBytes > policy.installBytesMaximum,
     "Installed runtime and model exceed 1 GiB.",
   );
   addFailure(
     failures,
-    measurements.startupMs > 5_000,
+    measurements.startupMs > policy.startupMaximumMs,
     "Startup exceeds five seconds.",
   );
   addFailure(
     failures,
-    measurements.shutdownMs > 2_000,
+    measurements.shutdownMs > policy.shutdownMaximumMs,
     "Shutdown exceeds two seconds.",
   );
   addFailure(
     failures,
-    measurements.newThermalThrottling,
+    measurements.newThermalThrottling === true,
     "The run introduced thermal throttling.",
   );
   addFailure(

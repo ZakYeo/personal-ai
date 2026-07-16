@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    {
+      "id": "calendar-time-v1",
+      "text": "Your appointment is at 11am this Friday the 17th.",
+      "expectedFacts": ["11am", "Friday the 17th"]
+    },
+    {
+      "id": "calendar-next-date-v1",
+      "text": "The next event is on Monday the 20th at 9:30am.",
+      "expectedFacts": ["Monday the 20th", "9:30am"]
+    },
+    {
+      "id": "calendar-all-day-v1",
+      "text": "The bank holiday on August the 31st is all day.",
+      "expectedFacts": ["August the 31st", "all day"]
+    },
+    {
+      "id": "alarm-once-v1",
+      "text": "Your tea alarm is set for 4:45pm today.",
+      "expectedFacts": ["tea", "4:45pm", "today"]
+    },
+    {
+      "id": "alarm-recurrence-v1",
+      "text": "Your medicine alarm repeats daily at 7am in Europe London.",
+      "expectedFacts": ["medicine", "daily", "7am", "Europe London"]
+    },
+    {
+      "id": "alarm-snooze-v1",
+      "text": "The exercise alarm is snoozed for fifteen minutes.",
+      "expectedFacts": ["exercise", "fifteen minutes"]
+    },
+    {
+      "id": "capability-count-v1",
+      "text": "I can help with twelve alarm and calendar actions.",
+      "expectedFacts": ["twelve", "alarm", "calendar"]
+    },
+    {
+      "id": "confirmation-v1",
+      "text": "Please confirm sending the message to Alex at 6pm.",
+      "expectedFacts": ["Alex", "6pm"]
+    }
+  ]
+}

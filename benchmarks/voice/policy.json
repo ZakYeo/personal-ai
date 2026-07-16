@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "minimumPersonalSamples": 22,
+  "personalExactMatchRate": 0.95,
+  "referenceWordErrorRate": 0.12,
+  "ttsIntelligibilityMean": 4,
+  "ttsNaturalnessMean": 3.5,
+  "peakRssBytesMaximum": 1610612736,
+  "installBytesMaximum": 1073741824,
+  "startupMaximumMs": 5000,
+  "shutdownMaximumMs": 2000,
+  "devices": {
+    "desktop-wsl2": {
+      "sttFinalizationP95Ms": 750,
+      "sttRealTimeFactorP95": 0.4,
+      "ttsFirstAudioP95Ms": 400,
+      "ttsRealTimeFactorP95": 0.25
+    },
+    "pi5": {
+      "sttFinalizationP95Ms": 1500,
+      "sttRealTimeFactorP95": 0.75,
+      "ttsFirstAudioP95Ms": 750,
+      "ttsRealTimeFactorP95": 0.5
+    }
+  }
+}
