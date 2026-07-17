@@ -4,6 +4,11 @@ import type {
   AggregatedCandidate,
 } from "./benchmark-aggregate.js";
 import { percentile } from "./benchmark-metrics.js";
+import {
+  requireArray,
+  requireNonEmptyString as requireString,
+  requireRecord,
+} from "./structural-parsing.js";
 
 interface CandidateSummary {
   candidateId: string;
@@ -138,21 +143,4 @@ function mean(values: number[]): number {
 
 function percent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
-}
-
-function requireArray(value: unknown, label: string): unknown[] {
-  if (!Array.isArray(value)) throw new Error(`${label} must be an array.`);
-  return value;
-}
-
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value))
-    throw new Error(`${label} must be an object.`);
-  return value as Record<string, unknown>;
-}
-
-function requireString(value: unknown, label: string): string {
-  if (typeof value !== "string" || value === "")
-    throw new Error(`${label} must be a string.`);
-  return value;
 }

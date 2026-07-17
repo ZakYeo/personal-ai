@@ -1,3 +1,9 @@
+import {
+  requireNonEmptyString as requireString,
+  requireRecord,
+  requireStableId,
+} from "./structural-parsing.js";
+
 interface TtsCorpusFixture {
   expectedFacts: readonly string[];
   id: string;
@@ -54,26 +60,4 @@ export function parseTtsCorpus(input: unknown): TtsCorpus {
     });
   });
   return Object.freeze({ fixtures: Object.freeze(fixtures), schemaVersion: 1 });
-}
-
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error(`${label} must be an object.`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function requireString(value: unknown, label: string): string {
-  if (typeof value !== "string" || value.trim() === "") {
-    throw new Error(`${label} must be a nonempty string.`);
-  }
-  return value;
-}
-
-function requireStableId(value: unknown, label: string): string {
-  const id = requireString(value, label);
-  if (!/^[a-z\d]+(?:[._-][a-z\d]+)*$/u.test(id)) {
-    throw new Error(`${label} must be a stable lowercase identifier.`);
-  }
-  return id;
 }

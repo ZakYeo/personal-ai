@@ -6,6 +6,11 @@ import type {
   SttExecutionTelemetry,
   TtsExecutionTelemetry,
 } from "./benchmark-runner.js";
+import {
+  requireRecord,
+  requireSha256Digest,
+  requireString,
+} from "./structural-parsing.js";
 
 interface CandidateProcessProfile<TTelemetry> {
   args: string[];
@@ -76,7 +81,7 @@ function parseDriverJson(value: string): unknown {
 }
 
 function parseSttTelemetry(value: unknown): SttExecutionTelemetry {
-  const record = requireRecord(value);
+  const record = requireRecord(value, "Candidate driver output");
   return {
     cpuMs: requireNonnegativeNumber(record, "cpuMs"),
     finalizationMs: requireNonnegativeNumber(record, "finalizationMs"),
@@ -84,18 +89,19 @@ function parseSttTelemetry(value: unknown): SttExecutionTelemetry {
     realTimeFactor: requireNonnegativeNumber(record, "realTimeFactor"),
     shutdownMs: requireNullableNonnegativeNumber(record, "shutdownMs"),
     startupMs: requireNullableNonnegativeNumber(record, "startupMs"),
-    transcript: requireString(record, "transcript"),
+    transcript: requireString(
+      record.transcript,
+      "Candidate driver field transcript",
+    ),
   };
 }
 
 function parseTtsTelemetry(value: unknown): TtsExecutionTelemetry {
-  const record = requireRecord(value);
-  const audioSha256 = requireString(record, "audioSha256");
-  if (!/^[a-f\d]{64}$/u.test(audioSha256)) {
-    throw new Error(
-      "Candidate driver field audioSha256 must be a SHA-256 hex digest.",
-    );
-  }
+  const record = requireRecord(value, "Candidate driver output");
+  const audioSha256 = requireSha256Digest(
+    record.audioSha256,
+    "Candidate driver field audioSha256",
+  );
 
   return {
     audioDurationMs: requireNonnegativeNumber(record, "audioDurationMs"),
@@ -107,13 +113,6 @@ function parseTtsTelemetry(value: unknown): TtsExecutionTelemetry {
     shutdownMs: requireNullableNonnegativeNumber(record, "shutdownMs"),
     startupMs: requireNullableNonnegativeNumber(record, "startupMs"),
   };
-}
-
-function requireRecord(value: unknown): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("Candidate driver output must be a JSON object.");
-  }
-  return value as Record<string, unknown>;
 }
 
 function requireNonnegativeNumber(
@@ -136,12 +135,4 @@ function requireNullableNonnegativeNumber(
   return record[field] === null
     ? null
     : requireNonnegativeNumber(record, field);
-}
-
-function requireString(record: Record<string, unknown>, field: string): string {
-  const value = record[field];
-  if (typeof value !== "string") {
-    throw new Error(`Candidate driver field ${field} must be a string.`);
-  }
-  return value;
 }

@@ -1,3 +1,9 @@
+import {
+  requireNonEmptyString as requireString,
+  requireRecord,
+  requireSha256Digest as requireDigest,
+} from "./structural-parsing.js";
+
 export interface AggregatedCandidate {
   candidateId: string;
   kind: "stt" | "tts";
@@ -263,25 +269,6 @@ function validateRepetition(
   if (!/^[a-f\d]{64}$/u.test(digest)) {
     throw new Error("repetition.audioSha256 must be a SHA-256 digest.");
   }
-}
-
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value))
-    throw new Error(`${label} must be an object.`);
-  return value as Record<string, unknown>;
-}
-
-function requireString(value: unknown, label: string): string {
-  if (typeof value !== "string" || value === "")
-    throw new Error(`${label} must be a nonempty string.`);
-  return value;
-}
-
-function requireDigest(value: unknown, label: string): string {
-  const digest = requireString(value, label);
-  if (!/^[a-f\d]{64}$/u.test(digest))
-    throw new Error(`${label} must be a SHA-256 digest.`);
-  return digest;
 }
 
 function requireNonnegativeNumber(value: unknown, label: string): number {

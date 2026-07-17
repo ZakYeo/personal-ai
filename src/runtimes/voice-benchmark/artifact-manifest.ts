@@ -1,4 +1,9 @@
 import { join } from "node:path";
+import {
+  requireNonEmptyString as requireString,
+  requirePositiveInteger,
+  requireRecord,
+} from "./structural-parsing.js";
 
 export type ArtifactArchitecture = "arm64" | "x64";
 type ArtifactKind = "corpus" | "dependency" | "engine" | "model";
@@ -252,31 +257,10 @@ function parseArchitectures(
   return Object.freeze(architectures);
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error(`${label} must be an object.`);
-  }
-  return value as Record<string, unknown>;
-}
-
 function requireSafeName(value: unknown, label: string): string {
   const name = requireString(value, label);
   if (!/^[a-zA-Z\d][a-zA-Z\d._-]*$/u.test(name)) {
     throw new Error(`${label} must be a safe single path component.`);
   }
   return name;
-}
-
-function requireString(value: unknown, label: string): string {
-  if (typeof value !== "string" || value.length === 0) {
-    throw new Error(`${label} must be a nonempty string.`);
-  }
-  return value;
-}
-
-function requirePositiveInteger(value: unknown, label: string): number {
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) {
-    throw new Error(`${label} must be a positive safe integer.`);
-  }
-  return value;
 }

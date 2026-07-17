@@ -1,3 +1,5 @@
+import { requirePositiveInteger, requireRecord } from "./structural-parsing.js";
+
 export interface VoiceBenchmarkPolicy {
   devices: Readonly<
     Record<
@@ -123,13 +125,6 @@ export function parseVoiceBenchmarkPolicy(
   });
 }
 
-function requireRecord(value: unknown, label: string): Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error(`${label} must be an object.`);
-  }
-  return value as Record<string, unknown>;
-}
-
 function rejectUnknownFields(
   record: Record<string, unknown>,
   allowed: ReadonlySet<string>,
@@ -139,13 +134,6 @@ function rejectUnknownFields(
   if (unknown) {
     throw new Error(`${label} contains unknown field ${unknown}.`);
   }
-}
-
-function requirePositiveInteger(value: unknown, label: string): number {
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) {
-    throw new Error(`${label} must be a positive integer.`);
-  }
-  return value;
 }
 
 function requirePositiveNumber(value: unknown, label: string): number {

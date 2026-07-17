@@ -1,3 +1,11 @@
+import {
+  requireArray,
+  requireNonEmptyString,
+  requirePositiveInteger,
+  requireRecord,
+  requireStableId,
+} from "./structural-parsing.js";
+
 export interface CorpusPhrase {
   active: boolean;
   capabilities: string[];
@@ -220,51 +228,15 @@ function parseRecording(input: unknown, index: number): AcceptedRecording {
   };
 }
 
-function requireRecord(input: unknown, label: string): Record<string, unknown> {
-  if (typeof input !== "object" || input === null || Array.isArray(input)) {
-    throw new Error(`${label} must be an object.`);
-  }
-  return input as Record<string, unknown>;
-}
-
-function requireArray(input: unknown, label: string): unknown[] {
-  if (!Array.isArray(input)) {
-    throw new Error(`${label} must be an array.`);
-  }
-  return input;
-}
-
 function requireSchemaVersion(input: unknown): asserts input is 1 {
   if (input !== 1) {
     throw new Error("Voice benchmark schemaVersion must be 1.");
   }
 }
 
-function requireNonEmptyString(input: unknown, label: string): string {
-  if (typeof input !== "string" || input.trim() === "") {
-    throw new Error(`${label} must be a non-empty string.`);
-  }
-  return input;
-}
-
-function requireStableId(input: unknown, label: string): string {
-  const value = requireNonEmptyString(input, label);
-  if (!/^[a-z\d]+(?:[._-][a-z\d]+)*$/u.test(value)) {
-    throw new Error(`${label} must be a stable lowercase identifier.`);
-  }
-  return value;
-}
-
 function requireBoolean(input: unknown, label: string): boolean {
   if (typeof input !== "boolean") {
     throw new Error(`${label} must be a boolean.`);
-  }
-  return input;
-}
-
-function requirePositiveInteger(input: unknown, label: string): number {
-  if (!Number.isInteger(input) || typeof input !== "number" || input <= 0) {
-    throw new Error(`${label} must be a positive integer.`);
   }
   return input;
 }
