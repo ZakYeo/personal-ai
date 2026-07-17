@@ -3,6 +3,7 @@ import {
   requireNonEmptyString,
   requirePositiveInteger,
   requireRecord,
+  requireSha256Digest,
   requireStableId,
 } from "./structural-parsing.js";
 
@@ -183,15 +184,10 @@ function parseRecording(input: unknown, index: number): AcceptedRecording {
       `recordings[${index}].filePath must be repository-relative.`,
     );
   }
-  const sha256 = requireNonEmptyString(
+  const sha256 = requireSha256Digest(
     record.sha256,
     `recordings[${index}].sha256`,
   );
-  if (!/^[a-f\d]{64}$/u.test(sha256)) {
-    throw new Error(
-      `recordings[${index}].sha256 must be 64 lowercase hex characters.`,
-    );
-  }
 
   return {
     bitsPerSample: requireLiteral(

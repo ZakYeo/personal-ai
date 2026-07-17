@@ -35,5 +35,17 @@ describe("desktop benchmark options", () => {
         "../result.json",
       ]),
     ).toThrow(/count/iu);
+    expect(() =>
+      parseDesktopBenchmarkOptions([
+        "--candidate",
+        "Whisper Base",
+        "--start",
+        "0",
+        "--count",
+        "1",
+        "--output",
+        "result.json",
+      ]),
+    ).toThrow(/stable lowercase identifier/iu);
   });
 });

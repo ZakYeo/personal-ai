@@ -3,6 +3,7 @@ import {
   requireNonEmptyString as requireString,
   requirePositiveInteger,
   requireRecord,
+  requireSha256Digest,
 } from "./structural-parsing.js";
 
 export type ArtifactArchitecture = "arm64" | "x64";
@@ -206,10 +207,7 @@ function parseArtifact(value: unknown, index: number): VoiceArtifact {
     );
   }
 
-  const sha256 = requireString(record.sha256, `${label}.sha256`);
-  if (!/^[a-f\d]{64}$/u.test(sha256)) {
-    throw new Error(`${label}.sha256 must be 64 lowercase hex characters.`);
-  }
+  const sha256 = requireSha256Digest(record.sha256, `${label}.sha256`);
   const architectures = parseArchitectures(record.architectures, label);
   const releasedAt = requireString(record.releasedAt, `${label}.releasedAt`);
   const releasedDate = new Date(releasedAt);
