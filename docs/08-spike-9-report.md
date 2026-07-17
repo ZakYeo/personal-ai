@@ -11,10 +11,11 @@ more day-to-day value to every existing feature than another provider adapter
 would, and the current capability catalog, validation, confirmation, and
 diagnostic-aware outcome boundaries provide most of the required foundations.
 
-Calendar result follow-ups were implemented next as Milestone 11. Local STT and
-TTS should follow a device benchmark rather than a speculative adapter choice.
-Real messaging and a local intent provider remain worthwhile, but each needs a
-bounded proof before production implementation.
+Calendar result follow-ups were implemented next as Milestone 11. Spike 12 then
+recorded an explicit local-voice no-go. Milestone 12.1 now adds bounded read-tool
+chaining so later commands may use validated safe results without introducing
+an unbounded agent loop. Real messaging and a local intent provider remain
+worthwhile, but each needs a bounded proof before production implementation.
 
 ## Candidate Comparison
 
@@ -157,13 +158,14 @@ same application validation as every other intent adapter.
 1. Milestone 10: Compound Command Plans.
 2. Milestone 11: Calendar Result Follow-Ups.
 3. Spike 12: Local Voice Device Benchmark.
-4. Milestone 13: First-Class Local STT.
-5. Milestone 14: First-Class Local TTS.
-6. Spike 15: Messaging Target and Encryption Proof.
-7. Milestone 16: Real Messaging Read and Draft.
-8. Milestone 17: Confirmed Messaging Send.
-9. Spike 18: Local Intent Accuracy Benchmark.
-10. Milestone 19: Local Structured Intent Provider.
+4. Milestone 12.1: Bounded Tool-Chain Workflows.
+5. Milestone 13: First-Class Local STT.
+6. Milestone 14: First-Class Local TTS.
+7. Spike 15: Messaging Target and Encryption Proof.
+8. Milestone 16: Real Messaging Read and Draft.
+9. Milestone 17: Confirmed Messaging Send.
+10. Spike 18: Local Intent Accuracy Benchmark.
+11. Milestone 19: Local Structured Intent Provider.
 
 ## Evidence
 
