@@ -20,15 +20,21 @@ export function createResultReferenceSession(): ResultReferenceSession {
   let entries: readonly Entry[] = [];
   let subsequentTurns = 0;
   let focusedReference: string | undefined;
+  let retainedSinceLastCompletion = false;
 
   return {
     clear() {
       entries = [];
       subsequentTurns = 0;
       focusedReference = undefined;
+      retainedSinceLastCompletion = false;
     },
     completeTurn() {
       if (entries.length === 0) return;
+      if (retainedSinceLastCompletion) {
+        retainedSinceLastCompletion = false;
+        return;
+      }
       subsequentTurns += 1;
       if (subsequentTurns >= 3) {
         entries = [];
@@ -88,6 +94,7 @@ export function createResultReferenceSession(): ResultReferenceSession {
       }));
       subsequentTurns = 0;
       focusedReference = undefined;
+      retainedSinceLastCompletion = true;
     },
   };
 }

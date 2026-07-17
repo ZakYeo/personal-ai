@@ -41,6 +41,7 @@ describe("result reference session", () => {
     });
     session.completeTurn();
     session.completeTurn();
+    session.completeTurn();
     expect(session.publicReferences()).toHaveLength(1);
     session.completeTurn();
     expect(session.publicReferences()).toEqual([]);

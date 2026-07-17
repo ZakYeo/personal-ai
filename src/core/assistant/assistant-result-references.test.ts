@@ -8,6 +8,7 @@ import {
   createConversationCompactor,
   createFeature,
   createFixedClock,
+  createRawFeature,
 } from "../../test-support/core-assistant.js";
 
 describe("assistant result references", () => {
@@ -74,6 +75,76 @@ describe("assistant result references", () => {
     expect(contexts[1]?.resultReferences?.[0]?.reference).toBe(
       "calendar-event-1",
     );
+  });
+
+  it("does not age references retained while resuming a clarification", async () => {
+    const contexts: AssistantContext[] = [];
+    const feature = createRawFeature({
+      capabilities: [
+        { name: "calendar.search", risk: "low", toolChain: "read" },
+      ],
+      id: "calendar",
+      execute: () =>
+        Promise.resolve({
+          resultReferences: {
+            items: [
+              {
+                facts: { date: "2026-07-17", time: "11:00", title: "Dentist" },
+                target: {
+                  kind: "calendar_event" as const,
+                  providerEventId: "provider-secret-id",
+                },
+              },
+            ],
+            kind: "calendar_events" as const,
+          },
+          text: "One event.",
+        }),
+    });
+    const initialSteps = [
+      {
+        kind: "clarification" as const,
+        response: { status: "ok" as const, text: "Which calendar?" },
+      },
+      {
+        call: {
+          command: createCommand("calendar.search", {}, "show events"),
+          id: "read-1",
+        },
+        kind: "tool_call" as const,
+      },
+      unknownInterpretation,
+    ];
+    let starts = 0;
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([feature]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({ calendar: { enabled: true } }),
+      intentInterpreter: {
+        start: (_text, context) => {
+          contexts.push(context);
+          starts++;
+          return {
+            next: () =>
+              Promise.resolve(
+                starts === 1 ? initialSteps.shift()! : unknownInterpretation,
+              ),
+          };
+        },
+      },
+    });
+
+    await assistant.handleText("show events");
+    await assistant.handleText("work calendar");
+    await assistant.handleText("subsequent one");
+    await assistant.handleText("subsequent two");
+    await assistant.handleText("subsequent three");
+    await assistant.handleText("expired");
+
+    expect(
+      contexts.slice(1, 4).map((context) => context.resultReferences?.length),
+    ).toEqual([1, 1, 1]);
+    expect(contexts[4]?.resultReferences).toBeUndefined();
   });
 
   it("clears references immediately when conversation compacts", async () => {

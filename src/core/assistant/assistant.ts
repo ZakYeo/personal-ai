@@ -46,7 +46,6 @@ export function createAssistant(
   async function handleTextWithDiagnostics(
     text: string,
   ): Promise<AssistantOutcome> {
-    let retainedReferences = false;
     return interaction.run(
       text,
       () =>
@@ -56,19 +55,11 @@ export function createAssistant(
             conversation,
             interaction,
             resultReferences,
-            onReferencesRetained: () => {
-              retainedReferences = true;
-            },
           },
           text,
         }).run(),
-      (plan) =>
-        executeValidatedPlan(plan, dependencies, resultReferences, () => {
-          retainedReferences = true;
-        }),
-      () => {
-        if (!retainedReferences) resultReferences.completeTurn();
-      },
+      (plan) => executeValidatedPlan(plan, dependencies, resultReferences),
+      () => resultReferences.completeTurn(),
     );
   }
 

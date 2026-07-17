@@ -40,7 +40,6 @@ interface CommandExecutionInput {
   executionContext: FeatureExecutionContext;
   feature: FeaturePlugin;
   normalizedText: string;
-  onReferencesRetained: () => void;
   resultReferences: ResultReferenceSession;
 }
 
@@ -48,7 +47,6 @@ export function executeValidatedPlan(
   plan: ValidatedAssistantPlan,
   dependencies: CommandExecutionDependencies,
   resultReferences: ResultReferenceSession,
-  onReferencesRetained: () => void,
 ): Promise<AssistantOutcome> {
   const context: AssistantContext = {
     clock: planRequiresConfirmation(plan)
@@ -76,7 +74,6 @@ export function executeValidatedPlan(
       ),
       feature: step.route.feature,
       normalizedText: plan.originalText,
-      onReferencesRetained,
       resultReferences,
     }),
   );
@@ -86,7 +83,6 @@ export function executeWorkflowRead(input: {
   context: AssistantContext;
   dependencies: CommandExecutionDependencies;
   normalizedText: string;
-  onReferencesRetained: () => void;
   resultReferences: ResultReferenceSession;
   step: Parameters<typeof executeAssistantPlan>[0]["steps"][number];
 }): Promise<CommandExecutionOutcome> {
@@ -107,7 +103,6 @@ export function executeWorkflowRead(input: {
     ),
     feature: input.step.route.feature,
     normalizedText: input.normalizedText,
-    onReferencesRetained: input.onReferencesRetained,
     resultReferences: input.resultReferences,
   });
 }
@@ -182,7 +177,6 @@ async function executeFeatureCommand(
     };
     if (result.resultReferences) {
       input.resultReferences.retain(result.resultReferences);
-      input.onReferencesRetained();
     }
     return {
       ...(result.data ? { data: Object.freeze({ ...result.data }) } : {}),

@@ -41,24 +41,9 @@ interface IntentWorkflowDependencies {
   conversation: ConversationSession | undefined;
   interaction: InteractionSession;
   intentInterpreter: IntentInterpreterPort;
-  onReferencesRetained: () => void;
   responseRewriter?: ResponseRewriterPort;
   resultReferences: ResultReferenceSession;
 }
-
-interface WorkflowAccumulator {
-  readonly toolChain: ReturnType<typeof createToolChainState>;
-}
-
-type WorkflowState =
-  | {
-      accumulator: WorkflowAccumulator;
-      clarificationUsed: boolean;
-      kind: "interpreting";
-    }
-  | { accumulator: WorkflowAccumulator; kind: "awaiting_clarification" }
-  | { accumulator: WorkflowAccumulator; kind: "awaiting_confirmation" }
-  | { accumulator: WorkflowAccumulator; kind: "completed" };
 
 export function createIntentWorkflow(input: {
   dependencies: IntentWorkflowDependencies;
@@ -67,17 +52,14 @@ export function createIntentWorkflow(input: {
   const normalizedText = input.text.trim();
   const context = createContext(input.dependencies);
   let session: IntentInterpreterSession | undefined;
-  let state: WorkflowState = {
-    accumulator: { toolChain: createToolChainState() },
-    clarificationUsed: false,
-    kind: "interpreting",
-  };
+  const toolChain = createToolChainState();
+  let clarificationUsed = false;
 
   return { run };
 
   async function run(): Promise<AssistantOutcome> {
     if (normalizedText.length === 0) {
-      return complete({
+      return decorate({
         response: {
           status: "unknown",
           text: "I need a command to help with.",
@@ -92,20 +74,13 @@ export function createIntentWorkflow(input: {
       );
       return handleInterpretation(await session.next());
     } catch (error) {
-      return complete(unexpectedOutcome(error));
+      return decorate(unexpectedOutcome(error));
     }
   }
 
   async function handleInterpretation(
     current: IntentInterpretation,
   ): Promise<AssistantOutcome> {
-    state = {
-      accumulator: state.accumulator,
-      clarificationUsed:
-        state.kind === "interpreting" && state.clarificationUsed,
-      kind: "interpreting",
-    };
-
     if (current.kind === "tool_call") {
       try {
         const resolved = await resolveToolCalls({
@@ -114,7 +89,6 @@ export function createIntentWorkflow(input: {
               context,
               dependencies: input.dependencies,
               normalizedText,
-              onReferencesRetained: input.dependencies.onReferencesRetained,
               resultReferences: input.dependencies.resultReferences,
               step,
             }),
@@ -122,14 +96,14 @@ export function createIntentWorkflow(input: {
           publicReferences: () =>
             input.dependencies.resultReferences.publicReferences(),
           session: requireSession(),
-          state: state.accumulator.toolChain,
+          state: toolChain,
           validateRead,
         });
         return resolved.kind === "outcome"
-          ? complete(resolved.outcome)
+          ? decorate(resolved.outcome)
           : handleInterpretation(resolved.interpretation);
       } catch (error) {
-        return complete(unexpectedOutcome(error));
+        return decorate(unexpectedOutcome(error));
       }
     }
 
@@ -137,10 +111,10 @@ export function createIntentWorkflow(input: {
       return requestClarification(current.response);
     }
     if (current.kind === "unknown" || current.kind === "unsupported") {
-      return complete({ response: current.response });
+      return decorate({ response: current.response });
     }
     if (current.kind === "conversation") {
-      return complete(await handleConversation());
+      return decorate(await handleConversation());
     }
 
     const commands =
@@ -156,25 +130,20 @@ export function createIntentWorkflow(input: {
     if (!validation.ok) {
       return "clarification" in validation
         ? requestClarification(validation.clarification)
-        : complete(outcomeFromError(validation.error));
+        : decorate(outcomeFromError(validation.error));
     }
     if (planRequiresConfirmation(validation.plan)) {
-      state = {
-        accumulator: state.accumulator,
-        kind: "awaiting_confirmation",
-      };
       return input.dependencies.interaction.requestConfirmation(
         validation.plan,
         decorate(createPlanConfirmationPrompt(validation.plan)),
-        complete,
+        decorate,
       );
     }
-    return complete(
+    return decorate(
       await executeValidatedPlan(
         validation.plan,
         input.dependencies,
         input.dependencies.resultReferences,
-        input.dependencies.onReferencesRetained,
       ),
     );
   }
@@ -220,34 +189,24 @@ export function createIntentWorkflow(input: {
   function requestClarification(
     response: AssistantOutcome["response"],
   ): AssistantOutcome {
-    const clarificationUsed =
-      state.kind === "interpreting" && state.clarificationUsed;
     if (clarificationUsed) {
-      return complete(
+      return decorate(
         rejectToolChain(
           "intent.clarification",
           "A tool chain may ask at most one resumable clarification.",
         ).outcome,
       );
     }
-    state = {
-      accumulator: state.accumulator,
-      kind: "awaiting_clarification",
-    };
+    clarificationUsed = true;
     return input.dependencies.interaction.requestClarification(
       decorate({ response: { ...response, expectsFollowUp: true } }),
       async (reply) => {
-        state = {
-          accumulator: state.accumulator,
-          clarificationUsed: true,
-          kind: "interpreting",
-        };
         try {
           return handleInterpretation(
             await requireSession().next({ kind: "user_reply", text: reply }),
           );
         } catch (error) {
-          return complete(unexpectedOutcome(error));
+          return decorate(unexpectedOutcome(error));
         }
       },
     );
@@ -297,26 +256,15 @@ export function createIntentWorkflow(input: {
   }
 
   function decorate(outcome: AssistantOutcome): AssistantOutcome {
-    const withTrace = withToolChainOutcome(
-      outcome,
-      state.accumulator.toolChain,
-    );
+    const withTrace = withToolChainOutcome(outcome, toolChain);
     const diagnostics = [
       ...(withTrace.diagnostics ?? []),
-      ...state.accumulator.toolChain.calls.flatMap(
-        (call) => call.diagnostics ?? [],
-      ),
+      ...toolChain.calls.flatMap((call) => call.diagnostics ?? []),
     ];
     const uniqueDiagnostics = [...new Set(diagnostics)];
     return uniqueDiagnostics.length === 0
       ? withTrace
       : { ...withTrace, diagnostics: uniqueDiagnostics };
-  }
-
-  function complete(outcome: AssistantOutcome): AssistantOutcome {
-    const completed = decorate(outcome);
-    state = { accumulator: state.accumulator, kind: "completed" };
-    return completed;
   }
 }
 
