@@ -14,6 +14,13 @@ export const alarmCreateParameters = {
 export const alarmListParameters =
   {} as const satisfies FeatureCapabilityParameters;
 
+export const alarmCalendarReminderParameters = {
+  label: { type: "string" },
+  localTime: { type: "string" },
+  minutesBefore: { type: "number", required: true, positive: true },
+  reference: { type: "string", required: true },
+} as const satisfies FeatureCapabilityParameters;
+
 export const alarmTargetParameters = {
   id: { type: "string" },
   label: { type: "string" },
@@ -31,6 +38,9 @@ export const alarmEditParameters = {
 
 export type AlarmCreateArgs = FeatureArgsFromParameters<
   typeof alarmCreateParameters
+>;
+export type AlarmCalendarReminderArgs = FeatureArgsFromParameters<
+  typeof alarmCalendarReminderParameters
 >;
 export type AlarmTargetArgs = FeatureArgsFromParameters<
   typeof alarmTargetParameters

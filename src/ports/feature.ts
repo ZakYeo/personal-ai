@@ -9,11 +9,7 @@ import type {
   FeatureCapability,
   FeatureCapabilityParameter,
 } from "./capability-catalog.js";
-import type {
-  FeatureResultReferenceSet,
-  ResolvedResultReference,
-  ResultReferenceSelectionRequest,
-} from "./result-reference.js";
+import type { FeatureResultReferenceSet } from "./result-reference.js";
 
 export type { ConfirmationDeclaration } from "./assistant.js";
 export type {
@@ -24,10 +20,6 @@ export type {
 export interface FeatureExecutionContext extends AssistantContext {
   capabilityCatalog: CapabilityCatalog;
   validatedConfirmationFacts?: Readonly<AssistantCommandParameters>;
-  trustedInputText?: string;
-  selectResultReference?(
-    request: ResultReferenceSelectionRequest,
-  ): ResolvedResultReference | undefined;
 }
 
 export type FeatureCapabilityParameters = Record<

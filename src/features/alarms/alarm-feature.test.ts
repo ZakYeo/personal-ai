@@ -28,6 +28,17 @@ describe("createAlarmFeature", () => {
       },
     });
     expectCapabilityMetadata(feature, {
+      name: "alarm.create_from_calendar_event",
+      risk: "high",
+      requiresConfirmation: true,
+      parameters: {
+        label: { type: "string" },
+        localTime: { type: "string" },
+        minutesBefore: { type: "number", required: true, positive: true },
+        reference: { type: "string", required: true },
+      },
+    });
+    expectCapabilityMetadata(feature, {
       name: "alarm.snooze",
       risk: "low",
       parameters: {
@@ -92,6 +103,147 @@ describe("createAlarmFeature", () => {
         }),
       ]),
     );
+  });
+
+  it("freezes a timed calendar reminder in exact confirmation facts", () => {
+    const feature = createAlarmFeature(createTestAlarmStore());
+    const capability = feature.capabilities.find(
+      ({ name }) => name === "alarm.create_from_calendar_event",
+    );
+    const calendarContext = {
+      ...context,
+      selectResultReference: vi.fn(() => ({
+        publicReference: {
+          facts: {
+            date: "2026-07-17",
+            startAt: "2026-07-17T10:00:00.000Z",
+            time: "11:00",
+            title: "Dentist",
+          },
+          kind: "calendar_event" as const,
+          ordinal: 2,
+          reference: "calendar-event-2",
+        },
+        target: {
+          kind: "calendar_event" as const,
+          providerEventId: "provider-secret-id",
+        },
+      })),
+      trustedInputText: "remind me before the second event",
+    };
+
+    expect(
+      capability?.renderConfirmation?.(
+        { minutesBefore: 10, reference: "calendar-event-2" },
+        calendarContext,
+      ),
+    ).toEqual({
+      facts: {
+        eventStartAt: "2026-07-17T10:00:00.000Z",
+        eventTitle: "Dentist",
+        label: "Dentist reminder",
+        minutesBefore: 10,
+        scheduledFor: "2026-07-17T09:50:00.000Z",
+        snapshot: true,
+        timeZone: "Europe/London",
+      },
+      text: "set the Dentist reminder alarm for 2026-07-17T09:50:00.000Z, 10 minutes before Dentist",
+    });
+    expect(calendarContext.selectResultReference).toHaveBeenCalledWith({
+      rawText: "remind me before the second event",
+      reference: "calendar-event-2",
+    });
+    expect(
+      JSON.stringify(
+        capability?.renderConfirmation?.(
+          { minutesBefore: 10, reference: "calendar-event-2" },
+          calendarContext,
+        ),
+      ),
+    ).not.toContain("provider-secret-id");
+  });
+
+  it("resolves an all-day reminder time in the assistant timezone", () => {
+    const capability = createAlarmFeature(
+      createTestAlarmStore(),
+    ).capabilities.find(
+      ({ name }) => name === "alarm.create_from_calendar_event",
+    );
+    const calendarContext = {
+      ...context,
+      selectResultReference: () => ({
+        publicReference: {
+          facts: {
+            date: "2026-07-17",
+            time: "all day",
+            title: "Birthday",
+          },
+          kind: "calendar_event" as const,
+          ordinal: 1,
+          reference: "calendar-event-1",
+        },
+        target: {
+          kind: "calendar_event" as const,
+          providerEventId: "private-birthday-id",
+        },
+      }),
+    };
+
+    expect(
+      capability?.renderConfirmation?.(
+        {
+          localTime: "10:00",
+          minutesBefore: 10,
+          reference: "calendar-event-1",
+        },
+        calendarContext,
+      ),
+    ).toMatchObject({
+      facts: {
+        eventStartAt: "2026-07-17T09:00:00.000Z",
+        scheduledFor: "2026-07-17T08:50:00.000Z",
+        timeZone: "Europe/London",
+      },
+    });
+  });
+
+  it("persists the exact confirmed calendar reminder snapshot", async () => {
+    const store = createTestAlarmStore();
+    await expectDecodedFeatureExecution(
+      createAlarmFeature(store),
+      "alarm.create_from_calendar_event",
+      { minutesBefore: 10, reference: "calendar-event-2" },
+      {
+        data: {
+          calendarEventTitle: "Dentist",
+          id: "alarm-1",
+          label: "Dentist reminder",
+          minutesBefore: 10,
+          scheduledFor: "2026-07-17T09:50:00.000Z",
+          snapshot: true,
+          timeZone: "Europe/London",
+        },
+        text: "Alarm set for 2026-07-17T09:50:00.000Z (Dentist reminder), using the confirmed Dentist calendar snapshot.",
+      },
+      {
+        ...context,
+        validatedConfirmationFacts: {
+          eventStartAt: "2026-07-17T10:00:00.000Z",
+          eventTitle: "Dentist",
+          label: "Dentist reminder",
+          minutesBefore: 10,
+          scheduledFor: "2026-07-17T09:50:00.000Z",
+          snapshot: true,
+          timeZone: "Europe/London",
+        },
+      },
+    );
+    await expect(store.list()).resolves.toEqual([
+      expect.objectContaining({
+        label: "Dentist reminder",
+        scheduledFor: "2026-07-17T09:50:00.000Z",
+      }),
+    ]);
   });
 
   it("handles alarm create and list commands", () => {

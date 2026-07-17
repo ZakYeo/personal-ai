@@ -142,6 +142,16 @@
       "active": true
     },
     {
+      "id": "calendar-reminder-v1",
+      "text": "Remind me ten minutes before the second calendar event",
+      "capabilities": [
+        "calendar.search_events",
+        "alarm.create_from_calendar_event"
+      ],
+      "captureTier": "core",
+      "active": true
+    },
+    {
       "id": "confirmation-yes-v1",
       "text": "Yes confirm that",
       "capabilities": ["alarm.create"],

@@ -71,7 +71,7 @@ describe("createCapabilityInfoFeature", () => {
       "assistant.capabilities.list",
       {},
       {
-        text: "I can manage local alarms. I will ask before high-risk actions.",
+        text: "I can manage local alarms and set reminders from calendar events. I will ask before high-risk actions.",
       },
       context,
     );

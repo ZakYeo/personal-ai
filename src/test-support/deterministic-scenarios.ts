@@ -55,7 +55,7 @@ export const deterministicScenarios = {
     text: "Hey Jarvis, what are your capable functionalities?",
     response: {
       status: "ok",
-      text: "I can ask about recent calendar results, check your calendar, draft message replies, and manage local alarms. I will ask before high-risk actions.",
+      text: "I can ask about recent calendar results, check your calendar, draft message replies, manage local alarms, and set reminders from calendar events. I will ask before high-risk actions.",
     },
   },
   unknown: {

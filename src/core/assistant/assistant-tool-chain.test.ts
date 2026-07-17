@@ -9,6 +9,8 @@ import {
   createFixedClock,
   createRawFeature,
 } from "../../test-support/core-assistant.js";
+import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
+import { createTestAlarmStore } from "../../test-support/alarm-store.js";
 
 describe("assistant bounded tool chains", () => {
   it("executes an eligible read and returns only its safe observation to the session", async () => {
@@ -277,12 +279,202 @@ describe("assistant bounded tool chains", () => {
     expect(starts).toBe(1);
     expect(continuations).toEqual([{ kind: "user_reply", text: "ten am" }]);
   });
+
+  it("binds a selected calendar event to one frozen confirmed alarm", async () => {
+    const store = createTestAlarmStore();
+    const steps: IntentInterpretation[] = [
+      {
+        call: {
+          command: command("calendar.search_events", {}),
+          id: "calendar-read",
+        },
+        kind: "tool_call",
+      },
+      {
+        command: command("alarm.create_from_calendar_event", {
+          minutesBefore: 10,
+          reference: "calendar-event-2",
+        }),
+        kind: "command",
+      },
+    ];
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([
+        createCalendarResultFeature(),
+        createAlarmFeature(store),
+      ]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({
+        alarms: { enabled: true },
+        calendar: { enabled: true },
+      }),
+      intentInterpreter: {
+        interpret: () => Promise.reject(new Error("one-shot path used")),
+        start: () => ({ next: () => Promise.resolve(steps.shift()!) }),
+      },
+    });
+
+    const prompt = await assistant.handleText(
+      "remind me ten minutes before the second event",
+    );
+    expect(prompt).toEqual({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: "Please confirm: 1. set the Dentist reminder alarm for 2026-07-17T09:50:00.000Z, 10 minutes before Dentist. Say yes or no.",
+    });
+    expect(JSON.stringify(prompt)).not.toContain("private-event");
+
+    await expect(assistant.handleText("yes")).resolves.toEqual({
+      status: "ok",
+      text: "Alarm set for 2026-07-17T09:50:00.000Z (Dentist reminder), using the confirmed Dentist calendar snapshot.",
+    });
+    await expect(store.list()).resolves.toEqual([
+      expect.objectContaining({
+        label: "Dentist reminder",
+        scheduledFor: "2026-07-17T09:50:00.000Z",
+      }),
+    ]);
+  });
+
+  it("clarifies an all-day event time before freezing its alarm", async () => {
+    const store = createTestAlarmStore();
+    const steps: IntentInterpretation[] = [
+      {
+        call: {
+          command: command("calendar.search_events", {}),
+          id: "all-day-read",
+        },
+        kind: "tool_call",
+      },
+      {
+        kind: "clarification",
+        response: { status: "ok", text: "What time should I use?" },
+      },
+      {
+        command: command("alarm.create_from_calendar_event", {
+          localTime: "10am",
+          minutesBefore: 10,
+          reference: "calendar-event-1",
+        }),
+        kind: "command",
+      },
+    ];
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([
+        createRawFeature({
+          id: "calendar",
+          capabilities: [
+            {
+              name: "calendar.search_events",
+              risk: "low",
+              toolChain: "read",
+            },
+          ],
+          execute: () =>
+            Promise.resolve({
+              resultReferences: {
+                items: [
+                  {
+                    facts: {
+                      date: "2026-07-17",
+                      time: "all day",
+                      title: "Birthday",
+                    },
+                    target: {
+                      kind: "calendar_event" as const,
+                      providerEventId: "private-all-day-event",
+                    },
+                  },
+                ],
+                kind: "calendar_events" as const,
+              },
+              text: "Birthday is all day.",
+            }),
+        }),
+        createAlarmFeature(store),
+      ]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({
+        alarms: { enabled: true },
+        calendar: { enabled: true },
+      }),
+      intentInterpreter: {
+        interpret: () => Promise.reject(new Error("one-shot path used")),
+        start: () => ({ next: () => Promise.resolve(steps.shift()!) }),
+      },
+    });
+
+    await expect(
+      assistant.handleText("remind me before the birthday"),
+    ).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: "What time should I use?",
+    });
+    await expect(assistant.handleText("10am")).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: "Please confirm: 1. set the Birthday reminder alarm for 2026-07-17T08:50:00.000Z, 10 minutes before Birthday. Say yes or no.",
+    });
+    await assistant.handleText("yes");
+    await expect(store.list()).resolves.toEqual([
+      expect.objectContaining({
+        scheduledFor: "2026-07-17T08:50:00.000Z",
+      }),
+    ]);
+  });
 });
 
-function command(capability: string, parameters: Record<string, string>) {
+function command(
+  capability: string,
+  parameters: Record<string, string | number>,
+) {
   return {
     capability,
     parameters,
     rawText: "provider supplied text",
   };
+}
+
+function createCalendarResultFeature() {
+  return createRawFeature({
+    id: "calendar",
+    displayName: "Calendar",
+    capabilities: [
+      { name: "calendar.search_events", risk: "low", toolChain: "read" },
+    ],
+    execute: () =>
+      Promise.resolve({
+        resultReferences: {
+          items: [
+            {
+              facts: {
+                date: "2026-07-17",
+                startAt: "2026-07-17T08:00:00.000Z",
+                time: "9:00",
+                title: "Breakfast",
+              },
+              target: {
+                kind: "calendar_event" as const,
+                providerEventId: "private-event-1",
+              },
+            },
+            {
+              facts: {
+                date: "2026-07-17",
+                startAt: "2026-07-17T10:00:00.000Z",
+                time: "11:00",
+                title: "Dentist",
+              },
+              target: {
+                kind: "calendar_event" as const,
+                providerEventId: "private-event-2",
+              },
+            },
+          ],
+          kind: "calendar_events" as const,
+        },
+        text: "I found two events.",
+      }),
+  });
 }

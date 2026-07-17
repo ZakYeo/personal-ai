@@ -1,4 +1,8 @@
-import type { AssistantResultReference } from "./result-reference.js";
+import type {
+  AssistantResultReference,
+  ResolvedResultReference,
+  ResultReferenceSelectionRequest,
+} from "./result-reference.js";
 
 export type AssistantResponseStatus =
   | "ok"
@@ -89,6 +93,10 @@ export interface AssistantContext {
   config: AssistantPolicyConfig;
   clock: ClockPort;
   resultReferences?: readonly AssistantResultReference[];
+  selectResultReference?(
+    request: ResultReferenceSelectionRequest,
+  ): ResolvedResultReference | undefined;
+  trustedInputText?: string;
 }
 
 export interface ClockPort {

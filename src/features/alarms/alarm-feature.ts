@@ -5,6 +5,7 @@ import { defineDeterministicFeatureRules } from "../../ports/deterministic-featu
 import type { AlarmStore } from "../../ports/alarm-store.js";
 import {
   alarmCreateParameters,
+  alarmCalendarReminderParameters,
   alarmDelayTargetParameters,
   alarmDeterministicIntentRules,
   alarmEditParameters,
@@ -21,6 +22,10 @@ import {
   rescheduleAlarm,
   snoozeAlarm,
 } from "./alarm-operations.js";
+import {
+  createCalendarReminder,
+  renderCalendarReminderConfirmation,
+} from "./calendar-reminder.js";
 
 export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
   return defineDeterministicFeatureRules(
@@ -92,6 +97,18 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
           },
           execute: (request, context: AssistantContext) =>
             createAlarm(request.args, context, store),
+        }),
+        "alarm.create_from_calendar_event": defineCapability({
+          description:
+            "Create a confirmed one-shot alarm a number of minutes before an opaque calendar event reference. The alarm snapshots the event time and does not track later calendar changes.",
+          risk: "high",
+          summary: "Create a snapshot alarm before a calendar event.",
+          spokenSummary: "set reminders from calendar events",
+          requiresConfirmation: true,
+          parameters: alarmCalendarReminderParameters,
+          confirmation: renderCalendarReminderConfirmation,
+          execute: (request, context) =>
+            createCalendarReminder(request.args, context, store),
         }),
         "alarm.dismiss": defineCapability({
           description:

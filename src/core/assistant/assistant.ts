@@ -161,7 +161,11 @@ async function handleTextInternal(
         executeRead: (step) =>
           executeCommand({
             command: step.command,
-            context,
+            context: createTrustedCommandContext(
+              context,
+              resultReferences,
+              normalizedText,
+            ),
             decodedArgs: step.decodedArgs,
             dependencies,
             executionContext: createFeatureExecutionContext(
@@ -184,7 +188,11 @@ async function handleTextInternal(
             capabilityRouting: dependencies.capabilityRouting,
             commands: [call.command],
             config: dependencies.config,
-            context,
+            context: createTrustedCommandContext(
+              context,
+              resultReferences,
+              normalizedText,
+            ),
             kind: "single",
             originalText: normalizedText,
           });
@@ -241,7 +249,11 @@ async function handleTextInternal(
       capabilityRouting: dependencies.capabilityRouting,
       commands,
       config: dependencies.config,
-      context,
+      context: createTrustedCommandContext(
+        context,
+        resultReferences,
+        normalizedText,
+      ),
       kind: current.kind === "plan" ? "compound" : "single",
       originalText: normalizedText,
     });
@@ -306,11 +318,26 @@ function createFeatureExecutionContext(
   trustedInputText: string,
   validatedConfirmationFacts?: Readonly<AssistantCommand["parameters"]>,
 ): FeatureExecutionContext {
+  const trustedContext = createTrustedCommandContext(
+    context,
+    resultReferences,
+    trustedInputText,
+  );
+  return {
+    ...trustedContext,
+    capabilityCatalog: dependencies.capabilityRouting.catalog,
+    ...(validatedConfirmationFacts ? { validatedConfirmationFacts } : {}),
+  };
+}
+
+function createTrustedCommandContext(
+  context: AssistantContext,
+  resultReferences: ResultReferenceSession,
+  trustedInputText: string,
+): AssistantContext {
   const publicReferences = resultReferences.publicReferences();
   return {
     ...context,
-    capabilityCatalog: dependencies.capabilityRouting.catalog,
-    ...(validatedConfirmationFacts ? { validatedConfirmationFacts } : {}),
     ...(publicReferences.length > 0
       ? {
           selectResultReference: (request: ResultReferenceSelectionRequest) =>
