@@ -4,6 +4,7 @@ import type {
   IntentInterpretation,
   IntentSessionContinuation,
 } from "../../ports/intent.js";
+import type { ResponseRewriteRequest } from "../../ports/response-rewriter.js";
 import {
   createAssistantConfig,
   createFixedClock,
@@ -13,6 +14,61 @@ import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
 import { createTestAlarmStore } from "../../test-support/alarm-store.js";
 
 describe("assistant bounded tool chains", () => {
+  it("rewrites only the terminal human response", async () => {
+    const rewrite = vi.fn((request: ResponseRewriteRequest) =>
+      Promise.resolve({ text: `Polished: ${request.response.text}` }),
+    );
+    const steps: IntentInterpretation[] = [
+      {
+        call: {
+          command: command("calendar.search_events", {}),
+          id: "read-1",
+        },
+        kind: "tool_call",
+      },
+      { command: command("alarm.list", {}), kind: "command" },
+    ];
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([
+        createRawFeature({
+          id: "calendar",
+          capabilities: [
+            {
+              name: "calendar.search_events",
+              risk: "low",
+              toolChain: "read",
+            },
+          ],
+          execute: () => Promise.resolve({ text: "Calendar read." }),
+        }),
+        createRawFeature({
+          id: "alarms",
+          capabilities: [{ name: "alarm.list", risk: "low" }],
+          execute: () => Promise.resolve({ text: "No alarms." }),
+        }),
+      ]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({
+        alarms: { enabled: true },
+        calendar: { enabled: true },
+      }),
+      intentInterpreter: {
+        start: () => ({ next: () => Promise.resolve(steps.shift()!) }),
+      },
+      responseRewriter: { rewrite },
+    });
+
+    await expect(assistant.handleText("check and list")).resolves.toEqual({
+      status: "ok",
+      text: "Polished: No alarms.",
+    });
+    expect(rewrite).toHaveBeenCalledTimes(1);
+    expect(rewrite).toHaveBeenCalledWith(
+      expect.objectContaining({ capability: "alarm.list" }),
+      expect.any(Object),
+    );
+  });
+
   it("executes an eligible read and returns only its safe observation to the session", async () => {
     const continuations: IntentSessionContinuation[] = [];
     const steps: IntentInterpretation[] = [

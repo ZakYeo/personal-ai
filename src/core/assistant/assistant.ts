@@ -158,7 +158,7 @@ async function handleTextInternal(
     if (current.kind === "tool_call") {
       const resolved = await resolveToolCalls({
         executeRead: (step) =>
-          executeCommand({
+          executeFeatureCommand({
             command: step.command,
             context: createTrustedCommandContext(
               context,
@@ -384,6 +384,33 @@ async function executeCommand(input: {
   onReferencesRetained: () => void;
   resultReferences: ResultReferenceSession;
 }): Promise<CommandExecutionOutcome> {
+  const execution = await executeFeatureCommand(input);
+  if (execution.outcome.response.status !== "ok") return execution;
+
+  return {
+    ...execution,
+    outcome: await rewriteCommandResponse({
+      command: input.command,
+      context: input.context,
+      dependencies: input.dependencies,
+      facts: execution.data ?? {},
+      response: execution.outcome.response,
+      text: input.normalizedText,
+    }),
+  };
+}
+
+async function executeFeatureCommand(input: {
+  command: AssistantCommand;
+  context: AssistantContext;
+  decodedArgs: FeatureArguments;
+  dependencies: AssistantDependencies;
+  executionContext: FeatureExecutionContext;
+  feature: FeaturePlugin;
+  normalizedText: string;
+  onReferencesRetained: () => void;
+  resultReferences: ResultReferenceSession;
+}): Promise<CommandExecutionOutcome> {
   try {
     const result = await input.feature.execute(
       {
@@ -405,18 +432,9 @@ async function executeCommand(input: {
       input.onReferencesRetained();
     }
 
-    const outcome = await rewriteCommandResponse({
-      command: input.command,
-      context: input.context,
-      dependencies: input.dependencies,
-      facts: result.data ?? {},
-      response,
-      text: input.normalizedText,
-    });
-
     return {
       ...(result.data ? { data: Object.freeze({ ...result.data }) } : {}),
-      outcome,
+      outcome: { response },
     };
   } catch (error) {
     return {
