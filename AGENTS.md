@@ -169,6 +169,8 @@
 - `npm run test:e2e:openai:pi` - run the focused opt-in live OpenAI confirmed-alarm smoke through Raspberry Pi service composition without audio hardware.
 - `npm run benchmark:voice:capture -- --speaker primary` - interactively capture only missing core personal voice benchmark phrases through SoX, allow 15-second utterances, retain two seconds of trailing silence, checkpoint accepted takes for quit/`Ctrl-C` resumption, and require consent before recording; add `--all` for extended phrases.
 - `npm run benchmark:voice:verify-artifacts -- --manifest <path> --cache <dir> --architecture <x64|arm64>` - verify operator-supplied voice benchmark artifacts offline; it must never download, install, extract, import, or execute them.
+- `npm run benchmark:voice:run -- --candidate <id> --start <index> --count <1-10> --output <path>` - run one bounded, resumable desktop voice benchmark chunk.
+- `npm run benchmark:voice:aggregate` - aggregate completed desktop voice benchmark chunks into the committed raw result.
 - `npm run build` - compile the production JavaScript output.
 - `npm start` - run the default desktop OpenAI voice service with `config/local-desktop-voice-openai.json`.
 - `npm run cli -- ask "..."` - run the deterministic text CLI in development; loads `.env` when present.

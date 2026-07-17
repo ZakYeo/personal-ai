@@ -468,6 +468,10 @@ Common development commands:
   `--all` to include missing extended phrases.
 - `npm run benchmark:voice:verify-artifacts -- --manifest <path> --cache <dir> --architecture <x64|arm64>`
   - offline-only verification for separately reviewed benchmark artifacts.
+- `npm run benchmark:voice:run -- --candidate <id> --start <index> --count <1-10> --output <path>`
+  - run one resumable local voice benchmark chunk with isolated measurements.
+- `npm run benchmark:voice:aggregate` - combine completed desktop chunks into
+  the committed raw result contract.
 - `npm run setup:google-calendar` - run the local OAuth loopback helper and
   print a `GOOGLE_CALENDAR_REFRESH_TOKEN` line for `.env`.
 - `npm run setup:openwakeword` - create or update `.venv` with the Python

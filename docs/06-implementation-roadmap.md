@@ -122,7 +122,9 @@ archived in `docs/09-implemented-milestones.md`.
 
 ## Spike 12: Local Voice Device Benchmark
 
-Status: planned.
+Status: implemented with an explicit desktop no-go. Detailed results are in
+`benchmarks/voice/results/desktop-wsl2-report.md` and the completed scope is
+archived in `docs/09-implemented-milestones.md`.
 
 Goal: choose local STT and TTS implementations using reproducible measurements
 on the supported desktop and Raspberry Pi target.
@@ -178,7 +180,7 @@ Acceptance criteria:
 
 ## Milestone 13: First-Class Local STT
 
-Status: planned; blocked on Spike 12 selection.
+Status: planned; blocked because Spike 12 selected no passing STT candidate.
 
 Goal: provide an offline STT adapter selected explicitly through the existing
 batch or cohesive streaming voice configuration.
@@ -223,7 +225,7 @@ Acceptance criteria:
 
 ## Milestone 14: First-Class Local TTS
 
-Status: planned; blocked on Spike 12 selection.
+Status: planned; blocked because Spike 12 selected no passing TTS candidate.
 
 Goal: provide offline synthesis and playback through the benchmark-selected
 local TTS implementation.

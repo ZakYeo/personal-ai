@@ -55,8 +55,22 @@ The fixed candidate matrix is:
 | STT       | whisper.cpp v1.8.6 (`23ee03506a91ac3d3f0071b40e66a430eebdfa1d`) | `small.en`                           | Model allowlisted; reviewed source build required   |
 | STT       | sherpa-onnx v1.13.2                                             | streaming Zipformer English 20M int8 | Engine and model verified                           |
 | TTS       | Piper v1.4.2                                                    | `en_GB-alba-medium`                  | Engine, model, and inspected configuration verified |
+| TTS       | sherpa-onnx v1.13.2                                             | `vits-piper-en_US-amy-low`           | Engine and model verified                           |
 
 The reference set remains LibriSpeech `dev-clean` under CC BY 4.0, but upstream
 publishes MD5 rather than SHA-256 for that archive. It is therefore not yet
 allowlisted. Personal recordings and reference clips are separate from this
 third-party artifact cache and remain governed by their corpus manifests.
+
+The benchmark is resumable in bounded candidate chunks:
+
+```bash
+npm run benchmark:voice:run -- \
+  --candidate whisper-base-en --start 0 --count 4 \
+  --output .voice-benchmark/results/desktop-wsl2/chunks/whisper-base-en-0.json
+npm run benchmark:voice:aggregate
+```
+
+The 2026-07-17 WSL2 run produced an explicit no-go; see
+`results/desktop-wsl2-report.md`. No Raspberry Pi measurements or production
+adapter selection are claimed.

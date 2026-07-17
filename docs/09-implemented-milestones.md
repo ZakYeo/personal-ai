@@ -250,6 +250,7 @@ Excluded:
 Acceptance criteria:
 
 - `npm run check` passes.
+
 - `npm run test:coverage` passes.
 - `.githooks/pre-commit` passes.
 - `.githooks/pre-push` passes.
@@ -1009,3 +1010,20 @@ Acceptance criteria:
 - Intent fixtures, live-provider prompts, capability metadata, and spoken
   summaries remain aligned with the supported alarm operations.
 - `npm run check` passes.
+
+## Spike 12: Local Voice Device Benchmark
+
+Status: implemented with an explicit desktop no-go.
+
+The spike added immutable candidate, policy, personal-recording, TTS-response,
+artifact, raw-result, and blinded-rating contracts. The WSL2 benchmark ran
+whisper.cpp `base.en` and `small.en`, sherpa-onnx Zipformer 20M int8, Piper Alba
+medium, and sherpa-onnx Amy low with one excluded warm-up and three isolated
+repetitions per sample.
+
+No candidate passed the desktop correctness and performance gates. Subjective
+TTS ratings were not used to override hard latency/RTF failures. Raspberry Pi
+measurements were explicitly deferred because hardware was unavailable.
+Milestones 13 and 14 therefore remain blocked rather than registering an
+unfit production adapter. Raw measurements and the reproducible report live
+under `benchmarks/voice/results/`.
