@@ -101,7 +101,7 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
         }),
         "alarm.create_from_calendar_event": defineCapability({
           description:
-            "Create a confirmed one-shot alarm a number of minutes before an opaque calendar event reference. The alarm snapshots the event time and does not track later calendar changes.",
+            "Create a confirmed one-shot alarm before an opaque calendar event reference. Timed events use their exact start; all-day events require localTime. The alarm snapshots the event time and does not track later calendar changes.",
           risk: "high",
           summary: "Create a snapshot alarm before a calendar event.",
           spokenSummary: "set reminders from calendar events",

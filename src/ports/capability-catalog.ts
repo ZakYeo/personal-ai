@@ -25,6 +25,7 @@ export interface FeatureCapability {
 
 export interface FeatureCapabilityParameter {
   type: "string" | "number" | "boolean";
+  description?: string;
   required?: boolean;
   minimum?: number;
   positive?: boolean;
@@ -143,7 +144,10 @@ function formatCapabilityParameters(capability: FeatureCapability): string {
         parameter.positive ? "positive" : undefined,
       ].filter((constraint): constraint is string => constraint !== undefined);
 
-      return `${name}: ${parameter.type}${constraints.length > 0 ? ` (${constraints.join(", ")})` : ""}`;
+      const details = [constraints.join(", "), parameter.description].filter(
+        (detail): detail is string => Boolean(detail),
+      );
+      return `${name}: ${parameter.type}${details.length > 0 ? ` (${details.join("; ")})` : ""}`;
     })
     .join("; ");
 }

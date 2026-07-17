@@ -10,7 +10,11 @@ describe("createProviderCapabilityCatalog", () => {
           {
             name: "calendar.create",
             parameters: {
-              title: { required: true, type: "string" },
+              title: {
+                description: "The human-facing calendar event title.",
+                required: true,
+                type: "string",
+              },
             },
             risk: "low",
             toolChain: "read",
@@ -42,7 +46,8 @@ describe("createProviderCapabilityCatalog", () => {
         capability: features[0]?.capabilities[0],
         featureId: "calendar",
         featureName: "Calendar",
-        parameterText: "title: string (required)",
+        parameterText:
+          "title: string (required; The human-facing calendar event title.)",
       },
       {
         capability: features[0]?.capabilities[1],

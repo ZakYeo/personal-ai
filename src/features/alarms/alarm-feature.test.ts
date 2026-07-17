@@ -34,11 +34,16 @@ describe("createAlarmFeature", () => {
     ).toEqual(expect.any(Function));
     expectCapabilityMetadata(feature, {
       name: "alarm.create_from_calendar_event",
+      description:
+        "Create a confirmed one-shot alarm before an opaque calendar event reference. Timed events use their exact start; all-day events require localTime. The alarm snapshots the event time and does not track later calendar changes.",
       risk: "high",
       requiresConfirmation: true,
       parameters: {
         label: { type: "string" },
-        localTime: { type: "string" },
+        localTime: {
+          description: "Required when the selected calendar event is all day.",
+          type: "string",
+        },
         minutesBefore: { type: "number", required: true, positive: true },
         reference: { type: "string", required: true },
       },

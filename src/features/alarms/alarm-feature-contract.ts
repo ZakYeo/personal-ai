@@ -16,7 +16,10 @@ export const alarmListParameters =
 
 export const alarmCalendarReminderParameters = {
   label: { type: "string" },
-  localTime: { type: "string" },
+  localTime: {
+    description: "Required when the selected calendar event is all day.",
+    type: "string",
+  },
   minutesBefore: { type: "number", required: true, positive: true },
   reference: { type: "string", required: true },
 } as const satisfies FeatureCapabilityParameters;
