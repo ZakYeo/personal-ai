@@ -71,6 +71,7 @@ export async function runCasualConversationStreamingSmoke(input: {
     .fn()
     .mockResolvedValueOnce(
       jsonResponse({
+        id: "intent-response-1",
         output_text: JSON.stringify({
           command: null,
           kind: "conversation",
@@ -132,6 +133,7 @@ export function createFollowUpRealtimeSmoke(): {
       .fn()
       .mockResolvedValueOnce(
         jsonResponse({
+          id: "intent-response-1",
           output_text: JSON.stringify({
             command: null,
             kind: "conversation",
@@ -151,6 +153,7 @@ export function createFollowUpRealtimeSmoke(): {
       .mockResolvedValueOnce(new Response(Buffer.from("spoken audio")))
       .mockResolvedValueOnce(
         jsonResponse({
+          id: "intent-response-2",
           output_text: JSON.stringify({
             command: {
               capability: "assistant.capabilities.list",

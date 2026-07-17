@@ -119,6 +119,7 @@ describe("createConfiguredTextRuntime", () => {
     const fetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
+          id: "intent-response-1",
           output_text: JSON.stringify({
             kind: "command",
             plan: null,
@@ -156,6 +157,7 @@ describe("createConfiguredTextRuntime", () => {
       Promise.resolve(
         new Response(
           JSON.stringify({
+            id: "intent-response-1",
             output_text: JSON.stringify({
               command: null,
               kind: "conversation",
@@ -189,6 +191,7 @@ describe("createConfiguredTextRuntime", () => {
       Promise.resolve(
         new Response(
           JSON.stringify({
+            id: "intent-response-1",
             output_text: JSON.stringify({
               command: null,
               kind: "conversation",
@@ -234,6 +237,7 @@ describe("createConfiguredTextRuntime", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
+            id: "intent-response-1",
             output_text: JSON.stringify({
               command: null,
               kind: "conversation",

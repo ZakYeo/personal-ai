@@ -84,6 +84,7 @@ describe("mock voice runtime", () => {
   it("passes provider dependencies into composed text assistant", async () => {
     const fetch = vi.fn().mockResolvedValue(
       jsonResponse({
+        id: "intent-response-1",
         output_text: JSON.stringify({
           kind: "command",
           plan: null,
@@ -119,6 +120,7 @@ describe("mock voice runtime", () => {
   it("speaks general conversation responses after wake activation", async () => {
     const fetch = vi.fn().mockResolvedValue(
       jsonResponse({
+        id: "intent-response-1",
         output_text: JSON.stringify({
           command: null,
           kind: "conversation",

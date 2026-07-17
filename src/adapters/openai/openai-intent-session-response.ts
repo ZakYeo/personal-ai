@@ -8,7 +8,7 @@ import { extractOpenAIOutputText } from "./openai-output-extractor.js";
 
 interface ParsedOpenAIIntentSessionResponse {
   interpretation: IntentInterpretation;
-  responseId?: string;
+  responseId: string;
 }
 
 export function parseOpenAIIntentSessionResponse(
@@ -41,19 +41,18 @@ export function parseOpenAIIntentSessionResponse(
     );
   }
 
-  const responseId =
-    typeof value.id === "string" && value.id.length > 0 ? value.id : undefined;
+  if (typeof value.id !== "string" || value.id.trim().length === 0) {
+    throw new OpenAIIntentError(
+      "OpenAI intent response must include a nonempty id.",
+    );
+  }
+  const responseId = value.id;
   const functionCall = functionCalls[0];
   if (!functionCall) {
     return {
       interpretation: parseOpenAIIntentOutput(extractOpenAIOutputText(value)),
-      ...(responseId ? { responseId } : {}),
+      responseId,
     };
-  }
-  if (!responseId) {
-    throw new OpenAIIntentError(
-      "OpenAI intent function-call response must include an id.",
-    );
   }
   if (
     typeof functionCall.call_id !== "string" ||

@@ -15,6 +15,27 @@ const capability: OpenAIIntentCapability = {
 const tools = new Map([["read_0", capability]]);
 
 describe("parseOpenAIIntentSessionResponse", () => {
+  it.each([undefined, "", "   "])(
+    "rejects a terminal response with invalid id %j",
+    (id) => {
+      expect(() =>
+        parseOpenAIIntentSessionResponse(
+          {
+            ...(id === undefined ? {} : { id }),
+            output_text: JSON.stringify({
+              command: null,
+              kind: "unknown",
+              plan: null,
+              response: { status: "unknown", text: "I do not know." },
+            }),
+          },
+          tools,
+          "unknown request",
+        ),
+      ).toThrow("must include a nonempty id");
+    },
+  );
+
   it("parses a resumable clarification", () => {
     expect(
       parseOpenAIIntentSessionResponse(

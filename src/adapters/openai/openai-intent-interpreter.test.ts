@@ -135,6 +135,7 @@ describe("OpenAIIntentInterpreter", () => {
   it("returns a bounded compound plan from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({
+        id: "response-1",
         output_text: JSON.stringify({
           command: null,
           kind: "plan",
@@ -188,6 +189,7 @@ describe("OpenAIIntentInterpreter", () => {
     const interpreter = createInterpreter({
       fetch: createFetchStub(
         jsonResponse({
+          id: "response-1",
           output_text: JSON.stringify({
             command: null,
             kind: "plan",
@@ -209,6 +211,7 @@ describe("OpenAIIntentInterpreter", () => {
     const interpreter = createInterpreter({
       fetch: createFetchStub(
         jsonResponse({
+          id: "response-1",
           output_text: JSON.stringify({
             command: {
               capability: "alarm.list",
@@ -231,6 +234,7 @@ describe("OpenAIIntentInterpreter", () => {
   it("returns a command from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({
+        id: "response-1",
         output_text: JSON.stringify({
           kind: "command",
           plan: null,
@@ -353,6 +357,7 @@ describe("OpenAIIntentInterpreter", () => {
   it("returns a conversation classification from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({
+        id: "response-1",
         output_text: JSON.stringify({
           kind: "conversation",
           command: null,
@@ -380,6 +385,7 @@ describe("OpenAIIntentInterpreter", () => {
     };
     const fetch = createFetchStub(
       jsonResponse({
+        id: "response-1",
         output_text: JSON.stringify({
           command: null,
           kind: "unknown",
@@ -417,6 +423,7 @@ describe("OpenAIIntentInterpreter", () => {
   it("rejects conversation output with fallback response text", async () => {
     const fetch = createFetchStub(
       jsonResponse({
+        id: "response-1",
         output_text: JSON.stringify({
           kind: "conversation",
           command: null,
@@ -440,6 +447,7 @@ describe("OpenAIIntentInterpreter", () => {
   it("returns an unsupported response from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({
+        id: "response-1",
         output_text: JSON.stringify({
           kind: "unsupported",
           command: null,
@@ -467,6 +475,7 @@ describe("OpenAIIntentInterpreter", () => {
   it("extracts text from Responses API output content", async () => {
     const fetch = createFetchStub(
       jsonResponse({
+        id: "response-1",
         output: [
           {
             content: [
@@ -554,6 +563,7 @@ describe("OpenAIIntentInterpreter", () => {
     const interpreter = createInterpreter({
       fetch: createFetchStub(
         jsonResponse({
+          id: "response-1",
           output_text: "{not-json",
         }),
       ),
@@ -568,6 +578,7 @@ describe("OpenAIIntentInterpreter", () => {
     const interpreter = createInterpreter({
       fetch: createFetchStub(
         jsonResponse({
+          id: "response-1",
           output_text: JSON.stringify({
             kind: "command",
             plan: null,
@@ -593,6 +604,7 @@ describe("OpenAIIntentInterpreter", () => {
     const interpreter = createInterpreter({
       fetch: createFetchStub(
         jsonResponse({
+          id: "response-1",
           output_text: JSON.stringify({
             kind: "command",
             plan: null,
