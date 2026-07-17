@@ -315,7 +315,11 @@ function createMinimalFeatureConfig(
   features: Record<string, unknown>,
 ): Record<string, unknown> {
   return {
-    assistant: { name: "Jarvis", wakePhrases: ["hey jarvis"] },
+    assistant: {
+      name: "Jarvis",
+      timeZone: "Europe/London",
+      wakePhrases: ["hey jarvis"],
+    },
     features,
     intent: { provider: "deterministic" },
   };

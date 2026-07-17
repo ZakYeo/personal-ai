@@ -257,6 +257,7 @@ function rawAlarmConfig(alarmConfig: Record<string, unknown>) {
   return {
     assistant: {
       name: "Jarvis",
+      timeZone: "Europe/London",
       wakePhrases: ["hey jarvis"],
     },
     features: {

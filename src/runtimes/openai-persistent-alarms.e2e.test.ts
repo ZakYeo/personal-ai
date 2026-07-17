@@ -62,6 +62,7 @@ function createLiveAlarmConfig() {
   return {
     assistant: {
       name: "Jarvis",
+      timeZone: "Europe/London",
       wakePhrases: ["hey jarvis"],
     },
     conversation: {

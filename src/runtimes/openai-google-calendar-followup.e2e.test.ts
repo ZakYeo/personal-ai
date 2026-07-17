@@ -62,7 +62,11 @@ function requireExpectedDetail(): string {
 
 function createLiveConfig() {
   return parseAssistantConfig({
-    assistant: { name: "Jarvis", wakePhrases: ["hey jarvis"] },
+    assistant: {
+      name: "Jarvis",
+      timeZone: "Europe/London",
+      wakePhrases: ["hey jarvis"],
+    },
     conversation: {
       history: { maxTurnsBeforeCompaction: 5 },
       provider: "disabled",

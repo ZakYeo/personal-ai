@@ -45,6 +45,7 @@ export function createAssistantConfig(
   return {
     assistant: {
       name: "Jarvis",
+      timeZone: "Europe/London",
       wakePhrases: ["hey jarvis"],
     },
     features,
@@ -57,6 +58,7 @@ export function createLoadedRuntimeConfig(
   return parseAssistantConfig({
     assistant: {
       name: "Jarvis",
+      timeZone: "Europe/London",
       wakePhrases: ["hey jarvis"],
     },
     conversation: {

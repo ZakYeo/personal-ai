@@ -19,6 +19,7 @@ describe("feature contract test support", () => {
     expect(context.config).toEqual({
       assistant: {
         name: "Jarvis",
+        timeZone: "Europe/London",
         wakePhrases: ["hey jarvis"],
       },
       features: {

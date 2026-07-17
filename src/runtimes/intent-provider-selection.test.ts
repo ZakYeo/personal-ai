@@ -15,7 +15,11 @@ describe("createConfiguredIntentInterpreter", () => {
     });
     const config = parseAssistantConfig(
       {
-        assistant: { name: "Jarvis", wakePhrases: ["hey jarvis"] },
+        assistant: {
+          name: "Jarvis",
+          timeZone: "Europe/London",
+          wakePhrases: ["hey jarvis"],
+        },
         features: {},
         intent: {
           custom: { locale: "en-GB" },

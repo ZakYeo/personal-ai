@@ -85,6 +85,8 @@ export function parseAssistantConfig(
     throw new Error("Config assistant.name must be a non-empty string.");
   }
 
+  const timeZone = parseCanonicalTimeZone(assistant.timeZone);
+
   if (
     !Array.isArray(assistant.wakePhrases) ||
     !assistant.wakePhrases.every((wakePhrase) => typeof wakePhrase === "string")
@@ -101,6 +103,7 @@ export function parseAssistantConfig(
   return {
     assistant: {
       name: assistant.name,
+      timeZone,
       wakePhrases: assistant.wakePhrases,
     },
     conversation: parseConversationConfig(
@@ -129,4 +132,26 @@ export function parseAssistantConfig(
       options.featureAdapterRegistry ?? createDefaultFeatureAdapterRegistry(),
     ),
   };
+}
+
+function parseCanonicalTimeZone(value: unknown): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw new Error(
+      "Config assistant.timeZone must be a non-empty canonical IANA timezone.",
+    );
+  }
+
+  try {
+    const canonical = new Intl.DateTimeFormat("en", {
+      timeZone: value,
+    }).resolvedOptions().timeZone;
+    if (canonical !== value) {
+      throw new Error("non-canonical");
+    }
+    return canonical;
+  } catch {
+    throw new Error(
+      "Config assistant.timeZone must be a non-empty canonical IANA timezone.",
+    );
+  }
 }

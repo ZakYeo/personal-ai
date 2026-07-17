@@ -16,6 +16,7 @@ const context: FeatureExecutionContext = {
   config: {
     assistant: {
       name: "Jarvis",
+      timeZone: "Europe/London",
       wakePhrases: ["hey jarvis"],
     },
     features: {

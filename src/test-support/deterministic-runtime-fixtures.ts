@@ -45,6 +45,7 @@ export const disabledCalendarConfig: LoadedRuntimeConfig =
 export const runtimeFailureConfig: LoadedRuntimeConfig = {
   assistant: {
     name: "",
+    timeZone: "Europe/London",
     wakePhrases: ["hey jarvis"],
   },
   intent: enabledDeterministicConfig.intent,

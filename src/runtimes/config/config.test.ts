@@ -9,6 +9,7 @@ describe("loadConfig", () => {
     await expect(loadConfig()).resolves.toMatchObject({
       assistant: {
         name: "Jarvis",
+        timeZone: "Europe/London",
         wakePhrases: ["hey jarvis"],
       },
       intent: {
@@ -51,6 +52,7 @@ describe("loadConfig", () => {
       JSON.stringify({
         assistant: {
           name: "Friday",
+          timeZone: "Europe/London",
           wakePhrases: ["hey friday"],
         },
         intent: {
@@ -65,6 +67,7 @@ describe("loadConfig", () => {
     await expect(loadConfig({ configPath })).resolves.toMatchObject({
       assistant: {
         name: "Friday",
+        timeZone: "Europe/London",
         wakePhrases: ["hey friday"],
       },
       intent: {
@@ -186,6 +189,7 @@ describe("parseAssistantConfig", () => {
       parseAssistantConfig({
         assistant: {
           name: "",
+          timeZone: "Europe/London",
           wakePhrases: ["hey jarvis"],
         },
         intent: {
@@ -196,11 +200,31 @@ describe("parseAssistantConfig", () => {
     ).toThrow("Config assistant.name must be a non-empty string.");
   });
 
+  it.each([undefined, "", "Not/A_Zone", "Etc/UTC"])(
+    "rejects non-canonical assistant timezone %s",
+    (timeZone) => {
+      expect(() =>
+        parseAssistantConfig({
+          assistant: {
+            name: "Jarvis",
+            timeZone,
+            wakePhrases: ["hey jarvis"],
+          },
+          features: {},
+          intent: { provider: "deterministic" },
+        }),
+      ).toThrow(
+        "Config assistant.timeZone must be a non-empty canonical IANA timezone.",
+      );
+    },
+  );
+
   it("rejects invalid feature enablement", () => {
     expect(() =>
       parseAssistantConfig({
         assistant: {
           name: "Jarvis",
+          timeZone: "Europe/London",
           wakePhrases: ["hey jarvis"],
         },
         intent: {
@@ -218,6 +242,7 @@ describe("parseAssistantConfig", () => {
       parseAssistantConfig({
         assistant: {
           name: "Jarvis",
+          timeZone: "Europe/London",
           wakePhrases: ["hey jarvis"],
         },
         intent: {
@@ -234,6 +259,7 @@ describe("parseAssistantConfig", () => {
     ).toMatchObject({
       assistant: {
         name: "Jarvis",
+        timeZone: "Europe/London",
         wakePhrases: ["hey jarvis"],
       },
       intent: {
@@ -262,6 +288,7 @@ describe("parseAssistantConfig", () => {
     const config = parseAssistantConfig({
       assistant: {
         name: "Jarvis",
+        timeZone: "Europe/London",
         wakePhrases: ["hey jarvis"],
       },
       intent: {
@@ -316,6 +343,7 @@ describe("parseAssistantConfig", () => {
       parseAssistantConfig({
         assistant: {
           name: "Jarvis",
+          timeZone: "Europe/London",
           wakePhrases: ["hey jarvis"],
         },
         intent: {
@@ -334,6 +362,7 @@ describe("parseAssistantConfig", () => {
       parseAssistantConfig({
         assistant: {
           name: "Jarvis",
+          timeZone: "Europe/London",
           wakePhrases: ["hey jarvis"],
         },
         intent: {
@@ -362,6 +391,7 @@ describe("parseAssistantConfig", () => {
       parseAssistantConfig({
         assistant: {
           name: "Jarvis",
+          timeZone: "Europe/London",
           wakePhrases: ["hey jarvis"],
         },
         features: {},
@@ -374,6 +404,7 @@ describe("parseAssistantConfig", () => {
       parseAssistantConfig({
         assistant: {
           name: "Jarvis",
+          timeZone: "Europe/London",
           wakePhrases: ["hey jarvis"],
         },
         intent: {
@@ -502,6 +533,7 @@ function createMinimalConfig(
   return {
     assistant: {
       name: "Jarvis",
+      timeZone: "Europe/London",
       wakePhrases: ["hey jarvis"],
     },
     intent: {
@@ -519,6 +551,7 @@ describe("runtime config resolvers", () => {
         parseAssistantConfig({
           assistant: {
             name: "Jarvis",
+            timeZone: "Europe/London",
             wakePhrases: ["hey jarvis"],
           },
           intent: {
@@ -549,6 +582,7 @@ describe("runtime config resolvers", () => {
         parseAssistantConfig({
           assistant: {
             name: "Jarvis",
+            timeZone: "Europe/London",
             wakePhrases: ["hey jarvis"],
           },
           intent: {

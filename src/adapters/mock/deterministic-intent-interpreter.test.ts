@@ -11,6 +11,7 @@ const context: AssistantContext = {
   config: {
     assistant: {
       name: "Jarvis",
+      timeZone: "Europe/London",
       wakePhrases: ["hey jarvis"],
     },
     features: {},

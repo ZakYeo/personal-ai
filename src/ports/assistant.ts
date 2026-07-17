@@ -73,6 +73,7 @@ export interface AssistantCommand {
 export interface AssistantPolicyConfig {
   assistant: {
     name: string;
+    timeZone: string;
     wakePhrases: string[];
   };
   features: Record<

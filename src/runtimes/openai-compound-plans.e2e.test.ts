@@ -48,7 +48,11 @@ describe.skipIf(!runOpenAIE2E)("OpenAI compound plans live E2E", () => {
 
 function createLivePlanConfig() {
   return {
-    assistant: { name: "Jarvis", wakePhrases: ["hey jarvis"] },
+    assistant: {
+      name: "Jarvis",
+      timeZone: "Europe/London",
+      wakePhrases: ["hey jarvis"],
+    },
     conversation: {
       history: { maxTurnsBeforeCompaction: 5 },
       provider: "disabled",

@@ -5,7 +5,11 @@ describe("desktop voice provider slot topology", () => {
   it("lets selected registry entries parse different provider config types", () => {
     const config = parseAssistantConfig(
       {
-        assistant: { name: "Jarvis", wakePhrases: ["hey jarvis"] },
+        assistant: {
+          name: "Jarvis",
+          timeZone: "Europe/London",
+          wakePhrases: ["hey jarvis"],
+        },
         desktopVoice: {
           alternate: { locale: "en-GB" },
         },

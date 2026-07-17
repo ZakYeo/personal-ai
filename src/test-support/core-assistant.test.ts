@@ -18,6 +18,7 @@ describe("core assistant test support", () => {
     expect(enableFeatures("calendar", "alarms")).toEqual({
       assistant: {
         name: "Jarvis",
+        timeZone: "Europe/London",
         wakePhrases: ["hey jarvis"],
       },
       features: {
@@ -28,6 +29,7 @@ describe("core assistant test support", () => {
     expect(requireConfirmationFor("alarms", ["alarm.create"])).toEqual({
       assistant: {
         name: "Jarvis",
+        timeZone: "Europe/London",
         wakePhrases: ["hey jarvis"],
       },
       features: {
