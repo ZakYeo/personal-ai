@@ -146,6 +146,13 @@ execution failure stops the workflow and is not returned for model-directed
 retry. Parallel calls, write tools, hidden retries, and arbitrary loops remain
 forbidden.
 
+Intermediate reads are provider observations rather than final human answers,
+so they must bypass response rewriting. The core intent-workflow transaction
+must retain completed-read metadata and normalize initial, continuation, and
+clarification-resume provider failures into a safe outcome with internal
+`unexpected` diagnostics. Those diagnostics stay out of tool observations and
+remain visible to the exhaustive human-boundary logging policy.
+
 One clarification may be retained process-locally and resumed against the exact
 intent-provider session. No/cancel discards it; other input resumes it. A
 resulting high-risk action replaces the clarification with the ordinary frozen
@@ -358,7 +365,11 @@ environment variables instead of repository config files, validate provider
 responses from `unknown`, and preserve useful status, body, transport, timeout,
 and parsing diagnostics internally. Adapter parsers should use the shared
 adapter parsing primitives for repeated structural checks such as plain record
-detection. Tests for provider adapters should use the
+detection. Voice benchmark parsers similarly use one benchmark-local structural
+primitive layer for external records, arrays, strings, stable IDs, digests, and
+positive integers while retaining schema-specific policy and range checks in
+their owning modules.
+Tests for provider adapters should use the
 shared `src/test-support/adapter-contract.ts` helpers for credential
 environments, non-OK responses, malformed JSON, transport failures, and timeout
 behavior instead of live network calls. Live provider smoke tests may exist only

@@ -239,6 +239,11 @@ Thin slices:
    required independent maintainability review. All review findings are
    addressed in tested follow-up commits.
 
+Post-implementation hardening moved bounded orchestration into a dedicated
+`IntentWorkflow`, stopped rewriting intermediate reads, preserved completed
+read traces across provider continuation failures, and required a non-empty
+OpenAI response ID for every intent response.
+
 Acceptance criteria:
 
 - Only capabilities explicitly declared as tool-chain reads can execute before

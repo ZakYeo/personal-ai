@@ -190,6 +190,14 @@ conversation compaction. Intent providers receive only ordinals, opaque
 references, and safe displayed facts; feature execution resolves private
 provider IDs through the assistant-owned session.
 
+Bounded intent orchestration lives in a core-owned `IntentWorkflow`
+transaction. It accumulates diagnostic-safe read metadata across provider
+continuations, clarification, confirmation, and terminal execution. Successful
+intermediate reads use the feature's human-safe result directly and bypass the
+optional final-response rewriter; only terminal human responses are rewritten.
+Post-start intent-session failures become safe `unexpected` outcomes without
+discarding completed-read metadata.
+
 ## Runtimes
 
 Runtimes wire the application together for a specific environment.

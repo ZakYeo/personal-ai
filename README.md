@@ -44,7 +44,9 @@ Implemented today:
   report succeeded, failed, and skipped steps without exposing diagnostics.
 - Bounded tool-chain workflows with at most two explicitly declared sequential
   reads and one clarification before a fully validated terminal command or
-  plan; OpenAI parallel function calls are disabled.
+  plan; intermediate reads bypass response rewriting, completed-read metadata
+  survives provider continuation failures, and OpenAI parallel function calls
+  are disabled.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Shared OpenAI Responses configuration parsing with provider-local config
   types rather than provider details in application ports.
@@ -141,6 +143,8 @@ provider-managed stored response state: utterances, capability metadata, safe
 tool observations, event titles/times, and continuation context are subject to
 the configured OpenAI account's data handling and retention policy. Use the
 deterministic provider when that off-device retention tradeoff is unacceptable.
+Every OpenAI intent response must include a non-empty response ID so any
+application-owned clarification can resume the exact provider session.
 
 The default desktop OpenAI voice service config used by `npm start` selects the
 Google Calendar adapter and OpenAI response rewriter. Google Calendar access
@@ -292,7 +296,9 @@ Benchmark candidate processes are isolated behind bounded command execution.
 Each candidate gets one excluded warm-up followed by three measured runs per
 sample. STT drivers receive only a WAV path; TTS drivers receive fixture text
 through stdin, and all reported telemetry is validated before scoring. This
-process boundary is not itself proof of network isolation.
+process boundary is not itself proof of network isolation. Benchmark manifests,
+results, policies, and driver output share one benchmark-local structural
+parsing layer while retaining their schema-specific validation.
 
 Third-party benchmark files are never fetched by repository tooling. After an
 operator separately reviews and supplies them, verify the committed allowlist

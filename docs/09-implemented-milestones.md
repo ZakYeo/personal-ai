@@ -24,7 +24,8 @@ Included:
   confirmation, and ordered execution pipeline.
 - OpenAI Responses continuation through `previous_response_id`, strict read
   tools, and disabled parallel calls, with provider-managed response-state
-  privacy documented for operators.
+  privacy documented for operators. Every intent response requires a non-empty
+  response ID before its interpretation is accepted.
 - Calendar-event-to-alarm binding with exact timed-event instants, deterministic
   all-day local-time resolution in `assistant.timeZone`, protected confirmation
   facts, and snapshot rather than tracking semantics.
@@ -57,7 +58,11 @@ Outcomes:
   text in response fields, event titles, labels, or data remains input data and
   is never an instruction source.
 - Tool-chain outcome metadata preserves each completed read and its safe data
-  across clarification and confirmation turns.
+  across clarification and confirmation turns, including when the provider
+  fails during tool-result or clarification continuation.
+- Intermediate reads bypass response rewriting; the optional rewriter remains
+  final human-response post-processing only. Core returns provider-session
+  failures through the normal safe outcome with internal diagnostics.
 - The fresh thermonuclear maintainability review findings were all addressed:
   intent sessions became the sole interpreter contract; invalid post-read
   terminal states, identifiers, validation failures, and execution failures
