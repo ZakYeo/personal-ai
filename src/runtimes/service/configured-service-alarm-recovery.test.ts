@@ -22,7 +22,10 @@ describe("configured service alarm recovery", () => {
     );
     expect(atDue).toEqual([{ id: "recovery-alarm", text: "Alarm: tea." }]);
     await expect(
-      createFileAlarmStore({ filePath: fixture.statePath }).list(),
+      createFileAlarmStore({
+        filePath: fixture.statePath,
+        now: () => new Date("2026-07-14T09:00:00.000Z"),
+      }).list(),
     ).resolves.toEqual([
       expect.objectContaining({
         deliveryAttempts: 1,
@@ -48,7 +51,10 @@ describe("configured service alarm recovery", () => {
 
       expect(delivered).toHaveLength(shouldDeliver ? 1 : 0);
       await expect(
-        createFileAlarmStore({ filePath: fixture.statePath }).list(),
+        createFileAlarmStore({
+          filePath: fixture.statePath,
+          now: () => new Date("2026-07-14T09:00:00.000Z"),
+        }).list(),
       ).resolves.toEqual([expect.objectContaining({ status: expectedStatus })]);
     },
   );
@@ -79,7 +85,10 @@ describe("configured service alarm recovery", () => {
       runRecoveryCycle(fixture.configPath, "2026-07-14T09:02:00.000Z", false),
     ).resolves.toEqual([]);
     await expect(
-      createFileAlarmStore({ filePath: fixture.statePath }).list(),
+      createFileAlarmStore({
+        filePath: fixture.statePath,
+        now: () => new Date("2026-07-14T09:00:00.000Z"),
+      }).list(),
     ).resolves.toEqual([expect.objectContaining({ status: "completed" })]);
   });
 
@@ -103,7 +112,10 @@ describe("configured service alarm recovery", () => {
       runRecoveryCycle(fixture.configPath, "2026-07-14T09:12:00.000Z", false),
     ).resolves.toEqual([]);
     await expect(
-      createFileAlarmStore({ filePath: fixture.statePath }).list(),
+      createFileAlarmStore({
+        filePath: fixture.statePath,
+        now: () => new Date("2026-07-14T09:00:00.000Z"),
+      }).list(),
     ).resolves.toEqual([
       expect.objectContaining({
         recurrence: { frequency: "daily", timeZone: "Europe/London" },

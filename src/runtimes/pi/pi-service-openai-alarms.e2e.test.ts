@@ -64,7 +64,10 @@ describe.skipIf(!runOpenAIE2E)("Pi service OpenAI alarms live E2E", () => {
             await vi.waitFor(
               async () => {
                 await expect(
-                  createFileAlarmStore({ filePath: fixture.statePath }).list(),
+                  createFileAlarmStore({
+                    filePath: fixture.statePath,
+                    now: () => new Date("2026-07-13T16:00:00.000Z"),
+                  }).list(),
                 ).resolves.toEqual([
                   expect.objectContaining({
                     status: "ringing",
@@ -103,7 +106,10 @@ describe.skipIf(!runOpenAIE2E)("Pi service OpenAI alarms live E2E", () => {
 
       expect(result).toEqual({ status: "stopped", turnsCompleted: 1 });
       await expect(
-        createFileAlarmStore({ filePath: fixture.statePath }).list(),
+        createFileAlarmStore({
+          filePath: fixture.statePath,
+          now: () => new Date("2026-07-13T16:00:00.000Z"),
+        }).list(),
       ).resolves.toMatchObject([
         {
           label: "tea",

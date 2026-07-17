@@ -137,7 +137,12 @@ describe("desktop voice service startup", () => {
           alarms: {
             adapters: {
               "context-check": defineFeatureAdapterEntry({
-                create: () => createAlarmFeature(createInMemoryAlarmStore()),
+                create: () =>
+                  createAlarmFeature(
+                    createInMemoryAlarmStore({
+                      now: () => new Date("2026-07-13T16:00:00.000Z"),
+                    }),
+                  ),
                 parseConfig: () => ({}),
                 validateStartup: ({ dependencies }) => {
                   validateStartup(dependencies);

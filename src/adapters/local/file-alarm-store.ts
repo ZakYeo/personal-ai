@@ -38,7 +38,7 @@ interface FileAlarmStoreOptions {
   createId?: () => string;
   filePath: string;
   fileSystem?: AlarmStoreFileSystem;
-  now?: () => Date;
+  now: () => Date;
 }
 
 export type FileAlarmStoreDependencies = Pick<
@@ -64,7 +64,7 @@ export function createFileAlarmStore(
 ): AlarmStore {
   const createId = options.createId ?? randomUUID;
   const fileSystem = options.fileSystem ?? nodeFileSystem;
-  const now = options.now ?? (() => new Date());
+  const { now } = options;
   let pending: Promise<void> = Promise.resolve();
 
   function enqueue<T>(operation: () => Promise<T>): Promise<T> {

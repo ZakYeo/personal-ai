@@ -2,9 +2,23 @@ import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
-  createFileAlarmStore,
+  createFileAlarmStore as createProductionFileAlarmStore,
   type AlarmStoreFileSystem,
 } from "./file-alarm-store.js";
+
+type TestFileAlarmStoreOptions = Omit<
+  Parameters<typeof createProductionFileAlarmStore>[0],
+  "now"
+> & {
+  now?: () => Date;
+};
+
+function createFileAlarmStore(options: TestFileAlarmStoreOptions) {
+  return createProductionFileAlarmStore({
+    now: () => new Date("2026-07-13T16:00:00.000Z"),
+    ...options,
+  });
+}
 
 describe("createFileAlarmStore", () => {
   it("starts empty when the state file is missing and persists across instances", async () => {

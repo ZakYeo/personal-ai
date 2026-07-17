@@ -37,6 +37,7 @@ describe.skipIf(!runOpenAIE2E)("OpenAI persistent alarms live E2E", () => {
     });
     const storedAlarms = await createFileAlarmStore({
       filePath: statePath,
+      now: () => new Date("2026-07-13T16:00:00.000Z"),
     }).list();
     expect(storedAlarms).toHaveLength(1);
     expect(storedAlarms[0]?.id).not.toBe("");

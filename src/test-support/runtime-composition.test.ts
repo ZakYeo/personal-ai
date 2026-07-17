@@ -135,7 +135,10 @@ describe("runtime composition test support", () => {
       },
     });
     await expect(
-      createFileAlarmStore({ filePath: statePath }).list(),
+      createFileAlarmStore({
+        filePath: statePath,
+        now: () => new Date("2026-07-13T16:00:00.000Z"),
+      }).list(),
     ).resolves.toEqual([
       createScheduledAlarmRecord({
         ...alarm,

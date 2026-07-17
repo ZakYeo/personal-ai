@@ -7,15 +7,15 @@ import {
 
 interface InMemoryAlarmStoreOptions {
   createId?: () => string;
-  now?: () => Date;
+  now: () => Date;
 }
 
 export function createInMemoryAlarmStore(
-  options: InMemoryAlarmStoreOptions = {},
+  options: InMemoryAlarmStoreOptions,
 ): AlarmStore {
   const alarms: AlarmRecord[] = [];
   const createId = options.createId ?? (() => `alarm-${alarms.length + 1}`);
-  const now = options.now ?? (() => new Date());
+  const { now } = options;
 
   return {
     add: (alarm) => {

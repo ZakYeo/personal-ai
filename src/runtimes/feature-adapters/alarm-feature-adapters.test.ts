@@ -67,7 +67,12 @@ describe("alarm feature adapters", () => {
     });
     await assistant.handleText("yes");
 
-    await expect(createFileAlarmStore({ filePath }).list()).resolves.toEqual([
+    await expect(
+      createFileAlarmStore({
+        filePath,
+        now: () => new Date("2026-07-13T16:00:00.000Z"),
+      }).list(),
+    ).resolves.toEqual([
       expect.objectContaining({
         label: "take medicine",
         recurrence: { frequency: "daily", timeZone: "Europe/London" },

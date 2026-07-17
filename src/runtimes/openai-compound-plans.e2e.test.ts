@@ -41,7 +41,10 @@ describe.skipIf(!runOpenAIE2E)("OpenAI bounded workflows live E2E", () => {
     expect(response).toMatchObject({ status: "ok" });
     expect(response.text).toContain("Alarm set");
     await expect(
-      createFileAlarmStore({ filePath: statePath }).list(),
+      createFileAlarmStore({
+        filePath: statePath,
+        now: () => new Date("2026-07-13T16:00:00.000Z"),
+      }).list(),
     ).resolves.toEqual([
       expect.objectContaining({
         label: "Upcoming wedding reminder",
