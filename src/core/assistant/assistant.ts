@@ -15,7 +15,10 @@ import type {
 } from "../../ports/feature.js";
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
-import type { IntentInterpreterPort } from "../../ports/intent.js";
+import type {
+  IntentInterpretation,
+  IntentInterpreterPort,
+} from "../../ports/intent.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import {
   createAppError,
@@ -140,13 +143,8 @@ async function handleTextInternal(
       ? { resultReferences: resultReferences.publicReferences() }
       : {}),
   };
-  const session = dependencies.intentInterpreter.start?.(
-    normalizedText,
-    context,
-  );
-  const interpretation = session
-    ? await session.next()
-    : await dependencies.intentInterpreter.interpret(normalizedText, context);
+  const session = dependencies.intentInterpreter.start(normalizedText, context);
+  const interpretation = await session.next();
   const toolChainState = createToolChainState();
   const finish = (outcome: AssistantOutcome) =>
     withToolChainOutcome(outcome, toolChainState);
@@ -155,9 +153,7 @@ async function handleTextInternal(
   return handleInterpretation(interpretation);
 
   async function handleInterpretation(
-    current: Awaited<
-      ReturnType<typeof dependencies.intentInterpreter.interpret>
-    >,
+    current: IntentInterpretation,
   ): Promise<AssistantOutcome> {
     if (current.kind === "tool_call") {
       const resolved = await resolveToolCalls({

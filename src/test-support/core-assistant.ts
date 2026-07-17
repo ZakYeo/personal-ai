@@ -120,7 +120,6 @@ export function createInterpreter(
         : interpretation,
     );
   return {
-    interpret,
     start: () => ({ next: interpret }),
   };
 }

@@ -38,7 +38,7 @@ export async function resolveToolCalls(input: {
   ): Promise<CommandExecutionOutcome>;
   initial: ToolCallInterpretation;
   publicReferences(): readonly AssistantResultReference[];
-  session: IntentInterpreterSession | undefined;
+  session: IntentInterpreterSession;
   state: ToolChainState;
   validateRead(
     interpretation: ToolCallInterpretation,
@@ -46,17 +46,6 @@ export async function resolveToolCalls(input: {
     | { ok: true; step: ValidatedAssistantPlanStep }
     | { ok: false; outcome: AssistantOutcome };
 }): Promise<ToolChainResolution> {
-  if (!input.session) {
-    return failToolCall(
-      input.state,
-      input.initial.call.command.capability,
-      rejectToolChain(
-        input.initial.call.command.capability,
-        "The intent provider did not create a resumable session.",
-      ),
-    );
-  }
-
   let interpretation: IntentInterpretation = input.initial;
 
   while (interpretation.kind === "tool_call") {

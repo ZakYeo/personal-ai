@@ -3,6 +3,7 @@ import {
   normalizeCommandText,
 } from "./deterministic-intent-interpreter.js";
 import type { AssistantContext } from "../../ports/assistant.js";
+import { interpretOnce } from "../../ports/intent.js";
 
 const context: AssistantContext = {
   clock: {
@@ -53,7 +54,7 @@ describe("DeterministicIntentInterpreter", () => {
     ]);
 
     await expect(
-      ruleBackedInterpreter.interpret("Hey Jarvis, echo this", context),
+      interpretOnce(ruleBackedInterpreter, "Hey Jarvis, echo this", context),
     ).resolves.toEqual({
       command: {
         capability: "test.echo",
@@ -78,7 +79,8 @@ describe("DeterministicIntentInterpreter", () => {
     ]);
 
     await expect(
-      interpreter.interpret(
+      interpretOnce(
+        interpreter,
         "Hey Jarvis, check my calendar and set an alarm in 10 minutes",
         context,
       ),
@@ -115,7 +117,8 @@ describe("DeterministicIntentInterpreter", () => {
       },
     ]);
 
-    const result = await interpreter.interpret(
+    const result = await interpretOnce(
+      interpreter,
       "Set an alarm and then check my calendar",
       context,
     );
@@ -147,7 +150,8 @@ describe("DeterministicIntentInterpreter", () => {
       },
     ]);
 
-    const result = await interpreter.interpret(
+    const result = await interpretOnce(
+      interpreter,
       "Draft a message, then set an alarm, then check my calendar",
       context,
     );
@@ -177,7 +181,8 @@ describe("DeterministicIntentInterpreter", () => {
     ]);
 
     await expect(
-      interpreter.interpret(
+      interpretOnce(
+        interpreter,
         "Check my calendar, then turn on the lights, then set an alarm",
         context,
       ),
@@ -203,7 +208,8 @@ describe("DeterministicIntentInterpreter", () => {
     ]);
 
     await expect(
-      interpreter.interpret(
+      interpretOnce(
+        interpreter,
         "Check my calendar, then turn on the lights, then set an alarm, then check my calendar",
         context,
       ),
@@ -228,7 +234,8 @@ describe("DeterministicIntentInterpreter", () => {
     ]);
 
     await expect(
-      interpreter.interpret(
+      interpretOnce(
+        interpreter,
         "Set an alarm to fish and chips in 10 minutes",
         context,
       ),
@@ -245,7 +252,7 @@ describe("DeterministicIntentInterpreter", () => {
     const interpreter = new DeterministicIntentInterpreter();
 
     await expect(
-      interpreter.interpret("Hey Jarvis, list my alarms", context),
+      interpretOnce(interpreter, "Hey Jarvis, list my alarms", context),
     ).resolves.toEqual({
       kind: "unknown",
       response: {
@@ -264,7 +271,7 @@ describe("DeterministicIntentInterpreter", () => {
     ]);
 
     await expect(
-      interpreter.interpret("Hey Jarvis, order lunch", context),
+      interpretOnce(interpreter, "Hey Jarvis, order lunch", context),
     ).resolves.toEqual({
       kind: "unknown",
       response: {

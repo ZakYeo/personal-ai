@@ -91,7 +91,6 @@ describe("assistant bounded tool chains", () => {
         calendar: { enabled: true },
       }),
       intentInterpreter: {
-        interpret: () => Promise.reject(new Error("one-shot path used")),
         start: () => ({
           next: (continuation) => {
             if (continuation) continuations.push(continuation);
@@ -174,7 +173,6 @@ describe("assistant bounded tool chains", () => {
       clock: createFixedClock(),
       config: createAssistantConfig({ calendar: { enabled: true } }),
       intentInterpreter: {
-        interpret: () => Promise.reject(new Error("one-shot path used")),
         start: () => ({
           next: (continuation) => {
             if (continuation) continuations++;
@@ -208,7 +206,6 @@ describe("assistant bounded tool chains", () => {
       clock: createFixedClock(),
       config: createAssistantConfig({ alarms: { enabled: true } }),
       intentInterpreter: {
-        interpret: () => Promise.reject(new Error("one-shot path used")),
         start: () => ({
           next: () =>
             Promise.resolve({
@@ -265,7 +262,6 @@ describe("assistant bounded tool chains", () => {
       clock: createFixedClock(),
       config: createAssistantConfig({ alarms: { enabled: true } }),
       intentInterpreter: {
-        interpret: () => Promise.reject(new Error("one-shot path used")),
         start: () => {
           starts++;
           return {
@@ -320,7 +316,6 @@ describe("assistant bounded tool chains", () => {
         calendar: { enabled: true },
       }),
       intentInterpreter: {
-        interpret: () => Promise.reject(new Error("one-shot path used")),
         start: () => ({ next: () => Promise.resolve(steps.shift()!) }),
       },
     });
@@ -420,7 +415,6 @@ describe("assistant bounded tool chains", () => {
         calendar: { enabled: true },
       }),
       intentInterpreter: {
-        interpret: () => Promise.reject(new Error("one-shot path used")),
         start: () => ({ next: () => Promise.resolve(steps.shift()!) }),
       },
     });

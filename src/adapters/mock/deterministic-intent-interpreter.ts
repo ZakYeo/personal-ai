@@ -26,12 +26,12 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
             new Error("Deterministic intent sessions cannot be continued."),
           );
         }
-        return this.interpret(text, context);
+        return this.interpretInitial(text, context);
       },
     };
   }
 
-  interpret(
+  private interpretInitial(
     text: string,
     context: AssistantContext,
   ): Promise<IntentInterpretation> {

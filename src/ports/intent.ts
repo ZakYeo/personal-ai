@@ -39,11 +39,15 @@ export interface ProposedAssistantPlan {
 }
 
 export interface IntentInterpreterPort {
-  start?(text: string, context: AssistantContext): IntentInterpreterSession;
-  interpret(
-    text: string,
-    context: AssistantContext,
-  ): Promise<IntentInterpretation>;
+  start(text: string, context: AssistantContext): IntentInterpreterSession;
+}
+
+export function interpretOnce(
+  interpreter: IntentInterpreterPort,
+  text: string,
+  context: AssistantContext,
+): Promise<IntentInterpretation> {
+  return interpreter.start(text, context).next();
 }
 
 export interface IntentInterpreterSession {

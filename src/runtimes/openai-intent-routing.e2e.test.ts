@@ -2,6 +2,7 @@ import { env } from "node:process";
 
 import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
 import type { AssistantContext } from "../ports/assistant.js";
+import { interpretOnce } from "../ports/intent.js";
 import { enabledDeterministicConfig } from "../test-support/deterministic-runtime-fixtures.js";
 import { createConfiguredFeatures } from "./feature-adapter-selection.js";
 import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
@@ -81,7 +82,7 @@ describe.skipIf(!runOpenAIE2E)("OpenAI intent routing live E2E", () => {
     async ({ capability, parameters, text }) => {
       const interpreter = createInterpreter();
 
-      await expect(interpreter.interpret(text, context)).resolves.toEqual({
+      await expect(interpretOnce(interpreter, text, context)).resolves.toEqual({
         command: {
           capability,
           parameters: expect.objectContaining(parameters) as Record<

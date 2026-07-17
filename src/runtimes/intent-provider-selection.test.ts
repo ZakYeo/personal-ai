@@ -6,7 +6,7 @@ import { createConfiguredIntentInterpreter } from "./intent-provider-selection.j
 describe("createConfiguredIntentInterpreter", () => {
   it("lets a registry entry parse and construct a custom intent provider", () => {
     const interpreter: IntentInterpreterPort = {
-      interpret: vi.fn(),
+      start: vi.fn(),
     };
     const createCustom = vi.fn((config: { locale: string }) => {
       void config;

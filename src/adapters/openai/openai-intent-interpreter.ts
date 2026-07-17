@@ -2,7 +2,6 @@ import type { AssistantContext } from "../../ports/assistant.js";
 import type {
   IntentInterpreterSession,
   IntentSessionContinuation,
-  IntentInterpretation,
   IntentInterpreterPort,
 } from "../../ports/intent.js";
 import { OpenAIIntentError } from "./openai-intent-error.js";
@@ -106,13 +105,6 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
         return parsed.interpretation;
       },
     };
-  }
-
-  async interpret(
-    text: string,
-    context: AssistantContext,
-  ): Promise<IntentInterpretation> {
-    return this.start(text, context).next();
   }
 
   private async request(body: unknown): Promise<unknown> {

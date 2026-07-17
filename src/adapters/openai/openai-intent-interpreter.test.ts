@@ -1,4 +1,5 @@
 import type { AssistantContext } from "../../ports/assistant.js";
+import { interpretOnce } from "../../ports/intent.js";
 import {
   createAbortingFetchStub,
   createFetchStub,
@@ -155,7 +156,7 @@ describe("OpenAIIntentInterpreter", () => {
     const interpreter = createInterpreter({ fetch });
 
     await expect(
-      interpreter.interpret("check my calendar and set an alarm", context),
+      interpretOnce(interpreter, "check my calendar and set an alarm", context),
     ).resolves.toEqual({
       kind: "plan",
       plan: {
@@ -195,7 +196,7 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     await expect(
-      interpreter.interpret("do four things", context),
+      interpretOnce(interpreter, "do four things", context),
     ).rejects.toThrow(
       "OpenAI intent response plan.commands must contain one to three commands.",
     );
@@ -219,9 +220,9 @@ describe("OpenAIIntentInterpreter", () => {
       ),
     });
 
-    await expect(interpreter.interpret("list alarms", context)).rejects.toThrow(
-      "OpenAI intent command response must set plan to null.",
-    );
+    await expect(
+      interpretOnce(interpreter, "list alarms", context),
+    ).rejects.toThrow("OpenAI intent command response must set plan to null.");
   });
 
   it("returns a command from structured provider output", async () => {
@@ -262,7 +263,8 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     await expect(
-      interpreter.interpret(
+      interpretOnce(
+        interpreter,
         "Hey Jarvis, check my calendar for the upcoming wedding",
         context,
       ),
@@ -359,7 +361,7 @@ describe("OpenAIIntentInterpreter", () => {
     const interpreter = createInterpreter({ fetch });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, how are you today?", context),
+      interpretOnce(interpreter, "Hey Jarvis, how are you today?", context),
     ).resolves.toEqual({
       kind: "conversation",
     });
@@ -385,7 +387,7 @@ describe("OpenAIIntentInterpreter", () => {
     );
     const interpreter = createInterpreter({ fetch });
 
-    await interpreter.interpret("where is the first one?", {
+    await interpretOnce(interpreter, "where is the first one?", {
       ...context,
       resultReferences: [
         {
@@ -426,7 +428,7 @@ describe("OpenAIIntentInterpreter", () => {
     const interpreter = createInterpreter({ fetch });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, how are you today?", context),
+      interpretOnce(interpreter, "Hey Jarvis, how are you today?", context),
     ).rejects.toThrow(
       "OpenAI intent conversation response must set command, plan, and response to null.",
     );
@@ -449,7 +451,7 @@ describe("OpenAIIntentInterpreter", () => {
     const interpreter = createInterpreter({ fetch });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, send money", context),
+      interpretOnce(interpreter, "Hey Jarvis, send money", context),
     ).resolves.toEqual({
       kind: "unsupported",
       response: {
@@ -485,7 +487,7 @@ describe("OpenAIIntentInterpreter", () => {
     const interpreter = createInterpreter({ fetch });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, list my alarms", context),
+      interpretOnce(interpreter, "Hey Jarvis, list my alarms", context),
     ).resolves.toEqual({
       command: {
         capability: "alarm.list",
@@ -504,7 +506,7 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, list my alarms", context),
+      interpretOnce(interpreter, "Hey Jarvis, list my alarms", context),
     ).rejects.toThrow(
       "OpenAI API key environment variable OPENAI_API_KEY is not set.",
     );
@@ -523,7 +525,7 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, list my alarms", context),
+      interpretOnce(interpreter, "Hey Jarvis, list my alarms", context),
     ).rejects.toMatchObject({
       message: "OpenAI intent request failed with status 429.",
       responseBody: '{"error":{"message":"quota exceeded"}}',
@@ -537,7 +539,7 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, list my alarms", context),
+      interpretOnce(interpreter, "Hey Jarvis, list my alarms", context),
     ).rejects.toMatchObject({
       message: "OpenAI intent response body was not valid JSON.",
       responseBody: "{not-json",
@@ -555,7 +557,7 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, list my alarms", context),
+      interpretOnce(interpreter, "Hey Jarvis, list my alarms", context),
     ).rejects.toThrow("OpenAI intent response was not valid JSON.");
   });
 
@@ -578,7 +580,7 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, set an alarm", context),
+      interpretOnce(interpreter, "Hey Jarvis, set an alarm", context),
     ).rejects.toThrow(
       "OpenAI intent response parameters must be scalar values.",
     );
@@ -606,7 +608,7 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, set an alarm", context),
+      interpretOnce(interpreter, "Hey Jarvis, set an alarm", context),
     ).rejects.toThrow(
       'OpenAI intent response command.parameters contains duplicate name "time".',
     );
@@ -619,7 +621,7 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, list my alarms", context),
+      interpretOnce(interpreter, "Hey Jarvis, list my alarms", context),
     ).rejects.toBe(error);
   });
 
@@ -631,7 +633,7 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     await expect(
-      interpreter.interpret("Hey Jarvis, list my alarms", context),
+      interpretOnce(interpreter, "Hey Jarvis, list my alarms", context),
     ).rejects.toThrow("OpenAI intent request timed out after 1ms.");
   });
 });

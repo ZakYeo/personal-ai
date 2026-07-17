@@ -105,22 +105,28 @@ describe("assistant result references", () => {
       clock: createFixedClock(),
       config: createAssistantConfig({ calendar: { enabled: true } }),
       intentInterpreter: {
-        interpret: () =>
-          Promise.resolve(
-            call++ === 0
-              ? {
-                  command: createCommand("calendar.search", {}, "show events"),
-                  kind: "command" as const,
-                }
-              : {
-                  command: createCommand(
-                    "calendar.follow_up",
-                    { ordinal: 2, reference: "calendar-event-2" },
-                    "the second one",
-                  ),
-                  kind: "command" as const,
-                },
-          ),
+        start: () => ({
+          next: () =>
+            Promise.resolve(
+              call++ === 0
+                ? {
+                    command: createCommand(
+                      "calendar.search",
+                      {},
+                      "show events",
+                    ),
+                    kind: "command" as const,
+                  }
+                : {
+                    command: createCommand(
+                      "calendar.follow_up",
+                      { ordinal: 2, reference: "calendar-event-2" },
+                      "the second one",
+                    ),
+                    kind: "command" as const,
+                  },
+            ),
+        }),
       },
     });
 
@@ -186,10 +192,12 @@ function createReferenceAssistant(
         }
       : {}),
     intentInterpreter: {
-      interpret: (_text, context) => {
-        contexts.push(context);
-        return Promise.resolve(interpret());
-      },
+      start: (_text, context) => ({
+        next: () => {
+          contexts.push(context);
+          return Promise.resolve(interpret());
+        },
+      }),
     },
   });
 }

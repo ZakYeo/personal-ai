@@ -444,14 +444,16 @@ describe("createAssistant", () => {
       config,
       features: [],
       intentInterpreter: {
-        interpret: () =>
-          Promise.resolve({
-            kind: "unknown",
-            response: {
-              status: "unknown",
-              text: "I could not map that to a deterministic command.",
-            },
-          }),
+        start: () => ({
+          next: () =>
+            Promise.resolve({
+              kind: "unknown",
+              response: {
+                status: "unknown",
+                text: "I could not map that to a deterministic command.",
+              },
+            }),
+        }),
       },
     });
 
@@ -651,7 +653,7 @@ describe("createAssistant", () => {
           execute,
         }),
       ],
-      intentInterpreter: { interpret },
+      intentInterpreter: { start: () => ({ next: interpret }) },
     });
 
     await assistant.handleText("do it");
@@ -694,7 +696,9 @@ describe("createAssistant", () => {
         kind: "command" as const,
       }),
     );
-    const interpreter: IntentInterpreterPort = { interpret };
+    const interpreter: IntentInterpreterPort = {
+      start: () => ({ next: interpret }),
+    };
     const assistant = createAssistant({
       clock,
       config,

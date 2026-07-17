@@ -124,7 +124,7 @@ describe("assistant compound plans", () => {
         alarms: { enabled: true },
         test: { enabled: true },
       }),
-      intentInterpreter: { interpret },
+      intentInterpreter: { start: () => ({ next: interpret }) },
     });
 
     await expect(assistant.handleText("do both")).resolves.toMatchObject({
