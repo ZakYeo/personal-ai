@@ -28,9 +28,9 @@ import {
   type ConversationSessionDependencies,
 } from "./conversation-session.js";
 import {
-  createConfirmationSession,
-  type ConfirmationSession,
-} from "./confirmation-session.js";
+  createInteractionSession,
+  type InteractionSession,
+} from "./interaction-session.js";
 import {
   createPlanConfirmationPrompt,
   planRequiresConfirmation,
@@ -44,7 +44,11 @@ import { protectResponseFacts } from "./response-fact-protection.js";
 import { createResultReferenceSession } from "./result-reference-session.js";
 import type { ResultReferenceSession } from "./result-reference-session.js";
 import type { ResultReferenceSelectionRequest } from "../../ports/result-reference.js";
-import { rejectToolChain, resolveToolCalls } from "./tool-chain.js";
+import {
+  createToolChainState,
+  rejectToolChain,
+  resolveToolCalls,
+} from "./tool-chain.js";
 
 export interface AssistantDependencies {
   capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
@@ -70,20 +74,20 @@ export function createAssistant(
         onCompacted: () => resultReferences.clear(),
       })
     : undefined;
-  const confirmation = createConfirmationSession();
+  const interaction = createInteractionSession();
 
   async function handleTextWithDiagnostics(
     text: string,
   ): Promise<AssistantOutcome> {
     let retainedReferences = false;
-    return confirmation.run(
+    return interaction.run(
       text,
       () =>
         handleTextInternal(
           text,
           dependencies,
           conversation,
-          confirmation,
+          interaction,
           resultReferences,
           () => {
             retainedReferences = true;
@@ -113,7 +117,7 @@ async function handleTextInternal(
   text: string,
   dependencies: AssistantDependencies,
   conversation: ConversationSession | undefined,
-  confirmation: ConfirmationSession,
+  interaction: InteractionSession,
   resultReferences: ResultReferenceSession,
   onReferencesRetained: () => void,
 ): Promise<AssistantOutcome> {
@@ -139,107 +143,122 @@ async function handleTextInternal(
     normalizedText,
     context,
   );
-  let interpretation = session
+  const interpretation = session
     ? await session.next()
     : await dependencies.intentInterpreter.interpret(normalizedText, context);
+  const toolChainState = createToolChainState();
+  let clarificationUsed = false;
 
-  if (interpretation.kind === "tool_call") {
-    const resolved = await resolveToolCalls({
-      executeRead: (step) =>
-        executeCommand({
-          command: step.command,
-          context,
-          decodedArgs: step.decodedArgs,
-          dependencies,
-          executionContext: createFeatureExecutionContext(
+  return handleInterpretation(interpretation);
+
+  async function handleInterpretation(
+    current: Awaited<
+      ReturnType<typeof dependencies.intentInterpreter.interpret>
+    >,
+  ): Promise<AssistantOutcome> {
+    if (current.kind === "tool_call") {
+      const resolved = await resolveToolCalls({
+        executeRead: (step) =>
+          executeCommand({
+            command: step.command,
             context,
+            decodedArgs: step.decodedArgs,
             dependencies,
-            resultReferences,
+            executionContext: createFeatureExecutionContext(
+              context,
+              dependencies,
+              resultReferences,
+              normalizedText,
+            ),
+            feature: step.route.feature,
             normalizedText,
+            onReferencesRetained,
+            resultReferences,
+          }),
+        initial: current,
+        publicReferences: () => resultReferences.publicReferences(),
+        session,
+        state: toolChainState,
+        validateRead: ({ call }) => {
+          const validation = validateAssistantPlan({
+            capabilityRouting: dependencies.capabilityRouting,
+            commands: [call.command],
+            config: dependencies.config,
+            context,
+            kind: "single",
+            originalText: normalizedText,
+          });
+          if (!validation.ok) {
+            return { ok: false, outcome: outcomeFromError(validation.error) };
+          }
+          if (
+            validation.plan.steps[0]!.route.capability.toolChain !== "read" ||
+            planRequiresConfirmation(validation.plan)
+          ) {
+            return {
+              ok: false,
+              outcome: rejectToolChain(
+                call.command.capability,
+                "Only declared, confirmation-free read capabilities may run inside a tool chain.",
+              ).outcome,
+            };
+          }
+          return { ok: true, step: validation.plan.steps[0]! };
+        },
+      });
+      return resolved.kind === "outcome"
+        ? resolved.outcome
+        : handleInterpretation(resolved.interpretation);
+    }
+
+    if (current.kind === "clarification") {
+      if (!session || clarificationUsed) {
+        return rejectToolChain(
+          "intent.clarification",
+          "A tool chain may ask at most one resumable clarification.",
+        ).outcome;
+      }
+      clarificationUsed = true;
+      return interaction.requestClarification(
+        { response: { ...current.response, expectsFollowUp: true } },
+        async (reply) =>
+          handleInterpretation(
+            await session.next({ kind: "user_reply", text: reply }),
           ),
-          feature: step.route.feature,
-          normalizedText,
-          onReferencesRetained,
-          resultReferences,
-        }),
-      initial: interpretation,
-      publicReferences: () => resultReferences.publicReferences(),
-      session,
-      validateRead: ({ call }) => {
-        const validation = validateAssistantPlan({
-          capabilityRouting: dependencies.capabilityRouting,
-          commands: [call.command],
-          config: dependencies.config,
-          context,
-          kind: "single",
-          originalText: normalizedText,
-        });
-        if (!validation.ok) {
-          return { ok: false, outcome: outcomeFromError(validation.error) };
-        }
-        if (
-          validation.plan.steps[0]!.route.capability.toolChain !== "read" ||
-          planRequiresConfirmation(validation.plan)
-        ) {
-          return {
-            ok: false,
-            outcome: rejectToolChain(
-              call.command.capability,
-              "Only declared, confirmation-free read capabilities may run inside a tool chain.",
-            ).outcome,
-          };
-        }
-        return { ok: true, step: validation.plan.steps[0]! };
-      },
+      );
+    }
+
+    if (current.kind === "unknown" || current.kind === "unsupported") {
+      return { response: current.response };
+    }
+    if (current.kind === "conversation") {
+      return handleConversation(normalizedText, context, conversation);
+    }
+
+    const commands =
+      current.kind === "plan" ? current.plan.commands : [current.command];
+    const validation = validateAssistantPlan({
+      capabilityRouting: dependencies.capabilityRouting,
+      commands,
+      config: dependencies.config,
+      context,
+      kind: current.kind === "plan" ? "compound" : "single",
+      originalText: normalizedText,
     });
-    if (resolved.kind === "outcome") return resolved.outcome;
-    interpretation = resolved.interpretation;
-  }
-
-  if (
-    interpretation.kind === "unknown" ||
-    interpretation.kind === "unsupported" ||
-    interpretation.kind === "clarification"
-  ) {
-    return {
-      response: interpretation.response,
-    };
-  }
-
-  if (interpretation.kind === "conversation") {
-    return handleConversation(normalizedText, context, conversation);
-  }
-
-  const commands =
-    interpretation.kind === "plan"
-      ? interpretation.plan.commands
-      : [interpretation.command];
-  const validation = validateAssistantPlan({
-    capabilityRouting: dependencies.capabilityRouting,
-    commands,
-    config: dependencies.config,
-    context,
-    kind: interpretation.kind === "plan" ? "compound" : "single",
-    originalText: normalizedText,
-  });
-
-  if (!validation.ok) {
-    return outcomeFromError(validation.error);
-  }
-
-  if (planRequiresConfirmation(validation.plan)) {
-    return confirmation.request(
+    if (!validation.ok) return outcomeFromError(validation.error);
+    if (planRequiresConfirmation(validation.plan)) {
+      return interaction.requestConfirmation(
+        validation.plan,
+        createPlanConfirmationPrompt(validation.plan),
+      );
+    }
+    return executeValidatedPlan(
       validation.plan,
-      createPlanConfirmationPrompt(validation.plan),
+      dependencies,
+      resultReferences,
+      onReferencesRetained,
     );
   }
-
-  return executeValidatedPlan(
-    validation.plan,
-    dependencies,
-    resultReferences,
-    onReferencesRetained,
-  );
 }
 
 function executeValidatedPlan(

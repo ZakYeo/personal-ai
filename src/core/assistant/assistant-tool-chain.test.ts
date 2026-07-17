@@ -215,6 +215,68 @@ describe("assistant bounded tool chains", () => {
     });
     expect(executed).toBe(false);
   });
+
+  it("retains one clarification and resumes the exact provider session", async () => {
+    let starts = 0;
+    const continuations: IntentSessionContinuation[] = [];
+    const steps: IntentInterpretation[] = [
+      {
+        kind: "clarification",
+        response: {
+          expectsFollowUp: true,
+          status: "ok",
+          text: "What time should I use?",
+        },
+      },
+      {
+        command: command("alarm.create", {
+          scheduledFor: "2026-07-17T09:00:00.000Z",
+        }),
+        kind: "command",
+      },
+    ];
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([
+        createRawFeature({
+          id: "alarms",
+          capabilities: [
+            {
+              name: "alarm.create",
+              parameters: { scheduledFor: { required: true, type: "string" } },
+              risk: "low",
+            },
+          ],
+          execute: () => Promise.resolve({ text: "Alarm set." }),
+        }),
+      ]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({ alarms: { enabled: true } }),
+      intentInterpreter: {
+        interpret: () => Promise.reject(new Error("one-shot path used")),
+        start: () => {
+          starts++;
+          return {
+            next: (continuation) => {
+              if (continuation) continuations.push(continuation);
+              return Promise.resolve(steps.shift()!);
+            },
+          };
+        },
+      },
+    });
+
+    await expect(assistant.handleText("remind me before it")).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: "What time should I use?",
+    });
+    await expect(assistant.handleText("ten am")).resolves.toEqual({
+      status: "ok",
+      text: "Alarm set.",
+    });
+    expect(starts).toBe(1);
+    expect(continuations).toEqual([{ kind: "user_reply", text: "ten am" }]);
+  });
 });
 
 function command(capability: string, parameters: Record<string, string>) {

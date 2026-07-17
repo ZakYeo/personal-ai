@@ -19,6 +19,15 @@ type ToolChainResolution =
     }
   | { kind: "outcome"; outcome: AssistantOutcome };
 
+interface ToolChainState {
+  readonly callIds: Set<string>;
+  readCalls: number;
+}
+
+export function createToolChainState(): ToolChainState {
+  return { callIds: new Set<string>(), readCalls: 0 };
+}
+
 export async function resolveToolCalls(input: {
   executeRead(
     step: ValidatedAssistantPlanStep,
@@ -26,6 +35,7 @@ export async function resolveToolCalls(input: {
   initial: ToolCallInterpretation;
   publicReferences(): readonly AssistantResultReference[];
   session: IntentInterpreterSession | undefined;
+  state: ToolChainState;
   validateRead(
     interpretation: ToolCallInterpretation,
   ):
@@ -39,24 +49,23 @@ export async function resolveToolCalls(input: {
     );
   }
 
-  const callIds = new Set<string>();
   let interpretation: IntentInterpretation = input.initial;
 
-  for (let callNumber = 0; interpretation.kind === "tool_call"; callNumber++) {
+  while (interpretation.kind === "tool_call") {
     const { call } = interpretation;
-    if (callNumber >= 2) {
+    if (input.state.readCalls >= 2) {
       return rejectToolChain(
         call.command.capability,
         "A tool chain may contain at most two read calls.",
       );
     }
-    if (call.id.trim().length === 0 || callIds.has(call.id)) {
+    if (call.id.trim().length === 0 || input.state.callIds.has(call.id)) {
       return rejectToolChain(
         call.command.capability,
         "The intent provider returned an invalid tool call identifier.",
       );
     }
-    callIds.add(call.id);
+    input.state.callIds.add(call.id);
 
     const validation = input.validateRead(interpretation);
     if (!validation.ok) return { kind: "outcome", outcome: validation.outcome };
@@ -65,6 +74,7 @@ export async function resolveToolCalls(input: {
     if (execution.outcome.response.status !== "ok") {
       return { kind: "outcome", outcome: execution.outcome };
     }
+    input.state.readCalls++;
 
     const resultReferences = input.publicReferences();
     interpretation = await input.session.next({
