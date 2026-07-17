@@ -4,6 +4,7 @@ import { arch, cpus, platform, release, totalmem, type } from "node:os";
 
 import { runCommand } from "../../adapters/desktop/process-runner.js";
 import { parseVoiceArtifactManifest } from "./artifact-manifest.js";
+import { calculateVoiceBenchmarkFingerprint } from "./benchmark-fingerprint.js";
 import { runVoiceBenchmark } from "./benchmark-runner.js";
 import {
   parseCandidateManifest,
@@ -93,15 +94,13 @@ async function main(): Promise<void> {
     }));
   const result = await runVoiceBenchmark(
     {
-      corpusSha256: sha256(
-        [
-          recordingContents,
-          ttsContents,
-          candidateContents,
-          artifactContents,
-          policyContents,
-        ].join("\0"),
-      ),
+      corpusSha256: calculateVoiceBenchmarkFingerprint({
+        artifactContents,
+        candidateContents,
+        policyContents,
+        recordingContents,
+        ttsContents,
+      }),
       device: {
         architecture: arch(),
         cpu: cpus()[0]?.model ?? "unknown",

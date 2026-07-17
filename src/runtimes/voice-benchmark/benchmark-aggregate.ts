@@ -21,6 +21,7 @@ export interface BenchmarkAggregationExpectation {
     sampleIds: readonly string[];
   }>;
   deviceId: string;
+  fingerprint: string;
 }
 
 type ParsedChunk = AggregatedBenchmark;
@@ -35,6 +36,11 @@ export function aggregateBenchmarkChunks(
     parseBenchmarkResult(chunk, `chunks[${index}]`),
   );
   const first = parsed[0]!;
+  if (first.corpusSha256 !== expectation.fingerprint) {
+    throw new Error(
+      "Benchmark chunks do not match the current input fingerprint.",
+    );
+  }
   if (first.device.deviceId !== expectation.deviceId) {
     throw new Error(`Benchmark device must be ${expectation.deviceId}.`);
   }

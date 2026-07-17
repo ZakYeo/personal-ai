@@ -41,12 +41,22 @@ describe("voice benchmark aggregation", () => {
       aggregateBenchmarkChunks([invalid], expectation(["alarm-list-v1"])),
     ).toThrow(/repetitions/iu);
   });
+
+  it("rejects complete chunks from stale benchmark inputs", () => {
+    expect(() =>
+      aggregateBenchmarkChunks([createChunk("alarm-list-v1")], {
+        ...expectation(["alarm-list-v1"]),
+        fingerprint: "b".repeat(64),
+      }),
+    ).toThrow(/fingerprint/iu);
+  });
 });
 
 function expectation(sampleIds: string[]): BenchmarkAggregationExpectation {
   return {
     candidates: [{ candidateId: "whisper-base-en", kind: "stt", sampleIds }],
     deviceId: "desktop-wsl2",
+    fingerprint: "a".repeat(64),
   };
 }
 

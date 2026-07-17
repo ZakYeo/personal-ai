@@ -1,5 +1,6 @@
 import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { aggregateBenchmarkChunks } from "./benchmark-aggregate.js";
+import { calculateVoiceBenchmarkFingerprint } from "./benchmark-fingerprint.js";
 import { parseCandidateManifest } from "./candidate-manifest.js";
 import { parseRecordingIndex } from "./corpus-manifest.js";
 import { parseTtsCorpus } from "./tts-corpus.js";
@@ -17,21 +18,30 @@ const chunks = await Promise.all(
       ) as unknown,
   ),
 );
+const candidateContents = await readFile(
+  "benchmarks/voice/candidates.json",
+  "utf8",
+);
+const recordingContents = await readFile(
+  "benchmarks/voice/corpus/personal-recordings.json",
+  "utf8",
+);
+const ttsContents = await readFile(
+  "benchmarks/voice/corpus/tts-responses.json",
+  "utf8",
+);
+const artifactContents = await readFile(
+  "benchmarks/voice/artifacts.json",
+  "utf8",
+);
+const policyContents = await readFile("benchmarks/voice/policy.json", "utf8");
 const candidates = parseCandidateManifest(
-  JSON.parse(
-    await readFile("benchmarks/voice/candidates.json", "utf8"),
-  ) as unknown,
+  JSON.parse(candidateContents) as unknown,
 ).candidates;
 const recordings = parseRecordingIndex(
-  JSON.parse(
-    await readFile("benchmarks/voice/corpus/personal-recordings.json", "utf8"),
-  ) as unknown,
+  JSON.parse(recordingContents) as unknown,
 );
-const ttsCorpus = parseTtsCorpus(
-  JSON.parse(
-    await readFile("benchmarks/voice/corpus/tts-responses.json", "utf8"),
-  ) as unknown,
-);
+const ttsCorpus = parseTtsCorpus(JSON.parse(ttsContents) as unknown);
 const result = aggregateBenchmarkChunks(chunks, {
   candidates: candidates.map((candidate) => ({
     candidateId: candidate.id,
@@ -42,6 +52,13 @@ const result = aggregateBenchmarkChunks(chunks, {
         : ttsCorpus.fixtures.map(({ id }) => id),
   })),
   deviceId: "desktop-wsl2",
+  fingerprint: calculateVoiceBenchmarkFingerprint({
+    artifactContents,
+    candidateContents,
+    policyContents,
+    recordingContents,
+    ttsContents,
+  }),
 });
 await mkdir("benchmarks/voice/results", { recursive: true });
 const temporaryPath = `${outputPath}.tmp`;
