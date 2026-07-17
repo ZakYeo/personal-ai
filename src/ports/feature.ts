@@ -2,6 +2,7 @@ import type {
   AssistantCommand,
   AssistantContext,
   AssistantCommandParameters,
+  AssistantResponse,
   ConfirmationDeclaration,
 } from "./assistant.js";
 import type {
@@ -100,6 +101,11 @@ type DefinedCapability<
     args: FeatureArgsFromParameters<TParameters>,
     context: AssistantContext,
   ): ConfirmationDeclaration;
+  clarification?(
+    this: void,
+    args: FeatureArgsFromParameters<TParameters>,
+    context: AssistantContext,
+  ): AssistantResponse | undefined;
   parameters: TParameters;
   execute(
     this: void,
@@ -119,6 +125,7 @@ export function defineCapability<
 
 type AnyDefinedCapability = Omit<FeatureCapability, "name" | "parameters"> & {
   confirmation?: unknown;
+  clarification?: unknown;
   parameters: FeatureCapabilityParameters;
   execute: unknown;
 };
@@ -194,6 +201,13 @@ export function defineFeature<
         ? {
             renderConfirmation: handler.confirmation as NonNullable<
               FeatureCapability["renderConfirmation"]
+            >,
+          }
+        : {}),
+      ...(typeof handler.clarification === "function"
+        ? {
+            requestClarification: handler.clarification as NonNullable<
+              FeatureCapability["requestClarification"]
             >,
           }
         : {}),

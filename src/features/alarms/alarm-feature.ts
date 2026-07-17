@@ -25,6 +25,7 @@ import {
 import {
   createCalendarReminder,
   renderCalendarReminderConfirmation,
+  requestCalendarReminderClarification,
 } from "./calendar-reminder.js";
 
 export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
@@ -106,6 +107,7 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
           spokenSummary: "set reminders from calendar events",
           requiresConfirmation: true,
           parameters: alarmCalendarReminderParameters,
+          clarification: requestCalendarReminderClarification,
           confirmation: renderCalendarReminderConfirmation,
           execute: (request, context) =>
             createCalendarReminder(request.args, context, store),

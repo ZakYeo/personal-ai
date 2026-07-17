@@ -1,5 +1,6 @@
 import type {
   AssistantContext,
+  AssistantResponse,
   ConfirmationDeclaration,
 } from "../../ports/assistant.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
@@ -10,14 +11,31 @@ import type {
 import { resolveLocalDateTime } from "../../ports/local-date-time.js";
 import type { AlarmCalendarReminderArgs } from "./alarm-feature-contract.js";
 
+export function requestCalendarReminderClarification(
+  args: AlarmCalendarReminderArgs,
+  context: AssistantContext,
+): AssistantResponse | undefined {
+  const selected = selectCalendarEvent(args, context);
+  if (
+    !selected ||
+    selected.publicReference.kind !== "calendar_event" ||
+    selected.publicReference.facts.startAt ||
+    args.localTime
+  ) {
+    return undefined;
+  }
+
+  return {
+    status: "ok",
+    text: `What time should I use for the all-day ${selected.publicReference.facts.title} event?`,
+  };
+}
+
 export function renderCalendarReminderConfirmation(
   args: AlarmCalendarReminderArgs,
   context: AssistantContext,
 ): ConfirmationDeclaration {
-  const selected = context.selectResultReference?.({
-    rawText: context.trustedInputText ?? "",
-    reference: args.reference,
-  });
+  const selected = selectCalendarEvent(args, context);
   if (!selected || selected.publicReference.kind !== "calendar_event") {
     throw new Error("The selected calendar event is no longer available.");
   }
@@ -48,6 +66,16 @@ export function renderCalendarReminderConfirmation(
     },
     text: `set the ${label} alarm for ${scheduledFor.toISOString()}, ${args.minutesBefore} minutes before ${facts.title}`,
   };
+}
+
+function selectCalendarEvent(
+  args: AlarmCalendarReminderArgs,
+  context: AssistantContext,
+) {
+  return context.selectResultReference?.({
+    rawText: context.trustedInputText ?? "",
+    reference: args.reference,
+  });
 }
 
 export async function createCalendarReminder(

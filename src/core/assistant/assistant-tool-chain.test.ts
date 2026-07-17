@@ -390,8 +390,11 @@ describe("assistant bounded tool chains", () => {
         kind: "tool_call",
       },
       {
-        kind: "clarification",
-        response: { status: "ok", text: "What time should I use?" },
+        command: command("alarm.create_from_calendar_event", {
+          minutesBefore: 10,
+          reference: "calendar-event-1",
+        }),
+        kind: "command",
       },
       {
         command: command("alarm.create_from_calendar_event", {
@@ -451,7 +454,7 @@ describe("assistant bounded tool chains", () => {
     ).resolves.toEqual({
       expectsFollowUp: true,
       status: "ok",
-      text: "What time should I use?",
+      text: "What time should I use for the all-day Birthday event?",
     });
     await expect(assistant.handleText("10am")).resolves.toEqual({
       expectsFollowUp: true,

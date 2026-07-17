@@ -90,14 +90,20 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
         expectedContinuation =
           parsed.interpretation.kind === "tool_call"
             ? "tool_result"
-            : parsed.interpretation.kind === "clarification"
+            : parsed.interpretation.kind === "clarification" ||
+                parsed.interpretation.kind === "command" ||
+                parsed.interpretation.kind === "plan"
               ? "user_reply"
               : undefined;
         pendingCallId =
           parsed.interpretation.kind === "tool_call"
             ? parsed.interpretation.call.id
             : undefined;
-        if (expectedContinuation && !previousResponseId) {
+        if (
+          (parsed.interpretation.kind === "tool_call" ||
+            parsed.interpretation.kind === "clarification") &&
+          !previousResponseId
+        ) {
           throw new OpenAIIntentError(
             "OpenAI intent resumable response must include an id.",
           );

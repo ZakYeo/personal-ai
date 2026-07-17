@@ -27,6 +27,11 @@ describe("createAlarmFeature", () => {
         recurrenceTimeZone: { type: "string" },
       },
     });
+    expect(
+      feature.capabilities.find(
+        ({ name }) => name === "alarm.create_from_calendar_event",
+      )?.requestClarification,
+    ).toEqual(expect.any(Function));
     expectCapabilityMetadata(feature, {
       name: "alarm.create_from_calendar_event",
       risk: "high",

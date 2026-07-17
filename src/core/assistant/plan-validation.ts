@@ -2,6 +2,7 @@ import type {
   AssistantCommand,
   AssistantContext,
   AssistantPolicyConfig,
+  AssistantResponse,
   ConfirmationDeclaration,
 } from "../../ports/assistant.js";
 import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
@@ -13,6 +14,7 @@ import { evaluateConfirmationPolicy } from "./confirmation-policy.js";
 
 type PlanValidationResult =
   | { ok: true; plan: ValidatedAssistantPlan }
+  | { clarification: AssistantResponse; ok: false }
   | { error: AppError; ok: false };
 
 export function validateAssistantPlan(input: {
@@ -61,6 +63,7 @@ function validateStep(
   input: Parameters<typeof validateAssistantPlan>[0],
 ):
   | { ok: true; step: ValidatedAssistantPlan["steps"][number] }
+  | { clarification: AssistantResponse; ok: false }
   | { error: AppError; ok: false } {
   const route = input.capabilityRouting.get(proposedCommand.capability);
   const feature = route?.feature;
@@ -98,6 +101,14 @@ function validateStep(
     );
     if (!decoded.ok) {
       return decoded;
+    }
+
+    const clarification = route.capability.requestClarification?.(
+      decoded.args,
+      input.context,
+    );
+    if (clarification) {
+      return { clarification, ok: false };
     }
 
     const confirmationRequired =

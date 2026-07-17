@@ -196,7 +196,16 @@ async function handleTextInternal(
             originalText: normalizedText,
           });
           if (!validation.ok) {
-            return { ok: false, outcome: outcomeFromError(validation.error) };
+            return {
+              ok: false,
+              outcome:
+                "error" in validation
+                  ? outcomeFromError(validation.error)
+                  : rejectToolChain(
+                      call.command.capability,
+                      "Read capabilities may not request user clarification.",
+                    ).outcome,
+            };
           }
           if (
             validation.plan.steps[0]!.route.capability.toolChain !== "read" ||
@@ -219,22 +228,7 @@ async function handleTextInternal(
     }
 
     if (current.kind === "clarification") {
-      if (!session || clarificationUsed) {
-        return finish(
-          rejectToolChain(
-            "intent.clarification",
-            "A tool chain may ask at most one resumable clarification.",
-          ).outcome,
-        );
-      }
-      clarificationUsed = true;
-      return interaction.requestClarification(
-        finish({ response: { ...current.response, expectsFollowUp: true } }),
-        async (reply) =>
-          handleInterpretation(
-            await session.next({ kind: "user_reply", text: reply }),
-          ),
-      );
+      return requestClarification(current.response);
     }
 
     if (current.kind === "unknown" || current.kind === "unsupported") {
@@ -260,7 +254,11 @@ async function handleTextInternal(
       kind: current.kind === "plan" ? "compound" : "single",
       originalText: normalizedText,
     });
-    if (!validation.ok) return finish(outcomeFromError(validation.error));
+    if (!validation.ok) {
+      return "clarification" in validation
+        ? requestClarification(validation.clarification)
+        : finish(outcomeFromError(validation.error));
+    }
     if (planRequiresConfirmation(validation.plan)) {
       return interaction.requestConfirmation(
         validation.plan,
@@ -276,6 +274,27 @@ async function handleTextInternal(
         onReferencesRetained,
       ),
     );
+
+    function requestClarification(
+      response: AssistantOutcome["response"],
+    ): AssistantOutcome {
+      if (clarificationUsed) {
+        return finish(
+          rejectToolChain(
+            "intent.clarification",
+            "A tool chain may ask at most one resumable clarification.",
+          ).outcome,
+        );
+      }
+      clarificationUsed = true;
+      return interaction.requestClarification(
+        finish({ response: { ...response, expectsFollowUp: true } }),
+        async (reply) =>
+          handleInterpretation(
+            await session.next({ kind: "user_reply", text: reply }),
+          ),
+      );
+    }
   }
 }
 

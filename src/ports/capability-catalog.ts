@@ -1,4 +1,8 @@
-import type { AssistantContext, ConfirmationDeclaration } from "./assistant.js";
+import type {
+  AssistantContext,
+  AssistantResponse,
+  ConfirmationDeclaration,
+} from "./assistant.js";
 
 export interface FeatureCapability {
   name: string;
@@ -13,6 +17,10 @@ export interface FeatureCapability {
     args: Record<string, string | number | boolean | undefined>,
     context: AssistantContext,
   ) => ConfirmationDeclaration;
+  requestClarification?: (
+    args: Record<string, string | number | boolean | undefined>,
+    context: AssistantContext,
+  ) => AssistantResponse | undefined;
 }
 
 export interface FeatureCapabilityParameter {
