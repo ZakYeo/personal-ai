@@ -33,7 +33,101 @@ const context = {
   },
 } satisfies AssistantContext;
 
+const calendarReadCapability: OpenAIIntentCapability = {
+  capability: {
+    name: "calendar.search_events",
+    parameters: { query: { type: "string" } },
+    risk: "low",
+    toolChain: "read",
+  },
+  featureId: "calendar",
+  featureName: "Calendar",
+  parameterText: "query: string (optional)",
+};
+
 describe("OpenAIIntentInterpreter", () => {
+  it("continues a provider tool call with previous_response_id and a safe observation", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: "resp_initial",
+          output: [
+            {
+              arguments: '{"query":"dentist"}',
+              call_id: "provider-call-1",
+              name: "read_0",
+              type: "function_call",
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: "resp_terminal",
+          output_text: JSON.stringify({
+            command: {
+              capability: "alarm.create",
+              parameters: [{ name: "minutesFromNow", value: 10 }],
+              rawText: "remind me before the dentist",
+            },
+            kind: "command",
+            plan: null,
+            response: null,
+          }),
+        }),
+      );
+    const interpreter = createInterpreter({
+      capabilityCatalog: [calendarReadCapability],
+      fetch,
+    });
+    const session = interpreter.start("remind me before the dentist", context);
+
+    await expect(session.next()).resolves.toEqual({
+      call: {
+        command: {
+          capability: "calendar.search_events",
+          parameters: { query: "dentist" },
+          rawText: "remind me before the dentist",
+        },
+        id: "provider-call-1",
+      },
+      kind: "tool_call",
+    });
+    await expect(
+      session.next({
+        callId: "provider-call-1",
+        kind: "tool_result",
+        observation: {
+          capability: "calendar.search_events",
+          data: { count: 1 },
+          text: "Dentist is at 11am.",
+        },
+      }),
+    ).resolves.toMatchObject({ kind: "command" });
+
+    const firstBody = readJsonRequestBody<Record<string, unknown>>(fetch, 0);
+    expect(firstBody).toMatchObject({ parallel_tool_calls: false });
+    expect(firstBody.tools).toEqual([
+      expect.objectContaining({
+        name: "read_0",
+        strict: true,
+        type: "function",
+      }),
+    ]);
+    const continuedBody = readJsonRequestBody<Record<string, unknown>>(
+      fetch,
+      1,
+    );
+    expect(continuedBody).toMatchObject({
+      parallel_tool_calls: false,
+      previous_response_id: "resp_initial",
+    });
+    expect(JSON.stringify(continuedBody.input)).toContain(
+      "Dentist is at 11am.",
+    );
+    expect(JSON.stringify(continuedBody.input)).not.toContain("diagnostics");
+  });
   it("returns a bounded compound plan from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({
@@ -218,7 +312,14 @@ describe("OpenAIIntentInterpreter", () => {
           required: ["capability", "parameters", "rawText"],
         },
         kind: {
-          enum: ["command", "plan", "conversation", "unknown", "unsupported"],
+          enum: [
+            "command",
+            "plan",
+            "conversation",
+            "clarification",
+            "unknown",
+            "unsupported",
+          ],
         },
         plan: {
           type: ["object", "null"],

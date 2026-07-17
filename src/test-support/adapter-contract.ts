@@ -99,10 +99,11 @@ export function createAbortingFetchStub(): typeof fetch {
 
 export function readJsonRequestBody<TBody>(
   fetch: typeof globalThis.fetch,
+  callIndex = 0,
 ): TBody {
-  const init = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as
-    | RequestInit
-    | undefined;
+  const init = (fetch as ReturnType<typeof vi.fn>).mock.calls[
+    callIndex
+  ]?.[1] as RequestInit | undefined;
   const body = init?.body;
 
   if (typeof body !== "string") {
