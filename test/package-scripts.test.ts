@@ -27,6 +27,9 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.["benchmark:voice:capture"]).toBe(
       "node --import tsx src/runtimes/voice-benchmark/capture-main.ts",
     );
+    expect(packageJson.scripts?.["benchmark:voice:run"]).toBe(
+      "node --import tsx src/runtimes/voice-benchmark/desktop-benchmark-main.ts",
+    );
   });
 
   it("provides an offline-only voice artifact verification command", async () => {

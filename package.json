@@ -16,6 +16,7 @@
     "architecture:check": "depcruise src --config .dependency-cruiser.cjs",
     "architecture:graph": "depcruise src --config .dependency-cruiser.cjs --output-type dot",
     "benchmark:voice:capture": "node --import tsx src/runtimes/voice-benchmark/capture-main.ts",
+    "benchmark:voice:run": "node --import tsx src/runtimes/voice-benchmark/desktop-benchmark-main.ts",
     "benchmark:voice:verify-artifacts": "node --import tsx src/runtimes/voice-benchmark/artifact-verify-main.ts",
     "bin:check": "npm run build && node scripts/check-bin.mjs",
     "build": "tsc -p tsconfig.build.json",
