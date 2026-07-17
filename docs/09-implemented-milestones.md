@@ -69,6 +69,11 @@ Outcomes:
   gained adversarial coverage; all-day clarification moved into a generic
   application declaration; calendar snapshots became typed and complete; and
   tool-result prompt-injection policy became explicit and tested.
+- A later fresh whole-codebase thermonuclear review was also fully remediated.
+  Result-reference retention now owns its turn bookkeeping across clarification
+  replies; `IntentWorkflow` no longer carries ceremonial duplicate state;
+  benchmark structural validation and spoken ordinal parsing use shared
+  primitives; and local alarm stores require an injected clock.
 
 Acceptance criteria:
 

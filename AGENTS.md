@@ -89,6 +89,7 @@
 - Keep compound plan stages explicit: providers return untrusted raw `ProposedAssistantPlan` values; only core may decode arguments, resolve routes and confirmation policy, render protected confirmation facts, and construct an immutable `ValidatedAssistantPlan` that can become pending or execute.
 - Confirmation-required capabilities must deterministically render their exact decoded action through an application-owned declaration; aggregate prompts include every material protected fact, and plan outcomes classify steps as succeeded, failed, or skipped so partial-completion responses cannot invite duplicate retries.
 - Calendar result follow-ups retain only the latest process-local result set, capped at ten opaque event references; a new calendar result replaces it, and three subsequent completed assistant turns or conversation compaction clears it.
+- Keep result-reference retention and completed-turn aging inside the result-reference session so clarification replies cannot age newly retained references early.
 - Confirmed external sends require durable `prepared` then `sending/unknown` then `confirmed` lifecycle state, provider idempotency keys wherever available, no automatic retry from an unknown outcome, and deterministic crash-window restart coverage.
 - Keep persistence ports asynchronous so feature success is not returned before durable work completes.
 - Resolve broad optional config into runtime-specific validated shapes at composition boundaries before constructing adapters or running loops.
