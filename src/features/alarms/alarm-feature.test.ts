@@ -221,6 +221,7 @@ describe("createAlarmFeature", () => {
       {
         data: {
           calendarEventTitle: "Dentist",
+          eventStartAt: "2026-07-17T10:00:00.000Z",
           id: "alarm-1",
           label: "Dentist reminder",
           minutesBefore: 10,
@@ -249,6 +250,30 @@ describe("createAlarmFeature", () => {
         scheduledFor: "2026-07-17T09:50:00.000Z",
       }),
     ]);
+  });
+
+  it("rejects an incomplete calendar reminder snapshot before persistence", async () => {
+    const store = createTestAlarmStore();
+
+    await expect(
+      executeFeature(
+        createAlarmFeature(store),
+        "alarm.create_from_calendar_event",
+        { minutesBefore: 10, reference: "calendar-event-2" },
+        {
+          ...context,
+          validatedConfirmationFacts: {
+            eventTitle: "Dentist",
+            label: "Dentist reminder",
+            minutesBefore: 10,
+            scheduledFor: "2026-07-17T09:50:00.000Z",
+            snapshot: true,
+            timeZone: "Europe/London",
+          },
+        },
+      ),
+    ).rejects.toThrow("Calendar reminder confirmation facts are incomplete.");
+    await expect(store.list()).resolves.toEqual([]);
   });
 
   it("handles alarm create and list commands", () => {

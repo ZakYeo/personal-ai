@@ -1,4 +1,5 @@
 import type {
+  AssistantCommandParameters,
   AssistantContext,
   AssistantResponse,
   ConfirmationDeclaration,
@@ -10,6 +11,19 @@ import type {
 } from "../../ports/feature.js";
 import { resolveLocalDateTime } from "../../ports/local-date-time.js";
 import type { AlarmCalendarReminderArgs } from "./alarm-feature-contract.js";
+
+interface CalendarReminderSnapshotFields {
+  eventStartAt: string;
+  eventTitle: string;
+  label: string;
+  minutesBefore: number;
+  scheduledFor: string;
+  snapshot: true;
+  timeZone: string;
+}
+
+type CalendarReminderSnapshot = AssistantCommandParameters &
+  CalendarReminderSnapshotFields;
 
 export function requestCalendarReminderClarification(
   args: AlarmCalendarReminderArgs,
@@ -55,15 +69,14 @@ export function renderCalendarReminderConfirmation(
   const label = args.label ?? `${facts.title} reminder`;
   const eventStartAt = eventStart.toISOString();
   return {
-    facts: {
+    facts: createCalendarReminderSnapshot({
       eventStartAt,
       eventTitle: facts.title,
       label,
       minutesBefore: args.minutesBefore,
       scheduledFor: scheduledFor.toISOString(),
-      snapshot: true,
       timeZone,
-    },
+    }),
     text: `set the ${label} alarm for ${scheduledFor.toISOString()}, ${args.minutesBefore} minutes before ${facts.title}`,
   };
 }
@@ -83,29 +96,60 @@ export async function createCalendarReminder(
   context: FeatureExecutionContext,
   store: AlarmStore,
 ): Promise<FeatureResult> {
-  const facts = context.validatedConfirmationFacts;
-  const scheduledFor = requireStringFact(facts, "scheduledFor");
-  const label = requireStringFact(facts, "label");
-  const eventTitle = requireStringFact(facts, "eventTitle");
-  const timeZone = requireStringFact(facts, "timeZone");
-  const minutesBefore = requireNumberFact(facts, "minutesBefore");
-  if (facts?.snapshot !== true) {
-    throw new Error("Calendar reminder confirmation facts are incomplete.");
-  }
+  const snapshot = parseCalendarReminderSnapshot(
+    context.validatedConfirmationFacts,
+  );
 
-  const alarm = await store.add({ label, scheduledFor });
+  const alarm = await store.add({
+    label: snapshot.label,
+    scheduledFor: snapshot.scheduledFor,
+  });
   return {
     data: {
-      calendarEventTitle: eventTitle,
+      calendarEventTitle: snapshot.eventTitle,
+      eventStartAt: snapshot.eventStartAt,
       id: alarm.id,
       label: alarm.label,
-      minutesBefore,
+      minutesBefore: snapshot.minutesBefore,
       scheduledFor: alarm.scheduledFor,
       snapshot: true,
-      timeZone,
+      timeZone: snapshot.timeZone,
     },
-    text: `Alarm set for ${alarm.scheduledFor} (${alarm.label}), using the confirmed ${eventTitle} calendar snapshot.`,
+    text: `Alarm set for ${alarm.scheduledFor} (${alarm.label}), using the confirmed ${snapshot.eventTitle} calendar snapshot.`,
   };
+}
+
+function createCalendarReminderSnapshot(
+  input: Omit<CalendarReminderSnapshotFields, "snapshot">,
+): CalendarReminderSnapshot {
+  return { ...input, snapshot: true };
+}
+
+function parseCalendarReminderSnapshot(
+  facts: FeatureExecutionContext["validatedConfirmationFacts"],
+): CalendarReminderSnapshot {
+  const eventStartAt = requireInstantFact(facts, "eventStartAt");
+  const scheduledFor = requireInstantFact(facts, "scheduledFor");
+  const eventTitle = requireStringFact(facts, "eventTitle");
+  const label = requireStringFact(facts, "label");
+  const timeZone = requireStringFact(facts, "timeZone");
+  const minutesBefore = facts?.minutesBefore;
+  if (
+    typeof minutesBefore !== "number" ||
+    !Number.isFinite(minutesBefore) ||
+    minutesBefore <= 0 ||
+    facts?.snapshot !== true
+  ) {
+    throw incompleteSnapshot();
+  }
+  return createCalendarReminderSnapshot({
+    eventStartAt,
+    eventTitle,
+    label,
+    minutesBefore,
+    scheduledFor,
+    timeZone,
+  });
 }
 
 function resolveAllDayStart(
@@ -169,18 +213,20 @@ function requireStringFact(
 ): string {
   const value = facts?.[name];
   if (typeof value !== "string" || value.length === 0) {
-    throw new Error("Calendar reminder confirmation facts are incomplete.");
+    throw incompleteSnapshot();
   }
   return value;
 }
 
-function requireNumberFact(
+function requireInstantFact(
   facts: FeatureExecutionContext["validatedConfirmationFacts"],
   name: string,
-): number {
-  const value = facts?.[name];
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error("Calendar reminder confirmation facts are incomplete.");
-  }
+): string {
+  const value = requireStringFact(facts, name);
+  if (!Number.isFinite(new Date(value).getTime())) throw incompleteSnapshot();
   return value;
+}
+
+function incompleteSnapshot(): Error {
+  return new Error("Calendar reminder confirmation facts are incomplete.");
 }
