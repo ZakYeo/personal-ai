@@ -20,6 +20,7 @@ export interface FeatureResultReferenceSet {
 
 export interface CalendarResultReferenceFacts {
   readonly date: string;
+  readonly startAt?: string;
   readonly time: string;
   readonly title: string;
 }

@@ -32,6 +32,7 @@ describe("createGoogleCalendarAdapter", () => {
     ).resolves.toEqual({
       id: "event/private id",
       location: "12 High Street",
+      startAt: "2026-07-17T10:00:00.000Z",
       startDate: "2026-07-17",
       startTime: "11:00",
       title: "Dentist",
@@ -122,6 +123,7 @@ describe("createGoogleCalendarAdapter", () => {
       },
       {
         id: "event-2",
+        startAt: "2026-09-13T17:30:45.123Z",
         startDate: "2026-09-13",
         startTime: "18:30",
         title: "Dinner",

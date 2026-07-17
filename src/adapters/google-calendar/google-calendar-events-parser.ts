@@ -51,7 +51,9 @@ export function parseGoogleCalendarEvent(value: unknown): CalendarEvent {
 
 function parseEventStart(
   value: unknown,
-): Pick<CalendarEvent, "startDate" | "startTime"> {
+):
+  | { startAt: string; startDate: string; startTime: string }
+  | { startDate: string } {
   if (!isRecord(value)) {
     throw new GoogleCalendarError(
       "Google Calendar event start must be an object.",
@@ -81,6 +83,7 @@ function parseEventStart(
     }
 
     return {
+      startAt: new Date(value.dateTime).toISOString(),
       startDate: date,
       startTime: `${hour}:${minute}`,
     };

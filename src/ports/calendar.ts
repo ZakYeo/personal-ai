@@ -1,10 +1,15 @@
-export interface CalendarEvent {
+interface CalendarEventBase {
   id: string;
   location?: string;
   startDate: string;
-  startTime?: string;
   title: string;
 }
+
+export type CalendarEvent = CalendarEventBase &
+  (
+    | { startAt: string; startTime: string }
+    | { startAt?: never; startTime?: never }
+  );
 
 export interface CalendarSearchPort {
   getEvent(

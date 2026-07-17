@@ -41,6 +41,7 @@ describe("createCalendarFeature", () => {
       {
         id: "dentist-provider-id",
         location: "12 High Street",
+        startAt: "2026-07-17T10:00:00.000Z",
         startDate: "2026-07-17",
         startTime: "11:00",
         title: "Dentist",
@@ -50,7 +51,12 @@ describe("createCalendarFeature", () => {
       ...context,
       resultReferences: [
         {
-          facts: { date: "2026-07-17", time: "11:00", title: "Dentist" },
+          facts: {
+            date: "2026-07-17",
+            startAt: "2026-07-17T10:00:00.000Z",
+            time: "11:00",
+            title: "Dentist",
+          },
           kind: "calendar_event" as const,
           ordinal: 1,
           reference: "calendar-event-1",
@@ -170,6 +176,7 @@ describe("createCalendarFeature", () => {
         createFakeCalendar(undefined, [
           {
             id: "haircut-2026",
+            startAt: "2026-07-17T10:00:00.000Z",
             startDate: "2026-07-17",
             startTime: "11:00",
             title: ".CLAY Studios: Gents Haircut",
@@ -189,6 +196,7 @@ describe("createCalendarFeature", () => {
         data: {
           eventCount: 2,
           event0Date: "2026-07-17",
+          event0StartAt: "2026-07-17T10:00:00.000Z",
           event0Time: "11:00",
           event0Title: ".CLAY Studios: Gents Haircut",
           event1Date: "2026-07-20",
@@ -198,6 +206,7 @@ describe("createCalendarFeature", () => {
         resultReferences: calendarResultReferences([
           {
             id: "haircut-2026",
+            startAt: "2026-07-17T10:00:00.000Z",
             startDate: "2026-07-17",
             startTime: "11:00",
             title: ".CLAY Studios: Gents Haircut",
@@ -288,6 +297,7 @@ describe("createCalendarFeature", () => {
         createFakeCalendar(undefined, [
           {
             id: "interview-2026",
+            startAt: "2026-07-06T08:30:00.000Z",
             startDate: "2026-07-06",
             startTime: "09:30",
             title: "Zak - Onsite Interview - Agentic Engineer",
@@ -301,12 +311,14 @@ describe("createCalendarFeature", () => {
         text: "Zak - Onsite Interview - Agentic Engineer is on 2026-07-06 at 09:30.",
         data: {
           date: "2026-07-06",
+          startAt: "2026-07-06T08:30:00.000Z",
           time: "09:30",
           title: "Zak - Onsite Interview - Agentic Engineer",
         },
         resultReferences: calendarResultReferences([
           {
             id: "interview-2026",
+            startAt: "2026-07-06T08:30:00.000Z",
             startDate: "2026-07-06",
             startTime: "09:30",
             title: "Zak - Onsite Interview - Agentic Engineer",
@@ -368,6 +380,7 @@ function calendarResultReferences(
     items: events.map((event) => ({
       facts: {
         date: event.startDate,
+        ...(event.startAt ? { startAt: event.startAt } : {}),
         time: event.startTime ?? "all day",
         title: event.title,
       },

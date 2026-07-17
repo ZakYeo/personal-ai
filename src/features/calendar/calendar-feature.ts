@@ -162,6 +162,7 @@ async function searchEvents(
     text: `${event.title} is ${formatEventStart(event)}.`,
     data: {
       date: event.startDate,
+      ...(event.startAt ? { startAt: event.startAt } : {}),
       time: event.startTime ?? "all day",
       title: event.title,
     },
@@ -212,6 +213,7 @@ async function answerCalendarFollowUp(
   return {
     data: {
       date: event.startDate,
+      ...(event.startAt ? { startAt: event.startAt } : {}),
       time: event.startTime ?? "all day",
       title: event.title,
     },
@@ -228,6 +230,7 @@ function createResultReferences(events: readonly CalendarEvent[]) {
     items: events.map((event) => ({
       facts: {
         date: event.startDate,
+        ...(event.startAt ? { startAt: event.startAt } : {}),
         time: event.startTime ?? "all day",
         title: event.title,
       },
@@ -266,6 +269,7 @@ function createUpcomingEventFacts(
 
   events.forEach((event, index) => {
     facts[`event${index}Date`] = event.startDate;
+    if (event.startAt) facts[`event${index}StartAt`] = event.startAt;
     facts[`event${index}Time`] = event.startTime ?? "all day";
     facts[`event${index}Title`] = event.title;
   });

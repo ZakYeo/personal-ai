@@ -68,6 +68,7 @@ function formatResultReferences(context: AssistantContext): string {
         date: facts.date,
         ordinal,
         reference,
+        ...(facts.startAt ? { startAt: facts.startAt } : {}),
         time: facts.time,
         title: facts.title,
       })),
