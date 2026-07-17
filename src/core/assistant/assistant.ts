@@ -44,6 +44,7 @@ import { protectResponseFacts } from "./response-fact-protection.js";
 import { createResultReferenceSession } from "./result-reference-session.js";
 import type { ResultReferenceSession } from "./result-reference-session.js";
 import type { ResultReferenceSelectionRequest } from "../../ports/result-reference.js";
+import { rejectToolChain, resolveToolCalls } from "./tool-chain.js";
 
 export interface AssistantDependencies {
   capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
@@ -138,9 +139,62 @@ async function handleTextInternal(
     normalizedText,
     context,
   );
-  const interpretation = session
+  let interpretation = session
     ? await session.next()
     : await dependencies.intentInterpreter.interpret(normalizedText, context);
+
+  if (interpretation.kind === "tool_call") {
+    const resolved = await resolveToolCalls({
+      executeRead: (step) =>
+        executeCommand({
+          command: step.command,
+          context,
+          decodedArgs: step.decodedArgs,
+          dependencies,
+          executionContext: createFeatureExecutionContext(
+            context,
+            dependencies,
+            resultReferences,
+            normalizedText,
+          ),
+          feature: step.route.feature,
+          normalizedText,
+          onReferencesRetained,
+          resultReferences,
+        }),
+      initial: interpretation,
+      publicReferences: () => resultReferences.publicReferences(),
+      session,
+      validateRead: ({ call }) => {
+        const validation = validateAssistantPlan({
+          capabilityRouting: dependencies.capabilityRouting,
+          commands: [call.command],
+          config: dependencies.config,
+          context,
+          kind: "single",
+          originalText: normalizedText,
+        });
+        if (!validation.ok) {
+          return { ok: false, outcome: outcomeFromError(validation.error) };
+        }
+        if (
+          validation.plan.steps[0]!.route.capability.toolChain !== "read" ||
+          planRequiresConfirmation(validation.plan)
+        ) {
+          return {
+            ok: false,
+            outcome: rejectToolChain(
+              call.command.capability,
+              "Only declared, confirmation-free read capabilities may run inside a tool chain.",
+            ).outcome,
+          };
+        }
+        return { ok: true, step: validation.plan.steps[0]! };
+      },
+    });
+    if (resolved.kind === "outcome") return resolved.outcome;
+    interpretation = resolved.interpretation;
+  }
 
   if (
     interpretation.kind === "unknown" ||
@@ -154,22 +208,6 @@ async function handleTextInternal(
 
   if (interpretation.kind === "conversation") {
     return handleConversation(normalizedText, context, conversation);
-  }
-
-  if (interpretation.kind === "tool_call") {
-    return {
-      diagnostics: [
-        {
-          category: "unsupported",
-          message: "Tool-chain execution is not enabled.",
-          capability: interpretation.call.command.capability,
-        },
-      ],
-      response: {
-        status: "unsupported",
-        text: "I cannot complete that chained request yet.",
-      },
-    };
   }
 
   const commands =
@@ -219,18 +257,12 @@ function executeValidatedPlan(
       ? { resultReferences: resultReferences.publicReferences() }
       : {}),
   };
-  const publicReferences = resultReferences.publicReferences();
-  const executionContext = {
-    ...context,
-    capabilityCatalog: dependencies.capabilityRouting.catalog,
-    ...(publicReferences.length > 0
-      ? {
-          selectResultReference: (request: ResultReferenceSelectionRequest) =>
-            resultReferences.select(request),
-          trustedInputText: plan.originalText,
-        }
-      : {}),
-  };
+  const executionContext = createFeatureExecutionContext(
+    context,
+    dependencies,
+    resultReferences,
+    plan.originalText,
+  );
 
   return executeAssistantPlan(plan, (step) =>
     executeCommand({
@@ -245,6 +277,26 @@ function executeValidatedPlan(
       resultReferences,
     }),
   );
+}
+
+function createFeatureExecutionContext(
+  context: AssistantContext,
+  dependencies: AssistantDependencies,
+  resultReferences: ResultReferenceSession,
+  trustedInputText: string,
+): FeatureExecutionContext {
+  const publicReferences = resultReferences.publicReferences();
+  return {
+    ...context,
+    capabilityCatalog: dependencies.capabilityRouting.catalog,
+    ...(publicReferences.length > 0
+      ? {
+          selectResultReference: (request: ResultReferenceSelectionRequest) =>
+            resultReferences.select(request),
+          trustedInputText,
+        }
+      : {}),
+  };
 }
 
 async function executeCommand(input: {
