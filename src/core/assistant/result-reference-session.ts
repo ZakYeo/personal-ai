@@ -5,6 +5,7 @@ import type {
   ResultReferenceSelectionRequest,
   ResultReferenceTarget,
 } from "../../ports/result-reference.js";
+import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
 
 export interface ResultReferenceSession {
   clear(): void;
@@ -97,27 +98,6 @@ export function createResultReferenceSession(): ResultReferenceSession {
       retainedSinceLastCompletion = true;
     },
   };
-}
-
-function parseSpokenOrdinal(text: string): number | undefined {
-  const ordinals = [
-    "first",
-    "second",
-    "third",
-    "fourth",
-    "fifth",
-    "sixth",
-    "seventh",
-    "eighth",
-    "ninth",
-    "tenth",
-  ];
-  const word = text
-    .toLowerCase()
-    .match(
-      /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\b/u,
-    )?.[1];
-  return word ? ordinals.indexOf(word) + 1 : undefined;
 }
 
 interface Entry {

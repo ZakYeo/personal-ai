@@ -13,6 +13,7 @@ import {
   type DeterministicFeatureRule,
 } from "../../ports/deterministic-feature-rules.js";
 import { defineCapability, defineFeature } from "../../ports/feature.js";
+import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
 
 const calendarSearchEventsParameters = {
   endDate: { type: "string" },
@@ -41,7 +42,7 @@ const calendarDeterministicIntentRules = [
   {
     capability: "calendar.follow_up",
     match: (text) => {
-      const ordinal = parseOrdinal(text);
+      const ordinal = parseSpokenOrdinal(text);
       if (text.includes("where is")) {
         return { detail: "location", ...(ordinal ? { ordinal } : {}) };
       }
@@ -240,26 +241,6 @@ function createResultReferences(events: readonly CalendarEvent[]) {
     })),
     kind: "calendar_events" as const,
   };
-}
-
-function parseOrdinal(text: string): number | undefined {
-  const word = text.match(
-    /\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)\b/u,
-  )?.[1];
-  return word
-    ? [
-        "first",
-        "second",
-        "third",
-        "fourth",
-        "fifth",
-        "sixth",
-        "seventh",
-        "eighth",
-        "ninth",
-        "tenth",
-      ].indexOf(word) + 1
-    : undefined;
 }
 
 function createUpcomingEventFacts(
