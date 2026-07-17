@@ -107,6 +107,19 @@ export async function resolveToolCalls(input: {
     });
   }
 
+  if (input.state.readCalls > 0 && interpretation.kind === "conversation") {
+    return {
+      kind: "outcome",
+      outcome: withToolChainOutcome(
+        rejectToolChain(
+          "conversation.general",
+          "A workflow that executed reads must end in a command, plan, clarification, or safe rejection.",
+        ).outcome,
+        input.state,
+      ),
+    };
+  }
+
   return { interpretation, kind: "interpretation" };
 }
 

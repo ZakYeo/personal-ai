@@ -287,6 +287,33 @@ describe("assistant bounded tool chains", () => {
     expect(continuations).toEqual([{ kind: "user_reply", text: "ten am" }]);
   });
 
+  it("fails closed when a provider asks a second clarification", async () => {
+    const steps: IntentInterpretation[] = [
+      {
+        kind: "clarification",
+        response: { status: "ok", text: "First question?" },
+      },
+      {
+        kind: "clarification",
+        response: { status: "ok", text: "Second question?" },
+      },
+    ];
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({}),
+      intentInterpreter: {
+        start: () => ({ next: () => Promise.resolve(steps.shift()!) }),
+      },
+    });
+
+    await assistant.handleText("start");
+    await expect(assistant.handleText("answer")).resolves.toEqual({
+      status: "unsupported",
+      text: "I cannot safely complete that chained request.",
+    });
+  });
+
   it("binds a selected calendar event to one frozen confirmed alarm", async () => {
     const store = createTestAlarmStore();
     const steps: IntentInterpretation[] = [
