@@ -1,4 +1,11 @@
-interface VoiceBenchmarkCandidate {
+interface DesktopCandidateDriver {
+  args: readonly string[];
+  command: string;
+  environment: Readonly<Record<string, string>>;
+  transcriptFormat?: "plain" | "sherpa-json";
+}
+
+export interface VoiceBenchmarkCandidate {
   artifactIds: readonly string[];
   engine: "piper" | "sherpa-onnx" | "whisper.cpp";
   executable: string;
@@ -7,6 +14,7 @@ interface VoiceBenchmarkCandidate {
   modelFiles: readonly string[];
   operation: "stt" | "tts";
   revision: string;
+  desktopDriver: DesktopCandidateDriver;
 }
 
 interface CandidateManifest {
@@ -61,11 +69,62 @@ export function parseCandidateManifest(input: unknown): CandidateManifest {
       modelFiles: parseStringArray(candidate.modelFiles, `${label}.modelFiles`),
       operation,
       revision: requireString(candidate.revision, `${label}.revision`),
+      desktopDriver: parseDesktopDriver(
+        candidate.desktopDriver,
+        `${label}.desktopDriver`,
+        operation,
+      ),
     });
   });
   return Object.freeze({
     candidates: Object.freeze(candidates),
     schemaVersion: 1,
+  });
+}
+
+function parseDesktopDriver(
+  value: unknown,
+  label: string,
+  operation: "stt" | "tts",
+): DesktopCandidateDriver {
+  const record = requireRecord(value, label);
+  const args = parseStringArray(record.args, `${label}.args`);
+  const inputCount = args.filter((argument) => argument === "{input}").length;
+  const outputCount = args.filter((argument) => argument === "{output}").length;
+  if (operation === "stt" && (inputCount !== 1 || outputCount !== 0)) {
+    throw new Error(`${label}.args must contain one {input} for STT.`);
+  }
+  if (operation === "tts" && (inputCount !== 0 || outputCount !== 1)) {
+    throw new Error(`${label}.args must contain one {output} for TTS.`);
+  }
+  const environmentRecord = requireRecord(
+    record.environment,
+    `${label}.environment`,
+  );
+  const environment = Object.fromEntries(
+    Object.entries(environmentRecord).map(([key, item]) => [
+      key,
+      requireString(item, `${label}.environment.${key}`),
+    ]),
+  );
+  const rawTranscriptFormat = record.transcriptFormat;
+  if (
+    operation === "stt" &&
+    rawTranscriptFormat !== "plain" &&
+    rawTranscriptFormat !== "sherpa-json"
+  ) {
+    throw new Error(`${label}.transcriptFormat is required for STT.`);
+  }
+  if (operation === "tts" && rawTranscriptFormat !== undefined) {
+    throw new Error(`${label}.transcriptFormat is only valid for STT.`);
+  }
+  return Object.freeze({
+    args,
+    command: requireRelativePath(record.command, `${label}.command`),
+    environment: Object.freeze(environment),
+    ...(rawTranscriptFormat === "plain" || rawTranscriptFormat === "sherpa-json"
+      ? { transcriptFormat: rawTranscriptFormat }
+      : {}),
   });
 }
 

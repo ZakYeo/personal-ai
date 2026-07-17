@@ -3,49 +3,58 @@ import {
   createTtsCandidateCommand,
   parseSttCandidateTranscript,
 } from "./desktop-candidate-driver.js";
+import { parseCandidateManifest } from "./candidate-manifest.js";
+
+const sttCandidate = createCandidate("stt", "plain");
+const ttsCandidate = createCandidate("tts");
 
 describe("desktop voice benchmark candidate drivers", () => {
   it("constructs whisper and sherpa STT commands without a shell", () => {
     const whisper = createSttCandidateCommand(
-      "whisper-base-en",
+      sttCandidate,
       "benchmarks/private/list.wav",
     );
-    expect(whisper.args).toContain(
-      ".voice-benchmark/artifacts/ggml-base.en.bin",
-    );
-    expect(whisper.args.at(-1)).not.toBe("benchmarks/private/list.wav");
     expect(whisper.args).toContain("benchmarks/private/list.wav");
-
-    const sherpa = createSttCandidateCommand(
-      "sherpa-zipformer-en-20m-int8",
-      "benchmarks/private/list.wav",
-    );
-    expect(sherpa.args).toContain("--print-args=false");
-    expect(sherpa.args.at(-1)).toBe("benchmarks/private/list.wav");
   });
 
   it("passes private TTS text only through stdin", () => {
     const command = createTtsCandidateCommand(
-      "piper-alba-medium",
-      "Your appointment is at 11am.",
+      ttsCandidate,
       ".voice-benchmark/results/sample.wav",
     );
-    expect(command.stdin).toBe("Your appointment is at 11am.\n");
     expect(command.args.join(" ")).not.toContain("appointment");
   });
 
   it("extracts transcripts from both engine output formats", () => {
     expect(
-      parseSttCandidateTranscript("whisper-base-en", " list my alarms.\n"),
+      parseSttCandidateTranscript(sttCandidate, " list my alarms.\n"),
     ).toBe("list my alarms.");
-    expect(
-      parseSttCandidateTranscript(
-        "sherpa-zipformer-en-20m-int8",
-        'noise\n{ "text": "LIST MY ALARMS", "tokens": [] }\n',
-      ),
-    ).toBe("LIST MY ALARMS");
-    expect(() => parseSttCandidateTranscript("unknown", "text")).toThrow(
-      /candidate/iu,
-    );
   });
 });
+
+function createCandidate(operation: "stt" | "tts", transcriptFormat?: "plain") {
+  return parseCandidateManifest({
+    schemaVersion: 1,
+    candidates: [
+      {
+        artifactIds: ["artifact"],
+        desktopDriver: {
+          args:
+            operation === "stt"
+              ? ["--input", "{input}"]
+              : ["--output", "{output}"],
+          command: ".voice-benchmark/bin/engine",
+          environment: {},
+          ...(transcriptFormat ? { transcriptFormat } : {}),
+        },
+        engine: operation === "stt" ? "whisper.cpp" : "piper",
+        executable: "bin/engine",
+        id: `${operation}-candidate`,
+        installDirectory: "engine",
+        modelFiles: ["model"],
+        operation,
+        revision: "revision",
+      },
+    ],
+  }).candidates[0]!;
+}

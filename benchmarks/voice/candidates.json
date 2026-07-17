@@ -9,7 +9,22 @@
       "artifactIds": ["whisper-base-en-model"],
       "installDirectory": "whisper.cpp-v1.8.6-x64",
       "executable": "build/bin/whisper-cli",
-      "modelFiles": ["ggml-base.en.bin"]
+      "modelFiles": ["ggml-base.en.bin"],
+      "desktopDriver": {
+        "command": ".voice-benchmark/install/whisper.cpp-v1.8.6-source/build/bin/whisper-cli",
+        "args": [
+          "-m",
+          ".voice-benchmark/artifacts/ggml-base.en.bin",
+          "-f",
+          "{input}",
+          "-nt",
+          "-np"
+        ],
+        "environment": {
+          "LD_LIBRARY_PATH": ".voice-benchmark/install/whisper.cpp-v1.8.6-source/build/src:.voice-benchmark/install/whisper.cpp-v1.8.6-source/build/ggml/src"
+        },
+        "transcriptFormat": "plain"
+      }
     },
     {
       "id": "whisper-small-en",
@@ -19,7 +34,22 @@
       "artifactIds": ["whisper-small-en-model"],
       "installDirectory": "whisper.cpp-v1.8.6-x64",
       "executable": "build/bin/whisper-cli",
-      "modelFiles": ["ggml-small.en.bin"]
+      "modelFiles": ["ggml-small.en.bin"],
+      "desktopDriver": {
+        "command": ".voice-benchmark/install/whisper.cpp-v1.8.6-source/build/bin/whisper-cli",
+        "args": [
+          "-m",
+          ".voice-benchmark/artifacts/ggml-small.en.bin",
+          "-f",
+          "{input}",
+          "-nt",
+          "-np"
+        ],
+        "environment": {
+          "LD_LIBRARY_PATH": ".voice-benchmark/install/whisper.cpp-v1.8.6-source/build/src:.voice-benchmark/install/whisper.cpp-v1.8.6-source/build/ggml/src"
+        },
+        "transcriptFormat": "plain"
+      }
     },
     {
       "id": "sherpa-zipformer-en-20m-int8",
@@ -37,7 +67,23 @@
         "decoder-epoch-99-avg-1.int8.onnx",
         "joiner-epoch-99-avg-1.int8.onnx",
         "tokens.txt"
-      ]
+      ],
+      "desktopDriver": {
+        "command": ".voice-benchmark/install/sherpa-onnx-v1.13.2-x64/bin/sherpa-onnx",
+        "args": [
+          "--tokens=.voice-benchmark/install/sherpa-zipformer-en-20m/tokens.txt",
+          "--encoder=.voice-benchmark/install/sherpa-zipformer-en-20m/encoder-epoch-99-avg-1.int8.onnx",
+          "--decoder=.voice-benchmark/install/sherpa-zipformer-en-20m/decoder-epoch-99-avg-1.int8.onnx",
+          "--joiner=.voice-benchmark/install/sherpa-zipformer-en-20m/joiner-epoch-99-avg-1.int8.onnx",
+          "--num-threads=2",
+          "--print-args=false",
+          "{input}"
+        ],
+        "environment": {
+          "LD_LIBRARY_PATH": ".voice-benchmark/install/sherpa-onnx-v1.13.2-x64/lib"
+        },
+        "transcriptFormat": "sherpa-json"
+      }
     },
     {
       "id": "piper-alba-medium",
@@ -51,7 +97,19 @@
       ],
       "installDirectory": "piper-v1.4.2-x64",
       "executable": "bin/piper",
-      "modelFiles": ["en_GB-alba-medium.onnx", "en_GB-alba-medium.onnx.json"]
+      "modelFiles": ["en_GB-alba-medium.onnx", "en_GB-alba-medium.onnx.json"],
+      "desktopDriver": {
+        "command": ".voice-benchmark/install/piper-v1.4.2-x64/bin/piper",
+        "args": [
+          "-m",
+          ".voice-benchmark/artifacts/en_GB-alba-medium.onnx",
+          "-c",
+          ".voice-benchmark/artifacts/en_GB-alba-medium.onnx.json",
+          "-f",
+          "{output}"
+        ],
+        "environment": {}
+      }
     },
     {
       "id": "sherpa-amy-low",
@@ -61,7 +119,19 @@
       "artifactIds": ["sherpa-engine-linux-x64", "sherpa-amy-low-model"],
       "installDirectory": "sherpa-onnx-v1.13.2-x64",
       "executable": "bin/sherpa-onnx-offline-tts",
-      "modelFiles": ["en_US-amy-low.onnx", "tokens.txt", "espeak-ng-data"]
+      "modelFiles": ["en_US-amy-low.onnx", "tokens.txt", "espeak-ng-data"],
+      "desktopDriver": {
+        "command": ".voice-benchmark/bin/sherpa-vits-stdin",
+        "args": [
+          ".voice-benchmark/install/vits-piper-en_US-amy-low/en_US-amy-low.onnx",
+          ".voice-benchmark/install/vits-piper-en_US-amy-low/tokens.txt",
+          ".voice-benchmark/install/vits-piper-en_US-amy-low/espeak-ng-data",
+          "{output}"
+        ],
+        "environment": {
+          "LD_LIBRARY_PATH": ".voice-benchmark/install/sherpa-onnx-v1.13.2-x64/lib"
+        }
+      }
     }
   ]
 }

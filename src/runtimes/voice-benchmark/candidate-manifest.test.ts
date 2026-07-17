@@ -44,6 +44,12 @@ describe("voice benchmark candidate manifest", () => {
 function createCandidate() {
   return {
     artifactIds: ["whisper-engine-source", "whisper-base-en-model"],
+    desktopDriver: {
+      args: ["-f", "{input}"],
+      command: ".voice-benchmark/bin/whisper",
+      environment: {},
+      transcriptFormat: "plain",
+    },
     engine: "whisper.cpp",
     executable: "build/bin/whisper-cli",
     id: "whisper-base-en",
