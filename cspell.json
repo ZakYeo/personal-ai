@@ -4,6 +4,7 @@
     "node_modules/**",
     "dist/**",
     "coverage/**",
+    "benchmarks/voice/results/*.json",
     ".venv/**",
     ".git/**",
     ".vitest-attachments/**",
@@ -78,6 +79,7 @@
     "rootwait",
     "scikit",
     "reparsing",
+    "resumably",
     "systemd",
     "sympy",
     "sudoedit",
@@ -86,6 +88,7 @@
     "tonistiigi",
     "userland",
     "venv",
+    "vits",
     "wakeword",
     "wakePhrases",
     "wslg"
