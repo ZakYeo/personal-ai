@@ -276,20 +276,21 @@ function executeValidatedPlan(
       ? { resultReferences: resultReferences.publicReferences() }
       : {}),
   };
-  const executionContext = createFeatureExecutionContext(
-    context,
-    dependencies,
-    resultReferences,
-    plan.originalText,
-  );
-
   return executeAssistantPlan(plan, (step) =>
     executeCommand({
       command: step.command,
       context,
       decodedArgs: step.decodedArgs,
       dependencies,
-      executionContext,
+      executionContext: createFeatureExecutionContext(
+        context,
+        dependencies,
+        resultReferences,
+        plan.originalText,
+        step.confirmation.required
+          ? step.confirmation.declaration.facts
+          : undefined,
+      ),
       feature: step.route.feature,
       normalizedText: plan.originalText,
       onReferencesRetained,
@@ -303,11 +304,13 @@ function createFeatureExecutionContext(
   dependencies: AssistantDependencies,
   resultReferences: ResultReferenceSession,
   trustedInputText: string,
+  validatedConfirmationFacts?: Readonly<AssistantCommand["parameters"]>,
 ): FeatureExecutionContext {
   const publicReferences = resultReferences.publicReferences();
   return {
     ...context,
     capabilityCatalog: dependencies.capabilityRouting.catalog,
+    ...(validatedConfirmationFacts ? { validatedConfirmationFacts } : {}),
     ...(publicReferences.length > 0
       ? {
           selectResultReference: (request: ResultReferenceSelectionRequest) =>

@@ -1,6 +1,10 @@
 import { createAssistant } from "./assistant.js";
 import { createCapabilityRoutingIndex } from "../../ports/capability-catalog.js";
-import type { FeaturePlugin } from "../../ports/feature.js";
+import type {
+  FeatureExecutionContext,
+  FeatureExecutionRequest,
+  FeaturePlugin,
+} from "../../ports/feature.js";
 import type { AlarmRecord, AlarmStore } from "../../ports/alarm-store.js";
 import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
 import { createScheduledAlarmRecord } from "../../test-support/primitives.js";
@@ -134,6 +138,45 @@ describe("assistant compound plans", () => {
     expect(execute).toHaveBeenCalledWith(
       expect.objectContaining({ args: { label: "tea", minutesFromNow: 10 } }),
       expect.any(Object),
+    );
+  });
+
+  it("passes frozen confirmation facts to confirmed feature execution", async () => {
+    const execute = vi.fn(
+      (
+        request: FeatureExecutionRequest,
+        executionContext: FeatureExecutionContext,
+      ) => {
+        void request;
+        void executionContext;
+        return Promise.resolve({ text: "Created from frozen facts." });
+      },
+    );
+    const feature = createFeature({
+      capability: {
+        name: "test.echo",
+        requiresConfirmation: true,
+        risk: "high",
+        parameters: {},
+      },
+      confirmation: () => ({
+        facts: { scheduledFor: "2026-07-17T09:50:00.000Z" },
+        text: "create the frozen reminder",
+      }),
+      execute,
+    });
+    const assistant = createPlanAssistant([feature], createCommand());
+
+    await assistant.handleText("create it");
+    await assistant.handleText("yes");
+
+    expect(execute).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        validatedConfirmationFacts: {
+          scheduledFor: "2026-07-17T09:50:00.000Z",
+        },
+      }),
     );
   });
 

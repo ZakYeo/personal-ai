@@ -17,6 +17,7 @@ import type {
   FeatureCapability,
   FeatureCapabilityParameters,
   ConfirmationDeclaration,
+  FeatureExecutionContext,
   FeatureExecutionRequest,
   FeaturePlugin,
   FeatureResult,
@@ -191,7 +192,7 @@ interface TestFeatureOverrides<
       string,
       FeatureArgsFromParameters<TParameters>
     >,
-    context: AssistantContext,
+    context: FeatureExecutionContext,
   ) => Promise<FeatureResult>;
   confirmation?: (
     args: FeatureArgsFromParameters<TParameters>,
@@ -209,7 +210,7 @@ export function createRawFeature(
     ) => boolean;
     execute: (
       request: FeatureExecutionRequest<string, FeatureArguments>,
-      context: AssistantContext,
+      context: FeatureExecutionContext,
     ) => Promise<FeatureResult>;
     capabilities: FeaturePlugin["capabilities"];
   }> = {},

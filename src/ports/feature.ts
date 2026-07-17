@@ -23,6 +23,7 @@ export type {
 
 export interface FeatureExecutionContext extends AssistantContext {
   capabilityCatalog: CapabilityCatalog;
+  validatedConfirmationFacts?: Readonly<AssistantCommandParameters>;
   trustedInputText?: string;
   selectResultReference?(
     request: ResultReferenceSelectionRequest,
