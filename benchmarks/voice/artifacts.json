@@ -109,6 +109,18 @@
       "sourceUrl": "https://huggingface.co/rhasspy/piper-voices/resolve/929396f9d01ab9078f9c29ef519c25d9d4940258/en/en_GB/alba/medium/en_GB-alba-medium.onnx.json"
     },
     {
+      "architectures": ["x64", "arm64"],
+      "fileName": "vits-piper-en_US-amy-low.tar.bz2",
+      "id": "sherpa-amy-low-model",
+      "kind": "model",
+      "license": "CC-BY-SA-4.0",
+      "releasedAt": "2025-06-30T02:22:03.000Z",
+      "sha256": "c70f5284a09a7fd4ed203b39b2ff51cac1432b422b852eb647b481dade3cf639",
+      "sizeBytes": 67095344,
+      "sourceRevision": "tts-models-2025-06-30",
+      "sourceUrl": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-en_US-amy-low.tar.bz2"
+    },
+    {
       "architectures": ["x64"],
       "fileName": "onnxruntime-1.22.1-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
       "id": "piper-onnxruntime-linux-x64",

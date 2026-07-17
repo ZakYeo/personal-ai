@@ -12,7 +12,7 @@ describe("voice benchmark artifact manifest", () => {
       ) as unknown,
     );
 
-    expect(manifest.artifacts).toHaveLength(22);
+    expect(manifest.artifacts).toHaveLength(23);
     expect(manifest.policy.minimumCoolingOffDays).toBe(30);
   });
 
