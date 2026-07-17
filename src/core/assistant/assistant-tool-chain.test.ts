@@ -69,6 +69,138 @@ describe("assistant bounded tool chains", () => {
     );
   });
 
+  it("preserves completed reads when provider continuation fails", async () => {
+    const continuationFailure = new Error("provider continuation failed");
+    let nextCall = 0;
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([
+        createRawFeature({
+          id: "calendar",
+          capabilities: [
+            {
+              name: "calendar.search_events",
+              risk: "low",
+              toolChain: "read",
+            },
+          ],
+          execute: () =>
+            Promise.resolve({ data: { count: 1 }, text: "One event." }),
+        }),
+      ]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({ calendar: { enabled: true } }),
+      intentInterpreter: {
+        start: () => ({
+          next: () => {
+            nextCall++;
+            return nextCall === 1
+              ? Promise.resolve({
+                  call: {
+                    command: command("calendar.search_events", {}),
+                    id: "read-1",
+                  },
+                  kind: "tool_call" as const,
+                })
+              : Promise.reject(continuationFailure);
+          },
+        }),
+      },
+    });
+
+    await expect(
+      assistant.handleTextWithDiagnostics("check then continue"),
+    ).resolves.toEqual({
+      diagnostics: [
+        {
+          category: "unexpected",
+          cause: continuationFailure,
+          message: "provider continuation failed",
+        },
+      ],
+      response: {
+        status: "error",
+        text: "I hit a problem and could not complete that.",
+      },
+      toolChain: {
+        calls: [
+          {
+            capability: "calendar.search_events",
+            data: { count: 1 },
+            status: "succeeded",
+          },
+        ],
+      },
+    });
+  });
+
+  it("normalizes a provider failure while resuming clarification", async () => {
+    const continuationFailure = new Error("clarification continuation failed");
+    let nextCall = 0;
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({}),
+      intentInterpreter: {
+        start: () => ({
+          next: () => {
+            nextCall++;
+            return nextCall === 1
+              ? Promise.resolve({
+                  kind: "clarification" as const,
+                  response: { status: "ok" as const, text: "Which one?" },
+                })
+              : Promise.reject(continuationFailure);
+          },
+        }),
+      },
+    });
+
+    await assistant.handleText("choose one");
+    await expect(
+      assistant.handleTextWithDiagnostics("the first"),
+    ).resolves.toEqual({
+      diagnostics: [
+        {
+          category: "unexpected",
+          cause: continuationFailure,
+          message: "clarification continuation failed",
+        },
+      ],
+      response: {
+        status: "error",
+        text: "I hit a problem and could not complete that.",
+      },
+    });
+  });
+
+  it("normalizes an initial provider session failure", async () => {
+    const providerFailure = new Error("initial intent request failed");
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({}),
+      intentInterpreter: {
+        start: () => ({ next: () => Promise.reject(providerFailure) }),
+      },
+    });
+
+    await expect(
+      assistant.handleTextWithDiagnostics("start workflow"),
+    ).resolves.toEqual({
+      diagnostics: [
+        {
+          category: "unexpected",
+          cause: providerFailure,
+          message: "initial intent request failed",
+        },
+      ],
+      response: {
+        status: "error",
+        text: "I hit a problem and could not complete that.",
+      },
+    });
+  });
+
   it("executes an eligible read and returns only its safe observation to the session", async () => {
     const continuations: IntentSessionContinuation[] = [];
     const steps: IntentInterpretation[] = [
