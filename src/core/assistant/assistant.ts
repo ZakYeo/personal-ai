@@ -48,6 +48,7 @@ import {
   createToolChainState,
   rejectToolChain,
   resolveToolCalls,
+  withToolChainOutcome,
 } from "./tool-chain.js";
 
 export interface AssistantDependencies {
@@ -147,6 +148,8 @@ async function handleTextInternal(
     ? await session.next()
     : await dependencies.intentInterpreter.interpret(normalizedText, context);
   const toolChainState = createToolChainState();
+  const finish = (outcome: AssistantOutcome) =>
+    withToolChainOutcome(outcome, toolChainState);
   let clarificationUsed = false;
 
   return handleInterpretation(interpretation);
@@ -215,20 +218,22 @@ async function handleTextInternal(
         },
       });
       return resolved.kind === "outcome"
-        ? resolved.outcome
+        ? finish(resolved.outcome)
         : handleInterpretation(resolved.interpretation);
     }
 
     if (current.kind === "clarification") {
       if (!session || clarificationUsed) {
-        return rejectToolChain(
-          "intent.clarification",
-          "A tool chain may ask at most one resumable clarification.",
-        ).outcome;
+        return finish(
+          rejectToolChain(
+            "intent.clarification",
+            "A tool chain may ask at most one resumable clarification.",
+          ).outcome,
+        );
       }
       clarificationUsed = true;
       return interaction.requestClarification(
-        { response: { ...current.response, expectsFollowUp: true } },
+        finish({ response: { ...current.response, expectsFollowUp: true } }),
         async (reply) =>
           handleInterpretation(
             await session.next({ kind: "user_reply", text: reply }),
@@ -237,10 +242,12 @@ async function handleTextInternal(
     }
 
     if (current.kind === "unknown" || current.kind === "unsupported") {
-      return { response: current.response };
+      return finish({ response: current.response });
     }
     if (current.kind === "conversation") {
-      return handleConversation(normalizedText, context, conversation);
+      return finish(
+        await handleConversation(normalizedText, context, conversation),
+      );
     }
 
     const commands =
@@ -257,18 +264,21 @@ async function handleTextInternal(
       kind: current.kind === "plan" ? "compound" : "single",
       originalText: normalizedText,
     });
-    if (!validation.ok) return outcomeFromError(validation.error);
+    if (!validation.ok) return finish(outcomeFromError(validation.error));
     if (planRequiresConfirmation(validation.plan)) {
       return interaction.requestConfirmation(
         validation.plan,
-        createPlanConfirmationPrompt(validation.plan),
+        finish(createPlanConfirmationPrompt(validation.plan)),
+        finish,
       );
     }
-    return executeValidatedPlan(
-      validation.plan,
-      dependencies,
-      resultReferences,
-      onReferencesRetained,
+    return finish(
+      await executeValidatedPlan(
+        validation.plan,
+        dependencies,
+        resultReferences,
+        onReferencesRetained,
+      ),
     );
   }
 }

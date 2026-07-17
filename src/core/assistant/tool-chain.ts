@@ -1,4 +1,7 @@
-import type { AssistantOutcome } from "../../ports/assistant.js";
+import type {
+  AssistantOutcome,
+  AssistantToolChainCallOutcome,
+} from "../../ports/assistant.js";
 import type { ValidatedAssistantPlanStep } from "../../ports/assistant-plan.js";
 import type {
   IntentInterpretation,
@@ -21,11 +24,12 @@ type ToolChainResolution =
 
 interface ToolChainState {
   readonly callIds: Set<string>;
+  readonly calls: AssistantToolChainCallOutcome[];
   readCalls: number;
 }
 
 export function createToolChainState(): ToolChainState {
-  return { callIds: new Set<string>(), readCalls: 0 };
+  return { callIds: new Set<string>(), calls: [], readCalls: 0 };
 }
 
 export async function resolveToolCalls(input: {
@@ -43,9 +47,13 @@ export async function resolveToolCalls(input: {
     | { ok: false; outcome: AssistantOutcome };
 }): Promise<ToolChainResolution> {
   if (!input.session) {
-    return rejectToolChain(
+    return failToolCall(
+      input.state,
       input.initial.call.command.capability,
-      "The intent provider did not create a resumable session.",
+      rejectToolChain(
+        input.initial.call.command.capability,
+        "The intent provider did not create a resumable session.",
+      ),
     );
   }
 
@@ -54,26 +62,47 @@ export async function resolveToolCalls(input: {
   while (interpretation.kind === "tool_call") {
     const { call } = interpretation;
     if (input.state.readCalls >= 2) {
-      return rejectToolChain(
+      return failToolCall(
+        input.state,
         call.command.capability,
-        "A tool chain may contain at most two read calls.",
+        rejectToolChain(
+          call.command.capability,
+          "A tool chain may contain at most two read calls.",
+        ),
       );
     }
     if (call.id.trim().length === 0 || input.state.callIds.has(call.id)) {
-      return rejectToolChain(
+      return failToolCall(
+        input.state,
         call.command.capability,
-        "The intent provider returned an invalid tool call identifier.",
+        rejectToolChain(
+          call.command.capability,
+          "The intent provider returned an invalid tool call identifier.",
+        ),
       );
     }
     input.state.callIds.add(call.id);
 
     const validation = input.validateRead(interpretation);
-    if (!validation.ok) return { kind: "outcome", outcome: validation.outcome };
+    if (!validation.ok) {
+      return failToolCall(input.state, call.command.capability, {
+        kind: "outcome",
+        outcome: validation.outcome,
+      });
+    }
 
     const execution = await input.executeRead(validation.step);
     if (execution.outcome.response.status !== "ok") {
-      return { kind: "outcome", outcome: execution.outcome };
+      return failToolCall(input.state, call.command.capability, {
+        kind: "outcome",
+        outcome: execution.outcome,
+      });
     }
+    input.state.calls.push({
+      capability: validation.step.command.capability,
+      ...(execution.data ? { data: execution.data } : {}),
+      status: "succeeded",
+    });
     input.state.readCalls++;
 
     const resultReferences = input.publicReferences();
@@ -90,6 +119,33 @@ export async function resolveToolCalls(input: {
   }
 
   return { interpretation, kind: "interpretation" };
+}
+
+export function withToolChainOutcome(
+  outcome: AssistantOutcome,
+  state: ReturnType<typeof createToolChainState>,
+): AssistantOutcome {
+  return state.calls.length === 0
+    ? outcome
+    : { ...outcome, toolChain: { calls: Object.freeze([...state.calls]) } };
+}
+
+function failToolCall(
+  state: ToolChainState,
+  capability: string,
+  resolution: Extract<ToolChainResolution, { kind: "outcome" }>,
+): Extract<ToolChainResolution, { kind: "outcome" }> {
+  state.calls.push({
+    capability,
+    ...(resolution.outcome.diagnostics
+      ? { diagnostics: resolution.outcome.diagnostics }
+      : {}),
+    status: "failed",
+  });
+  return {
+    kind: "outcome",
+    outcome: withToolChainOutcome(resolution.outcome, state),
+  };
 }
 
 export function rejectToolChain(

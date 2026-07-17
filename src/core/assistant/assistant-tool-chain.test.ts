@@ -102,8 +102,19 @@ describe("assistant bounded tool chains", () => {
     });
 
     await expect(
-      assistant.handleText("remind me before the dentist"),
-    ).resolves.toEqual({ status: "ok", text: "Alarm set." });
+      assistant.handleTextWithDiagnostics("remind me before the dentist"),
+    ).resolves.toMatchObject({
+      response: { status: "ok", text: "Alarm set." },
+      toolChain: {
+        calls: [
+          {
+            capability: "calendar.search_events",
+            data: { count: 1 },
+            status: "succeeded",
+          },
+        ],
+      },
+    });
     expect(executions).toEqual(["calendar.search_events", "alarm.create"]);
     expect(continuations).toEqual([
       {
@@ -324,9 +335,19 @@ describe("assistant bounded tool chains", () => {
     });
     expect(JSON.stringify(prompt)).not.toContain("private-event");
 
-    await expect(assistant.handleText("yes")).resolves.toEqual({
-      status: "ok",
-      text: "Alarm set for 2026-07-17T09:50:00.000Z (Dentist reminder), using the confirmed Dentist calendar snapshot.",
+    await expect(assistant.handleTextWithDiagnostics("yes")).resolves.toEqual({
+      response: {
+        status: "ok",
+        text: "Alarm set for 2026-07-17T09:50:00.000Z (Dentist reminder), using the confirmed Dentist calendar snapshot.",
+      },
+      toolChain: {
+        calls: [
+          {
+            capability: "calendar.search_events",
+            status: "succeeded",
+          },
+        ],
+      },
     });
     await expect(store.list()).resolves.toEqual([
       expect.objectContaining({

@@ -5,6 +5,7 @@ export interface InteractionSession {
   requestConfirmation(
     plan: ValidatedAssistantPlan,
     prompt: AssistantOutcome,
+    complete?: (outcome: AssistantOutcome) => AssistantOutcome,
   ): AssistantOutcome;
   requestClarification(
     prompt: AssistantOutcome,
@@ -23,6 +24,7 @@ type PendingInteraction =
       kind: "confirmation";
       plan: ValidatedAssistantPlan;
       prompt: AssistantOutcome;
+      complete?: (outcome: AssistantOutcome) => AssistantOutcome;
     }
   | {
       kind: "clarification";
@@ -35,8 +37,13 @@ export function createInteractionSession(): InteractionSession {
   let queue = Promise.resolve();
 
   return {
-    requestConfirmation(plan, prompt) {
-      pending = { kind: "confirmation", plan, prompt };
+    requestConfirmation(plan, prompt, complete) {
+      pending = {
+        kind: "confirmation",
+        plan,
+        prompt,
+        ...(complete ? { complete } : {}),
+      };
       return prompt;
     },
     requestClarification(prompt, resume) {
@@ -72,10 +79,11 @@ export function createInteractionSession(): InteractionSession {
           return outcome;
         }
 
-        const plan = pending.plan;
+        const { complete, plan } = pending;
         pending = undefined;
         outcome =
           decision === "confirmed" ? await execute(plan) : cancelledOutcome;
+        outcome = complete ? complete(outcome) : outcome;
         onCompleted();
         return outcome;
       });

@@ -44,6 +44,18 @@ export interface AssistantOutcome {
   response: AssistantResponse;
   diagnostics?: AssistantDiagnostic[];
   plan?: AssistantPlanOutcome;
+  toolChain?: AssistantToolChainOutcome;
+}
+
+export interface AssistantToolChainOutcome {
+  calls: readonly AssistantToolChainCallOutcome[];
+}
+
+export interface AssistantToolChainCallOutcome {
+  capability: string;
+  data?: AssistantCommandParameters;
+  diagnostics?: AssistantDiagnostic[];
+  status: "succeeded" | "failed";
 }
 
 export interface AssistantPlanOutcome {
