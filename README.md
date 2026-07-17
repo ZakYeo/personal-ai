@@ -96,9 +96,10 @@ Current roadmap position:
   whole-plan validation, aggregate confirmation, ordered execution, and smoke
   coverage across text and voice runtimes. Milestone 11 is implemented after
   its required independent review, with bounded process-local calendar
-  references and read-only detail lookup. Milestone 12.1 implementation is
-  complete and awaiting its required independent review; it adds bounded read
-  sessions and calendar-event-to-alarm snapshot binding. The
+  references and read-only detail lookup. Milestone 12.1 is implemented after
+  its required independent review; it adds bounded read sessions,
+  application-owned all-day clarification, and typed
+  calendar-event-to-alarm snapshot binding. The
   [discovery report](docs/08-spike-9-report.md) makes compound command plans the
   first post-spike milestone, followed by calendar result follow-ups, measured
   local voice, target-specific messaging, and a benchmarked local intent

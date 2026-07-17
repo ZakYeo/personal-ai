@@ -33,14 +33,14 @@ Milestone 11 is implemented after its required independent maintainability
 review. It adds bounded assistant-session calendar references, deterministic
 expiry and ambiguity handling, read-only stable event lookup, safe provider
 grounding, and text, voice, adapter, and live smoke coverage.
-Milestone 12.1 implementation is complete and awaiting its required independent
-maintainability review. It adds bounded,
-provider-neutral read-tool chaining before a fully validated terminal command
-or compound plan, initially proving calendar-result-driven alarm creation.
+Milestone 12.1 is implemented after its required independent maintainability
+review. It adds bounded, provider-neutral read-tool chaining before a fully
+validated terminal command or compound plan, initially proving
+calendar-result-driven alarm creation.
 
 ## Implemented Milestone Archive
 
-Detailed acceptance criteria and outcomes for Milestones 1 through 11 are kept
+Detailed acceptance criteria and outcomes for Milestones 1 through 12.1 are kept
 in `docs/09-implemented-milestones.md`. This roadmap retains the current
 position, completed discovery decision, and active/future work.
 
@@ -187,7 +187,8 @@ Acceptance criteria:
 
 ## Milestone 12.1: Bounded Tool-Chain Workflows
 
-Status: implementation complete; independent maintainability review pending.
+Status: implemented. Detailed scope, acceptance criteria, review outcomes, and
+final behavior are archived in `docs/09-implemented-milestones.md`.
 
 Goal: allow an intent provider to execute a small sequence of explicitly
 authorized read capabilities before proposing one fully resolved command or
@@ -235,7 +236,8 @@ Thin slices:
 6. Add confirmed timed and all-day calendar reminder creation with snapshot
    semantics.
 7. Prove text, voice, service, and opt-in live-provider paths and complete the
-   required independent maintainability review.
+   required independent maintainability review. All review findings are
+   addressed in tested follow-up commits.
 
 Acceptance criteria:
 

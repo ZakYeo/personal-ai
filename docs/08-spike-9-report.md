@@ -158,8 +158,8 @@ same application validation as every other intent adapter.
 1. Milestone 10: Compound Command Plans.
 2. Milestone 11: Calendar Result Follow-Ups.
 3. Spike 12: Local Voice Device Benchmark.
-4. Milestone 12.1: Bounded Tool-Chain Workflows (implementation complete;
-   independent review pending).
+4. Milestone 12.1: Bounded Tool-Chain Workflows (implemented after independent
+   review).
 5. Milestone 13: First-Class Local STT.
 6. Milestone 14: First-Class Local TTS.
 7. Spike 15: Messaging Target and Encryption Proof.

@@ -4,6 +4,80 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 12.1: Bounded Tool-Chain Workflows
+
+Status: implemented.
+
+Goal: allow an intent provider to execute a small sequence of explicitly
+authorized reads before proposing one fully resolved command or existing
+bounded compound plan.
+
+Included:
+
+- One provider-neutral intent session per workflow, with at most two sequential
+  capabilities explicitly declared as tool-chain reads.
+- Whole-step core validation before every read, safe observations containing
+  only human-safe text, scalar data, and opaque public references, and immediate
+  stop on validation or execution failure.
+- One optional process-local clarification that resumes the exact provider
+  session, followed by the existing terminal validation, aggregate
+  confirmation, and ordered execution pipeline.
+- OpenAI Responses continuation through `previous_response_id`, strict read
+  tools, and disabled parallel calls, with provider-managed response-state
+  privacy documented for operators.
+- Calendar-event-to-alarm binding with exact timed-event instants, deterministic
+  all-day local-time resolution in `assistant.timeZone`, protected confirmation
+  facts, and snapshot rather than tracking semantics.
+- Text, voice, service, deterministic adapter, and opt-in live OpenAI workflow
+  coverage.
+
+Excluded:
+
+- Arbitrary loops, parallel calls, more than two reads, more than one
+  clarification, or provider-directed retries after failure.
+- Intermediate writes, rollback claims, durable workflow sessions, or a general
+  output-path expression language.
+- Calendar-linked alarm synchronization, remote MCP servers, or exposing
+  credentials, private provider identifiers, raw payloads, or diagnostics to
+  the intent provider.
+
+Outcomes:
+
+- “Remind me ten minutes before the second event” can read calendar results,
+  bind an opaque event reference, render an exact protected confirmation, and
+  persist the approved local alarm without retaining a calendar provider ID.
+- Timed events preserve their exact provider instant. All-day events trigger an
+  application-declared, event-specific time question before confirmation;
+  provider prompting is guidance rather than the safety mechanism.
+- The confirmed calendar handoff uses one typed, validated snapshot containing
+  the original event instant and final alarm instant; incomplete snapshots fail
+  before persistence and the event instant remains available in result data for
+  auditability.
+- Every tool observation is explicitly treated as untrusted data. Prompt-like
+  text in response fields, event titles, labels, or data remains input data and
+  is never an instruction source.
+- Tool-chain outcome metadata preserves each completed read and its safe data
+  across clarification and confirmation turns.
+- The fresh thermonuclear maintainability review findings were all addressed:
+  intent sessions became the sole interpreter contract; invalid post-read
+  terminal states, identifiers, validation failures, and execution failures
+  gained adversarial coverage; all-day clarification moved into a generic
+  application declaration; calendar snapshots became typed and complete; and
+  tool-result prompt-injection policy became explicit and tested.
+
+Acceptance criteria:
+
+- Only declared, confirmation-free reads execute before terminal validation;
+  no write occurs before approval.
+- The workflow permits at most two reads and one clarification, remains one
+  serialized assistant transaction, and stops on the first failure.
+- Private provider IDs and internal diagnostics never enter provider
+  observations or human responses.
+- Timed and all-day events produce deterministic protected alarm confirmations
+  and persist the same frozen instant after approval.
+- Existing command, compound-plan, conversation, calendar-follow-up, and human
+  runtime failure semantics remain compatible, and `npm run check` passes.
+
 ## Milestone 11: Calendar Result Follow-Ups
 
 Status: implemented.
