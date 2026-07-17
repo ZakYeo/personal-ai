@@ -19,6 +19,25 @@ const context: AssistantContext = {
 };
 
 describe("DeterministicIntentInterpreter", () => {
+  it("starts an interpretation session whose first step preserves one-shot behavior", async () => {
+    const interpreter = new DeterministicIntentInterpreter([
+      {
+        capability: "test.echo",
+        match: () => ({ text: "hello" }),
+      },
+    ]);
+
+    await expect(
+      interpreter.start("echo this", context).next(),
+    ).resolves.toEqual({
+      command: {
+        capability: "test.echo",
+        parameters: { text: "hello" },
+        rawText: "echo this",
+      },
+      kind: "command",
+    });
+  });
   it("normalizes case, spacing, punctuation, and the default wake phrase", () => {
     expect(normalizeCommandText("  Hey Jarvis,   LIST my alarms! ")).toBe(
       "list my alarms",

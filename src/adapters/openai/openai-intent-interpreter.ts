@@ -1,5 +1,6 @@
 import type { AssistantContext } from "../../ports/assistant.js";
 import type {
+  IntentSessionContinuation,
   IntentInterpretation,
   IntentInterpreterPort,
 } from "../../ports/intent.js";
@@ -23,6 +24,21 @@ interface OpenAIIntentInterpreterOptions {
 
 export class OpenAIIntentInterpreter implements IntentInterpreterPort {
   constructor(private readonly options: OpenAIIntentInterpreterOptions) {}
+
+  start(text: string, context: AssistantContext) {
+    return {
+      next: (input?: IntentSessionContinuation) => {
+        if (input !== undefined) {
+          return Promise.reject(
+            new OpenAIIntentError(
+              "OpenAI intent session continuation is not implemented.",
+            ),
+          );
+        }
+        return this.interpret(text, context);
+      },
+    };
+  }
 
   async interpret(
     text: string,

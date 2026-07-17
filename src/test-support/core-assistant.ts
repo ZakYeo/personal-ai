@@ -112,13 +112,15 @@ export function createCommand(
 export function createInterpreter(
   interpretation: AssistantCommand | IntentInterpretation,
 ): IntentInterpreterPort {
+  const interpret = () =>
+    Promise.resolve(
+      "capability" in interpretation
+        ? { command: interpretation, kind: "command" as const }
+        : interpretation,
+    );
   return {
-    interpret: () =>
-      Promise.resolve(
-        "capability" in interpretation
-          ? { command: interpretation, kind: "command" }
-          : interpretation,
-      ),
+    interpret,
+    start: () => ({ next: interpret }),
   };
 }
 

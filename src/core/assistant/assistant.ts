@@ -134,14 +134,18 @@ async function handleTextInternal(
       ? { resultReferences: resultReferences.publicReferences() }
       : {}),
   };
-  const interpretation = await dependencies.intentInterpreter.interpret(
+  const session = dependencies.intentInterpreter.start?.(
     normalizedText,
     context,
   );
+  const interpretation = session
+    ? await session.next()
+    : await dependencies.intentInterpreter.interpret(normalizedText, context);
 
   if (
     interpretation.kind === "unknown" ||
-    interpretation.kind === "unsupported"
+    interpretation.kind === "unsupported" ||
+    interpretation.kind === "clarification"
   ) {
     return {
       response: interpretation.response,
@@ -150,6 +154,22 @@ async function handleTextInternal(
 
   if (interpretation.kind === "conversation") {
     return handleConversation(normalizedText, context, conversation);
+  }
+
+  if (interpretation.kind === "tool_call") {
+    return {
+      diagnostics: [
+        {
+          category: "unsupported",
+          message: "Tool-chain execution is not enabled.",
+          capability: interpretation.call.command.capability,
+        },
+      ],
+      response: {
+        status: "unsupported",
+        text: "I cannot complete that chained request yet.",
+      },
+    };
   }
 
   const commands =

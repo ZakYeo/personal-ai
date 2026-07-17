@@ -3,6 +3,7 @@ import type {
   AssistantContext,
 } from "../../ports/assistant.js";
 import type {
+  IntentSessionContinuation,
   IntentInterpretation,
   IntentInterpreterPort,
 } from "../../ports/intent.js";
@@ -16,6 +17,19 @@ export interface DeterministicIntentRule {
 
 export class DeterministicIntentInterpreter implements IntentInterpreterPort {
   constructor(private readonly rules: DeterministicIntentRule[] = []) {}
+
+  start(text: string, context: AssistantContext) {
+    return {
+      next: (input?: IntentSessionContinuation) => {
+        if (input !== undefined) {
+          return Promise.reject(
+            new Error("Deterministic intent sessions cannot be continued."),
+          );
+        }
+        return this.interpret(text, context);
+      },
+    };
+  }
 
   interpret(
     text: string,
