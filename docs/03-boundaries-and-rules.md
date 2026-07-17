@@ -136,6 +136,24 @@ utterance order and stop on the first failure. Later steps must not execute
 after failure, and provider-directed loops, implicit output binding, parallel
 execution, and rollback claims are outside the first compound-command boundary.
 
+Milestone 12.1 adds a narrow, explicit exception to the former output-binding
+exclusion. A provider may request at most two sequential capabilities marked
+`toolChain: "read"`; low risk alone is not authorization. Core validates and
+executes each read, then returns only safe human text, scalar feature data, and
+opaque public references. Private targets, diagnostics, credentials, raw
+payloads, and adapter details never become tool observations. Validation or
+execution failure stops the workflow and is not returned for model-directed
+retry. Parallel calls, write tools, hidden retries, and arbitrary loops remain
+forbidden.
+
+One clarification may be retained process-locally and resumed against the exact
+intent-provider session. No/cancel discards it; other input resumes it. A
+resulting high-risk action replaces the clarification with the ordinary frozen
+confirmation. Calendar-driven alarms snapshot the selected public event facts
+and calculated instant at confirmation, persist no calendar provider ID, and do
+not follow event edits or deletion. All-day events require an explicit local
+time resolved in the canonical assistant IANA timezone.
+
 Every confirmation-required capability must deterministically render its exact
 decoded action through an application-owned declaration. Aggregate prompts must
 include every risky step's protected recipient, destination, content, label,

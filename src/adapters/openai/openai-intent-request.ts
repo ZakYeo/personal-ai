@@ -54,7 +54,7 @@ function createIntentInstructions(
     "Return only JSON matching the supplied schema unless calling one declared read tool.",
     "Call at most one read tool in a response. Never call a terminal-only capability as a tool.",
     "After a tool result, either call one more read tool or return a fully resolved terminal command or plan.",
-    "Use kind clarification with response populated only when one user answer is required to resolve the workflow.",
+    "Use kind clarification with an ok response populated only when one user answer is required to resolve the workflow.",
     "Map requests to enabled assistant capabilities when possible.",
     "Questions about the assistant's enabled capabilities must use the enabled assistant capability that lists them when one is present.",
     "Use kind command with command populated and response null when a capability matches.",

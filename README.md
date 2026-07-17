@@ -42,6 +42,9 @@ Implemented today:
 - Bounded compound command plans that validate every step before execution,
   aggregate exact confirmation for risky actions, execute sequentially, and
   report succeeded, failed, and skipped steps without exposing diagnostics.
+- Bounded tool-chain workflows with at most two explicitly declared sequential
+  reads and one clarification before a fully validated terminal command or
+  plan; OpenAI parallel function calls are disabled.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Shared OpenAI Responses configuration parsing with provider-local config
   types rather than provider details in application ports.
@@ -58,6 +61,9 @@ Implemented today:
 - Mock calendar and messaging features.
 - Local alarm feature backed by an adapter-owned store, durable lifecycle
   state, runtime-owned scheduling, and configured voice delivery.
+- Confirmed calendar-driven alarms such as “remind me ten minutes before the
+  second event,” including all-day local-time clarification and snapshot
+  semantics that do not track later event changes.
 - Built-in assistant capability catalog feature for listing and describing the
   currently enabled capabilities from feature metadata, with concise spoken
   summaries for normal voice answers.
@@ -90,7 +96,9 @@ Current roadmap position:
   whole-plan validation, aggregate confirmation, ordered execution, and smoke
   coverage across text and voice runtimes. Milestone 11 is implemented after
   its required independent review, with bounded process-local calendar
-  references and read-only detail lookup. The
+  references and read-only detail lookup. Milestone 12.1 implementation is
+  complete and awaiting its required independent review; it adds bounded read
+  sessions and calendar-event-to-alarm snapshot binding. The
   [discovery report](docs/08-spike-9-report.md) makes compound command plans the
   first post-spike milestone, followed by calendar result follow-ups, measured
   local voice, target-specific messaging, and a benchmarked local intent
@@ -127,6 +135,11 @@ environment variable. Do not store API keys in repository config files.
 The development CLI loads `.env` when present with Node's
 `--env-file-if-exists` support. The opt-in OpenAI E2E test also loads `.env`;
 both use the `OPENAI_API_KEY` variable name.
+Bounded OpenAI workflows continue with `previous_response_id`. This uses
+provider-managed stored response state: utterances, capability metadata, safe
+tool observations, event titles/times, and continuation context are subject to
+the configured OpenAI account's data handling and retention policy. Use the
+deterministic provider when that off-device retention tradeoff is unacceptable.
 
 The default desktop OpenAI voice service config used by `npm start` selects the
 Google Calendar adapter and OpenAI response rewriter. Google Calendar access

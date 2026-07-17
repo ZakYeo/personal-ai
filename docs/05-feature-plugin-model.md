@@ -10,6 +10,12 @@ each feature still validates and executes only its own decoded command. A plan
 must not make one feature import another or add a feature-specific switch to
 core orchestration.
 
+Bounded workflows also preserve feature ownership. Only capability metadata
+with `toolChain: "read"` opts a capability into intermediate execution. Core
+still performs routing, decoding, confirmation-policy checks, and sequential
+execution; features never invoke each other and providers never receive a
+general feature executor.
+
 Capabilities that can require confirmation must also declare an
 application-owned deterministic confirmation renderer tied to their decoded
 argument type. It returns concise human text plus protected exact facts such as
@@ -49,6 +55,7 @@ Examples:
 - `messaging.draft_reply`
 - `messaging.send_reply`
 - `alarm.create`
+- `alarm.create_from_calendar_event`
 - `alarm.snooze`
 - `alarm.reschedule`
 - `alarm.edit`
@@ -108,6 +115,12 @@ a yes/no follow-up prompt. A positive response resumes the already decoded
 command without asking the intent provider to interpret it again; a negative
 response discards it. Restarting the assistant discards any pending command.
 
+The same single interaction slot may hold one clarification. Its user reply
+resumes the already-created intent session, while no/cancel discards it. If the
+resumed result requires confirmation, the validated confirmation replaces the
+clarification. Confirmed feature execution receives the immutable exact facts
+rendered at validation so snapshot actions persist precisely what the user saw.
+
 High-risk capability safety should fail closed. A capability marked
 `risk: "high"` should require confirmation by default unless the feature's
 documentation, metadata, and tests explicitly justify a narrower exception.
@@ -130,6 +143,9 @@ For each capability:
 
 - Use a stable capability name such as `alarm.create`.
 - Set `risk` to `low` or `high`.
+- Set `toolChain: "read"` only for idempotent read capabilities whose safe
+  result projection is suitable for an intent provider. Omission means terminal
+  only and fails closed.
 - Provide a short user-facing `summary` and fuller `description`. Runtime
   composition uses these fields for provider prompts and the assistant
   capability catalog, so capability-awareness should come from metadata rather

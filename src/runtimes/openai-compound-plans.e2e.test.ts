@@ -7,8 +7,8 @@ import { createConfiguredTextRuntime } from "./configured-text-runtime.js";
 
 const runOpenAIE2E = env.PERSONAL_AI_RUN_OPENAI_E2E === "1";
 
-describe.skipIf(!runOpenAIE2E)("OpenAI compound plans live E2E", () => {
-  it("validates and confirms a calendar and durable-alarm plan", async () => {
+describe.skipIf(!runOpenAIE2E)("OpenAI bounded workflows live E2E", () => {
+  it("reads an all-day calendar event, clarifies its time, and confirms one durable alarm", async () => {
     const { configPath, statePath } = await writePersistentAlarmRuntimeConfig(
       createLivePlanConfig(),
     );
@@ -20,27 +20,32 @@ describe.skipIf(!runOpenAIE2E)("OpenAI compound plans live E2E", () => {
     });
 
     const prompt = await assistant.handleText(
-      "Hey Jarvis, check my upcoming calendar events and set an alarm called tea for ten minutes from now.",
+      "Hey Jarvis, remind me ten minutes before my first upcoming calendar event.",
     );
 
-    expect(prompt).toMatchObject({
+    expect(prompt).toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: expect.any(String) as string,
+    });
+    const confirmation = await assistant.handleText("10am");
+    expect(confirmation).toMatchObject({
       expectsFollowUp: true,
       status: "needs_confirmation",
     });
-    expect(prompt.text).toContain("tea");
-    expect(prompt.text).toContain("2026-07-14T09:10:00.000Z");
+    expect(confirmation.text).toContain("Upcoming wedding");
+    expect(confirmation.text).toContain("2026-09-12T08:50:00.000Z");
     await expect(access(statePath)).rejects.toMatchObject({ code: "ENOENT" });
 
     const response = await assistant.handleText("yes");
     expect(response).toMatchObject({ status: "ok" });
-    expect(response.text).toContain("Upcoming wedding");
     expect(response.text).toContain("Alarm set");
     await expect(
       createFileAlarmStore({ filePath: statePath }).list(),
     ).resolves.toEqual([
       expect.objectContaining({
-        label: "tea",
-        scheduledFor: "2026-07-14T09:10:00.000Z",
+        label: "Upcoming wedding reminder",
+        scheduledFor: "2026-09-12T08:50:00.000Z",
       }),
     ]);
   }, 30_000);

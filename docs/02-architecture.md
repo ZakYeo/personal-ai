@@ -26,7 +26,10 @@ The same assistant core should also support a text-first flow:
 ```text
 Text Command
   -> Assistant Core
-  -> Intent Interpretation
+  -> Intent Session
+  -> 0..2 Core-Validated Reads
+  -> 0..1 User Clarification
+  -> Terminal Interpretation
   -> Feature Selection
   -> Feature Execution
   -> Assistant Response
@@ -80,11 +83,17 @@ The core coordinates assistant behavior:
 - Receives normalized user input.
 - Tracks conversation/session context.
 - Calls the configured intent interpreter.
+- Owns bounded intent-session orchestration: at most two declared reads, one
+  clarification, no parallel calls, and no provider-directed retry after a
+  validation or feature failure.
 - Routes general conversation turns to the configured conversation responder.
 - Chooses or invokes feature plugins.
 - Applies validation and confirmation rules.
 - Retains at most one process-local validated command while awaiting an explicit
   yes or no, and serializes turns that inspect or change that pending state.
+- Retains one process-local pending interaction, either confirmation or
+  clarification. Clarification resumes the exact provider session; a resulting
+  confirmation replaces it without reinterpretation.
 - Produces structured assistant responses.
 
 The core must not know whether input came from a microphone, CLI, test fixture, HTTP request, or Raspberry Pi device.
@@ -101,7 +110,8 @@ parsers, not in application port modules.
 Implemented application ports include:
 
 - Assistant response and diagnostic-aware outcome contracts.
-- Intent interpretation and deterministic feature-rule contracts.
+- Intent-session, safe tool-observation, and deterministic feature-rule
+  contracts.
 - Conversation response and compaction contracts.
 - Command response rewriting contracts.
 - Feature, capability metadata, execution context, and capability-catalog

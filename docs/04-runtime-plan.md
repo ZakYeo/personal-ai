@@ -96,6 +96,20 @@ returns the `runOnce` entry point.
 Text wake phrase normalization and prefix matching are shared by the mock and
 desktop voice adapters so user-facing wake behavior stays consistent.
 
+Bounded workflows use the same follow-up signal as conversation and calendar
+detail turns. Voice command sequencing allows an all-day-time clarification and
+subsequent confirmation without another wake phrase, while the existing
+follow-up-turn cap prevents an unbounded spoken loop. Text, voice, and service
+runtimes receive the same safe final response and diagnostic-aware tool-chain
+trace from the neutral assistant core.
+
+The OpenAI intent adapter uses strict read-only Responses function tools,
+disables parallel calls, and continues with `previous_response_id`. This is an
+explicit opt-in privacy tradeoff: provider-managed stored response state and
+safe continuation observations are subject to the operator's OpenAI retention
+and data-control settings. Runtime boundaries must not log or speak provider
+response IDs, raw observations, or private calendar targets.
+
 The desktop voice service command is:
 
 ```bash
