@@ -277,7 +277,8 @@ native Linux and Raspberry Pi hosts retain SoX's configured default devices.
 Benchmark candidate processes are isolated behind bounded command execution.
 Each candidate gets one excluded warm-up followed by three measured runs per
 sample. STT drivers receive only a WAV path; TTS drivers receive fixture text
-through stdin, and all reported telemetry is validated before scoring.
+through stdin, and all reported telemetry is validated before scoring. This
+process boundary is not itself proof of network isolation.
 
 Third-party benchmark files are never fetched by repository tooling. After an
 operator separately reviews and supplies them, verify the committed allowlist
@@ -472,6 +473,10 @@ Common development commands:
   - run one resumable local voice benchmark chunk with isolated measurements.
 - `npm run benchmark:voice:aggregate` - combine completed desktop chunks into
   the committed raw result contract.
+- `npm run benchmark:voice:build-drivers` - build the reviewed stdin-only
+  sherpa VITS benchmark sidecar against the verified private engine install.
+- `npm run benchmark:voice:report` - regenerate the desktop report from the
+  validated committed raw result and policy.
 - `npm run setup:google-calendar` - run the local OAuth loopback helper and
   print a `GOOGLE_CALENDAR_REFRESH_TOKEN` line for `.env`.
 - `npm run setup:openwakeword` - create or update `.venv` with the Python

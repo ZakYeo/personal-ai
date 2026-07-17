@@ -7,11 +7,12 @@ import type {
   TtsExecutionTelemetry,
 } from "./benchmark-runner.js";
 
-interface CandidateProcessProfile {
+interface CandidateProcessProfile<TTelemetry> {
   args: string[];
   command: string;
   environment: Record<string, string | undefined>;
   timeoutMs: number;
+  parseResult?: (result: RunCommandResult) => Promise<TTelemetry> | TTelemetry;
 }
 
 interface CandidateProcessDependencies {
@@ -19,7 +20,7 @@ interface CandidateProcessDependencies {
 }
 
 export async function executeSttCandidateProcess(
-  profile: CandidateProcessProfile,
+  profile: CandidateProcessProfile<SttExecutionTelemetry>,
   inputPath: string,
   dependencies: CandidateProcessDependencies,
 ): Promise<SttExecutionTelemetry> {
@@ -41,11 +42,13 @@ export async function executeSttCandidateProcess(
     timeoutMs: profile.timeoutMs,
   });
 
-  return parseSttTelemetry(parseDriverJson(result.stdout));
+  return profile.parseResult
+    ? profile.parseResult(result)
+    : parseSttTelemetry(parseDriverJson(result.stdout));
 }
 
 export async function executeTtsCandidateProcess(
-  profile: CandidateProcessProfile,
+  profile: CandidateProcessProfile<TtsExecutionTelemetry>,
   text: string,
   dependencies: CandidateProcessDependencies,
 ): Promise<TtsExecutionTelemetry> {
@@ -57,7 +60,9 @@ export async function executeTtsCandidateProcess(
     timeoutMs: profile.timeoutMs,
   });
 
-  return parseTtsTelemetry(parseDriverJson(result.stdout));
+  return profile.parseResult
+    ? profile.parseResult(result)
+    : parseTtsTelemetry(parseDriverJson(result.stdout));
 }
 
 function parseDriverJson(value: string): unknown {
@@ -77,8 +82,8 @@ function parseSttTelemetry(value: unknown): SttExecutionTelemetry {
     finalizationMs: requireNonnegativeNumber(record, "finalizationMs"),
     peakRssBytes: requireNonnegativeNumber(record, "peakRssBytes"),
     realTimeFactor: requireNonnegativeNumber(record, "realTimeFactor"),
-    shutdownMs: requireNonnegativeNumber(record, "shutdownMs"),
-    startupMs: requireNonnegativeNumber(record, "startupMs"),
+    shutdownMs: requireNullableNonnegativeNumber(record, "shutdownMs"),
+    startupMs: requireNullableNonnegativeNumber(record, "startupMs"),
     transcript: requireString(record, "transcript"),
   };
 }
@@ -99,8 +104,8 @@ function parseTtsTelemetry(value: unknown): TtsExecutionTelemetry {
     firstAudioMs: requireNonnegativeNumber(record, "firstAudioMs"),
     peakRssBytes: requireNonnegativeNumber(record, "peakRssBytes"),
     realTimeFactor: requireNonnegativeNumber(record, "realTimeFactor"),
-    shutdownMs: requireNonnegativeNumber(record, "shutdownMs"),
-    startupMs: requireNonnegativeNumber(record, "startupMs"),
+    shutdownMs: requireNullableNonnegativeNumber(record, "shutdownMs"),
+    startupMs: requireNullableNonnegativeNumber(record, "startupMs"),
   };
 }
 
@@ -122,6 +127,15 @@ function requireNonnegativeNumber(
     );
   }
   return value;
+}
+
+function requireNullableNonnegativeNumber(
+  record: Record<string, unknown>,
+  field: string,
+): number | null {
+  return record[field] === null
+    ? null
+    : requireNonnegativeNumber(record, field);
 }
 
 function requireString(record: Record<string, unknown>, field: string): string {

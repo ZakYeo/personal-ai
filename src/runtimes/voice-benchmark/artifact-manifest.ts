@@ -1,6 +1,6 @@
 import { join } from "node:path";
 
-type ArtifactArchitecture = "arm64" | "x64";
+export type ArtifactArchitecture = "arm64" | "x64";
 type ArtifactKind = "corpus" | "dependency" | "engine" | "model";
 
 interface VoiceArtifact {
@@ -16,7 +16,7 @@ interface VoiceArtifact {
   sourceUrl: string;
 }
 
-interface VoiceArtifactManifest {
+export interface VoiceArtifactManifest {
   artifacts: readonly VoiceArtifact[];
   policy: Readonly<{ minimumCoolingOffDays: number }>;
   schemaVersion: 1;

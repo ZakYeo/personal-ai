@@ -18,7 +18,7 @@ await runCommand({
     ".voice-benchmark/bin/sherpa-vits-stdin",
   ],
   command: "/usr/bin/c++",
-  environment: {},
+  environment: { PATH: "/usr/bin:/bin" },
   timeoutMs: 30_000,
 });
 process.stdout.write(".voice-benchmark/bin/sherpa-vits-stdin\n");

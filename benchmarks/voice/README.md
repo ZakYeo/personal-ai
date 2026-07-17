@@ -69,8 +69,11 @@ npm run benchmark:voice:run -- \
   --candidate whisper-base-en --start 0 --count 4 \
   --output .voice-benchmark/results/desktop-wsl2/chunks/whisper-base-en-0.json
 npm run benchmark:voice:aggregate
+npm run benchmark:voice:report
 ```
 
-The 2026-07-17 WSL2 run produced an explicit no-go; see
-`results/desktop-wsl2-report.md`. No Raspberry Pi measurements or production
-adapter selection are claimed.
+The 2026-07-17 WSL2 run produced an explicit desktop-only partial no-go; see
+`results/desktop-wsl2-report.md`. The report is generated from validated raw
+results and calls out every unavailable acceptance measurement. No Raspberry Pi
+measurements, independent proof of network isolation, or production adapter
+selection are claimed.

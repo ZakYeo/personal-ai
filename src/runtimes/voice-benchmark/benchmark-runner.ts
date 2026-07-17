@@ -41,8 +41,8 @@ interface SharedExecutionTelemetry {
   cpuMs: number;
   peakRssBytes: number;
   realTimeFactor: number;
-  shutdownMs: number;
-  startupMs: number;
+  shutdownMs: number | null;
+  startupMs: number | null;
 }
 
 export interface SttExecutionTelemetry extends SharedExecutionTelemetry {

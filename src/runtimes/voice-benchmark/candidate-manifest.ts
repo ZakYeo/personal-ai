@@ -1,3 +1,8 @@
+import type {
+  ArtifactArchitecture,
+  VoiceArtifactManifest,
+} from "./artifact-manifest.js";
+
 interface DesktopCandidateDriver {
   args: readonly string[];
   command: string;
@@ -80,6 +85,43 @@ export function parseCandidateManifest(input: unknown): CandidateManifest {
     candidates: Object.freeze(candidates),
     schemaVersion: 1,
   });
+}
+
+export function validateCandidateArtifacts(
+  manifest: CandidateManifest,
+  artifacts: VoiceArtifactManifest,
+  architecture: ArtifactArchitecture,
+): void {
+  const byId = new Map(
+    artifacts.artifacts.map((artifact) => [artifact.id, artifact]),
+  );
+  for (const candidate of manifest.candidates) {
+    const selected = candidate.artifactIds.map((id) => {
+      const artifact = byId.get(id);
+      if (!artifact) {
+        throw new Error(
+          `Candidate ${candidate.id} references unknown artifact ${id}.`,
+        );
+      }
+      if (!artifact.architectures.includes(architecture)) {
+        throw new Error(
+          `Candidate ${candidate.id} artifact ${id} does not support ${architecture}.`,
+        );
+      }
+      return artifact;
+    });
+    const revisionIsBacked = selected.some(
+      ({ sourceRevision }) => sourceRevision === candidate.revision,
+    );
+    const reviewedSourceCommit =
+      candidate.engine === "whisper.cpp" &&
+      /^[a-f\d]{40}$/u.test(candidate.revision);
+    if (!revisionIsBacked && !reviewedSourceCommit) {
+      throw new Error(
+        `Candidate ${candidate.id} revision is not backed by an artifact.`,
+      );
+    }
+  }
 }
 
 function parseDesktopDriver(

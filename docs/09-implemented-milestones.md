@@ -1016,13 +1016,17 @@ Acceptance criteria:
 Status: implemented with an explicit desktop no-go.
 
 The spike added immutable candidate, policy, personal-recording, TTS-response,
-artifact, raw-result, and blinded-rating contracts. The WSL2 benchmark ran
+artifact, validated raw-result, and generated-report contracts. The WSL2 benchmark ran
 whisper.cpp `base.en` and `small.en`, sherpa-onnx Zipformer 20M int8, Piper Alba
 medium, and sherpa-onnx Amy low with one excluded warm-up and three isolated
 repetitions per sample.
 
-No candidate passed the desktop correctness and performance gates. Subjective
-TTS ratings were not used to override hard latency/RTF failures. Raspberry Pi
+No candidate passed the measured desktop correctness and performance gates.
+Subjective TTS ratings were deferred because both candidates first failed the
+hard batch-ready latency/RTF screen. The report explicitly marks network
+isolation, installed size, shutdown latency, thermal state, LibriSpeech scoring,
+and true streaming first-audio/finalization latency as unavailable rather than
+inventing values for them. Raspberry Pi
 measurements were explicitly deferred because hardware was unavailable.
 Milestones 13 and 14 therefore remain blocked rather than registering an
 unfit production adapter. Raw measurements and the reproducible report live

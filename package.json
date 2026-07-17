@@ -18,6 +18,7 @@
     "benchmark:voice:aggregate": "node --import tsx src/runtimes/voice-benchmark/benchmark-aggregate-main.ts",
     "benchmark:voice:build-drivers": "node --import tsx src/runtimes/voice-benchmark/build-drivers-main.ts",
     "benchmark:voice:capture": "node --import tsx src/runtimes/voice-benchmark/capture-main.ts",
+    "benchmark:voice:report": "node --import tsx src/runtimes/voice-benchmark/benchmark-report-main.ts",
     "benchmark:voice:run": "node --import tsx src/runtimes/voice-benchmark/desktop-benchmark-main.ts",
     "benchmark:voice:verify-artifacts": "node --import tsx src/runtimes/voice-benchmark/artifact-verify-main.ts",
     "bin:check": "npm run build && node scripts/check-bin.mjs",

@@ -1,33 +1,19 @@
 # Desktop WSL2 Local Voice Benchmark
 
-Run date: 2026-07-17. Device: 13th Gen Intel Core i9-13950HX, x64,
-Linux 6.18.33.2 under WSL2, with approximately 30.6 GB available memory.
+Run date: 2026-07-17. Device: 13th Gen Intel(R) Core(TM) i9-13950HX, x64, Linux linux 6.18.33.2-microsoft-standard-WSL2.
 
 ## Outcome
 
-No STT or TTS candidate passed the committed desktop gates. No provisional
-provider is selected. Raspberry Pi measurements were not run because no Pi was
-available, and nothing in these results establishes Pi fitness.
+This is a desktop-only, partial acceptance run. No candidate is eligible for selection: every candidate has a measured hard failure or execution failure, and the run did not independently prove network isolation, installed size, shutdown latency, thermal state, or Raspberry Pi fitness. Raspberry Pi measurements remain deferred because no Pi was available.
 
-| Candidate                 |                               Correctness |             P95 latency | P95 RTF | Peak RSS | Outcome                     |
-| ------------------------- | ----------------------------------------: | ----------------------: | ------: | -------: | --------------------------- |
-| whisper.cpp `base.en`     |      10/22 exact; 22.0% mean personal WER |          1,180 ms final |   0.630 |   297 MB | No-go: accuracy and latency |
-| whisper.cpp `small.en`    |      13/22 exact; 11.2% mean personal WER |          4,130 ms final |   2.205 |   787 MB | No-go: accuracy and latency |
-| sherpa Zipformer 20M int8 |       0/22 exact; 49.4% mean personal WER |            107 ms final |   0.325 |    97 MB | No-go: accuracy and RTF     |
-| Piper Alba medium         | Listening not required after hard failure | 1,140 ms first playable |   0.348 |   240 MB | No-go: latency and RTF      |
-| sherpa Amy low            | Listening not required after hard failure | 1,540 ms first playable |   0.432 |   176 MB | No-go: latency and RTF      |
+| Candidate                    |                          Correctness | P95 measured latency | P95 RTF | Peak RSS | Outcome                                |
+| ---------------------------- | -----------------------------------: | -------------------: | ------: | -------: | -------------------------------------- |
+| piper-alba-medium            |   Ratings skipped after hard failure |             1,130 ms |   0.343 |   241 MB | No-go: batch-ready latency, RTF        |
+| sherpa-amy-low               |   Ratings skipped after hard failure |             1,470 ms |   0.428 |   176 MB | No-go: batch-ready latency, RTF        |
+| sherpa-zipformer-en-20m-int8 |  0/22 exact; 60.4% mean personal WER |               114 ms |   0.336 |    97 MB | No-go: accuracy, 12 execution failures |
+| whisper-base-en              | 10/22 exact; 22.0% mean personal WER |             1,240 ms |   0.644 |   297 MB | No-go: accuracy, latency, RTF          |
+| whisper-small-en             | 13/22 exact; 11.2% mean personal WER |             4,360 ms |   2.228 |   786 MB | No-go: accuracy, latency, RTF          |
 
-All candidates ran without network access, with minimal environments, one
-excluded warm-up, and three isolated measured repetitions per sample. WSL2 did
-not expose meaningful device thermal-throttling telemetry, so that field is
-recorded as unavailable. Batch TTS first-audio is the time until the generated
-WAV became playable; neither tested command exposed streaming audio.
+Each sample used one excluded warm-up and three measured repetitions. STT latency is offline process completion after reported model startup, not post-speech streaming finalization. TTS latency is conservative batch-ready WAV completion, not first streaming audio. The minimal child environment is recorded, but it is not evidence of network isolation. Shutdown was not measured and is therefore unavailable rather than zero. WSL2 thermal telemetry, installed-size accounting, and a provenance-compliant LibriSpeech reference corpus were also unavailable.
 
-The LibriSpeech reference archive remains unavailable under the repository's
-SHA-256 provenance policy. This does not change the no-go: every STT candidate
-already failed the personal-command exact-match gate, and at least one further
-hard performance gate.
-
-Raw measurements are committed in `desktop-wsl2.json`. Generated WAVs,
-per-process timing files, engine installations, and model files remain in the
-ignored private benchmark directory.
+Subjective TTS ratings were not collected because both TTS candidates failed the measured hard performance gate. Raw measurements are committed in `desktop-wsl2.json`; generated audio, timing files, engines, and models remain private ignored artifacts.

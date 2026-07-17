@@ -1,5 +1,9 @@
 import { readFile } from "node:fs/promises";
-import { parseCandidateManifest } from "./candidate-manifest.js";
+import { parseVoiceArtifactManifest } from "./artifact-manifest.js";
+import {
+  parseCandidateManifest,
+  validateCandidateArtifacts,
+} from "./candidate-manifest.js";
 
 describe("voice benchmark candidate manifest", () => {
   it("locks the committed desktop candidate matrix", async () => {
@@ -38,6 +42,26 @@ describe("voice benchmark candidate manifest", () => {
         schemaVersion: 1,
       }),
     ).toThrow(/installDirectory/iu);
+  });
+
+  it("requires candidate artifacts and revisions to support the target", async () => {
+    const manifest = parseCandidateManifest(
+      JSON.parse(
+        await readFile("benchmarks/voice/candidates.json", "utf8"),
+      ) as unknown,
+    );
+    const artifacts = parseVoiceArtifactManifest(
+      JSON.parse(
+        await readFile("benchmarks/voice/artifacts.json", "utf8"),
+      ) as unknown,
+    );
+
+    expect(() =>
+      validateCandidateArtifacts(manifest, artifacts, "x64"),
+    ).not.toThrow();
+    expect(() =>
+      validateCandidateArtifacts(manifest, artifacts, "arm64"),
+    ).toThrow(/support/iu);
   });
 });
 

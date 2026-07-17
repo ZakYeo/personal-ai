@@ -134,9 +134,11 @@ Included:
 - `whisper.cpp` and `sherpa-onnx` STT trials using the same committed audio
   corpus and command scoring.
 - Piper and one `sherpa-onnx` TTS trial using the same spoken response corpus.
-- Measurements for accuracy or intelligibility, end-of-speech/final and
-  first-audio latency, real-time factor, memory, CPU, install size, startup,
-  shutdown, and offline operation.
+- Desktop measurements for personal-command accuracy, conservative offline
+  completion or batch-ready latency, real-time factor, memory, and CPU. The
+  report marks install size, shutdown, thermal state, independent network
+  isolation, reference-corpus accuracy, true streaming latency, and Pi evidence
+  unavailable where the run could not establish them.
 - License, model-source, checksum, packaging, and Pi compatibility review.
 - A recorded selection or an explicit no-go threshold.
 - A capability-tagged personal corpus with immutable phrase IDs. Guided capture
@@ -150,10 +152,11 @@ Included:
   take is saved immediately, and prompt-level quit or `Ctrl-C` resumes
   from the persisted index on the next run.
 - A process-isolated runner with one excluded warm-up and three measured
-  repetitions for every candidate and sample. Candidate drivers report
-  operation-specific startup, final-or-first-audio, CPU, memory, real-time
-  factor, and shutdown telemetry as structurally validated JSON; TTS fixture
-  text is supplied through stdin rather than process arguments.
+  repetitions for every candidate and sample. The canonical candidate process
+  boundary validates engine-specific telemetry; TTS fixture text is supplied
+  through stdin rather than process arguments. Aggregation rejects mixed-device,
+  incomplete, duplicate, or wrong-repetition chunks before atomically writing
+  results, and the report is generated from that validated result.
 - A committed artifact allowlist with exact provenance, revisions, licenses,
   architecture applicability, byte counts, and SHA-256 digests. Repository
   tooling only verifies separately reviewed operator-supplied files offline and
