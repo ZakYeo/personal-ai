@@ -118,6 +118,7 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
           risk: "low",
           summary: "List local alarms and their current status.",
           spokenSummary: "manage local alarms",
+          toolChain: "read",
           parameters: alarmListParameters,
           execute: () => listAlarms(store),
         }),

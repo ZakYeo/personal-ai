@@ -86,6 +86,7 @@ export function createCalendarFeature(
           risk: "low",
           summary: "Answer a follow-up about a recent calendar result.",
           spokenSummary: "ask about recent calendar results",
+          toolChain: "read",
           parameters: calendarFollowUpParameters,
           execute: (request, context) =>
             answerCalendarFollowUp(calendar, request.args, context),
@@ -96,6 +97,7 @@ export function createCalendarFeature(
           risk: "low",
           summary: "Search configured calendar events or list upcoming events.",
           spokenSummary: "check your calendar",
+          toolChain: "read",
           parameters: calendarSearchEventsParameters,
           execute: async (request, context) =>
             searchEvents(calendar, request.args, context.clock.now(), {

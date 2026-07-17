@@ -60,6 +60,7 @@ describe("defineFeature", () => {
         "test.echo": defineCapability({
           risk: "low",
           spokenSummary: "repeat messages",
+          toolChain: "read",
           parameters: {
             loud: { type: "boolean" },
             message: { type: "string", required: true },
@@ -108,6 +109,7 @@ describe("defineFeature", () => {
         name: "test.echo",
         risk: "low",
         spokenSummary: "repeat messages",
+        toolChain: "read",
         parameters: {
           loud: { type: "boolean" },
           message: { type: "string", required: true },

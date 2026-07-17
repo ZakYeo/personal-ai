@@ -184,6 +184,9 @@ export function defineFeature<
     capabilities: capabilityEntries.map(([name, handler]) => ({
       name,
       risk: handler.risk,
+      ...(handler.toolChain === undefined
+        ? {}
+        : { toolChain: handler.toolChain }),
       ...(handler.summary === undefined ? {} : { summary: handler.summary }),
       ...(handler.spokenSummary === undefined
         ? {}

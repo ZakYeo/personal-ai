@@ -172,6 +172,7 @@ export function formatOpenAICapabilities(
         `summary ${capability.summary ?? "not provided"}`,
         `description ${capability.description ?? "not provided"}`,
         `risk ${capability.risk}`,
+        `tool chain ${capability.toolChain ?? "terminal only"}`,
         `parameters ${parameterText}`,
       ].join("; ");
     })

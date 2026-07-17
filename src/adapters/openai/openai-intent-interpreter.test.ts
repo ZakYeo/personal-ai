@@ -156,6 +156,7 @@ describe("OpenAIIntentInterpreter", () => {
               startDate: { type: "string" },
             },
             risk: "low",
+            toolChain: "read",
           },
           featureId: "calendar",
           featureName: "Mock Calendar",
@@ -194,6 +195,8 @@ describe("OpenAIIntentInterpreter", () => {
     );
 
     const body = readRequestBody(fetch);
+
+    expect(JSON.stringify(body.input)).toContain("tool chain read");
 
     expect(body.text.format.schema).toMatchObject({
       additionalProperties: false,

@@ -13,6 +13,7 @@ describe("createProviderCapabilityCatalog", () => {
               title: { required: true, type: "string" },
             },
             risk: "low",
+            toolChain: "read",
           },
           {
             name: "calendar.delete",
@@ -75,6 +76,7 @@ describe("createProviderCapabilityCatalog", () => {
     expect(Object.isFrozen(catalog)).toBe(true);
     expect(Object.isFrozen(catalog[0])).toBe(true);
     expect(Object.isFrozen(catalog[0]?.capability)).toBe(true);
+    expect(catalog[0]?.capability.toolChain).toBe("read");
     expect(() => {
       (catalog as unknown[]).push({
         capability: { name: "calendar.delete", risk: "high" },
@@ -98,7 +100,7 @@ describe("createProviderCapabilityCatalog", () => {
 
 function createFeature(id: string, capabilityName: string): FeaturePlugin {
   return {
-    capabilities: [{ name: capabilityName, risk: "low" }],
+    capabilities: [{ name: capabilityName, risk: "low", toolChain: "read" }],
     displayName: id,
     execute: vi.fn(),
     id,

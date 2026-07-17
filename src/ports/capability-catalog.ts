@@ -3,6 +3,7 @@ import type { AssistantContext, ConfirmationDeclaration } from "./assistant.js";
 export interface FeatureCapability {
   name: string;
   risk: "low" | "high";
+  toolChain?: "read";
   summary?: string;
   spokenSummary?: string;
   description?: string;
