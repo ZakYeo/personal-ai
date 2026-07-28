@@ -3,6 +3,7 @@ import type {
   InternetSearchResponse,
   InternetSearchSource,
 } from "../../ports/internet-search.js";
+import { internetSearchLimits } from "../../ports/internet-search.js";
 import { isRecord } from "../parsing.js";
 import { OpenAIWebSearchError } from "./openai-web-search-error.js";
 
@@ -60,6 +61,9 @@ function parseCitedAnswer(
   }
 
   const answer = content.text as string;
+  if (answer.length > internetSearchLimits.answerCharacters) {
+    throw contentBoundsError();
+  }
   const sources: InternetSearchSource[] = [];
   const citations: InternetSearchCitation[] = [];
   const sourceByUrl = new Map<string, InternetSearchSource>();
@@ -108,10 +112,16 @@ function parseCitation(
       "OpenAI web search citation title must be a non-empty string.",
     );
   }
+  if (value.title.length > internetSearchLimits.titleCharacters) {
+    throw contentBoundsError();
+  }
   if (typeof value.url !== "string" || !isSafeWebUrl(value.url)) {
     throw new OpenAIWebSearchError(
       "OpenAI web search citation URL must use HTTP or HTTPS.",
     );
+  }
+  if (value.url.length > internetSearchLimits.urlCharacters) {
+    throw contentBoundsError();
   }
   if (
     !Number.isInteger(value.start_index) ||
@@ -151,5 +161,11 @@ function missingOutputTextError(): OpenAIWebSearchError {
 function missingCitationsError(): OpenAIWebSearchError {
   return new OpenAIWebSearchError(
     "OpenAI web search response did not include URL citations.",
+  );
+}
+
+function contentBoundsError(): OpenAIWebSearchError {
+  return new OpenAIWebSearchError(
+    "OpenAI web search response contained content outside safe bounds.",
   );
 }

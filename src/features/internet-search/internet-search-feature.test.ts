@@ -103,6 +103,74 @@ describe("createInternetSearchFeature", () => {
     );
   });
 
+  it("rejects overlong queries before calling the provider", async () => {
+    const calls: InternetSearchQuery[] = [];
+
+    await expectFeatureRejects(
+      createInternetSearchFeature(createFakeSearch(calls)),
+      {
+        capability: "internet.search",
+        parameters: { query: "x".repeat(501) },
+        rawText: "search",
+      },
+      { query: "x".repeat(501) },
+      "Internet search queries must not exceed 500 characters.",
+    );
+    expect(calls).toEqual([]);
+  });
+
+  it("rejects citations outside the current bounded source set", async () => {
+    await expectFeatureRejects(
+      createInternetSearchFeature({
+        search: () =>
+          Promise.resolve({
+            answer: "Answer [1]",
+            citations: [{ endIndex: 10, sourceId: "missing", startIndex: 7 }],
+            sources: [
+              {
+                id: "current",
+                title: "Current",
+                url: "https://example.com/current",
+              },
+            ],
+          }),
+      }),
+      {
+        capability: "internet.search",
+        parameters: { query: "current answer" },
+        rawText: "search",
+      },
+      { query: "current answer" },
+      "Internet search returned citations that do not resolve to its source set.",
+    );
+  });
+
+  it("rejects oversized answer projections from every adapter", async () => {
+    await expectFeatureRejects(
+      createInternetSearchFeature({
+        search: () =>
+          Promise.resolve({
+            answer: "x".repeat(4_001),
+            citations: [{ endIndex: 3, sourceId: "current", startIndex: 0 }],
+            sources: [
+              {
+                id: "current",
+                title: "Current",
+                url: "https://example.com/current",
+              },
+            ],
+          }),
+      }),
+      {
+        capability: "internet.search",
+        parameters: { query: "current answer" },
+        rawText: "search",
+      },
+      { query: "current answer" },
+      "Internet search returned content outside safe bounds.",
+    );
+  });
+
   it("answers follow-ups only through a selected opaque source reference", async () => {
     await expectDecodedFeatureExecution(
       createInternetSearchFeature(createFakeSearch()),

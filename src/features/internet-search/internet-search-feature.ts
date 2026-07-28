@@ -9,6 +9,7 @@ import type {
   InternetSearchPort,
   InternetSearchSource,
 } from "../../ports/internet-search.js";
+import { internetSearchLimits } from "../../ports/internet-search.js";
 import {
   defineDeterministicFeatureRules,
   type DeterministicFeatureRule,
@@ -105,8 +106,14 @@ async function executeSearch(
   if (query.length === 0) {
     throw new Error("Internet search requires a non-empty query.");
   }
+  if (query.length > internetSearchLimits.queryCharacters) {
+    throw new Error(
+      `Internet search queries must not exceed ${internetSearchLimits.queryCharacters} characters.`,
+    );
+  }
 
   const response = await search.search({ maxResults, query }, { now });
+  validateSearchResponse(response, maxResults);
   if (response.sources.length === 0) {
     return {
       resultReferences: {
@@ -123,6 +130,73 @@ async function executeSearch(
     resultReferences: createResultReferences(response.sources),
     text: formatCitedAnswer(response),
   };
+}
+
+function validateSearchResponse(
+  response: InternetSearchResponse,
+  maxResults: number,
+): void {
+  if (
+    response.answer.length > internetSearchLimits.answerCharacters ||
+    response.sources.length > maxResults ||
+    response.sources.some(
+      (source) =>
+        source.title.length === 0 ||
+        source.title.length > internetSearchLimits.titleCharacters ||
+        !isHttpUrl(source.url) ||
+        source.url.length > internetSearchLimits.urlCharacters ||
+        (source.extract?.length ?? 0) > internetSearchLimits.extractCharacters,
+    )
+  ) {
+    throw new Error("Internet search returned content outside safe bounds.");
+  }
+
+  const sourceIds = new Set(response.sources.map((source) => source.id));
+  const citedSourceIds = new Set(
+    response.citations.map((citation) => citation.sourceId),
+  );
+  if (
+    sourceIds.size !== response.sources.length ||
+    citedSourceIds.size !== sourceIds.size ||
+    response.citations.some(
+      (citation) =>
+        !sourceIds.has(citation.sourceId) ||
+        !Number.isInteger(citation.startIndex) ||
+        !Number.isInteger(citation.endIndex) ||
+        citation.startIndex < 0 ||
+        citation.endIndex <= citation.startIndex ||
+        citation.endIndex > response.answer.length,
+    )
+  ) {
+    throw new Error(
+      "Internet search returned citations that do not resolve to its source set.",
+    );
+  }
+
+  const projectionCharacters =
+    response.answer.length +
+    response.sources.reduce(
+      (total, source) =>
+        total +
+        source.id.length +
+        source.title.length +
+        source.url.length +
+        (source.extract?.length ?? 0) +
+        (source.publishedAt?.length ?? 0),
+      0,
+    );
+  if (projectionCharacters > internetSearchLimits.projectionCharacters) {
+    throw new Error("Internet search returned content outside safe bounds.");
+  }
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function answerSearchFollowUp(

@@ -237,6 +237,51 @@ describe("createOpenAIWebSearch", () => {
         },
         message: "OpenAI web search citation URL must use HTTP or HTTPS.",
       },
+      {
+        body: {
+          output: [
+            {
+              content: [
+                {
+                  annotations: [
+                    citation(0, 3, "Source", "https://example.com/source"),
+                  ],
+                  text: "x".repeat(4_001),
+                  type: "output_text",
+                },
+              ],
+              type: "message",
+            },
+          ],
+        },
+        message:
+          "OpenAI web search response contained content outside safe bounds.",
+      },
+      {
+        body: {
+          output: [
+            {
+              content: [
+                {
+                  annotations: [
+                    citation(
+                      0,
+                      3,
+                      "x".repeat(301),
+                      "https://example.com/source",
+                    ),
+                  ],
+                  text: "[1]",
+                  type: "output_text",
+                },
+              ],
+              type: "message",
+            },
+          ],
+        },
+        message:
+          "OpenAI web search response contained content outside safe bounds.",
+      },
     ];
 
     for (const testCase of cases) {
