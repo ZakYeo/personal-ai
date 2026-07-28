@@ -195,6 +195,13 @@
       "enabled": true,
       "adapter": "local",
       "confirmationRequiredCapabilities": ["alarm.create"]
+    },
+    "tasks": {
+      "enabled": true,
+      "adapter": "file",
+      "state": {
+        "path": "state/tasks.json"
+      }
     }
   }
 }

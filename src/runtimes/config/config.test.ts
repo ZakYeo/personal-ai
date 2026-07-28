@@ -114,7 +114,7 @@ describe("loadConfig", () => {
     }
   });
 
-  it("keeps Pi alarm state under the systemd-owned state directory", async () => {
+  it("keeps Pi durable feature state under the systemd-owned state directory", async () => {
     const input: unknown = JSON.parse(
       await readFile("config/pi-voice-openai.example.json", "utf8"),
     );
@@ -128,6 +128,11 @@ describe("loadConfig", () => {
           adapter: "file",
           enabled: true,
           state: { path: "/var/lib/personal-ai/alarms.json" },
+        },
+        tasks: {
+          adapter: "file",
+          enabled: true,
+          state: { path: "/var/lib/personal-ai/tasks.json" },
         },
         weather: {
           adapter: "openMeteo",
@@ -147,6 +152,22 @@ describe("loadConfig", () => {
     expect(config.desktopVoice?.wakeActivation?.args).toContain(
       "/opt/personal-ai/scripts/openwakeword-listener.py",
     );
+  });
+
+  it("persists desktop OpenAI tasks relative to the selected config", async () => {
+    const input: unknown = JSON.parse(
+      await readFile("config/local-desktop-voice-openai.json", "utf8"),
+    );
+
+    expect(input).toMatchObject({
+      features: {
+        tasks: {
+          adapter: "file",
+          enabled: true,
+          state: { path: "state/tasks.json" },
+        },
+      },
+    });
   });
 
   it("loads the checked-in persistent alarm example", async () => {

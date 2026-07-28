@@ -187,6 +187,13 @@
         "path": "/var/lib/personal-ai/alarms.json"
       },
       "confirmationRequiredCapabilities": ["alarm.create"]
+    },
+    "tasks": {
+      "enabled": true,
+      "adapter": "file",
+      "state": {
+        "path": "/var/lib/personal-ai/tasks.json"
+      }
     }
   }
 }
