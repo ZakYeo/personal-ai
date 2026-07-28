@@ -106,8 +106,11 @@ Current roadmap position:
   completed sequence. The active roadmap now prioritizes explicit personal
   profiles, source-grounded internet search, weather and forecast watches,
   durable lists/tasks/reminders, and scheduled daily briefings as Milestones 13
-  through 17. Smart-home control, a personal knowledge library, and adaptive
-  memory remain unnumbered future considerations rather than committed work.
+  through 17. Profiles will be created and edited through validated text and
+  voice commands rather than hardcoded setup, and the weather milestone selects
+  Open-Meteo's key-free non-commercial API. Smart-home control, a personal
+  knowledge library, and adaptive memory remain unnumbered future considerations
+  rather than committed work.
   Real providers and hardware validation remain opt-in work outside the default
   deterministic validation gate.
 

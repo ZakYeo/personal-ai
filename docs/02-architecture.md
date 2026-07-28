@@ -170,12 +170,14 @@ adapters without making features import or invoke one another:
 
 - A profile store port owns explicit user-authored facts and a separate narrow
   read-only personal-context port exposes only requested fields to composed
-  consumers.
+  consumers. Intent providers may propose profile commands from text or voice,
+  but only decoded application commands can mutate the store.
 - Internet search uses a read-only provider port whose validated answers cite a
   bounded current source set. Retrieved text remains untrusted external data.
-- Weather uses provider-neutral current and forecast ports. Durable weather
-  watches are owned by the weather adapter, which contributes a neutral
-  background task closing over the same watch store and provider instance.
+- Weather uses provider-neutral current and forecast ports with Open-Meteo as
+  the selected key-free non-commercial adapter. Durable weather watches are
+  owned by the weather adapter, which contributes a neutral background task
+  closing over the same watch store and provider instance.
 - Lists and tasks use their own revision-checked store. Reminder delivery closes
   over that exact store and remains separate from alarm state even when both use
   the neutral notification and output-coordination boundaries.

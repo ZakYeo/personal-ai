@@ -456,6 +456,12 @@ use the same fixed application-owned source aggregator as scheduled delivery.
 No planned background task may ask an intent provider to choose additional
 tools or actions.
 
+The selected weather provider is Open-Meteo's free non-commercial forecast and
+geocoding service. Runtime config may select endpoint and timeout policy but has
+no weather API-key field or weather credential preflight. Text and voice
+profile commands use the same assistant-owned validation and feature execution
+path; voice composition does not receive a separate hardcoded profile.
+
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
 writing state, resumes the validated command after an explicit yes, asserts the

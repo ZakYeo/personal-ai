@@ -267,18 +267,23 @@ or silently inferring sensitive facts.
 
 Included:
 
-- Typed profile facts for an initial bounded set of preferences such as home
-  location, preferred units, working hours, interests, important people,
-  dietary preferences, and response style.
-- Explicit remember, show, update, and forget capabilities with provenance and
-  created/updated timestamps.
+- Typed profile facts for an initial bounded set of details and preferences such
+  as preferred name, home location, preferred units, working hours, interests,
+  important people, dietary preferences, and response style.
+- Explicit set, show, update, and forget capabilities with provenance and
+  created/updated timestamps, available through ordinary text and voice
+  commands.
+- Intent-provider interpretation of phrases such as “set my name to Zak” into a
+  proposed structured profile command. Core validation and the application-owned
+  profile feature—not model memory—remain the only path that can persist it.
 - One local versioned profile store with deterministic in-memory and durable
   file adapters, atomic persistence, restrictive permissions, and migration
   validation from `unknown`.
 - A narrow read-only personal-context port through which later feature adapters
   request only the fields they need.
 - Human-facing explanations of what is stored, why it is known, and how to
-  correct or delete it.
+  correct or delete it, including a concise spoken answer to “what do you know
+  about me?”
 
 Excluded:
 
@@ -287,13 +292,15 @@ Excluded:
   general long-term-memory system.
 - Unbounded custom schemas or injecting the entire profile into every provider
   request.
+- Hardcoded user details, setup-time profile requirements, or allowing a
+  provider to persist facts without a decoded and validated profile command.
 
 Thin slices:
 
-1. Define the typed fact categories, provenance, timestamps, validation, and
-   feature contract with deterministic fixtures.
-2. Add an in-memory store and profile show/remember/update/forget behavior,
-   including ambiguity and confirmation policy.
+1. Define the typed fact categories, including preferred name, provenance,
+   timestamps, validation, and feature contract with deterministic fixtures.
+2. Add an in-memory store and profile show/set/update/forget behavior, including
+   ambiguity, confirmation policy, and concise whole-profile rendering.
 3. Add the versioned file adapter with atomic replacement, restrictive modes,
    config-directory-relative paths, and malformed-state coverage.
 4. Add the narrow personal-context reader and prove that consumers receive only
@@ -304,6 +311,11 @@ Thin slices:
 
 Acceptance criteria:
 
+- “Hey Jarvis, set my name to Zak” is interpreted as a structured profile
+  command, persists `Zak` only after application validation, and “what's my
+  name?” returns the stored value.
+- “Hey Jarvis, what do you know about me?” reads a concise human-facing summary
+  from the current durable profile through both text and voice runtimes.
 - “Remember that I work from home on Fridays” persists an explicit typed fact
   and “why do you know that?” reports its user-authored provenance.
 - The user can list, correct, forget, or clear stored facts; clearing the whole
@@ -382,7 +394,10 @@ notify the user when explicitly requested forecast conditions are detected.
 Included:
 
 - Provider-neutral current, hourly, and daily forecast ports with one
-  deterministic adapter and one opt-in real provider.
+  deterministic adapter and an opt-in Open-Meteo adapter using its free
+  non-commercial API without an API key.
+- Open-Meteo geocoding for explicit place names, validated forecast parsing,
+  and required Open-Meteo/data-source attribution under the free API terms.
 - Explicit locations plus a home-location default read narrowly from the
   personal profile; questions clarify when no usable location exists.
 - Exact observation/forecast timestamps, timezone, units, temperatures,
@@ -398,6 +413,9 @@ Excluded:
 - Claiming to be an emergency-warning service, inferring precise location,
   continuous device tracking, climate analysis, or autonomous schedule changes.
 - Silent creation of watches from ordinary weather questions.
+- Commercial Open-Meteo use, the paid customer endpoint, or adding a weather
+  credential until a later explicit product decision changes the selected
+  service terms.
 
 Thin slices:
 
@@ -405,8 +423,9 @@ Thin slices:
    weather contracts.
 2. Implement current and forecast capabilities with explicit-location
    clarification and narrow profile-default resolution.
-3. Add the selected real adapter with config parsing, transport contracts,
-   malformed-data rejection, and opt-in live read smoke.
+3. Add the Open-Meteo forecast and geocoding adapter with endpoint/timeout
+   config, no credential config, transport contracts, attribution,
+   malformed-data rejection, and an opt-in live read smoke.
 4. Add versioned weather-watch persistence, validation, list/cancel behavior,
    and exact confirmation where a configured policy requires it.
 5. Add deterministic background evaluation, deduplicated delivery, restart and
@@ -415,6 +434,8 @@ Thin slices:
 
 Acceptance criteria:
 
+- Personal non-commercial Open-Meteo composition starts and serves forecasts
+  without any weather API key or weather credential environment variable.
 - “Will I need a coat at home tomorrow morning?” uses only an explicitly stored
   home location, reports the forecast period and freshness, and preserves exact
   provider facts internally.
@@ -424,6 +445,9 @@ Acceptance criteria:
   than presented as current facts.
 - The assistant states that watches are convenience notifications rather than
   guaranteed emergency alerts.
+- Human-facing weather output includes the attribution required by the
+  [Open-Meteo free API terms](https://open-meteo.com/en/terms), and tests pin the
+  selected non-commercial endpoint and usage policy.
 - `npm run check` passes.
 
 ## Milestone 16: Personal Lists, Tasks, and Reminders

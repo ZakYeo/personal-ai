@@ -64,7 +64,7 @@ Examples:
 - `alarm.cancel`
 - `alarm.list`
 - `profile.show`
-- `profile.remember`
+- `profile.set`
 - `profile.forget`
 - `web.search`
 - `weather.current`
@@ -155,6 +155,10 @@ personal-context reader during composition. Weather-watch and task-reminder
 adapters contribute background tasks that close over their own resources.
 Briefings aggregate fixed application read ports directly; they do not call the
 calendar, weather, alarm, task, search, or profile feature plugins.
+Profile utterances from text or voice follow the normal intent pipeline:
+providers propose `profile.set`, core decodes and validates its typed fact, and
+only then may the profile feature update durable state. `profile.show` reads the
+same store for requests such as “what do you know about me?”
 
 ## Feature Authoring Conventions
 

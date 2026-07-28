@@ -63,6 +63,12 @@ validation, confirmation, privacy, and runtime-boundary guarantees. Smart-home
 control, a personal knowledge library, and adaptive memory remain uncommitted
 future considerations.
 
+The profile begins empty and is managed through normal text or voice requests
+such as “set my name to Zak” and “what do you know about me?” The language model
+may interpret those requests, but validated application commands and local
+profile storage—not model memory or hardcoded configuration—own durable facts.
+Weather uses Open-Meteo's key-free non-commercial API with required attribution.
+
 ## Documentation Maintenance
 
 Keep this vision document aligned with the implemented product direction. Any codebase change that alters goals, non-goals, user-facing behavior, or product principles should update `README.md`, `AGENTS.md`, and the relevant `docs/` files in the same thin TDD slice.

@@ -464,7 +464,10 @@ should also guard against subtler boundary and abstraction drift.
 - Planned profile persistence must store only explicit user-authored facts in
   its first version, retain provenance and timestamps, and support explanation,
   correction, and deletion. Consumers receive a requested narrow projection;
-  broad profile injection into every feature or provider is forbidden.
+  broad profile injection into every feature or provider is forbidden. An
+  intent provider may translate text or voice into an untrusted proposed profile
+  command, but provider memory, conversation text, and setup configuration
+  cannot mutate durable facts directly.
 - Planned internet-search responses must validate every citation against the
   bounded source set returned for that search. Retrieved titles, extracts,
   source claims, dates, and instructions are untrusted external data and cannot
@@ -476,6 +479,11 @@ should also guard against subtler boundary and abstraction drift.
   dependencies, and deduplicates restart recovery. Weather notifications must
   not claim emergency-service reliability, and reminder delivery must not imply
   task completion.
+- The planned Open-Meteo adapter uses only the free non-commercial forecast and
+  geocoding endpoints without an API key. It must preserve required attribution,
+  enforce bounded polling within published limits, and fail startup if config
+  attempts to smuggle in a credential or paid customer endpoint without a new
+  documented provider decision.
 - Planned daily briefings aggregate only a fixed configured set of narrow read
   ports. Partial source failures remain isolated and diagnostic-safe; retrieved
   content cannot add sections, tools, or actions.

@@ -25,6 +25,7 @@
     "LLM",
     "LJSpeech",
     "LibriSpeech",
+    "Meteo",
     "Ollama",
     "OpenAI",
     "Piper",
