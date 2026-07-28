@@ -3,8 +3,8 @@
 This guide deploys the built `pi-service` runtime as a long-running systemd
 service. The service runs as the locked-down `personal-ai` account, reads
 operator-owned configuration from `/etc/personal-ai`, runs application files
-from `/opt/personal-ai`, and keeps durable alarm and weather-watch state under
-`/var/lib/personal-ai`.
+from `/opt/personal-ai`, and keeps durable alarm, weather-watch, and task state
+under `/var/lib/personal-ai`.
 
 The committed unit and config are examples. Review audio device names, commands,
 and provider choices on the target Pi before enabling the service.
@@ -33,6 +33,13 @@ temperature, and wind watches are stored at
 `/var/lib/personal-ai/weather-watches.json`, evaluated by the service against
 the exact composed provider and store, and claimed durably before spoken output.
 They are convenience notifications, not guaranteed emergency alerts.
+
+The Pi task adapter stores named lists, revision-checked tasks, and reminder
+lifecycle state at `/var/lib/personal-ai/tasks.json`. Its neutral scheduler
+claims due reminders before spoken output and persists successful delivery
+without completing the task. Delivered or uncertain claimed attempts are not
+automatically replayed after restart. Terminal reminder details older than 30
+days are removed at startup and daily while the underlying tasks remain.
 
 ## Device prerequisites
 
@@ -88,7 +95,7 @@ sudo mv -Tf /opt/personal-ai.next /opt/personal-ai
 ```
 
 Install the operator-owned config and environment directories. The example uses
-persistent alarm and weather-watch paths created by the unit's
+persistent alarm, weather-watch, and task paths created by the unit's
 `StateDirectory=personal-ai` setting.
 
 ```bash
@@ -155,8 +162,8 @@ sudo systemctl disable personal-ai.service
 ## Upgrade and rollback
 
 Keep `/etc/personal-ai` and `/var/lib/personal-ai` outside release replacement so
-upgrades do not overwrite credentials, machine-specific config, alarms, or
-weather watches. In one administrative shell, record the current immutable
+upgrades do not overwrite credentials, machine-specific config, alarms,
+weather watches, or tasks. In one administrative shell, record the current immutable
 release, build and validate the checkout as above, assemble a new versioned
 release completely, then atomically replace the stable symlink:
 
@@ -210,6 +217,12 @@ acknowledges it, checks durable lifecycle state, lists it, and verifies clean
 service shutdown. It does not validate microphone, speaker, ALSA, SoX,
 wake-word, or other audio hardware.
 
+`npm run test:e2e:openai:tasks` is an opt-in live-provider smoke for natural
+task-reminder routing, exact confirmation, persistence, and runtime rebuild.
+The default deterministic gate separately proves configured service delivery,
+task non-completion, and restart deduplication without network or audio
+hardware.
+
 `npm run smoke:pi:qemu -- --config path/to/pi-config.json --image
 path/to/raspios.img --kernel path/to/kernel8.img --dtb path/to/pi.dtb` prints a
 QEMU command using operator-supplied artifacts. Add `--run` only when you intend
@@ -219,8 +232,9 @@ Pi audio hardware or provider credentials.
 The final device check is intentionally manual: confirm wake activation,
 capture, transcription, confirmation follow-up, speech output, alarm persistence
 across `systemctl restart`, delivery of a due alarm, its one-minute repeat when
-unacknowledged, acknowledgement or dismissal, and graceful shutdown on the
-actual Pi.
+unacknowledged, acknowledgement or dismissal, task persistence across restart,
+delivery of a confirmed task reminder without task completion or duplicate
+replay, and graceful shutdown on the actual Pi.
 
 Future local STT and TTS providers are gated by Spike 12 rather than added to
 this deployment path speculatively. That benchmark must record the exact Pi

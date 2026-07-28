@@ -489,8 +489,13 @@ should also guard against subtler boundary and abstraction drift.
   provider used by feature operations, uses injected clock/timer/shutdown
   dependencies, and deduplicates restart recovery. Weather notifications are
   explicitly convenience notifications rather than claims of emergency-service
-  reliability. Planned task reminders must preserve the same claim-before-output
-  and restart guarantees without implying task completion.
+  reliability.
+- Task reminders use the exact composed `TaskStore`, persist a claim before
+  human output, and persist successful delivery without changing task
+  completion. Delivered, acknowledged, and uncertain claimed attempts are not
+  replayed automatically after restart. A delivery or diagnostic failure keeps
+  the task and internal cause, and terminal reminder retention never deletes
+  the underlying task.
 - Provider-neutral weather semantics are application owned: one canonical policy
   validates locations, periods, units, attribution, freshness, physical value
   ranges, and ordered unique in-period hourly/daily facts after each adapter has
@@ -514,6 +519,18 @@ should also guard against subtler boundary and abstraction drift.
   that pass parsed config to another factory must forward the same config-source
   directory. A directly injected parsed config must supply `configDirectory`
   when it selects relative local state.
+- File-backed task state is single-process-owned and parsed from `unknown`
+  through a versioned schema with deterministic migration. List and task
+  mutations, reminder claims, delivery results, acknowledgement, and retention
+  are serialized; every record-specific transition is revision checked. Task
+  records are cloned across store boundaries, and atomic writes use the same
+  restrictive mode, file sync, same-directory replacement, and
+  parent-directory sync policy as other local durable state.
+- Destructive task removal and whole-list clearing require confirmation with
+  protected target facts. Exact reminder creation also requires confirmation;
+  ordinary task creation, completion, reopening, label/note/due-date edits, and
+  list rename remain low risk. Follow-up references are opaque, bounded, and
+  resolve only eligible tasks from the latest retained task result.
 - File-backed alarm state is owned by one assistant service process. Each adapter
   instance serializes its operations and rereads state for every operation, but
   no cross-process locking or cloud synchronization is implied. The alarm

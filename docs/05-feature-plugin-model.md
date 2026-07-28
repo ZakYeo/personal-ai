@@ -74,10 +74,17 @@ Examples:
 - `weather.watch.create`
 - `weather.watch.list`
 - `weather.watch.cancel`
-- `tasks.list`
-- `tasks.create`
-- `tasks.complete`
-- `tasks.remind`
+- `task.list.create`
+- `task.list.show`
+- `task.list.rename`
+- `task.list.clear`
+- `task.create`
+- `task.complete`
+- `task.reopen`
+- `task.edit`
+- `task.remove`
+- `task.remind`
+- `task.reminder.acknowledge`
 - `briefing.get_daily`
 
 Capability names should be treated as part of the assistant contract. They are useful for intent routing, permission checks, logging, and future configuration.
@@ -152,8 +159,9 @@ snapshots with no fabricated provider target. A descriptor-driven core path
 replaces the assistant session's previous set, caps it at ten entries, expires
 it after three subsequent completed turns or conversation compaction, and
 exposes only opaque references to later intent interpretation. Neither feature
-owns session lifetime or exposes provider IDs in its human response. Future task
-lists may use the same contract with their own safe projection.
+owns session lifetime or exposes provider IDs in its human response. Task list
+results use the same contract with safe label, list, status, due-date, note, and
+reminder projections while keeping storage IDs private.
 
 Profile, weather, task, and briefing composition does not relax feature
 ownership. A feature that needs personal defaults receives a narrow
@@ -161,7 +169,8 @@ personal-context reader during composition. The implemented weather feature
 requests only an explicit home location for `weather.coat`; explicit-location
 weather commands do not receive profile context. Weather-watch adapters
 contribute background tasks that close over their exact provider and store;
-planned task-reminder adapters follow the same ownership rule. Briefings
+task-reminder adapters follow the same ownership rule around their exact task
+store. Briefings
 aggregate fixed application read ports directly; they do not call the calendar,
 weather, alarm, task, search, or profile feature plugins.
 Profile utterances from text or voice follow the normal intent pipeline:
@@ -345,6 +354,42 @@ Expected behavior:
 Create a durable alarm record only after confirmation policy allows execution.
 The long-running voice service delivers it at or after its due time, repeats it
 once when it is not acknowledged, and preserves lifecycle state across restart.
+```
+
+### Lists and Tasks
+
+Local/in-memory or versioned file-backed capabilities for named lists, tasks,
+and one optional task reminder. Lists can be created, shown, renamed, and
+cleared. Tasks can be created with optional note and due date, completed,
+reopened, edited, removed, or created with an exact reminder. Whole-list
+clearing, task removal, and reminder creation require deterministic
+application-owned confirmation. List results provide bounded opaque references
+for follow-ups such as “complete the second one,” and selection filters by
+operation eligibility before deciding ambiguity.
+
+The tasks adapter contributes neutral reminder-delivery and retention tasks
+that close over the exact `TaskStore` used by feature commands. Delivery claims
+are durable before output; successful output advances reminder state without
+completing the task. Restart does not replay delivered or uncertain claimed
+attempts. Retention removes old terminal reminder details without removing the
+task. All mutations remain revision checked so a stale follow-up or scheduler
+observation cannot overwrite a newer change.
+
+Example commands:
+
+```text
+Hey Jarvis, create a to-do list.
+Hey Jarvis, add submit the form to my to-do list.
+Hey Jarvis, remind me tomorrow at 9 to submit the form.
+Hey Jarvis, complete the second one.
+```
+
+Expected behavior:
+
+```text
+Persist lists and tasks through the selected adapter. Confirm the exact reminder
+instant before creating it, claim delivery before speech, retain the task as
+open after delivery, and preserve durable state across runtime restart.
 ```
 
 ## Feature Registration

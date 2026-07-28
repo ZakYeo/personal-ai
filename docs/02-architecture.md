@@ -51,6 +51,7 @@ src/
     feature
     capability-catalog
     alarm-store
+    task-store
     calendar
     process-control
     voice
@@ -58,12 +59,16 @@ src/
     assistant/
     alarms/
     calendar/
+    internet-search/
     messaging/
+    tasks/
+    weather/
   adapters/
     desktop/
     google-calendar/
     local/
     mock/
+    open-meteo/
     openai/
   runtimes/
     cli/
@@ -71,6 +76,7 @@ src/
     feature-adapters/
     pi/
     service/
+    tasks/
     voice/
 ```
 
@@ -120,8 +126,11 @@ Implemented application ports include:
   revision-checking durable lifecycle transitions.
 - `AlarmDeliveryPort` for runtime-owned delivery without coupling scheduling to
   a particular voice or device adapter.
+- `TaskStore` for versioned named lists, revision-checked task mutations, and
+  durable reminder lifecycle transitions that remain separate from alarms.
 - `NotificationDeliveryPort` for neutral runtime-task output; alarm tasks adapt
   their delivery records into human-facing notifications before voice output.
+- Provider-neutral internet-search, weather, and weather-watch store contracts.
 - Calendar search and upcoming-event contracts.
 - Process shutdown and command-execution control contracts.
 - Batch and streaming voice input, wake activation, transcription, synthesis,
@@ -141,10 +150,14 @@ Deterministic and local adapters include:
 - SoX-compatible desktop audio input and output adapters.
 - Mock calendar adapter.
 - Mock messaging adapter.
+- Mock internet-search and weather adapters.
 - Local/in-memory and versioned JSON-file alarm storage adapters implementing
   the alarm store port. Their shared lifecycle state machine advances daily and
   weekly schedules atomically with explicit timezone and daylight-saving
   semantics.
+- Local/in-memory and versioned JSON-file task storage adapters implementing
+  the task store port with cloned records, deterministic schema migration,
+  revision checks, and atomic durable replacement.
 - A voice alarm-delivery adapter that composes the configured synthesis and
   audio-output path for each delivery attempt. A runtime-owned output
   coordinator serializes that path with ordinary response speech without
@@ -156,6 +169,8 @@ Implemented real-provider adapters include:
 - OpenAI conversation responder and compactor adapters using the Responses API.
 - OpenAI response rewriting, realtime transcription, and streaming speech
   adapters.
+- OpenAI hosted web-search adapter with bounded citation validation.
+- Key-free Open-Meteo geocoding and forecast adapter for non-commercial use.
 - Read-only Google Calendar search with access-token and refresh-token OAuth.
 - Command-based desktop voice adapters and a Python openWakeWord sidecar behind
   TypeScript-owned adapter and runtime boundaries.
@@ -246,6 +261,12 @@ bag.
 A second neutral alarm task removes terminal history older than 30 days at
 service startup and daily. It shares the selected store, whose serialization
 keeps cleanup ordered with feature mutations and scheduler claims.
+The tasks adapter contributes the equivalent neutral reminder-delivery and
+retention tasks around its exact `TaskStore`. Reminder claims persist before
+notification output, successful delivery does not complete the task, and
+startup reports rather than automatically replays an interrupted claim. The
+retention task removes old terminal reminder details without removing the
+underlying task.
 Shared alarm lifecycle policy owns status predicates, canonical recurrence and
 timestamp validation, strict persisted-version parsing, and explicit recurring
 completion. Store adapters clone nested recurrence values at their boundaries.

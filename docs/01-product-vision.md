@@ -16,6 +16,8 @@ The assistant should support natural voice commands such as:
 - "Hey Jarvis, remind me ten minutes before the second event."
 - "Hey Jarvis, will I need a coat at home tomorrow morning?"
 - "Hey Jarvis, watch for rain in Bristol tomorrow."
+- "Hey Jarvis, add submit the form to my to-do list."
+- "Hey Jarvis, remind me tomorrow at 9 to submit the form."
 
 ## Goals
 
@@ -59,12 +61,15 @@ The assistant should support natural voice commands such as:
 Compound plans, calendar result follow-ups, bounded calendar-to-alarm workflows,
 bounded source-grounded internet search, and the Milestone 15 weather
 implementation are present after their required independent maintainability
-reviews. Milestones 13, 16, and 17 prioritize an explicit personal profile,
-durable lists/tasks/reminders, and proactive daily briefings. The goal is a more
-personalized everyday assistant while preserving the existing validation,
-confirmation, privacy, and runtime-boundary guarantees. Smart-home control, a
-personal knowledge library, and adaptive memory remain uncommitted future
-considerations.
+reviews. Milestone 16 implementation now adds durable named lists,
+revision-checked tasks, bounded result-reference follow-ups, and restart-safe
+reminder delivery without treating delivery as task completion; its required
+independent maintainability review remains pending. Milestones 13 and 17
+prioritize an explicit personal profile and proactive daily briefings. The goal
+is a more personalized everyday assistant while preserving the existing
+validation, confirmation, privacy, and runtime-boundary guarantees. Smart-home
+control, a personal knowledge library, and adaptive memory remain uncommitted
+future considerations.
 
 The profile begins empty and is managed through normal text or voice requests
 such as “set my name to Zak” and “what do you know about me?” The language model
@@ -76,6 +81,9 @@ units, period, and freshness facts. Explicit weather watches persist local state
 claim delivery before output, and are convenience notifications rather than
 guaranteed emergency alerts. A home default is available only through the
 narrow explicit-profile reader; weather never infers it.
+Personal tasks remain separate from alarms. A reminder is an optional lifecycle
+on a task, is confirmed with its exact instant before persistence, and is
+claimed before output. Speaking the reminder never silently completes the task.
 
 ## Documentation Maintenance
 

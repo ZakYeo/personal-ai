@@ -116,9 +116,12 @@ Current roadmap position:
   Milestone 15 is implemented after its required independent maintainability
   review. It uses Open-Meteo's key-free non-commercial API, durable local watch
   state, bounded concurrent evaluation, and a narrow optional reader for the
-  explicit home location that Milestone 13 will own. The remaining roadmap
-  prioritizes explicit personal profiles, durable lists/tasks/reminders, and
-  scheduled daily briefings. Profiles will be
+  explicit home location that Milestone 13 will own. Milestone 16 implementation
+  is complete and validated, including durable lists, revision-checked tasks,
+  restart-safe reminder delivery, text/voice/service integration, and live
+  OpenAI smoke-test support; its required independent maintainability review is
+  still pending. The remaining roadmap prioritizes explicit personal profiles
+  and scheduled daily briefings. Profiles will be
   created and edited through validated text and voice commands rather than
   hardcoded setup. Smart-home control, a personal
   knowledge library, and adaptive memory remain unnumbered future considerations
@@ -165,8 +168,9 @@ Every OpenAI intent response must include a non-empty response ID so any
 application-owned clarification can resume the exact provider session.
 
 The default desktop OpenAI voice service config used by `npm start` selects the
-Google Calendar adapter, OpenAI internet search, and the OpenAI response
-rewriter. Internet search reuses `OPENAI_API_KEY`; its bounded source
+Google Calendar adapter, OpenAI internet search, the OpenAI response rewriter,
+and a config-relative durable task store. Internet search reuses
+`OPENAI_API_KEY`; its bounded source
 annotations become visible HTTPS citations, and retrieved text remains
 untrusted data. Google Calendar access
 requires local OAuth credentials in `.env`: `GOOGLE_CALENDAR_CLIENT_ID`,
@@ -405,12 +409,14 @@ npm run test:e2e:openai
 ```
 
 This command is opt-in, calls the live OpenAI Responses API, covers routing for
-the currently enabled feature capabilities plus confirmed persistent-alarm
-creation through the configured assistant, listing, and restart behavior, uses
-`gpt-5.4-nano`, and may consume API quota.
+the currently enabled feature capabilities plus confirmed persistent alarm and
+task-reminder flows through configured assistants, uses `gpt-5.4-nano`, and may
+consume API quota.
 Run `npm run test:e2e:openai:alarms` for only the persistent-alarm smoke. These
 tests are not part of `npm run check`; normal validation remains deterministic
 and network-free.
+Run `npm run test:e2e:openai:tasks` for the focused persistent-task reminder
+smoke.
 Run `npm run test:e2e:openai:plans` for the focused live compound calendar and
 alarm plan smoke.
 Run `npm run test:e2e:open-meteo` for the focused key-free live Open-Meteo
@@ -488,6 +494,26 @@ then daily. Completed, dismissed, cancelled, and missed records older than 30
 days are removed through the same serialized store used by lifecycle commands;
 active alarms and records exactly at the cutoff are retained.
 
+Personal lists and tasks are configured independently from alarms. The
+checked-in default and deterministic desktop demo select the process-local
+`local` adapter. The desktop OpenAI config persists to `state/tasks.json`
+relative to its config directory, while the Pi example persists to
+`/var/lib/personal-ai/tasks.json`. Lists support create, show, rename, and
+confirmed clearing. Tasks support create, complete, reopen, edit, confirmed
+removal, optional notes and due dates, and one confirmed exact reminder.
+Displayed tasks contribute bounded opaque references for follow-ups such as
+“complete the second one.”
+
+Long-running services claim a due task reminder in the exact composed task
+store before speaking it through the shared notification output. A successful
+delivery is then persisted without completing the task. A restart never
+automatically replays a delivered or uncertain claimed attempt. Delivered,
+acknowledged, and cancelled reminder lifecycle details older than 30 days are
+cleared at startup and daily without removing their tasks. File-backed list and
+task mutations use revision checks, versioned parsing from unknown JSON,
+same-directory atomic replacement, directory synchronization, and private
+directory/file modes.
+
 ## Scripts
 
 Common development commands:
@@ -498,6 +524,8 @@ Common development commands:
 - `npm run test:e2e:openai` - run the opt-in live OpenAI intent routing E2E test.
 - `npm run test:e2e:openai:alarms` - run the focused opt-in live OpenAI
   persistent-alarm smoke.
+- `npm run test:e2e:openai:tasks` - run the focused opt-in live OpenAI
+  persistent-task reminder smoke.
 - `npm run test:e2e:openai:plans` - run the focused opt-in live OpenAI compound
   plan smoke.
 - `npm run test:e2e:openai:calendar-followup` - run the focused opt-in live

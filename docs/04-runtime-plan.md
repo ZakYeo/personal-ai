@@ -379,6 +379,11 @@ features:
       path: /var/lib/personal-ai/alarms.json
     confirmationRequiredCapabilities:
       - alarm.create
+  tasks:
+    enabled: true
+    adapter: file
+    state:
+      path: /var/lib/personal-ai/tasks.json
   messaging:
     enabled: true
     adapter: mock
@@ -389,13 +394,13 @@ text runtime currently uses JSON with `intent.provider`, optional
 `intent.openai` settings, `conversation.provider`, optional
 `conversation.openai` settings, `responseRewriter.provider`, optional
 `responseRewriter.openai` settings, `voice` adapter IDs, optional
-`desktopVoice` command settings, and per-feature `adapter` IDs. Alarm storage
-may remain in memory with `adapter: local` or persist to the configured JSON
-file with `adapter: file` and `state.path`. Relative state paths resolve from the
-directory containing the loaded config. Nested text, voice, desktop service,
-and Pi service factories forward that same source directory; callers providing
-parsed config directly must provide `configDirectory` when the state path is
-relative. Deterministic
+`desktopVoice` command settings, and per-feature `adapter` IDs. Alarm and task
+storage may remain in memory with `adapter: local` or persist to the configured
+JSON file with `adapter: file` and `state.path`. Relative state paths resolve
+from the directory containing the loaded config. Nested text, voice, desktop
+service, and Pi service factories forward that same source directory; callers
+providing parsed config directly must provide `configDirectory` when the state
+path is relative. Deterministic
 behavior is one selected intent provider, not a separate runtime identity. The
 important rule is that provider, conversation, response rewriting, voice, and
 feature selection must be
@@ -446,6 +451,24 @@ background-task boundary.
 Retention is contributed even when notification delivery is unavailable; alarm
 delivery scheduling remains conditional on a configured notification output.
 
+Lists and tasks select their own `local` or `file` adapter through
+`features.tasks` and never reuse alarm storage. The file adapter stores
+versioned named lists, task fields, revisions, and optional reminder lifecycle
+state. The checked-in desktop OpenAI config uses `state/tasks.json` relative to
+its config directory, while the Pi example uses
+`/var/lib/personal-ai/tasks.json`. Task result sets retain bounded opaque
+references for eligible follow-ups without exposing storage IDs to the intent
+provider.
+
+The selected task adapter always contributes a daily terminal-reminder
+retention task and contributes reminder delivery when notification output is
+available. Both close over the exact task store used by feature commands.
+Delivery durably changes a scheduled reminder to claimed before output and to
+delivered after successful output, but never changes the task's open/completed
+status. Startup reports an interrupted claim for diagnostics and does not
+automatically repeat an uncertain attempt. Retention removes reminder lifecycle
+details older than 30 days while preserving the task itself.
+
 Weather watches use the neutral contribution shape without sharing feature
 state: the selected weather adapter closes over its exact store and provider,
 while the service runtime supplies only live clock, timer, shutdown,
@@ -455,8 +478,7 @@ before output, and does not replay a terminal watch after restart. Stores admit
 at most 24 active watches. Each evaluation cycle shares one forecast across
 identical location/period requests and runs at most four independent requests
 concurrently, keeping even the maximum configured provider timeout operationally
-bounded. Planned task reminders follow the same neutral shape with their own
-task store. Planned daily
+bounded. Planned daily
 briefings contribute a separate scheduled task with durable local delivery slots
 so restart cannot repeat the same local-day briefing. On-demand briefings use
 the same fixed application-owned source aggregator as scheduled delivery. No
@@ -490,6 +512,11 @@ routing to verify that alarm creation reaches the confirmation boundary without
 writing state, resumes the validated command after an explicit yes, asserts the
 OpenAI-derived label and delay in durable state, then lists the alarm before and
 after rebuilding the runtime. It is deliberately excluded from `npm run check`.
+The opt-in `npm run test:e2e:openai:tasks` smoke creates a named list through
+live OpenAI intent routing, verifies an exact task reminder reaches confirmation
+without pre-confirmation persistence, resumes the validated command after yes,
+and proves durable task/reminder state after rebuilding the runtime. It remains
+outside `npm run check`.
 Development CLI runs load `.env` when present through Node's
 `--env-file-if-exists` support, so local provider credentials can be supplied
 without prefixing each `npm run cli` invocation.
