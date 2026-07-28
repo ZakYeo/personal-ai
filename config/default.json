@@ -26,6 +26,11 @@
       "adapter": "mock",
       "upcomingWindowDays": 92
     },
+    "internetSearch": {
+      "enabled": true,
+      "adapter": "mock",
+      "maxResults": 5
+    },
     "messaging": {
       "enabled": true,
       "adapter": "mock"

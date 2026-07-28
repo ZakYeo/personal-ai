@@ -46,6 +46,11 @@
       "enabled": true,
       "adapter": "mock"
     },
+    "internetSearch": {
+      "enabled": true,
+      "adapter": "mock",
+      "maxResults": 5
+    },
     "messaging": {
       "enabled": true,
       "adapter": "mock"

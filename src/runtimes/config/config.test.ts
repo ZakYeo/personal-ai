@@ -33,6 +33,10 @@ describe("loadConfig", () => {
       },
       features: {
         calendar: { enabled: true, adapter: "mock" },
+        internetSearch: {
+          enabled: true,
+          adapter: "mock",
+        },
         messaging: { enabled: true, adapter: "mock" },
         alarms: {
           enabled: true,

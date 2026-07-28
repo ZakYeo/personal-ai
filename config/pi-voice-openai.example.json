@@ -158,6 +158,14 @@
       "enabled": true,
       "adapter": "mock"
     },
+    "internetSearch": {
+      "enabled": true,
+      "adapter": "openai",
+      "maxResults": 5,
+      "openai": {
+        "model": "gpt-5.4-nano"
+      }
+    },
     "messaging": {
       "enabled": true,
       "adapter": "mock"

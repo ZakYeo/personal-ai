@@ -218,6 +218,7 @@ describe("createConfiguredFeatures", () => {
     });
 
     expect(selection.features.map((feature) => feature.id)).toEqual([
+      "internetSearch",
       "messaging",
       "alarms",
       "assistant",

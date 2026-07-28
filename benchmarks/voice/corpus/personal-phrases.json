@@ -135,6 +135,20 @@
       "active": true
     },
     {
+      "id": "internet-search-current-v1",
+      "text": "Search the internet for the current TypeScript release",
+      "capabilities": ["internet.search"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "internet-search-follow-up-v1",
+      "text": "What did the first internet source say",
+      "capabilities": ["internet.follow_up"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
       "id": "compound-calendar-alarm-v1",
       "text": "Check my upcoming calendar events and set a tea alarm for ten minutes",
       "capabilities": ["calendar.search_events", "alarm.create"],

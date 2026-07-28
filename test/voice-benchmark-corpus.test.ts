@@ -34,12 +34,12 @@ describe("committed voice benchmark corpus", () => {
     );
 
     validateRecordingIndex(manifest, recordingIndex);
-    expect(manifest.phrases.filter((phrase) => phrase.active)).toHaveLength(25);
+    expect(manifest.phrases.filter((phrase) => phrase.active)).toHaveLength(27);
     expect(
       manifest.phrases.filter(
         (phrase) => phrase.active && phrase.captureTier === "core",
       ),
-    ).toHaveLength(17);
+    ).toHaveLength(19);
     expect(recordingIndex.schemaVersion).toBe(1);
     expect(recordingIndex.recordings).toHaveLength(22);
     expect(findUncoveredCapabilities(capabilityNames, manifest)).toEqual([]);
@@ -50,7 +50,11 @@ describe("committed voice benchmark corpus", () => {
       findMissingRecordings(manifest, recordingIndex, "core").map(
         (phrase) => phrase.id,
       ),
-    ).toEqual(["calendar-reminder-v1"]);
+    ).toEqual([
+      "internet-search-current-v1",
+      "internet-search-follow-up-v1",
+      "calendar-reminder-v1",
+    ]);
 
     await Promise.all(
       recordingIndex.recordings.map(async (recording) => {
