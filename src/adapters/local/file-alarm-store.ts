@@ -1,12 +1,10 @@
 import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
-import { basename, dirname, join } from "node:path";
 import type {
   AlarmRecord,
   AlarmStore,
   NewAlarmRecord,
 } from "../../ports/alarm-store.js";
-import { isRecord } from "../parsing.js";
 import {
   atomicReplaceFile,
   type AtomicFileSystem,
@@ -20,19 +18,13 @@ import {
   parseAlarmState,
   type AlarmStateDocument,
 } from "./alarm-state-schema.js";
+import {
+  readLocalJsonState,
+  type LocalJsonStateFileSystem,
+  writeLocalJsonState,
+} from "./json-state-file.js";
 
-export interface AlarmStoreFileSystem {
-  mkdir(
-    path: string,
-    options: { mode: number; recursive: true },
-  ): Promise<unknown>;
-  readFile(path: string): Promise<string>;
-  replaceFile(options: {
-    contents: string;
-    targetPath: string;
-    temporaryPath: string;
-  }): Promise<void>;
-}
+export type AlarmStoreFileSystem = LocalJsonStateFileSystem;
 
 interface FileAlarmStoreOptions {
   createId?: () => string;
@@ -158,27 +150,14 @@ async function readState(
   filePath: string,
   fileSystem: AlarmStoreFileSystem,
 ): Promise<AlarmStateDocument> {
-  let contents: string;
-
-  try {
-    contents = await fileSystem.readFile(filePath);
-  } catch (cause) {
-    if (isMissingFileError(cause)) {
-      return { alarms: [], version: 3 };
-    }
-
-    throw new Error("Could not read alarm state.", { cause });
-  }
-
-  let parsed: unknown;
-
-  try {
-    parsed = JSON.parse(contents) as unknown;
-  } catch (cause) {
-    throw new Error("Alarm state file contains invalid JSON.", { cause });
-  }
-
-  return parseAlarmState(parsed);
+  return readLocalJsonState({
+    filePath,
+    fileSystem,
+    invalidJsonMessage: "Alarm state file contains invalid JSON.",
+    missingState: () => ({ alarms: [], version: 3 }),
+    parse: parseAlarmState,
+    readFailureMessage: "Could not read alarm state.",
+  });
 }
 
 async function writeState(
@@ -186,24 +165,10 @@ async function writeState(
   state: AlarmStateDocument,
   fileSystem: AlarmStoreFileSystem,
 ): Promise<void> {
-  const directory = dirname(filePath);
-  const temporaryPath = join(
-    directory,
-    `.${basename(filePath)}.${randomUUID()}.tmp`,
-  );
-
-  try {
-    await fileSystem.mkdir(directory, { mode: 0o700, recursive: true });
-    await fileSystem.replaceFile({
-      contents: `${JSON.stringify(state)}\n`,
-      targetPath: filePath,
-      temporaryPath,
-    });
-  } catch (cause) {
-    throw new Error("Could not persist alarm state.", { cause });
-  }
-}
-
-function isMissingFileError(error: unknown): boolean {
-  return isRecord(error) && error.code === "ENOENT";
+  return writeLocalJsonState({
+    filePath,
+    fileSystem,
+    persistenceFailureMessage: "Could not persist alarm state.",
+    state,
+  });
 }

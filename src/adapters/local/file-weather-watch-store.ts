@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
 
 import type {
   NewWeatherWatch,
@@ -8,7 +7,6 @@ import type {
   WeatherWatchStore,
 } from "../../ports/weather-watch-store.js";
 import { cloneWeatherWatch } from "../../ports/weather-watch-policy.js";
-import { isRecord } from "../parsing.js";
 import {
   atomicReplaceFile,
   type AtomicFileSystem,
@@ -23,19 +21,13 @@ import {
   createActiveWeatherWatch,
   expireWeatherWatch,
 } from "./weather-watch-record.js";
+import {
+  readLocalJsonState,
+  type LocalJsonStateFileSystem,
+  writeLocalJsonState,
+} from "./json-state-file.js";
 
-export interface WeatherWatchStoreFileSystem {
-  mkdir(
-    path: string,
-    options: { mode: number; recursive: true },
-  ): Promise<unknown>;
-  readFile(path: string): Promise<string>;
-  replaceFile(options: {
-    contents: string;
-    targetPath: string;
-    temporaryPath: string;
-  }): Promise<void>;
-}
+export type WeatherWatchStoreFileSystem = LocalJsonStateFileSystem;
 
 export interface FileWeatherWatchStoreDependencies {
   createId?: () => string;
@@ -164,23 +156,14 @@ async function readState(
   filePath: string,
   fileSystem: WeatherWatchStoreFileSystem,
 ): Promise<WeatherWatchStateDocument> {
-  let contents: string;
-  try {
-    contents = await fileSystem.readFile(filePath);
-  } catch (cause) {
-    if (isMissingFileError(cause)) return { version: 1, watches: [] };
-    throw new Error("Could not read weather watch state.", { cause });
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(contents) as unknown;
-  } catch (cause) {
-    throw new Error("Weather watch state file contains invalid JSON.", {
-      cause,
-    });
-  }
-  return parseWeatherWatchState(parsed);
+  return readLocalJsonState({
+    filePath,
+    fileSystem,
+    invalidJsonMessage: "Weather watch state file contains invalid JSON.",
+    missingState: () => ({ version: 1, watches: [] }),
+    parse: parseWeatherWatchState,
+    readFailureMessage: "Could not read weather watch state.",
+  });
 }
 
 async function writeState(
@@ -188,23 +171,10 @@ async function writeState(
   state: WeatherWatchStateDocument,
   fileSystem: WeatherWatchStoreFileSystem,
 ): Promise<void> {
-  const directory = dirname(filePath);
-  const temporaryPath = join(
-    directory,
-    `.${basename(filePath)}.${randomUUID()}.tmp`,
-  );
-  try {
-    await fileSystem.mkdir(directory, { mode: 0o700, recursive: true });
-    await fileSystem.replaceFile({
-      contents: `${JSON.stringify(state)}\n`,
-      targetPath: filePath,
-      temporaryPath,
-    });
-  } catch (cause) {
-    throw new Error("Could not persist weather watch state.", { cause });
-  }
-}
-
-function isMissingFileError(error: unknown): boolean {
-  return isRecord(error) && error.code === "ENOENT";
+  return writeLocalJsonState({
+    filePath,
+    fileSystem,
+    persistenceFailureMessage: "Could not persist weather watch state.",
+    state,
+  });
 }

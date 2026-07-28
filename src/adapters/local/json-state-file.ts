@@ -1,0 +1,78 @@
+import { randomUUID } from "node:crypto";
+import { basename, dirname, join } from "node:path";
+
+import { isRecord } from "../parsing.js";
+
+export interface LocalJsonStateFileSystem {
+  mkdir(
+    path: string,
+    options: { mode: number; recursive: true },
+  ): Promise<unknown>;
+  readFile(path: string): Promise<string>;
+  replaceFile(options: {
+    contents: string;
+    targetPath: string;
+    temporaryPath: string;
+  }): Promise<void>;
+}
+
+interface ReadLocalJsonStateOptions<TState> {
+  filePath: string;
+  fileSystem: LocalJsonStateFileSystem;
+  invalidJsonMessage: string;
+  missingState(): TState;
+  parse(input: unknown): TState;
+  readFailureMessage: string;
+}
+
+interface WriteLocalJsonStateOptions<TState> {
+  filePath: string;
+  fileSystem: LocalJsonStateFileSystem;
+  persistenceFailureMessage: string;
+  state: TState;
+}
+
+export async function readLocalJsonState<TState>(
+  options: ReadLocalJsonStateOptions<TState>,
+): Promise<TState> {
+  let contents: string;
+  try {
+    contents = await options.fileSystem.readFile(options.filePath);
+  } catch (cause) {
+    if (isRecord(cause) && cause.code === "ENOENT") {
+      return options.missingState();
+    }
+    throw new Error(options.readFailureMessage, { cause });
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(contents) as unknown;
+  } catch (cause) {
+    throw new Error(options.invalidJsonMessage, { cause });
+  }
+  return options.parse(parsed);
+}
+
+export async function writeLocalJsonState<TState>(
+  options: WriteLocalJsonStateOptions<TState>,
+): Promise<void> {
+  const directory = dirname(options.filePath);
+  const temporaryPath = join(
+    directory,
+    `.${basename(options.filePath)}.${randomUUID()}.tmp`,
+  );
+  try {
+    await options.fileSystem.mkdir(directory, {
+      mode: 0o700,
+      recursive: true,
+    });
+    await options.fileSystem.replaceFile({
+      contents: `${JSON.stringify(options.state)}\n`,
+      targetPath: options.filePath,
+      temporaryPath,
+    });
+  } catch (cause) {
+    throw new Error(options.persistenceFailureMessage, { cause });
+  }
+}
