@@ -61,6 +61,13 @@ const liveRoutingScenarios = [
     text: "Hey Jarvis, draft a generic WhatsApp reply for me.",
   },
   {
+    capability: "internet.search",
+    parameters: {
+      query: expect.stringMatching(/typescript/i) as string,
+    },
+    text: "Hey Jarvis, search the internet for the current stable TypeScript release.",
+  },
+  {
     capability: "alarm.create",
     parameters: {
       minutesFromNow: 10,
