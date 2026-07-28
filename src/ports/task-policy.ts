@@ -46,6 +46,17 @@ export function normalizeTaskListName(value: string): string {
   return value.trim().replace(/\s+/gu, " ");
 }
 
+export function normalizeTaskLabel(value: string): string {
+  return value.trim().replace(/\s+/gu, " ");
+}
+
+export function normalizeTaskNote(
+  value: string | undefined,
+): string | undefined {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
+}
+
 function hasCanonicalRecordMetadata(record: {
   createdAt: string;
   revision: number;

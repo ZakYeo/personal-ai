@@ -1,14 +1,24 @@
-import { normalizeTaskListName } from "../../ports/task-policy.js";
-import type { TaskListRecord, TaskStore } from "../../ports/task-store.js";
+import {
+  cloneTaskRecord,
+  normalizeTaskListName,
+} from "../../ports/task-policy.js";
+import type {
+  TaskListRecord,
+  TaskRecord,
+  TaskStore,
+} from "../../ports/task-store.js";
 import {
   applyTaskListRename,
   createTaskListRecord,
 } from "./task-list-record.js";
+import { createTaskRecord } from "./task-record.js";
 
 const maxTaskLists = 100;
+const maxTasks = 1_000;
 
 interface InMemoryTaskStoreOptions {
   createListId?: () => string;
+  createTaskId?: () => string;
   now: () => Date;
 }
 
@@ -16,8 +26,11 @@ export function createInMemoryTaskStore(
   options: InMemoryTaskStoreOptions,
 ): TaskStore {
   const lists: TaskListRecord[] = [];
+  const tasks: TaskRecord[] = [];
   const createListId =
     options.createListId ?? (() => `task-list-${lists.length + 1}`);
+  const createTaskId =
+    options.createTaskId ?? (() => `task-${tasks.length + 1}`);
 
   return {
     addList: (input) =>
@@ -29,15 +42,30 @@ export function createInMemoryTaskStore(
         }
         const name = normalizeTaskListName(input.name);
         assertUniqueListName(lists, name);
-        const list = createTaskListRecord(
-          { name },
-          createListId(),
-          options.now(),
-        );
+        const id = createListId();
+        assertUniqueId(lists, id, "Task list");
+        const list = createTaskListRecord({ name }, id, options.now());
         lists.push(list);
         return cloneTaskList(list);
       }),
+    addTask: (input) =>
+      Promise.resolve().then(() => {
+        if (tasks.length >= maxTasks) {
+          throw new Error(
+            `Task state cannot contain more than ${maxTasks} tasks.`,
+          );
+        }
+        if (!lists.some((list) => list.id === input.listId)) {
+          throw new Error(`Task list ${input.listId} does not exist.`);
+        }
+        const id = createTaskId();
+        assertUniqueId(tasks, id, "Task");
+        const task = createTaskRecord(input, id, options.now());
+        tasks.push(task);
+        return cloneTaskRecord(task);
+      }),
     listLists: () => Promise.resolve(lists.map(cloneTaskList)),
+    listTasks: () => Promise.resolve(tasks.map(cloneTaskRecord)),
     renameList: (request) =>
       Promise.resolve().then(() => {
         const index = lists.findIndex((list) => list.id === request.id);
@@ -51,6 +79,16 @@ export function createInMemoryTaskStore(
         return cloneTaskList(renamed);
       }),
   };
+}
+
+function assertUniqueId(
+  records: readonly { id: string }[],
+  id: string,
+  label: string,
+): void {
+  if (records.some((record) => record.id === id)) {
+    throw new Error(`${label} ID ${id} already exists.`);
+  }
 }
 
 function assertUniqueListName(

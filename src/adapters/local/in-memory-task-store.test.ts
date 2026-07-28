@@ -5,14 +5,16 @@ import { createInMemoryTaskStore } from "./in-memory-task-store.js";
 const initialTime = new Date("2026-07-28T09:00:00.000Z");
 
 function createStore() {
-  let nextId = 0;
+  let nextListId = 0;
+  let nextTaskId = 0;
   let now = initialTime;
   return {
     advanceTo(value: string) {
       now = new Date(value);
     },
     store: createInMemoryTaskStore({
-      createListId: () => `task-list-${++nextId}`,
+      createListId: () => `task-list-${++nextListId}`,
+      createTaskId: () => `task-${++nextTaskId}`,
       now: () => now,
     }),
   };
@@ -127,5 +129,108 @@ describe("in-memory task store lists", () => {
         updatedAt: "2026-07-28T08:59:59.000Z",
       }),
     ).rejects.toThrow("Task list state is invalid.");
+  });
+});
+
+describe("in-memory task store task creation", () => {
+  it("creates a task with optional exact fields and a scheduled reminder", async () => {
+    const { store } = createStore();
+    const list = await store.addList({ name: "To-do" });
+
+    const created = await store.addTask({
+      dueDate: "2026-07-29",
+      label: "Submit the form",
+      listId: list.id,
+      note: "Use the signed copy",
+      reminderAt: "2026-07-29T08:00:00.000Z",
+    });
+
+    expect(created).toEqual({
+      createdAt: initialTime.toISOString(),
+      dueDate: "2026-07-29",
+      id: "task-1",
+      label: "Submit the form",
+      listId: list.id,
+      note: "Use the signed copy",
+      reminder: {
+        scheduledFor: "2026-07-29T08:00:00.000Z",
+        status: "scheduled",
+      },
+      revision: 1,
+      status: "open",
+      updatedAt: initialTime.toISOString(),
+    });
+    expect(await store.listTasks()).toEqual([created]);
+  });
+
+  it("normalizes user-authored task text at the store boundary", async () => {
+    const { store } = createStore();
+    const list = await store.addList({ name: "To-do" });
+
+    const created = await store.addTask({
+      label: "  Submit   the form  ",
+      listId: list.id,
+      note: "  Use the signed copy  ",
+    });
+
+    expect(created).toMatchObject({
+      label: "Submit the form",
+      note: "Use the signed copy",
+    });
+  });
+
+  it("rejects a task for an unknown list", async () => {
+    const { store } = createStore();
+
+    await expect(
+      store.addTask({
+        label: "Submit the form",
+        listId: "missing-list",
+      }),
+    ).rejects.toThrow("Task list missing-list does not exist.");
+    expect(await store.listTasks()).toEqual([]);
+  });
+
+  it("rejects a reminder that is not strictly in the future", async () => {
+    const { store } = createStore();
+    const list = await store.addList({ name: "To-do" });
+
+    await expect(
+      store.addTask({
+        label: "Submit the form",
+        listId: list.id,
+        reminderAt: initialTime.toISOString(),
+      }),
+    ).rejects.toThrow("A new task reminder must be in the future.");
+  });
+
+  it("does not expose mutable reminder state to callers", async () => {
+    const { store } = createStore();
+    const list = await store.addList({ name: "To-do" });
+    const created = await store.addTask({
+      label: "Submit the form",
+      listId: list.id,
+      reminderAt: "2026-07-29T08:00:00.000Z",
+    });
+    if (!created.reminder) throw new Error("Expected a reminder.");
+    created.reminder.scheduledFor = "2026-07-30T08:00:00.000Z";
+
+    expect((await store.listTasks())[0]?.reminder).toEqual({
+      scheduledFor: "2026-07-29T08:00:00.000Z",
+      status: "scheduled",
+    });
+  });
+
+  it("bounds retained task state", async () => {
+    const { store } = createStore();
+    const list = await store.addList({ name: "To-do" });
+    for (let index = 1; index <= 1_000; index += 1) {
+      await store.addTask({ label: `Task ${index}`, listId: list.id });
+    }
+
+    await expect(
+      store.addTask({ label: "One too many", listId: list.id }),
+    ).rejects.toThrow("Task state cannot contain more than 1000 tasks.");
+    expect(await store.listTasks()).toHaveLength(1_000);
   });
 });

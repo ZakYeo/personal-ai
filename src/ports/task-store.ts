@@ -53,6 +53,14 @@ export interface TaskRecord {
 
 export type NewTaskList = Pick<TaskListRecord, "name">;
 
+export interface NewTask {
+  dueDate?: string;
+  label: string;
+  listId: string;
+  note?: string;
+  reminderAt?: string;
+}
+
 export interface RenameTaskListRequest {
   expectedRevision: number;
   id: string;
@@ -62,7 +70,9 @@ export interface RenameTaskListRequest {
 
 export interface TaskStore {
   addList(list: NewTaskList): Promise<TaskListRecord>;
+  addTask(task: NewTask): Promise<TaskRecord>;
   listLists(): Promise<TaskListRecord[]>;
+  listTasks(): Promise<TaskRecord[]>;
   renameList(
     request: RenameTaskListRequest,
   ): Promise<TaskListRecord | undefined>;
