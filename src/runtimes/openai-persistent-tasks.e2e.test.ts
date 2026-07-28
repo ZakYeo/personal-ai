@@ -100,6 +100,69 @@ describe("OpenAI persistent task routing", () => {
       }),
     );
   });
+
+  it("confirms a provider-decoded create-list and reminder plan before either write", async () => {
+    const { configPath, statePath } = await writePersistentTaskRuntimeConfig(
+      createTaskConfig({
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "https://api.openai.test/v1",
+        model: "gpt-5.5",
+        timeoutMs: 30_000,
+      }),
+    );
+    const fetch = vi.fn().mockResolvedValue(
+      intentPlanResponse("intent-task-plan", [
+        {
+          capability: "task.list.create",
+          parameters: [{ name: "name", value: "To-do" }],
+        },
+        {
+          capability: "task.remind",
+          parameters: [
+            { name: "label", value: "Submit the form" },
+            { name: "listName", value: "To-do" },
+            { name: "reminderAt", value: reminderAt },
+          ],
+        },
+      ]),
+    );
+    const assistant = await createConfiguredTextRuntime({
+      configPath,
+      env: { OPENAI_API_KEY: "test-api-key" },
+      fetch,
+      now: () => now,
+    });
+
+    await expect(
+      assistant.handleText(
+        "Hey Jarvis, create a to-do list and remind me tomorrow at 9 to submit the form.",
+      ),
+    ).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: `Please confirm this plan: 1. create Submit the form on the To-do list with a reminder for ${reminderAt}. Say yes or no.`,
+    });
+    await expect(access(statePath)).rejects.toMatchObject({ code: "ENOENT" });
+
+    await expect(assistant.handleText("yes")).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: `Created the To-do list. Added Submit the form to your To-do list with a reminder for ${reminderAt}.`,
+    });
+    const store = createFileTaskStore({ filePath: statePath, now: () => now });
+    await expect(store.listLists()).resolves.toEqual([
+      expect.objectContaining({ name: "To-do" }),
+    ]);
+    await expect(store.listTasks()).resolves.toEqual([
+      expect.objectContaining({
+        label: "Submit the form",
+        reminder: expect.objectContaining({
+          scheduledFor: reminderAt,
+          status: "scheduled",
+        }) as object,
+      }),
+    ]);
+  });
 });
 
 describe.skipIf(!runOpenAIE2E)(
@@ -183,6 +246,34 @@ function intentResponse(
           },
           kind: "command",
           plan: null,
+          response: null,
+        }),
+      }),
+      { status: 200 },
+    ),
+  );
+}
+
+function intentPlanResponse(
+  id: string,
+  commands: Array<{
+    capability: string;
+    parameters: Array<{ name: string; value: string }>;
+  }>,
+) {
+  return Promise.resolve(
+    new Response(
+      JSON.stringify({
+        id,
+        output_text: JSON.stringify({
+          command: null,
+          kind: "plan",
+          plan: {
+            commands: commands.map((command) => ({
+              ...command,
+              rawText: "provider-routed task plan",
+            })),
+          },
           response: null,
         }),
       }),
