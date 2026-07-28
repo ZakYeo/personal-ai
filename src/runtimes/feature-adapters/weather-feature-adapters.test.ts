@@ -8,7 +8,10 @@ import {
   createOpenMeteoForecastResponse,
   createOpenMeteoGeocodingResponse,
 } from "../../test-support/open-meteo.js";
-import { createConfiguredTextRuntime } from "../configured-text-runtime.js";
+import {
+  createConfiguredTextRuntime,
+  createConfiguredTextRuntimeComposition,
+} from "../configured-text-runtime.js";
 import { parseAssistantConfig } from "../config/config.js";
 import { validateConfiguredFeatureAdapters } from "../feature-adapter-selection.js";
 
@@ -35,6 +38,60 @@ describe("weather feature adapters", () => {
     expect(response.text).toContain(
       "Source: Deterministic weather fixture (https://example.test/weather-source).",
     );
+  });
+
+  it("contributes delivery evaluation over the exact composed watch store", async () => {
+    const shutdown = new AbortController();
+    const delivered: string[] = [];
+    const composition = await createConfiguredTextRuntimeComposition({
+      config: createLoadedRuntimeConfig({
+        weather: { adapter: "mock", enabled: true },
+      }),
+      notificationDelivery: {
+        deliver: (notification) => {
+          delivered.push(notification.text);
+          shutdown.abort();
+          return Promise.resolve();
+        },
+      },
+      now: () => weatherNow,
+    });
+    await composition.assistant.handleText(
+      "Hey Jarvis, watch for rain in London from 2026-07-28T12:00:00.000Z to 2026-07-29T12:00:00.000Z",
+    );
+    await composition.assistant.handleText("yes");
+
+    expect(composition.backgroundTasks).toEqual([
+      expect.objectContaining({
+        failureReason: "weather watch evaluation failed",
+        id: "weather.watches",
+      }),
+    ]);
+    await composition.backgroundTasks[0]?.run({
+      clock: { now: () => weatherNow },
+      reportFailure: () => {},
+      shutdownSignal: shutdown.signal,
+    });
+
+    expect(delivered).toHaveLength(1);
+    expect(delivered[0]).toContain(
+      "Weather watch weather-watch-1 matched in London",
+    );
+    const listResponse = await composition.assistant.handleText(
+      "Hey Jarvis, list my weather watches",
+    );
+    expect(listResponse.text).toContain("weather-watch-1: triggered");
+  });
+
+  it("does not consume watches when no notification output is composed", async () => {
+    const composition = await createConfiguredTextRuntimeComposition({
+      config: createLoadedRuntimeConfig({
+        weather: { adapter: "mock", enabled: true },
+      }),
+      now: () => weatherNow,
+    });
+
+    expect(composition.backgroundTasks).toEqual([]);
   });
 
   it("composes keyless Open-Meteo geocoding and forecasts", async () => {
