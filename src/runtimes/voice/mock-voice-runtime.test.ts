@@ -22,6 +22,8 @@ import {
   writePersistentAlarmRuntimeConfig,
 } from "../../test-support/runtime-composition.js";
 import { line } from "../../test-support/primitives.js";
+import { parseAssistantConfig } from "../config/config.js";
+import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
 
 describe("mock voice runtime", () => {
   it("smoke-speaks one aggregate confirmation for a compound plan", async () => {
@@ -55,6 +57,51 @@ describe("mock voice runtime", () => {
       textOutputWritten: false,
       transcript: deterministicScenarios.calendarWedding.text,
       wakePhrase: "hey jarvis",
+    });
+  });
+
+  it("speaks stored-home coat advice through configured voice composition", async () => {
+    const featureAdapterRegistry = createDefaultFeatureAdapterRegistry({
+      personalContextReader: {
+        readHomeLocation: () =>
+          Promise.resolve({
+            place: "London",
+            provenance: "user-authored",
+          }),
+      },
+    });
+    const config = parseAssistantConfig(
+      {
+        assistant: {
+          name: "Jarvis",
+          timeZone: "Europe/London",
+          wakePhrases: ["hey jarvis"],
+        },
+        features: {
+          weather: { adapter: "mock", enabled: true },
+        },
+        intent: { provider: "deterministic" },
+        voice: mockVoiceConfig,
+      },
+      { featureAdapterRegistry },
+    );
+    const runtime = await createMockVoiceRuntime({
+      config,
+      now: () => new Date("2026-07-28T12:00:05.000Z"),
+      utterance: "Hey Jarvis, will I need a coat at home tomorrow morning?",
+    });
+
+    await expect(runtime.runOnce()).resolves.toMatchObject({
+      response: {
+        status: "ok",
+        text: expect.stringContaining(
+          "Yes, take a coat: the forecast includes rain or cool conditions.",
+        ) as string,
+      },
+      spokenText: expect.stringContaining(
+        "from 2026-07-29T05:00:00.000Z to 2026-07-29T11:00:00.000Z",
+      ) as string,
+      status: "spoken",
     });
   });
 

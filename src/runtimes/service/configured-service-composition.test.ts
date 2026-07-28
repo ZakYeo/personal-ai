@@ -14,6 +14,7 @@ import type {
   RuntimeBackgroundTask,
   RuntimeBackgroundTaskContext,
 } from "../background-task.js";
+import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
 
 describe("runConfiguredServiceRuntime", () => {
   it("composes the configured text assistant from an injected config path", async () => {
@@ -255,5 +256,76 @@ describe("runConfiguredServiceRuntime", () => {
         successfulDeliveries: 1,
       }),
     ]);
+  });
+
+  it("delivers a user-created weather watch through the configured service task", async () => {
+    let releaseWait: (() => void) | undefined;
+    let resolveWaitStarted: (() => void) | undefined;
+    const waitStarted = new Promise<void>((resolve) => {
+      resolveWaitStarted = resolve;
+    });
+    let resolveDelivered: (() => void) | undefined;
+    const delivered = new Promise<void>((resolve) => {
+      resolveDelivered = resolve;
+    });
+    let requestShutdown: ((reason: string) => void) | undefined;
+    const notifications: string[] = [];
+
+    await expect(
+      runConfiguredServiceRuntime(
+        {
+          backgroundTaskTimer: {
+            wait: (_delayMs, shutdownSignal) => {
+              expect(shutdownSignal).toBeInstanceOf(AbortSignal);
+              resolveWaitStarted?.();
+              return new Promise<void>((resolve) => {
+                releaseWait = resolve;
+              });
+            },
+          },
+          config: createLoadedRuntimeConfig({
+            weather: { adapter: "mock", enabled: true },
+          }),
+          createNotificationDelivery: () => ({
+            deliver: (notification) => {
+              notifications.push(notification.text);
+              resolveDelivered?.();
+              requestShutdown?.("weather watch delivered");
+              return Promise.resolve();
+            },
+          }),
+          now: () => new Date("2026-07-28T12:05:00.000Z"),
+        },
+        {
+          validateConfig: () => {},
+          runTurn: async (context) => {
+            requestShutdown = (reason) => {
+              context.requestShutdown(reason);
+            };
+            await context.assistant.handleText(
+              "Hey Jarvis, watch for rain in London from 2026-07-28T12:00:00.000Z to 2026-07-29T12:00:00.000Z",
+            );
+            await context.assistant.handleText("yes");
+            const firstEvaluatorEvent = await Promise.race([
+              waitStarted.then(() => "waiting" as const),
+              delivered.then(() => "delivered" as const),
+            ]);
+            if (firstEvaluatorEvent === "waiting") releaseWait?.();
+            await delivered;
+          },
+        },
+      ),
+    ).resolves.toEqual({
+      status: "stopped",
+      turnsCompleted: 1,
+    });
+
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]).toContain(
+      "Weather watch weather-watch-1 matched in London",
+    );
+    expect(notifications[0]).toContain(
+      "convenience notifications, not guaranteed emergency alerts",
+    );
   });
 });
