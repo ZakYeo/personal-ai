@@ -12,14 +12,21 @@ import {
   normalizeTaskListName,
   normalizeTaskNote,
 } from "../../ports/task-policy.js";
-import type {
-  TaskListRecord,
-  TaskRecord,
-  TaskStore,
-} from "../../ports/task-store.js";
+import type { TaskRecord, TaskStore } from "../../ports/task-store.js";
 import { isCanonicalIsoTimestamp } from "../../ports/temporal-policy.js";
-
-const maxDisplayedItems = 10;
+import {
+  availableListsResult,
+  createdTaskResult,
+  emptyTaskReferences,
+  taskListResult,
+  taskStatusResult,
+} from "./task-results.js";
+import {
+  selectEligibleTask,
+  selectTaskList,
+  taskTargetParameters,
+  type TaskTargetArgs,
+} from "./task-selection.js";
 
 const createListParameters = {
   name: { required: true, type: "string" },
@@ -50,15 +57,6 @@ const remindTaskParameters = {
   reminderAt: { required: true, type: "string" },
 } as const satisfies FeatureCapabilityParameters;
 type RemindTaskArgs = FeatureArgsFromParameters<typeof remindTaskParameters>;
-
-const taskTargetParameters = {
-  id: { type: "string" },
-  label: { type: "string" },
-  listName: { type: "string" },
-  ordinal: { type: "number" },
-  reference: { type: "string" },
-} as const satisfies FeatureCapabilityParameters;
-type TaskTargetArgs = FeatureArgsFromParameters<typeof taskTargetParameters>;
 
 export function createTaskFeature(store: TaskStore) {
   return defineFeature({
@@ -162,140 +160,12 @@ async function changeTaskStatus(
   return taskStatusResult(selection.list, updated);
 }
 
-type TaskSelection =
-  | { list: TaskListRecord; task: TaskRecord }
-  | { result: FeatureResult };
-
-async function selectEligibleTask(
-  store: TaskStore,
-  args: TaskTargetArgs,
-  context: FeatureExecutionContext,
-  eligibleStatus: TaskRecord["status"],
-): Promise<TaskSelection> {
-  const [lists, tasks] = await Promise.all([
-    store.listLists(),
-    store.listTasks(),
-  ]);
-  const referenced = selectReferencedTask(args, context);
-  if (referenced) {
-    const task = tasks.find((candidate) => candidate.id === referenced.taskId);
-    if (
-      !task ||
-      task.listId !== referenced.listId ||
-      task.revision !== referenced.revision
-    ) {
-      return {
-        result: {
-          text: "That task changed after I showed it to you. Please show the list again.",
-        },
-      };
-    }
-    const list = lists.find((candidate) => candidate.id === task.listId);
-    if (!list || task.status !== eligibleStatus) {
-      return { result: ineligibleTaskResult(eligibleStatus) };
-    }
-    return { list, task };
-  }
-
-  const requestedList = args.listName
-    ? selectList(lists, normalizeTaskListName(args.listName))
-    : undefined;
-  if (args.listName && !requestedList) {
-    return {
-      result: {
-        text: `I could not find a list named ${normalizeTaskListName(
-          args.listName,
-        )}.`,
-      },
-    };
-  }
-  const label = args.label
-    ? normalizeTaskLabel(args.label).toLocaleLowerCase("en")
-    : undefined;
-  const eligible = tasks.filter(
-    (task) =>
-      task.status === eligibleStatus &&
-      (args.id === undefined || task.id === args.id) &&
-      (requestedList === undefined || task.listId === requestedList.id) &&
-      (label === undefined || task.label.toLocaleLowerCase("en") === label),
-  );
-  if (eligible.length !== 1) {
-    return {
-      result:
-        eligible.length === 0
-          ? ineligibleTaskResult(eligibleStatus)
-          : {
-              expectsFollowUp: true,
-              text: "More than one eligible task matches. Please name its list or show the list and choose an item.",
-            },
-    };
-  }
-  const task = eligible[0]!;
-  const list = lists.find((candidate) => candidate.id === task.listId);
-  if (!list) throw new Error("Task state refers to an unknown list.");
-  return { list, task };
-}
-
-function selectReferencedTask(
-  args: TaskTargetArgs,
-  context: FeatureExecutionContext,
-) {
-  if (
-    args.ordinal === undefined &&
-    args.reference === undefined &&
-    (args.id !== undefined ||
-      args.label !== undefined ||
-      args.listName !== undefined)
-  ) {
-    return;
-  }
-  const selected = context.selectResultReference?.({
-    ...(args.ordinal === undefined ? {} : { ordinal: args.ordinal }),
-    rawText: context.trustedInputText ?? "",
-    ...(args.reference === undefined ? {} : { reference: args.reference }),
-  });
-  return selected?.target?.kind === "task_item" ? selected.target : undefined;
-}
-
-function ineligibleTaskResult(
-  eligibleStatus: TaskRecord["status"],
-): FeatureResult {
-  return {
-    text:
-      eligibleStatus === "open"
-        ? "I could not find one matching open task to complete."
-        : "I could not find one matching completed task to reopen.",
-  };
-}
-
-function taskStatusResult(
-  list: TaskListRecord,
-  task: TaskRecord,
-): FeatureResult {
-  return {
-    data: {
-      ...(task.completedAt ? { completedAt: task.completedAt } : {}),
-      id: task.id,
-      label: task.label,
-      listId: list.id,
-      listName: list.name,
-      ...(task.reminder ? { reminderStatus: task.reminder.status } : {}),
-      revision: task.revision,
-      status: task.status,
-    },
-    text:
-      task.status === "completed"
-        ? `Completed ${task.label} on your ${list.name} list.`
-        : `Reopened ${task.label} on your ${list.name} list.`,
-  };
-}
-
 async function createTask(
   store: TaskStore,
   args: CreateTaskArgs | RemindTaskArgs,
 ): Promise<FeatureResult> {
   const requestedListName = normalizeTaskListName(args.listName);
-  const list = selectList(await store.listLists(), requestedListName);
+  const list = selectTaskList(await store.listLists(), requestedListName);
   if (!list) {
     return { text: `I could not find a list named ${requestedListName}.` };
   }
@@ -332,37 +202,6 @@ function assertFutureReminder(reminderAt: string, now: Date): void {
   }
 }
 
-function createdTaskResult(
-  list: TaskListRecord,
-  task: TaskRecord,
-): FeatureResult {
-  const scheduledReminder =
-    task.reminder?.status === "scheduled" ? task.reminder : undefined;
-  return {
-    data: {
-      ...(task.dueDate ? { dueDate: task.dueDate } : {}),
-      id: task.id,
-      label: task.label,
-      listId: list.id,
-      listName: list.name,
-      ...(task.note ? { note: task.note } : {}),
-      ...(scheduledReminder
-        ? {
-            reminderAt: scheduledReminder.scheduledFor,
-            reminderStatus: scheduledReminder.status,
-          }
-        : {}),
-      revision: task.revision,
-      status: task.status,
-    },
-    expectsFollowUp: true,
-    resultReferences: createTaskResultReferences(list, [task]),
-    text: scheduledReminder
-      ? `Added ${task.label} to your ${list.name} list with a reminder for ${scheduledReminder.scheduledFor}.`
-      : `Added ${task.label} to your ${list.name} list.`,
-  };
-}
-
 async function createList(
   store: TaskStore,
   args: CreateListArgs,
@@ -381,7 +220,7 @@ async function showList(
   const lists = await store.listLists();
   if (args.name === undefined) return availableListsResult(lists);
   const requestedName = normalizeTaskListName(args.name);
-  const list = selectList(lists, requestedName);
+  const list = selectTaskList(lists, requestedName);
   if (!list) {
     return {
       resultReferences: emptyTaskReferences(),
@@ -401,7 +240,7 @@ async function renameList(
 ): Promise<FeatureResult> {
   const lists = await store.listLists();
   const requestedName = normalizeTaskListName(args.name);
-  const list = selectList(lists, requestedName);
+  const list = selectTaskList(lists, requestedName);
   if (!list) {
     return { text: `I could not find a list named ${requestedName}.` };
   }
@@ -422,121 +261,4 @@ async function renameList(
     },
     text: `Renamed the ${list.name} list to ${renamed.name}.`,
   };
-}
-
-function availableListsResult(lists: readonly TaskListRecord[]): FeatureResult {
-  if (lists.length === 0) {
-    return {
-      resultReferences: emptyTaskReferences(),
-      text: "You do not have any personal lists.",
-    };
-  }
-  const shown = lists.slice(0, maxDisplayedItems);
-  const data = Object.fromEntries(
-    shown.flatMap((list, index) => [
-      [`list${index}Id`, list.id],
-      [`list${index}Name`, list.name],
-    ]),
-  );
-  return {
-    data: {
-      ...data,
-      listCount: lists.length,
-      ...(shown.length < lists.length
-        ? { visibleListCount: shown.length }
-        : {}),
-    },
-    resultReferences: emptyTaskReferences(),
-    text: `You have ${joinHuman(
-      shown.map((list) => list.name),
-    )} lists${remainingSuffix(lists.length, shown.length)}.`,
-  };
-}
-
-function taskListResult(
-  list: TaskListRecord,
-  tasks: readonly TaskRecord[],
-): FeatureResult {
-  if (tasks.length === 0) {
-    return {
-      data: { listId: list.id, listName: list.name, taskCount: 0 },
-      resultReferences: emptyTaskReferences(),
-      text: `Your ${list.name} list is empty.`,
-    };
-  }
-  const shown = tasks.slice(0, maxDisplayedItems);
-  const data = Object.fromEntries(
-    shown.flatMap((task, index) => [
-      [`task${index}Id`, task.id],
-      [`task${index}Label`, task.label],
-      [`task${index}Status`, task.status],
-    ]),
-  );
-  return {
-    data: {
-      listId: list.id,
-      listName: list.name,
-      ...data,
-      taskCount: tasks.length,
-      ...(shown.length < tasks.length
-        ? { visibleTaskCount: shown.length }
-        : {}),
-    },
-    expectsFollowUp: true,
-    resultReferences: createTaskResultReferences(list, shown),
-    text: `Your ${list.name} list has ${joinHuman(
-      shown.map((task) => task.label),
-    )}${remainingSuffix(tasks.length, shown.length)}.`,
-  };
-}
-
-function emptyTaskReferences() {
-  return { items: [], kind: "task_items" as const };
-}
-
-function createTaskResultReferences(
-  list: TaskListRecord,
-  tasks: readonly TaskRecord[],
-) {
-  return {
-    items: tasks.map((task) => ({
-      facts: {
-        ...(task.dueDate ? { dueDate: task.dueDate } : {}),
-        label: task.label,
-        listName: list.name,
-        ...(task.reminder?.status === "scheduled"
-          ? { reminderAt: task.reminder.scheduledFor }
-          : {}),
-        status: task.status,
-      },
-      target: {
-        kind: "task_item" as const,
-        listId: list.id,
-        revision: task.revision,
-        taskId: task.id,
-      },
-    })),
-    kind: "task_items" as const,
-  };
-}
-
-function selectList(
-  lists: readonly TaskListRecord[],
-  name: string,
-): TaskListRecord | undefined {
-  const canonicalName = name.toLocaleLowerCase("en");
-  return lists.find(
-    (list) => list.name.toLocaleLowerCase("en") === canonicalName,
-  );
-}
-
-function joinHuman(values: readonly string[]): string {
-  if (values.length < 2) return values[0] ?? "";
-  if (values.length === 2) return `${values[0]} and ${values[1]}`;
-  return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
-}
-
-function remainingSuffix(total: number, visible: number): string {
-  const remaining = total - visible;
-  return remaining > 0 ? `, plus ${remaining} more` : "";
 }
