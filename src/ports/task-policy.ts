@@ -45,6 +45,23 @@ export function cloneTaskRecord(task: TaskRecord): TaskRecord {
   };
 }
 
+export function taskReminderTerminalTimestamp(
+  reminder: TaskReminder | undefined,
+): string | undefined {
+  switch (reminder?.status) {
+    case "acknowledged":
+      return reminder.acknowledgedAt;
+    case "cancelled":
+      return reminder.cancelledAt;
+    case "delivered":
+      return reminder.deliveredAt;
+    case "claimed":
+    case "scheduled":
+    case undefined:
+      return;
+  }
+}
+
 export function normalizeTaskListName(value: string): string {
   return value.trim().replace(/\s+/gu, " ");
 }

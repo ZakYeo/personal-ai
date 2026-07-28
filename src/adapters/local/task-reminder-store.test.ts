@@ -175,6 +175,21 @@ describe("task reminder restart and cleanup", () => {
       expectedRevision: claim!.revision,
       id: acknowledged.id,
     });
+    const delivered = await store.addTask({
+      label: "Delivered",
+      listId: list.id,
+      reminderAt: scheduledFor,
+    });
+    const deliveredClaim = await store.claimReminder({
+      claimedAt: scheduledFor,
+      expectedRevision: delivered.revision,
+      id: delivered.id,
+    });
+    await store.markReminderDelivered({
+      deliveredAt: "2026-07-29T08:01:00.000Z",
+      expectedRevision: deliveredClaim!.revision,
+      id: delivered.id,
+    });
     const cancelled = await store.addTask({
       label: "Cancelled",
       listId: list.id,
@@ -186,16 +201,35 @@ describe("task reminder restart and cleanup", () => {
       id: cancelled.id,
       updatedAt: "2026-07-29T08:02:00.000Z",
     });
+    const claimed = await store.addTask({
+      label: "Claimed",
+      listId: list.id,
+      reminderAt: scheduledFor,
+    });
+    await store.claimReminder({
+      claimedAt: scheduledFor,
+      expectedRevision: claimed.revision,
+      id: claimed.id,
+    });
+    await store.addTask({
+      label: "Scheduled",
+      listId: list.id,
+      reminderAt: scheduledFor,
+    });
     const atCutoff = await store.addTask({
       label: "At cutoff",
       listId: list.id,
-      reminderAt: "2026-07-30T08:00:00.000Z",
+      reminderAt: scheduledFor,
     });
-    await store.updateTask({
-      changes: { reminderAt: null },
+    const atCutoffClaim = await store.claimReminder({
+      claimedAt: scheduledFor,
       expectedRevision: atCutoff.revision,
       id: atCutoff.id,
-      updatedAt: "2026-07-29T08:03:00.000Z",
+    });
+    await store.markReminderDelivered({
+      deliveredAt: "2026-07-29T08:03:00.000Z",
+      expectedRevision: atCutoffClaim!.revision,
+      id: atCutoff.id,
     });
 
     await expect(
@@ -203,7 +237,7 @@ describe("task reminder restart and cleanup", () => {
         cutoff: "2026-07-29T08:03:00.000Z",
         updatedAt: "2026-08-30T09:00:00.000Z",
       }),
-    ).resolves.toBe(2);
+    ).resolves.toBe(3);
 
     const tasks = await store.listTasks();
     expect(tasks.find(({ label }) => label === "Acknowledged")?.reminder).toBe(
@@ -212,8 +246,17 @@ describe("task reminder restart and cleanup", () => {
     expect(tasks.find(({ label }) => label === "Cancelled")?.reminder).toBe(
       undefined,
     );
+    expect(tasks.find(({ label }) => label === "Delivered")?.reminder).toBe(
+      undefined,
+    );
+    expect(tasks.find(({ label }) => label === "Claimed")?.reminder).toEqual(
+      expect.objectContaining({ status: "claimed" }),
+    );
+    expect(tasks.find(({ label }) => label === "Scheduled")?.reminder).toEqual(
+      expect.objectContaining({ status: "scheduled" }),
+    );
     expect(tasks.find(({ label }) => label === "At cutoff")?.reminder).toEqual(
-      expect.objectContaining({ status: "cancelled" }),
+      expect.objectContaining({ status: "delivered" }),
     );
   });
 });

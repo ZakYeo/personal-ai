@@ -2,6 +2,7 @@ import {
   assertValidTaskRecord,
   normalizeTaskLabel,
   normalizeTaskNote,
+  taskReminderTerminalTimestamp,
 } from "../../ports/task-policy.js";
 import type {
   AcknowledgeTaskReminderRequest,
@@ -136,12 +137,7 @@ export function clearTerminalTaskReminder(
   task: TaskRecord,
   request: ClearTerminalTaskRemindersRequest,
 ): TaskRecord | undefined {
-  const terminalAt =
-    task.reminder?.status === "acknowledged"
-      ? task.reminder.acknowledgedAt
-      : task.reminder?.status === "cancelled"
-        ? task.reminder.cancelledAt
-        : undefined;
+  const terminalAt = taskReminderTerminalTimestamp(task.reminder);
   if (terminalAt === undefined || terminalAt >= request.cutoff) return;
   const updated: TaskRecord = {
     ...task,
