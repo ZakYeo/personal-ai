@@ -3,9 +3,15 @@ import {
   isRecord,
   parseOptionalPositiveInteger,
 } from "../config/config-parse-utils.js";
+import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
+
+export type WeatherWatchStoreConfig =
+  | { adapter: "file"; filePath: string }
+  | { adapter: "local" };
 
 export interface WeatherFeatureConfig {
   maxForecastAgeMinutes: number;
+  watchStore: WeatherWatchStoreConfig;
 }
 
 export interface WeatherOpenMeteoAdapterConfig extends WeatherFeatureConfig {
@@ -34,7 +40,10 @@ export function parseWeatherFeatureConfig(
       'Config feature "weather".maxForecastAgeMinutes must be an integer from 1 to 1440.',
     );
   }
-  return { maxForecastAgeMinutes: maxAge };
+  return {
+    maxForecastAgeMinutes: maxAge,
+    watchStore: parseWeatherWatchStoreConfig(featureConfig.watches),
+  };
 }
 
 export function parseWeatherOpenMeteoAdapterConfig(
@@ -117,3 +126,39 @@ function parseEndpoint(
   if (value !== required) throw new Error(message);
   return value;
 }
+
+function parseWeatherWatchStoreConfig(value: unknown): WeatherWatchStoreConfig {
+  if (value === undefined) return { adapter: "local" };
+  if (!isRecord(value)) {
+    throw new Error('Config feature "weather".watches must be a JSON object.');
+  }
+  const parser = selectConfiguredRuntimeEntry({
+    configuredId: typeof value.adapter === "string" ? value.adapter : undefined,
+    missingMessage:
+      'Config feature "weather".watches.adapter must be a non-empty string.',
+    registry: weatherWatchStoreParsers,
+    unknownMessage: (adapter) =>
+      `Config feature "weather".watches adapter "${adapter}" is not registered.`,
+  });
+  return parser(value);
+}
+
+const weatherWatchStoreParsers: Record<
+  string,
+  (config: Record<string, unknown>) => WeatherWatchStoreConfig
+> = {
+  file: (config) => {
+    const state = config.state;
+    if (
+      !isRecord(state) ||
+      typeof state.path !== "string" ||
+      state.path.trim().length === 0
+    ) {
+      throw new Error(
+        'Config feature "weather".watches.state.path must be a non-empty string.',
+      );
+    }
+    return { adapter: "file", filePath: state.path };
+  },
+  local: () => ({ adapter: "local" }),
+};

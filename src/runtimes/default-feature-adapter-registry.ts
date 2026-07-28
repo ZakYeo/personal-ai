@@ -1,4 +1,5 @@
 import type { FileAlarmStoreDependencies } from "../adapters/local/file-alarm-store.js";
+import type { FileWeatherWatchStoreDependencies } from "../adapters/local/file-weather-watch-store.js";
 import { createAlarmFeatureRegistryEntry } from "./feature-adapters/alarm-feature-adapters.js";
 import { createCalendarFeatureRegistryEntry } from "./feature-adapters/calendar-feature-adapters.js";
 import { createMessagingFeatureRegistryEntry } from "./feature-adapters/messaging-feature-adapters.js";
@@ -8,6 +9,7 @@ import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
 
 interface DefaultFeatureAdapterRegistryOptions {
   alarmStore?: FileAlarmStoreDependencies;
+  weatherWatchStore?: FileWeatherWatchStoreDependencies;
 }
 
 export function createDefaultFeatureAdapterRegistry(
@@ -18,6 +20,6 @@ export function createDefaultFeatureAdapterRegistry(
     calendar: createCalendarFeatureRegistryEntry(),
     internetSearch: createInternetSearchFeatureRegistryEntry(),
     messaging: createMessagingFeatureRegistryEntry(),
-    weather: createWeatherFeatureRegistryEntry(),
+    weather: createWeatherFeatureRegistryEntry(options.weatherWatchStore),
   };
 }

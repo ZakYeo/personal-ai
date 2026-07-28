@@ -37,10 +37,13 @@ export interface WeatherWatchStoreFileSystem {
   }): Promise<void>;
 }
 
-interface FileWeatherWatchStoreOptions {
+export interface FileWeatherWatchStoreDependencies {
   createId?: () => string;
-  filePath: string;
   fileSystem?: WeatherWatchStoreFileSystem;
+}
+
+interface FileWeatherWatchStoreOptions extends FileWeatherWatchStoreDependencies {
+  filePath: string;
   now: () => Date;
 }
 
@@ -60,7 +63,7 @@ const nodeFileSystem: WeatherWatchStoreFileSystem = {
 export function createFileWeatherWatchStore(
   options: FileWeatherWatchStoreOptions,
 ): WeatherWatchStore {
-  const createId = options.createId ?? randomUUID;
+  const createId = options.createId ?? (() => `weather-watch-${randomUUID()}`);
   const fileSystem = options.fileSystem ?? nodeFileSystem;
   let pending: Promise<void> = Promise.resolve();
 

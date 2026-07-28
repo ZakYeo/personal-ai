@@ -1,3 +1,7 @@
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { jsonResponse } from "../../test-support/adapter-contract.js";
 import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
 import {
@@ -80,6 +84,108 @@ describe("weather feature adapters", () => {
       enabled: true,
     });
     expect(config.features.weather).not.toHaveProperty("openMeteo");
+    expect(config.features.weather).not.toHaveProperty("watches");
+  });
+
+  it("requires a state path for file-backed weather watches", () => {
+    expect(() =>
+      parseAssistantConfig(
+        createRawWeatherConfig({
+          adapter: "mock",
+          enabled: true,
+          watches: { adapter: "file", state: {} },
+        }),
+      ),
+    ).toThrow(
+      'Config feature "weather".watches.state.path must be a non-empty string.',
+    );
+  });
+
+  it("rejects an unregistered weather-watch store adapter", () => {
+    expect(() =>
+      parseAssistantConfig(
+        createRawWeatherConfig({
+          adapter: "mock",
+          enabled: true,
+          watches: { adapter: "cloud" },
+        }),
+      ),
+    ).toThrow(
+      'Config feature "weather".watches adapter "cloud" is not registered.',
+    );
+  });
+
+  it("persists weather watches relative to the selected config file", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-weather-"));
+    const configPath = join(directory, "config.json");
+    const statePath = join(directory, "state", "weather-watches.json");
+    await writeFile(
+      configPath,
+      JSON.stringify(
+        createRawWeatherConfig({
+          adapter: "mock",
+          enabled: true,
+          watches: {
+            adapter: "file",
+            state: { path: "state/weather-watches.json" },
+          },
+        }),
+      ),
+    );
+    const firstAssistant = await createConfiguredTextRuntime({
+      configPath,
+      now: () => weatherNow,
+    });
+
+    await expect(
+      firstAssistant.handleText(
+        "Hey Jarvis, watch for rain in London from 2026-07-28T12:00:00.000Z to 2026-07-29T12:00:00.000Z",
+      ),
+    ).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: "Please confirm: 1. create a weather watch for precipitation at least 0.1 mm in london from 2026-07-28T12:00:00.000Z to 2026-07-29T12:00:00.000Z. Say yes or no.",
+    });
+    await expect(firstAssistant.handleText("yes")).resolves.toMatchObject({
+      status: "ok",
+    });
+
+    const restartedAssistant = await createConfiguredTextRuntime({
+      configPath,
+      now: () => weatherNow,
+    });
+    const response = await restartedAssistant.handleText(
+      "Hey Jarvis, list my weather watches",
+    );
+    const state = JSON.parse(await readFile(statePath, "utf8")) as {
+      version: number;
+      watches: Array<{ id: string }>;
+    };
+
+    expect(response.status).toBe("ok");
+    expect(response.text).toContain(
+      "active precipitation at least 0.1 mm in London",
+    );
+    expect(state.version).toBe(1);
+    expect(state.watches).toHaveLength(1);
+    expect(state.watches[0]?.id).toMatch(/^weather-watch-/u);
+  });
+
+  it("rejects a relative watch-state path without config source context", async () => {
+    const config = createLoadedRuntimeConfig({
+      weather: {
+        adapter: "mock",
+        enabled: true,
+        watches: {
+          adapter: "file",
+          state: { path: "state/weather-watches.json" },
+        },
+      },
+    });
+
+    await expect(createConfiguredTextRuntime({ config })).rejects.toThrow(
+      "Relative local state paths require a config directory.",
+    );
   });
 
   it.each([
