@@ -45,6 +45,27 @@ describe("internet search feature adapters", () => {
     });
   });
 
+  it("clears prior sources when the latest search has no results", async () => {
+    const assistant = await createConfiguredTextRuntime({
+      config: createLoadedRuntimeConfig({
+        internetSearch: { adapter: "mock", enabled: true },
+      }),
+      now: () => deterministicTestNow,
+    });
+    await assistant.handleText("Hey Jarvis, search the web for TypeScript 5.7");
+    await assistant.handleText(
+      "Hey Jarvis, search the web for an unmatched subject",
+    );
+
+    await expect(
+      assistant.handleText("What did the first source say?"),
+    ).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: "I am not sure which recent internet source you mean.",
+    });
+  });
+
   it("parses and captures narrow OpenAI search config", () => {
     const config = parseAssistantConfig(
       createRawSearchConfig({

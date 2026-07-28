@@ -113,6 +113,10 @@ async function executeSearch(
   );
   if (results.length === 0) {
     return {
+      resultReferences: {
+        items: [],
+        kind: "internet_sources" as const,
+      },
       text: `I could not find current sources for "${query}".`,
     };
   }

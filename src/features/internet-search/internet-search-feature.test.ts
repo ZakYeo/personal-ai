@@ -70,6 +70,10 @@ describe("createInternetSearchFeature", () => {
       "internet.search",
       { query: "no results" },
       {
+        resultReferences: {
+          items: [],
+          kind: "internet_sources",
+        },
         text: 'I could not find current sources for "no results".',
       },
     );
