@@ -1,7 +1,4 @@
-import {
-  cloneTaskRecord,
-  normalizeTaskListName,
-} from "../../ports/task-policy.js";
+import { cloneTaskRecord } from "../../ports/task-policy.js";
 import type {
   TaskListRecord,
   TaskRecord,
@@ -12,9 +9,13 @@ import {
   createTaskListRecord,
 } from "./task-list-record.js";
 import { applyTaskUpdate, createTaskRecord } from "./task-record.js";
-
-const maxTaskLists = 100;
-const maxTasks = 1_000;
+import {
+  assertTaskCapacity,
+  assertTaskListCapacity,
+  assertUniqueTaskListName,
+  assertUniqueTaskStoreId,
+  cloneTaskList,
+} from "./task-store-state.js";
 
 interface InMemoryTaskStoreOptions {
   createListId?: () => string;
@@ -35,31 +36,22 @@ export function createInMemoryTaskStore(
   return {
     addList: (input) =>
       Promise.resolve().then(() => {
-        if (lists.length >= maxTaskLists) {
-          throw new Error(
-            `Task state cannot contain more than ${maxTaskLists} lists.`,
-          );
-        }
-        const name = normalizeTaskListName(input.name);
-        assertUniqueListName(lists, name);
+        assertTaskListCapacity(lists);
+        const name = assertUniqueTaskListName(lists, input.name);
         const id = createListId();
-        assertUniqueId(lists, id, "Task list");
+        assertUniqueTaskStoreId(lists, id, "Task list");
         const list = createTaskListRecord({ name }, id, options.now());
         lists.push(list);
         return cloneTaskList(list);
       }),
     addTask: (input) =>
       Promise.resolve().then(() => {
-        if (tasks.length >= maxTasks) {
-          throw new Error(
-            `Task state cannot contain more than ${maxTasks} tasks.`,
-          );
-        }
+        assertTaskCapacity(tasks);
         if (!lists.some((list) => list.id === input.listId)) {
           throw new Error(`Task list ${input.listId} does not exist.`);
         }
         const id = createTaskId();
-        assertUniqueId(tasks, id, "Task");
+        assertUniqueTaskStoreId(tasks, id, "Task");
         const task = createTaskRecord(input, id, options.now());
         tasks.push(task);
         return cloneTaskRecord(task);
@@ -79,8 +71,7 @@ export function createInMemoryTaskStore(
         const index = lists.findIndex((list) => list.id === request.id);
         const current = lists[index];
         if (!current || current.revision !== request.expectedRevision) return;
-        const name = normalizeTaskListName(request.name);
-        assertUniqueListName(lists, name, current.id);
+        const name = assertUniqueTaskListName(lists, request.name, current.id);
         const renamed = applyTaskListRename(current, { ...request, name });
         if (!renamed) return;
         lists[index] = renamed;
@@ -97,35 +88,4 @@ export function createInMemoryTaskStore(
         return cloneTaskRecord(updated);
       }),
   };
-}
-
-function assertUniqueId(
-  records: readonly { id: string }[],
-  id: string,
-  label: string,
-): void {
-  if (records.some((record) => record.id === id)) {
-    throw new Error(`${label} ID ${id} already exists.`);
-  }
-}
-
-function assertUniqueListName(
-  lists: readonly TaskListRecord[],
-  requestedName: string,
-  exceptId?: string,
-): void {
-  const canonicalName = requestedName.toLocaleLowerCase("en");
-  if (
-    lists.some(
-      (list) =>
-        list.id !== exceptId &&
-        list.name.toLocaleLowerCase("en") === canonicalName,
-    )
-  ) {
-    throw new Error(`A task list named "${requestedName}" already exists.`);
-  }
-}
-
-function cloneTaskList(list: TaskListRecord): TaskListRecord {
-  return { ...list };
 }
