@@ -14,6 +14,8 @@ The assistant should support natural voice commands such as:
 - "Hey Jarvis, check my upcoming events and set an alarm for 10 minutes to
   remind me to ask you again."
 - "Hey Jarvis, remind me ten minutes before the second event."
+- "Hey Jarvis, will I need a coat at home tomorrow morning?"
+- "Hey Jarvis, watch for rain in Bristol tomorrow."
 
 ## Goals
 
@@ -55,19 +57,25 @@ The assistant should support natural voice commands such as:
 ## Near-Term Direction
 
 Compound plans, calendar result follow-ups, bounded calendar-to-alarm workflows,
-and bounded source-grounded internet search are implemented. Milestones 13 and
-15 through 17 prioritize an explicit personal profile, weather and forecast
-watches, durable lists/tasks/reminders, and proactive daily briefings. The goal
-is a more personalized everyday assistant while preserving the existing
-validation, confirmation, privacy, and runtime-boundary guarantees. Smart-home
-control, a personal knowledge library, and adaptive memory remain uncommitted
-future considerations.
+bounded source-grounded internet search, and the Milestone 15 weather
+implementation are present. Weather awaits its required independent
+maintainability review and any resulting remediation. Milestones 13, 16, and 17
+prioritize an explicit personal profile, durable lists/tasks/reminders, and
+proactive daily briefings. The goal is a more personalized everyday assistant
+while preserving the existing validation, confirmation, privacy, and
+runtime-boundary guarantees. Smart-home control, a personal knowledge library,
+and adaptive memory remain uncommitted future considerations.
 
 The profile begins empty and is managed through normal text or voice requests
 such as “set my name to Zak” and “what do you know about me?” The language model
 may interpret those requests, but validated application commands and local
 profile storage—not model memory or hardcoded configuration—own durable facts.
 Weather uses Open-Meteo's key-free non-commercial API with required attribution.
+Its current, hourly, and daily forecasts preserve exact location, timezone,
+units, period, and freshness facts. Explicit weather watches persist local state,
+claim delivery before output, and are convenience notifications rather than
+guaranteed emergency alerts. A home default is available only through the
+narrow explicit-profile reader; weather never infers it.
 
 ## Documentation Maintenance
 

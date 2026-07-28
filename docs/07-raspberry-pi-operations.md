@@ -3,7 +3,7 @@
 This guide deploys the built `pi-service` runtime as a long-running systemd
 service. The service runs as the locked-down `personal-ai` account, reads
 operator-owned configuration from `/etc/personal-ai`, runs application files
-from `/opt/personal-ai`, and keeps durable alarm state under
+from `/opt/personal-ai`, and keeps durable alarm and weather-watch state under
 `/var/lib/personal-ai`.
 
 The committed unit and config are examples. Review audio device names, commands,
@@ -26,6 +26,13 @@ The service also removes terminal alarm history older than 30 days at startup
 and daily. Cleanup uses the same serialized persistent store, retains active
 alarms, and turns failures into the same orderly non-zero service exit used by
 other fatal background tasks.
+
+The selected Pi weather adapter uses Open-Meteo's free non-commercial forecast
+and geocoding endpoints without a credential. Explicit precipitation,
+temperature, and wind watches are stored at
+`/var/lib/personal-ai/weather-watches.json`, evaluated by the service against
+the exact composed provider and store, and claimed durably before spoken output.
+They are convenience notifications, not guaranteed emergency alerts.
 
 ## Device prerequisites
 
@@ -81,8 +88,8 @@ sudo mv -Tf /opt/personal-ai.next /opt/personal-ai
 ```
 
 Install the operator-owned config and environment directories. The example uses
-the persistent alarm path created by the unit's `StateDirectory=personal-ai`
-setting.
+persistent alarm and weather-watch paths created by the unit's
+`StateDirectory=personal-ai` setting.
 
 ```bash
 sudo install -d -o root -g personal-ai -m 0750 /etc/personal-ai
@@ -148,10 +155,10 @@ sudo systemctl disable personal-ai.service
 ## Upgrade and rollback
 
 Keep `/etc/personal-ai` and `/var/lib/personal-ai` outside release replacement so
-upgrades do not overwrite credentials, machine-specific config, or alarms. In
-one administrative shell, record the current immutable release, build and
-validate the checkout as above, assemble a new versioned release completely,
-then atomically replace the stable symlink:
+upgrades do not overwrite credentials, machine-specific config, alarms, or
+weather watches. In one administrative shell, record the current immutable
+release, build and validate the checkout as above, assemble a new versioned
+release completely, then atomically replace the stable symlink:
 
 ```bash
 previous_release="$(readlink -f /opt/personal-ai)"

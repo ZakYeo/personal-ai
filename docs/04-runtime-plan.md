@@ -446,21 +446,30 @@ background-task boundary.
 Retention is contributed even when notification delivery is unavailable; alarm
 delivery scheduling remains conditional on a configured notification output.
 
-Planned weather watches and task reminders follow the same neutral contribution
-shape without sharing feature state: each selected adapter closes over its exact
-store and required provider, while the service runtime supplies only live
-clock, timer, shutdown, diagnostics, and notification output. Planned daily
-briefings contribute a separate scheduled task with durable local delivery
-slots so restart cannot repeat the same local-day briefing. On-demand briefings
-use the same fixed application-owned source aggregator as scheduled delivery.
-No planned background task may ask an intent provider to choose additional
-tools or actions.
+Weather watches use the neutral contribution shape without sharing feature
+state: the selected weather adapter closes over its exact store and provider,
+while the service runtime supplies only live clock, timer, shutdown,
+diagnostics, and notification output. It evaluates bounded precipitation,
+temperature, and wind conditions, claims a matching one-shot watch durably
+before output, and does not replay a terminal watch after restart. Planned task
+reminders follow the same neutral shape with their own task store. Planned daily
+briefings contribute a separate scheduled task with durable local delivery slots
+so restart cannot repeat the same local-day briefing. On-demand briefings use
+the same fixed application-owned source aggregator as scheduled delivery. No
+background task may ask an intent provider to choose additional tools or
+actions.
 
 The selected weather provider is Open-Meteo's free non-commercial forecast and
 geocoding service. Runtime config may select endpoint and timeout policy but has
-no weather API-key field or weather credential preflight. Text and voice
-profile commands use the same assistant-owned validation and feature execution
-path; voice composition does not receive a separate hardcoded profile.
+no weather API-key field or weather credential preflight. Checked-in
+deterministic config selects the mock provider and local watch state; desktop/Pi
+OpenAI operator config selects Open-Meteo, and Pi uses
+`/var/lib/personal-ai/weather-watches.json`. The opt-in
+`npm run test:e2e:open-meteo` smoke exercises a live key-free current forecast.
+The opt-in `npm run test:e2e:openai:weather` smoke exercises live OpenAI routing
+through the deterministic weather adapter. Text and voice profile commands use
+the same assistant-owned validation and feature execution path; voice
+composition does not receive a separate hardcoded profile.
 
 Internet search is selected through `features.internetSearch.adapter`. The
 checked-in deterministic configs use `mock`; desktop and Pi OpenAI operator
@@ -484,6 +493,10 @@ The opt-in `npm run test:e2e:openai:search` smoke routes a current-information
 request through live OpenAI intent interpretation and the hosted web-search
 tool, then requires a safe assistant response with visible HTTPS citations. It
 is excluded from the default validation gate.
+The opt-in `npm run test:e2e:open-meteo` smoke validates the key-free live
+adapter path independently. The opt-in `npm run test:e2e:openai:weather` smoke
+validates live intent routing to the deterministic weather feature; both remain
+outside the default validation gate.
 The OpenAI adapter keeps request construction, Responses API transport,
 provider-output text extraction, and assistant intent-output parsing in separate
 adapter-local modules, with the interpreter class only orchestrating those

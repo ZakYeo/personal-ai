@@ -68,9 +68,12 @@ Examples:
 - `profile.forget`
 - `internet.search`
 - `internet.follow_up`
+- `weather.coat`
 - `weather.current`
 - `weather.forecast`
-- `weather.watch`
+- `weather.watch.create`
+- `weather.watch.list`
+- `weather.watch.cancel`
 - `tasks.list`
 - `tasks.create`
 - `tasks.complete`
@@ -152,12 +155,15 @@ exposes only opaque references to later intent interpretation. Neither feature
 owns session lifetime or exposes provider IDs in its human response. Future task
 lists may use the same contract with their own safe projection.
 
-Planned profile, weather, task, and briefing composition does not relax feature
+Profile, weather, task, and briefing composition does not relax feature
 ownership. A feature that needs personal defaults receives a narrow
-personal-context reader during composition. Weather-watch and task-reminder
-adapters contribute background tasks that close over their own resources.
-Briefings aggregate fixed application read ports directly; they do not call the
-calendar, weather, alarm, task, search, or profile feature plugins.
+personal-context reader during composition. The implemented weather feature
+requests only an explicit home location for `weather.coat`; explicit-location
+weather commands do not receive profile context. Weather-watch adapters
+contribute background tasks that close over their exact provider and store;
+planned task-reminder adapters follow the same ownership rule. Briefings
+aggregate fixed application read ports directly; they do not call the calendar,
+weather, alarm, task, search, or profile feature plugins.
 Profile utterances from text or voice follow the normal intent pipeline:
 providers propose `profile.set`, core decodes and validates its typed fact, and
 only then may the profile feature update durable state. `profile.show` reads the

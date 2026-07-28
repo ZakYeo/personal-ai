@@ -393,7 +393,9 @@ Acceptance criteria:
 
 ## Milestone 15: Weather, Forecasts, and Weather Watches
 
-Status: planned; depends on Milestone 13.
+Status: implementation complete pending the required independent maintainability
+review and any resulting remediation. Milestone 13 remains an optional runtime
+dependency for explicit stored-home defaults.
 
 Goal: provide location-aware current weather and forecasts, then proactively
 notify the user when explicitly requested forecast conditions are detected.

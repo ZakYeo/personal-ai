@@ -54,6 +54,11 @@ Implemented today:
   timeouts, provider failures, and malformed responses.
 - Bounded source-grounded internet search with deterministic and opt-in OpenAI
   web-search adapters, visible citations, and process-local source follow-ups.
+- Provider-neutral current and forecast weather with deterministic and
+  key-free Open-Meteo adapters, protected location/timezone/unit/freshness
+  facts, explicit-home coat guidance, and required source attribution.
+- Durable precipitation, temperature, and wind watches with exact confirmation,
+  restart-safe claim-before-delivery evaluation, and shared service output.
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events
   port, with a three-month default upcoming window and refresh-token OAuth
   support.
@@ -107,12 +112,15 @@ Current roadmap position:
   [discovery report](docs/08-spike-9-report.md) records the evidence behind that
   completed sequence. Milestone 14 is implemented after its required independent
   review, with bounded source-grounded search, snapshot-only source follow-ups,
-  terminal-only trust isolation, and cancellation-aware provider transport. The
-  remaining roadmap prioritizes explicit personal profiles, weather and
-  forecast watches, durable lists/tasks/reminders, and scheduled daily briefings.
-  Profiles will be created and edited through validated text and voice commands
-  rather than hardcoded setup, and the weather milestone selects Open-Meteo's
-  key-free non-commercial API. Smart-home control, a personal
+  terminal-only trust isolation, and cancellation-aware provider transport.
+  Milestone 15's weather implementation is complete pending its required
+  independent maintainability review and any resulting remediation. It uses
+  Open-Meteo's key-free non-commercial API, durable local watch state, and a
+  narrow optional reader for the explicit home location that Milestone 13 will
+  own. The remaining roadmap prioritizes explicit personal profiles, durable
+  lists/tasks/reminders, and scheduled daily briefings. Profiles will be
+  created and edited through validated text and voice commands rather than
+  hardcoded setup. Smart-home control, a personal
   knowledge library, and adaptive memory remain unnumbered future considerations
   rather than committed work.
   Real providers and hardware validation remain opt-in work outside the default
@@ -405,6 +413,9 @@ tests are not part of `npm run check`; normal validation remains deterministic
 and network-free.
 Run `npm run test:e2e:openai:plans` for the focused live compound calendar and
 alarm plan smoke.
+Run `npm run test:e2e:open-meteo` for the focused key-free live Open-Meteo
+adapter smoke, and `npm run test:e2e:openai:weather` for the focused live
+OpenAI-to-weather routing smoke.
 Run `npm run test:e2e:openai:pi` for the focused live alarm flow through Pi
 service composition. It does not validate physical audio hardware.
 
@@ -494,6 +505,10 @@ Common development commands:
   fixture query, expected title/location detail, and Google credentials.
 - `npm run test:e2e:openai:search` - run the focused opt-in live OpenAI intent
   routing and web-search citation smoke; requires `OPENAI_API_KEY`.
+- `npm run test:e2e:open-meteo` - run the focused opt-in live key-free
+  Open-Meteo adapter smoke.
+- `npm run test:e2e:openai:weather` - run the focused opt-in live OpenAI
+  weather-routing smoke; requires `OPENAI_API_KEY`.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.

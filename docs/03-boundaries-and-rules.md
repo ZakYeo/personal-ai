@@ -484,17 +484,18 @@ should also guard against subtler boundary and abstraction drift.
   provider bodies and credential details diagnostic-only. Timeouts and active
   runtime shutdown must cancel request and body consumption. The default
   validation gate uses the mock adapter and performs no network request.
-- Planned weather watches and task reminders must persist their state and
-  delivery claim before human output. Each background task closes over the same
-  store used by feature operations, uses injected clock/timer/shutdown
-  dependencies, and deduplicates restart recovery. Weather notifications must
-  not claim emergency-service reliability, and reminder delivery must not imply
-  task completion.
-- The planned Open-Meteo adapter uses only the free non-commercial forecast and
-  geocoding endpoints without an API key. It must preserve required attribution,
-  enforce bounded polling within published limits, and fail startup if config
-  attempts to smuggle in a credential or paid customer endpoint without a new
-  documented provider decision.
+- Weather watches persist their state and delivery claim before human output.
+  Their feature-contributed background task closes over the same store and
+  provider used by feature operations, uses injected clock/timer/shutdown
+  dependencies, and deduplicates restart recovery. Weather notifications are
+  explicitly convenience notifications rather than claims of emergency-service
+  reliability. Planned task reminders must preserve the same claim-before-output
+  and restart guarantees without implying task completion.
+- The Open-Meteo adapter uses only the free non-commercial forecast and
+  geocoding endpoints without an API key. It preserves required attribution,
+  bounds forecast requests to at most 16 local calendar dates, and fails startup
+  if config attempts to smuggle in a credential or paid customer endpoint
+  without a new documented provider decision.
 - Planned daily briefings aggregate only a fixed configured set of narrow read
   ports. Partial source failures remain isolated and diagnostic-safe; retrieved
   content cannot add sections, tools, or actions.
