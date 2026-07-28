@@ -36,7 +36,7 @@ import {
 
 export type TaskStoreFileSystem = LocalJsonStateFileSystem;
 
-interface FileTaskStoreDependencies {
+export interface FileTaskStoreDependencies {
   createListId?: () => string;
   createTaskId?: () => string;
   fileSystem?: TaskStoreFileSystem;
