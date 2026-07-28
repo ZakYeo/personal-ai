@@ -163,6 +163,108 @@ describe("OpenAI persistent task routing", () => {
       }),
     ]);
   });
+
+  it("uses exact task references and rejects a stale confirmed target", async () => {
+    const { configPath, statePath } = await writePersistentTaskRuntimeConfig(
+      createTaskConfig({
+        apiKeyEnv: "OPENAI_API_KEY",
+        baseUrl: "https://api.openai.test/v1",
+        model: "gpt-5.5",
+        timeoutMs: 30_000,
+      }),
+    );
+    const store = createFileTaskStore({ filePath: statePath, now: () => now });
+    const list = await store.addList({ name: "Shopping" });
+    const coffee = await store.addTask({
+      label: "Coffee",
+      listId: list.id,
+    });
+    const oatMilk = await store.addTask({
+      label: "Oat milk",
+      listId: list.id,
+    });
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        intentResponse("intent-show", "task.list.show", [
+          { name: "name", value: "Shopping" },
+        ]),
+      )
+      .mockResolvedValueOnce(
+        intentResponse("intent-complete", "task.complete", [
+          { name: "ordinal", value: 2 },
+          { name: "reference", value: "task-item-2" },
+        ]),
+      )
+      .mockResolvedValueOnce(
+        intentResponse("intent-remove", "task.remove", [
+          { name: "ordinal", value: 1 },
+          { name: "reference", value: "task-item-1" },
+        ]),
+      );
+    const assistant = await createConfiguredTextRuntime({
+      configPath,
+      env: { OPENAI_API_KEY: "test-api-key" },
+      fetch,
+      now: () => now,
+    });
+
+    await expect(
+      assistant.handleText("Hey Jarvis, show my shopping list."),
+    ).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: "Your Shopping list has Coffee and Oat milk.",
+    });
+    await expect(
+      assistant.handleText("Hey Jarvis, complete the second one."),
+    ).resolves.toEqual({
+      status: "ok",
+      text: "Completed Oat milk on your Shopping list.",
+    });
+    await expect(
+      assistant.handleText("Hey Jarvis, remove the first one."),
+    ).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: "Please confirm: 1. remove Coffee from the Shopping list. Say yes or no.",
+    });
+
+    await store.renameList({
+      expectedRevision: list.revision,
+      id: list.id,
+      name: "Groceries",
+      updatedAt: "2026-07-28T08:01:00.000Z",
+    });
+    await expect(assistant.handleText("yes")).resolves.toEqual({
+      status: "ok",
+      text: "That task changed after I showed it to you. Please show the list again.",
+    });
+    await expect(store.listTasks()).resolves.toEqual([
+      expect.objectContaining({
+        id: coffee.id,
+        status: "open",
+      }),
+      expect.objectContaining({
+        id: oatMilk.id,
+        status: "completed",
+      }),
+    ]);
+
+    const followUpBodies = fetch.mock.calls.slice(1).map((call) => {
+      const body = (call[1] as RequestInit | undefined)?.body;
+      expect(typeof body).toBe("string");
+      if (typeof body !== "string") {
+        throw new TypeError("Expected an OpenAI request body.");
+      }
+      return body;
+    });
+    for (const body of followUpBodies) {
+      expect(body).toContain("task-item-1");
+      expect(body).toContain("task-item-2");
+      expect(body).toContain("never invent a task reference");
+    }
+  });
 });
 
 describe.skipIf(!runOpenAIE2E)(
@@ -208,6 +310,23 @@ describe.skipIf(!runOpenAIE2E)(
           }) as object,
         }),
       ]);
+      await expect(
+        assistant.handleText("Hey Jarvis, show my to-do list."),
+      ).resolves.toMatchObject({ status: "ok" });
+      await expect(
+        assistant.handleText("Hey Jarvis, complete the first one."),
+      ).resolves.toMatchObject({ status: "ok" });
+      await expect(
+        createFileTaskStore({
+          filePath: statePath,
+          now: () => now,
+        }).listTasks(),
+      ).resolves.toEqual([
+        expect.objectContaining({
+          label: expect.stringMatching(/submit the form/iu) as string,
+          status: "completed",
+        }),
+      ]);
     }, 60_000);
   },
 );
@@ -232,7 +351,10 @@ function createTaskConfig(openai: Record<string, unknown>) {
 function intentResponse(
   id: string,
   capability: string,
-  parameters: Array<{ name: string; value: string }>,
+  parameters: Array<{
+    name: string;
+    value: boolean | number | string;
+  }>,
 ) {
   return Promise.resolve(
     new Response(

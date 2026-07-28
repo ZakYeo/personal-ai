@@ -498,6 +498,10 @@ describe("OpenAIIntentInterpreter", () => {
     expect(serializedInput).toContain("To-do");
     expect(serializedInput).toContain("2026-07-30");
     expect(serializedInput).toContain("2026-07-29T08:00:00.000Z");
+    expect(serializedInput).toContain(
+      "For task follow-ups, use the exact opaque task reference",
+    );
+    expect(serializedInput).toContain("never invent a task reference");
     expect(serializedInput).not.toContain("private-task-id");
     expect(serializedInput).not.toContain("private-list-id");
   });
