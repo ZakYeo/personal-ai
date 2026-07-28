@@ -37,6 +37,25 @@ describe("createInternetSearchFeature", () => {
             "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
           sourceCount: 1,
         },
+        expectsFollowUp: true,
+        resultReferences: {
+          items: [
+            {
+              facts: {
+                extract:
+                  "TypeScript 5.7 adds checks for variables that have never been initialized.",
+                publishedAt: "2024-11-22T00:00:00.000Z",
+                title: "Announcing TypeScript 5.7",
+                url: "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
+              },
+              target: {
+                kind: "internet_source",
+                providerResultId: "provider-private-id",
+              },
+            },
+          ],
+          kind: "internet_sources",
+        },
         text: "Announcing TypeScript 5.7: TypeScript 5.7 adds checks for variables that have never been initialized. [1: https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/]",
       },
       createFeatureContext(),
@@ -66,6 +85,57 @@ describe("createInternetSearchFeature", () => {
       },
       { query: " " },
       "Internet search requires a non-empty query.",
+    );
+  });
+
+  it("answers follow-ups only through a selected opaque source reference", async () => {
+    await expectDecodedFeatureExecution(
+      createInternetSearchFeature(createFakeSearch()),
+      "internet.follow_up",
+      { ordinal: 1 },
+      {
+        data: {
+          extract:
+            "TypeScript 5.7 adds checks for variables that have never been initialized.",
+          publishedAt: "2024-11-22T00:00:00.000Z",
+          title: "Announcing TypeScript 5.7",
+          url: "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
+        },
+        text: "Announcing TypeScript 5.7: TypeScript 5.7 adds checks for variables that have never been initialized. [https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/]",
+      },
+      {
+        ...createFeatureContext(),
+        selectResultReference: () => ({
+          publicReference: {
+            facts: {
+              extract:
+                "TypeScript 5.7 adds checks for variables that have never been initialized.",
+              publishedAt: "2024-11-22T00:00:00.000Z",
+              title: "Announcing TypeScript 5.7",
+              url: "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
+            },
+            kind: "internet_source",
+            ordinal: 1,
+            reference: "internet-source-1",
+          },
+          target: {
+            kind: "internet_source",
+            providerResultId: "provider-private-id",
+          },
+        }),
+      },
+    );
+  });
+
+  it("asks for clarification rather than guessing a source", async () => {
+    await expectDecodedFeatureExecution(
+      createInternetSearchFeature(createFakeSearch()),
+      "internet.follow_up",
+      {},
+      {
+        expectsFollowUp: true,
+        text: "I am not sure which recent internet source you mean.",
+      },
     );
   });
 });

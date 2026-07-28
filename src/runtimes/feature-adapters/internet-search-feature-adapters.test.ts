@@ -22,8 +22,26 @@ describe("internet search feature adapters", () => {
         "Hey Jarvis, search the internet for TypeScript 5.7",
       ),
     ).resolves.toEqual({
+      expectsFollowUp: true,
       status: "ok",
       text: "Announcing TypeScript 5.7: TypeScript 5.7 adds checks for variables that have never been initialized. [1: https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/]",
+    });
+  });
+
+  it("answers a follow-up against only the retained search source", async () => {
+    const assistant = await createConfiguredTextRuntime({
+      config: createLoadedRuntimeConfig({
+        internetSearch: { adapter: "mock", enabled: true },
+      }),
+      now: () => deterministicTestNow,
+    });
+    await assistant.handleText("Hey Jarvis, search the web for TypeScript 5.7");
+
+    await expect(
+      assistant.handleText("What did the first source say?"),
+    ).resolves.toEqual({
+      status: "ok",
+      text: "Announcing TypeScript 5.7: TypeScript 5.7 adds checks for variables that have never been initialized. [https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/]",
     });
   });
 

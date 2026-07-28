@@ -1,6 +1,8 @@
 import type {
   AssistantResultReference,
   FeatureResultReferenceSet,
+  CalendarResultReferenceFacts,
+  InternetSourceResultReferenceFacts,
   ResolvedResultReference,
   ResultReferenceSelectionRequest,
   ResultReferenceTarget,
@@ -84,15 +86,14 @@ export function createResultReferenceSession(): ResultReferenceSession {
       };
     },
     retain(resultSet) {
-      entries = resultSet.items.slice(0, 10).map((item, index) => ({
-        publicReference: Object.freeze({
-          facts: Object.freeze({ ...item.facts }),
-          kind: item.target.kind,
-          ordinal: index + 1,
-          reference: `${item.target.kind.replace("_", "-")}-${index + 1}`,
-        }),
-        target: Object.freeze({ ...item.target }),
-      }));
+      entries =
+        resultSet.kind === "calendar_events"
+          ? resultSet.items
+              .slice(0, 10)
+              .map((item, index) => createCalendarEntry(item, index))
+          : resultSet.items
+              .slice(0, 10)
+              .map((item, index) => createInternetSourceEntry(item, index));
       subsequentTurns = 0;
       focusedReference = undefined;
       retainedSinceLastCompletion = true;
@@ -103,4 +104,40 @@ export function createResultReferenceSession(): ResultReferenceSession {
 interface Entry {
   readonly publicReference: AssistantResultReference;
   readonly target: ResultReferenceTarget;
+}
+
+function createCalendarEntry(
+  item: {
+    facts: CalendarResultReferenceFacts;
+    target: Extract<ResultReferenceTarget, { kind: "calendar_event" }>;
+  },
+  index: number,
+): Entry {
+  return {
+    publicReference: Object.freeze({
+      facts: Object.freeze({ ...item.facts }),
+      kind: "calendar_event",
+      ordinal: index + 1,
+      reference: `calendar-event-${index + 1}`,
+    }),
+    target: Object.freeze({ ...item.target }),
+  };
+}
+
+function createInternetSourceEntry(
+  item: {
+    facts: InternetSourceResultReferenceFacts;
+    target: Extract<ResultReferenceTarget, { kind: "internet_source" }>;
+  },
+  index: number,
+): Entry {
+  return {
+    publicReference: Object.freeze({
+      facts: Object.freeze({ ...item.facts }),
+      kind: "internet_source",
+      ordinal: index + 1,
+      reference: `internet-source-${index + 1}`,
+    }),
+    target: Object.freeze({ ...item.target }),
+  };
 }
