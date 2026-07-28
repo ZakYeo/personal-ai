@@ -54,9 +54,9 @@ The assistant should support natural voice commands such as:
 
 ## Near-Term Direction
 
-Compound plans, calendar result follow-ups, and bounded calendar-to-alarm
-workflows are implemented. Milestones 13 through 17 now prioritize an explicit
-personal profile, source-grounded internet search, weather and forecast
+Compound plans, calendar result follow-ups, bounded calendar-to-alarm workflows,
+and bounded source-grounded internet search are implemented. Milestones 13 and
+15 through 17 prioritize an explicit personal profile, weather and forecast
 watches, durable lists/tasks/reminders, and proactive daily briefings. The goal
 is a more personalized everyday assistant while preserving the existing
 validation, confirmation, privacy, and runtime-boundary guarantees. Smart-home

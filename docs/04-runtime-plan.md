@@ -462,6 +462,14 @@ no weather API-key field or weather credential preflight. Text and voice
 profile commands use the same assistant-owned validation and feature execution
 path; voice composition does not receive a separate hardcoded profile.
 
+Internet search is selected through `features.internetSearch.adapter`. The
+checked-in deterministic configs use `mock`; desktop and Pi OpenAI operator
+configs select `openai`, capture typed Responses configuration during config
+parsing, and reuse `OPENAI_API_KEY`. The adapter requires the hosted
+`web_search` tool, applies the shared OpenAI JSON transport timeout policy, and
+returns only validated HTTP(S) citation annotations. Text, desktop voice, and Pi
+service composition all use the same feature registry entry.
+
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
 writing state, resumes the validated command after an explicit yes, asserts the
@@ -470,6 +478,10 @@ after rebuilding the runtime. It is deliberately excluded from `npm run check`.
 Development CLI runs load `.env` when present through Node's
 `--env-file-if-exists` support, so local provider credentials can be supplied
 without prefixing each `npm run cli` invocation.
+The opt-in `npm run test:e2e:openai:search` smoke routes a current-information
+request through live OpenAI intent interpretation and the hosted web-search
+tool, then requires a safe assistant response with visible HTTPS citations. It
+is excluded from the default validation gate.
 The OpenAI adapter keeps request construction, Responses API transport,
 provider-output text extraction, and assistant intent-output parsing in separate
 adapter-local modules, with the interpreter class only orchestrating those

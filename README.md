@@ -52,6 +52,8 @@ Implemented today:
   types rather than provider details in application ports.
 - Shared labeled OpenAI Responses transport policy for credentials, JSON POSTs,
   timeouts, provider failures, and malformed responses.
+- Bounded source-grounded internet search with deterministic and opt-in OpenAI
+  web-search adapters, visible citations, and process-local source follow-ups.
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events
   port, with a three-month default upcoming window and refresh-token OAuth
   support.
@@ -103,12 +105,13 @@ Current roadmap position:
   application-owned all-day clarification, and typed
   calendar-event-to-alarm snapshot binding. The
   [discovery report](docs/08-spike-9-report.md) records the evidence behind that
-  completed sequence. The active roadmap now prioritizes explicit personal
-  profiles, source-grounded internet search, weather and forecast watches,
-  durable lists/tasks/reminders, and scheduled daily briefings as Milestones 13
-  through 17. Profiles will be created and edited through validated text and
-  voice commands rather than hardcoded setup, and the weather milestone selects
-  Open-Meteo's key-free non-commercial API. Smart-home control, a personal
+  completed sequence. Milestone 14's source-grounded internet-search
+  implementation is complete and awaiting its required independent review. The
+  remaining roadmap prioritizes explicit personal profiles, weather and forecast
+  watches, durable lists/tasks/reminders, and scheduled daily briefings.
+  Profiles will be created and edited through validated text and voice commands
+  rather than hardcoded setup, and the weather milestone selects Open-Meteo's
+  key-free non-commercial API. Smart-home control, a personal
   knowledge library, and adaptive memory remain unnumbered future considerations
   rather than committed work.
   Real providers and hardware validation remain opt-in work outside the default
@@ -153,7 +156,10 @@ Every OpenAI intent response must include a non-empty response ID so any
 application-owned clarification can resume the exact provider session.
 
 The default desktop OpenAI voice service config used by `npm start` selects the
-Google Calendar adapter and OpenAI response rewriter. Google Calendar access
+Google Calendar adapter, OpenAI internet search, and the OpenAI response
+rewriter. Internet search reuses `OPENAI_API_KEY`; its bounded source
+annotations become visible HTTPS citations, and retrieved text remains
+untrusted data. Google Calendar access
 requires local OAuth credentials in `.env`: `GOOGLE_CALENDAR_CLIENT_ID`,
 `GOOGLE_CALENDAR_CLIENT_SECRET`, and `GOOGLE_CALENDAR_REFRESH_TOKEN`. If you
 already have the client ID and secret, run `npm run setup:google-calendar` to
@@ -485,6 +491,8 @@ Common development commands:
 - `npm run test:e2e:openai:calendar-followup` - run the focused opt-in live
   OpenAI plus Google Calendar result-follow-up smoke; requires a configured
   fixture query, expected title/location detail, and Google credentials.
+- `npm run test:e2e:openai:search` - run the focused opt-in live OpenAI intent
+  routing and web-search citation smoke; requires `OPENAI_API_KEY`.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.

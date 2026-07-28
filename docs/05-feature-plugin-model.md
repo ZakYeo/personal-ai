@@ -66,7 +66,8 @@ Examples:
 - `profile.show`
 - `profile.set`
 - `profile.forget`
-- `web.search`
+- `internet.search`
+- `internet.follow_up`
 - `weather.current`
 - `weather.forecast`
 - `weather.watch`
@@ -140,14 +141,15 @@ Configuration may add confirmation requirements for environment-specific cases,
 but user-facing defaults should not rely on configuration remembering every
 high-risk capability.
 
-Feature results may contribute a bounded result-reference set. Calendar search
-uses this neutral result contract to provide safe displayed facts and a private
-read-only lookup target. Core replaces the assistant session's previous set and
-exposes only opaque references to later intent interpretation. Follow-up feature
-execution receives a resolver for the private target; the calendar feature does
-not own session lifetime or expose provider IDs in its human response.
-Planned internet search and task lists may use the same neutral result-reference
-contract with feature-specific safe projections and expiry policy.
+Feature results may contribute a bounded result-reference set. Calendar and
+internet search use this neutral result contract to provide safe displayed facts
+and a private read-only target. Core replaces the assistant session's previous
+set, caps it at ten entries, expires it after three subsequent completed turns
+or conversation compaction, and exposes only opaque references to later intent
+interpretation. Follow-up feature execution receives a resolver for the private
+target; neither feature owns session lifetime or exposes provider IDs in its
+human response. Future task lists may use the same contract with their own safe
+projection.
 
 Planned profile, weather, task, and briefing composition does not relax feature
 ownership. A feature that needs personal defaults receives a narrow

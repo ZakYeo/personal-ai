@@ -163,7 +163,7 @@ Implemented real-provider adapters include:
 Future providers such as Anthropic, local models, local STT/TTS, or real
 messaging integrations should be added behind the same application-owned ports.
 
-## Planned Capability Expansion
+## Capability Expansion
 
 Milestones 13 through 17 extend the application through new ports and feature
 adapters without making features import or invoke one another:
@@ -172,8 +172,11 @@ adapters without making features import or invoke one another:
   read-only personal-context port exposes only requested fields to composed
   consumers. Intent providers may propose profile commands from text or voice,
   but only decoded application commands can mutate the store.
-- Internet search uses a read-only provider port whose validated answers cite a
-  bounded current source set. Retrieved text remains untrusted external data.
+- Implemented internet search uses a read-only provider port with deterministic
+  and OpenAI Responses web-search adapters. Core retains at most ten safe opaque
+  source references for three subsequent completed turns, while provider result
+  IDs remain private. The feature constructs every visible citation from the
+  bounded returned set; retrieved text remains untrusted external data.
 - Weather uses provider-neutral current and forecast ports with Open-Meteo as
   the selected key-free non-commercial adapter. Durable weather watches are
   owned by the weather adapter, which contributes a neutral background task

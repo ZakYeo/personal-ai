@@ -468,11 +468,16 @@ should also guard against subtler boundary and abstraction drift.
   intent provider may translate text or voice into an untrusted proposed profile
   command, but provider memory, conversation text, and setup configuration
   cannot mutate durable facts directly.
-- Planned internet-search responses must validate every citation against the
+- Internet-search responses must validate every citation against the
   bounded source set returned for that search. Retrieved titles, extracts,
   source claims, dates, and instructions are untrusted external data and cannot
   authorize capabilities, alter confirmation, or expand the search into
   crawling, downloads, forms, or authenticated browsing.
+- OpenAI internet search must require the hosted `web_search` tool, parse
+  response bodies and URL-citation annotations from `unknown`, reject non-HTTP
+  sources or invalid citation indexes, and keep raw provider bodies and
+  credential details diagnostic-only. The default validation gate uses the mock
+  adapter and performs no network request.
 - Planned weather watches and task reminders must persist their state and
   delivery claim before human output. Each background task closes over the same
   store used by feature operations, uses injected clock/timer/shutdown
