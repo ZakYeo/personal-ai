@@ -8,7 +8,14 @@ import {
   applyTaskListRename,
   createTaskListRecord,
 } from "./task-list-record.js";
-import { applyTaskUpdate, createTaskRecord } from "./task-record.js";
+import {
+  applyTaskReminderAcknowledgement,
+  applyTaskReminderClaim,
+  applyTaskReminderDelivery,
+  applyTaskUpdate,
+  clearTerminalTaskReminder,
+  createTaskRecord,
+} from "./task-record.js";
 import {
   assertTaskCapacity,
   assertTaskListCapacity,
@@ -34,7 +41,26 @@ export function createInMemoryTaskStore(
   const createTaskId =
     options.createTaskId ?? (() => `task-${tasks.length + 1}`);
 
+  function updateStoredTask(
+    id: string,
+    update: (task: TaskRecord) => TaskRecord | undefined,
+  ): Promise<TaskRecord | undefined> {
+    return Promise.resolve().then(() => {
+      const index = tasks.findIndex((task) => task.id === id);
+      const current = tasks[index];
+      if (!current) return;
+      const updated = update(current);
+      if (!updated) return;
+      tasks[index] = updated;
+      return cloneTaskRecord(updated);
+    });
+  }
+
   return {
+    acknowledgeReminder: (request) =>
+      updateStoredTask(request.id, (task) =>
+        applyTaskReminderAcknowledgement(task, request),
+      ),
     addList: (input) =>
       Promise.resolve().then(() => {
         assertTaskListCapacity(lists);
@@ -57,6 +83,10 @@ export function createInMemoryTaskStore(
         tasks.push(task);
         return cloneTaskRecord(task);
       }),
+    claimReminder: (request) =>
+      updateStoredTask(request.id, (task) =>
+        applyTaskReminderClaim(task, request),
+      ),
     clearList: (request) =>
       Promise.resolve().then(() => {
         const list = lists.find((candidate) => candidate.id === request.listId);
@@ -72,8 +102,25 @@ export function createInMemoryTaskStore(
           removed: removed.map(cloneTaskRecord),
         };
       }),
+    clearTerminalRemindersBefore: (request) =>
+      Promise.resolve().then(() => {
+        let cleared = 0;
+        for (let index = 0; index < tasks.length; index += 1) {
+          const current = tasks[index];
+          if (!current) continue;
+          const updated = clearTerminalTaskReminder(current, request);
+          if (!updated) continue;
+          tasks[index] = updated;
+          cleared += 1;
+        }
+        return cleared;
+      }),
     listLists: () => Promise.resolve(lists.map(cloneTaskList)),
     listTasks: () => Promise.resolve(tasks.map(cloneTaskRecord)),
+    markReminderDelivered: (request) =>
+      updateStoredTask(request.id, (task) =>
+        applyTaskReminderDelivery(task, request),
+      ),
     removeTask: (request) =>
       Promise.resolve().then(() => {
         const index = tasks.findIndex((task) => task.id === request.id);
@@ -94,14 +141,6 @@ export function createInMemoryTaskStore(
         return cloneTaskList(renamed);
       }),
     updateTask: (request) =>
-      Promise.resolve().then(() => {
-        const index = tasks.findIndex((task) => task.id === request.id);
-        const current = tasks[index];
-        if (!current) return;
-        const updated = applyTaskUpdate(current, request);
-        if (!updated) return;
-        tasks[index] = updated;
-        return cloneTaskRecord(updated);
-      }),
+      updateStoredTask(request.id, (task) => applyTaskUpdate(task, request)),
   };
 }

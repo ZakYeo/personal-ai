@@ -4,6 +4,10 @@ import {
   normalizeTaskNote,
 } from "../../ports/task-policy.js";
 import type {
+  AcknowledgeTaskReminderRequest,
+  ClaimTaskReminderRequest,
+  ClearTerminalTaskRemindersRequest,
+  DeliverTaskReminderRequest,
   NewTask,
   TaskRecord,
   TaskReminder,
@@ -61,6 +65,105 @@ export function applyTaskUpdate(
   applyOptionalFieldEdits(updated, request);
   applyTaskStatusTransition(updated, task, request);
   applyReminderEdit(updated, task, request);
+  assertValidTaskRecord(updated);
+  return updated;
+}
+
+export function applyTaskReminderClaim(
+  task: TaskRecord,
+  request: ClaimTaskReminderRequest,
+): TaskRecord | undefined {
+  if (
+    task.id !== request.id ||
+    task.revision !== request.expectedRevision ||
+    task.reminder?.status !== "scheduled"
+  ) {
+    return;
+  }
+  if (request.claimedAt < task.reminder.scheduledFor) {
+    throw new Error("A task reminder cannot be claimed before it is due.");
+  }
+  return updateReminder(task, request.claimedAt, {
+    claimedAt: request.claimedAt,
+    scheduledFor: task.reminder.scheduledFor,
+    status: "claimed",
+  });
+}
+
+export function applyTaskReminderDelivery(
+  task: TaskRecord,
+  request: DeliverTaskReminderRequest,
+): TaskRecord | undefined {
+  if (
+    task.id !== request.id ||
+    task.revision !== request.expectedRevision ||
+    task.reminder?.status !== "claimed"
+  ) {
+    return;
+  }
+  return updateReminder(task, request.deliveredAt, {
+    claimedAt: task.reminder.claimedAt,
+    deliveredAt: request.deliveredAt,
+    scheduledFor: task.reminder.scheduledFor,
+    status: "delivered",
+  });
+}
+
+export function applyTaskReminderAcknowledgement(
+  task: TaskRecord,
+  request: AcknowledgeTaskReminderRequest,
+): TaskRecord | undefined {
+  if (
+    task.id !== request.id ||
+    task.revision !== request.expectedRevision ||
+    (task.reminder?.status !== "claimed" &&
+      task.reminder?.status !== "delivered")
+  ) {
+    return;
+  }
+  return updateReminder(task, request.acknowledgedAt, {
+    acknowledgedAt: request.acknowledgedAt,
+    claimedAt: task.reminder.claimedAt,
+    ...(task.reminder.status === "delivered"
+      ? { deliveredAt: task.reminder.deliveredAt }
+      : {}),
+    scheduledFor: task.reminder.scheduledFor,
+    status: "acknowledged",
+  });
+}
+
+export function clearTerminalTaskReminder(
+  task: TaskRecord,
+  request: ClearTerminalTaskRemindersRequest,
+): TaskRecord | undefined {
+  const terminalAt =
+    task.reminder?.status === "acknowledged"
+      ? task.reminder.acknowledgedAt
+      : task.reminder?.status === "cancelled"
+        ? task.reminder.cancelledAt
+        : undefined;
+  if (terminalAt === undefined || terminalAt >= request.cutoff) return;
+  const updated: TaskRecord = {
+    ...task,
+    revision: task.revision + 1,
+    updatedAt: request.updatedAt,
+  };
+  delete updated.reminder;
+  assertValidTaskRecord(updated);
+  return updated;
+}
+
+function updateReminder(
+  task: TaskRecord,
+  updatedAt: string,
+  reminder: TaskReminder,
+): TaskRecord {
+  const updated: TaskRecord = {
+    ...task,
+    reminder,
+    revision: task.revision + 1,
+    updatedAt,
+  };
   assertValidTaskRecord(updated);
   return updated;
 }

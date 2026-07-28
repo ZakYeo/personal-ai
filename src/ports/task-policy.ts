@@ -109,16 +109,20 @@ function hasCanonicalReminderLifecycle(
     case "acknowledged":
       return (
         reminder.claimedAt >= reminder.scheduledFor &&
-        reminder.deliveredAt >= reminder.claimedAt &&
-        reminder.acknowledgedAt >= reminder.deliveredAt &&
+        (reminder.deliveredAt === undefined ||
+          (reminder.deliveredAt >= reminder.claimedAt &&
+            isCanonicalIsoTimestamp(reminder.deliveredAt))) &&
+        reminder.acknowledgedAt >=
+          (reminder.deliveredAt ?? reminder.claimedAt) &&
         reminder.acknowledgedAt <= taskUpdatedAt &&
         isCanonicalIsoTimestamp(reminder.claimedAt) &&
-        isCanonicalIsoTimestamp(reminder.deliveredAt) &&
         isCanonicalIsoTimestamp(reminder.acknowledgedAt) &&
         hasOnlyLifecycleFields(reminder, [
           "acknowledgedAt",
           "claimedAt",
-          "deliveredAt",
+          ...(reminder.deliveredAt === undefined
+            ? []
+            : ["deliveredAt" as const]),
         ])
       );
     case "cancelled":

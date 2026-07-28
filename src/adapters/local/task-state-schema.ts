@@ -175,19 +175,21 @@ function parseReminder(value: unknown): TaskReminder {
       if (
         !isString(value.acknowledgedAt) ||
         !isString(value.claimedAt) ||
-        !isString(value.deliveredAt)
+        (value.deliveredAt !== undefined && !isString(value.deliveredAt))
       ) {
         throw invalidTaskState();
       }
       assertOnlyReminderLifecycleFields(value, [
         "acknowledgedAt",
         "claimedAt",
-        "deliveredAt",
+        ...(value.deliveredAt === undefined ? [] : ["deliveredAt" as const]),
       ]);
       return {
         acknowledgedAt: value.acknowledgedAt,
         claimedAt: value.claimedAt,
-        deliveredAt: value.deliveredAt,
+        ...(value.deliveredAt === undefined
+          ? {}
+          : { deliveredAt: value.deliveredAt }),
         scheduledFor: value.scheduledFor,
         status: "acknowledged",
       };

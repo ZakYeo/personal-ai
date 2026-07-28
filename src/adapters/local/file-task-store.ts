@@ -20,7 +20,14 @@ import {
   applyTaskListRename,
   createTaskListRecord,
 } from "./task-list-record.js";
-import { applyTaskUpdate, createTaskRecord } from "./task-record.js";
+import {
+  applyTaskReminderAcknowledgement,
+  applyTaskReminderClaim,
+  applyTaskReminderDelivery,
+  applyTaskUpdate,
+  clearTerminalTaskReminder,
+  createTaskRecord,
+} from "./task-record.js";
 import {
   assertTaskCapacity,
   assertTaskListCapacity,
@@ -78,6 +85,10 @@ export function createFileTaskStore(options: FileTaskStoreOptions): TaskStore {
   }
 
   return {
+    acknowledgeReminder: (request) =>
+      updateTask(options.filePath, fileSystem, enqueue, request.id, (task) =>
+        applyTaskReminderAcknowledgement(task, request),
+      ),
     addList: (input) =>
       enqueue(async () => {
         const state = await readState(options.filePath, fileSystem);
@@ -110,6 +121,10 @@ export function createFileTaskStore(options: FileTaskStoreOptions): TaskStore {
         );
         return cloneTaskRecord(task);
       }),
+    claimReminder: (request) =>
+      updateTask(options.filePath, fileSystem, enqueue, request.id, (task) =>
+        applyTaskReminderClaim(task, request),
+      ),
     clearList: (request) =>
       enqueue(async () => {
         const state = await readState(options.filePath, fileSystem);
@@ -134,6 +149,21 @@ export function createFileTaskStore(options: FileTaskStoreOptions): TaskStore {
           removed: removed.map(cloneTaskRecord),
         };
       }),
+    clearTerminalRemindersBefore: (request) =>
+      enqueue(async () => {
+        const state = await readState(options.filePath, fileSystem);
+        let cleared = 0;
+        const tasks = state.tasks.map((task) => {
+          const updated = clearTerminalTaskReminder(task, request);
+          if (!updated) return task;
+          cleared += 1;
+          return updated;
+        });
+        if (cleared > 0) {
+          await writeState(options.filePath, { ...state, tasks }, fileSystem);
+        }
+        return cleared;
+      }),
     listLists: () =>
       enqueue(async () => {
         const state = await readState(options.filePath, fileSystem);
@@ -144,6 +174,10 @@ export function createFileTaskStore(options: FileTaskStoreOptions): TaskStore {
         const state = await readState(options.filePath, fileSystem);
         return state.tasks.map(cloneTaskRecord);
       }),
+    markReminderDelivered: (request) =>
+      updateTask(options.filePath, fileSystem, enqueue, request.id, (task) =>
+        applyTaskReminderDelivery(task, request),
+      ),
     removeTask: (request) =>
       enqueue(async () => {
         const state = await readState(options.filePath, fileSystem);

@@ -27,7 +27,7 @@ export type TaskReminder =
   | {
       acknowledgedAt: string;
       claimedAt: string;
-      deliveredAt: string;
+      deliveredAt?: string;
       scheduledFor: string;
       status: "acknowledged";
     }
@@ -87,6 +87,29 @@ export interface ClearTaskListResult {
   removed: TaskRecord[];
 }
 
+export interface ClaimTaskReminderRequest {
+  claimedAt: string;
+  expectedRevision: number;
+  id: string;
+}
+
+export interface DeliverTaskReminderRequest {
+  deliveredAt: string;
+  expectedRevision: number;
+  id: string;
+}
+
+export interface AcknowledgeTaskReminderRequest {
+  acknowledgedAt: string;
+  expectedRevision: number;
+  id: string;
+}
+
+export interface ClearTerminalTaskRemindersRequest {
+  cutoff: string;
+  updatedAt: string;
+}
+
 export interface UpdateTaskRequest {
   changes: {
     dueDate?: null | string;
@@ -101,13 +124,25 @@ export interface UpdateTaskRequest {
 }
 
 export interface TaskStore {
+  acknowledgeReminder(
+    request: AcknowledgeTaskReminderRequest,
+  ): Promise<TaskRecord | undefined>;
   addList(list: NewTaskList): Promise<TaskListRecord>;
   addTask(task: NewTask): Promise<TaskRecord>;
+  claimReminder(
+    request: ClaimTaskReminderRequest,
+  ): Promise<TaskRecord | undefined>;
   clearList(
     request: ClearTaskListRequest,
   ): Promise<ClearTaskListResult | undefined>;
+  clearTerminalRemindersBefore(
+    request: ClearTerminalTaskRemindersRequest,
+  ): Promise<number>;
   listLists(): Promise<TaskListRecord[]>;
   listTasks(): Promise<TaskRecord[]>;
+  markReminderDelivered(
+    request: DeliverTaskReminderRequest,
+  ): Promise<TaskRecord | undefined>;
   removeTask(request: RemoveTaskRequest): Promise<TaskRecord | undefined>;
   renameList(
     request: RenameTaskListRequest,
