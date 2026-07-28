@@ -3,6 +3,7 @@ import {
   expectCapabilityMetadata,
   expectDecodedFeatureExecution,
 } from "../../test-support/feature-contract.js";
+import type { FeatureExecutionContext } from "../../ports/feature.js";
 import { createTestTaskStore } from "../../test-support/task-store.js";
 import { createTaskFeature } from "./task-feature.js";
 
@@ -345,3 +346,200 @@ describe("createTaskFeature task creation capabilities", () => {
     expect(await store.listTasks()).toEqual([]);
   });
 });
+
+describe("createTaskFeature task completion capabilities", () => {
+  it("declares reversible completion operations as low risk", () => {
+    const feature = createTaskFeature(createTestTaskStore());
+    const parameters = {
+      id: { type: "string" },
+      label: { type: "string" },
+      listName: { type: "string" },
+      ordinal: { type: "number" },
+      reference: { type: "string" },
+    } as const;
+
+    expectCapabilityMetadata(feature, {
+      name: "task.complete",
+      parameters,
+      risk: "low",
+    });
+    expectCapabilityMetadata(feature, {
+      name: "task.reopen",
+      parameters,
+      risk: "low",
+    });
+  });
+
+  it("completes the selected opaque task at its pinned revision", async () => {
+    const store = createTestTaskStore();
+    const list = await store.addList({ name: "Shopping" });
+    await store.addTask({ label: "Coffee", listId: list.id });
+    const oatMilk = await store.addTask({
+      label: "Oat milk",
+      listId: list.id,
+    });
+
+    await expectDecodedFeatureExecution(
+      createTaskFeature(store),
+      "task.complete",
+      { ordinal: 2, reference: "task-item-2" },
+      {
+        data: {
+          completedAt: "2026-06-26T09:00:00.000Z",
+          id: oatMilk.id,
+          label: "Oat milk",
+          listId: list.id,
+          listName: "Shopping",
+          revision: 2,
+          status: "completed",
+        },
+        text: "Completed Oat milk on your Shopping list.",
+      },
+      taskReferenceContext({
+        label: "Oat milk",
+        listId: list.id,
+        listName: "Shopping",
+        ordinal: 2,
+        revision: oatMilk.revision,
+        taskId: oatMilk.id,
+      }),
+      "complete the second one",
+    );
+  });
+
+  it("reopens a completed task without reactivating its reminder", async () => {
+    const store = createTestTaskStore();
+    const list = await store.addList({ name: "To-do" });
+    const created = await store.addTask({
+      label: "Submit the form",
+      listId: list.id,
+      reminderAt: "2026-07-29T08:00:00.000Z",
+    });
+    const completed = await store.updateTask({
+      changes: { status: "completed" },
+      expectedRevision: created.revision,
+      id: created.id,
+      updatedAt: "2026-06-26T09:00:00.000Z",
+    });
+
+    await expectDecodedFeatureExecution(
+      createTaskFeature(store),
+      "task.reopen",
+      { id: created.id },
+      {
+        data: {
+          id: created.id,
+          label: "Submit the form",
+          listId: list.id,
+          listName: "To-do",
+          reminderStatus: "cancelled",
+          revision: 3,
+          status: "open",
+        },
+        text: "Reopened Submit the form on your To-do list.",
+      },
+    );
+    expect(completed?.reminder?.status).toBe("cancelled");
+  });
+
+  it("calculates label ambiguity only among eligible tasks", async () => {
+    const store = createTestTaskStore();
+    const list = await store.addList({ name: "Shopping" });
+    const completed = await store.addTask({
+      label: "Coffee",
+      listId: list.id,
+    });
+    await store.updateTask({
+      changes: { status: "completed" },
+      expectedRevision: completed.revision,
+      id: completed.id,
+      updatedAt: "2026-06-26T09:00:00.000Z",
+    });
+    const open = await store.addTask({ label: "Coffee", listId: list.id });
+
+    await expectDecodedFeatureExecution(
+      createTaskFeature(store),
+      "task.complete",
+      { label: "coffee" },
+      {
+        data: {
+          completedAt: "2026-06-26T09:00:00.000Z",
+          id: open.id,
+          label: "Coffee",
+          listId: list.id,
+          listName: "Shopping",
+          revision: 2,
+          status: "completed",
+        },
+        text: "Completed Coffee on your Shopping list.",
+      },
+    );
+  });
+
+  it("does not apply a retained reference after its task revision changes", async () => {
+    const store = createTestTaskStore();
+    const list = await store.addList({ name: "Shopping" });
+    const task = await store.addTask({ label: "Coffee", listId: list.id });
+    await store.updateTask({
+      changes: { label: "Ground coffee" },
+      expectedRevision: task.revision,
+      id: task.id,
+      updatedAt: "2026-06-26T09:00:00.000Z",
+    });
+
+    await expectDecodedFeatureExecution(
+      createTaskFeature(store),
+      "task.complete",
+      { ordinal: 1 },
+      {
+        text: "That task changed after I showed it to you. Please show the list again.",
+      },
+      taskReferenceContext({
+        label: "Coffee",
+        listId: list.id,
+        listName: "Shopping",
+        ordinal: 1,
+        revision: task.revision,
+        taskId: task.id,
+      }),
+      "complete the first one",
+    );
+  });
+});
+
+function taskReferenceContext(input: {
+  label: string;
+  listId: string;
+  listName: string;
+  ordinal: number;
+  revision: number;
+  taskId: string;
+}): FeatureExecutionContext {
+  return {
+    ...createFeatureContext(),
+    selectResultReference: ({ rawText }) =>
+      rawText.includes(input.ordinal === 1 ? "first" : "second")
+        ? {
+            publicReference: {
+              facts: {
+                label: input.label,
+                listName: input.listName,
+                status: "open",
+              },
+              kind: "task_item",
+              ordinal: input.ordinal,
+              reference: `task-item-${input.ordinal}`,
+            },
+            target: {
+              kind: "task_item",
+              listId: input.listId,
+              revision: input.revision,
+              taskId: input.taskId,
+            },
+          }
+        : undefined,
+    trustedInputText: `complete the ${
+      input.ordinal === 1 ? "first" : "second"
+    } one`,
+  };
+}

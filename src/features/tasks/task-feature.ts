@@ -51,9 +51,28 @@ const remindTaskParameters = {
 } as const satisfies FeatureCapabilityParameters;
 type RemindTaskArgs = FeatureArgsFromParameters<typeof remindTaskParameters>;
 
+const taskTargetParameters = {
+  id: { type: "string" },
+  label: { type: "string" },
+  listName: { type: "string" },
+  ordinal: { type: "number" },
+  reference: { type: "string" },
+} as const satisfies FeatureCapabilityParameters;
+type TaskTargetArgs = FeatureArgsFromParameters<typeof taskTargetParameters>;
+
 export function createTaskFeature(store: TaskStore) {
   return defineFeature({
     capabilities: {
+      "task.complete": defineCapability({
+        description:
+          "Complete one eligible open task by exact ID, label, list, or retained task reference.",
+        execute: (request, context) =>
+          changeTaskStatus(store, request.args, context, "completed"),
+        parameters: taskTargetParameters,
+        risk: "low",
+        spokenSummary: "complete personal tasks",
+        summary: "Complete one open task.",
+      }),
       "task.create": defineCapability({
         description:
           "Add one task with an optional note and due date to an exact named personal list.",
@@ -100,10 +119,175 @@ export function createTaskFeature(store: TaskStore) {
         spokenSummary: "create task reminders",
         summary: "Add a task with an exact reminder.",
       }),
+      "task.reopen": defineCapability({
+        description:
+          "Reopen one eligible completed task without reactivating any cancelled reminder.",
+        execute: (request, context) =>
+          changeTaskStatus(store, request.args, context, "open"),
+        parameters: taskTargetParameters,
+        risk: "low",
+        spokenSummary: "reopen personal tasks",
+        summary: "Reopen one completed task.",
+      }),
     },
     displayName: "Lists and Tasks",
     id: "tasks",
   });
+}
+
+async function changeTaskStatus(
+  store: TaskStore,
+  args: TaskTargetArgs,
+  context: FeatureExecutionContext,
+  status: TaskRecord["status"],
+): Promise<FeatureResult> {
+  const selection = await selectEligibleTask(
+    store,
+    args,
+    context,
+    status === "completed" ? "open" : "completed",
+  );
+  if ("result" in selection) return selection.result;
+  const updated = await store.updateTask({
+    changes: { status },
+    expectedRevision: selection.task.revision,
+    id: selection.task.id,
+    updatedAt: context.clock.now().toISOString(),
+  });
+  if (!updated) {
+    return {
+      text: `${selection.task.label} changed before I could update it.`,
+    };
+  }
+  return taskStatusResult(selection.list, updated);
+}
+
+type TaskSelection =
+  | { list: TaskListRecord; task: TaskRecord }
+  | { result: FeatureResult };
+
+async function selectEligibleTask(
+  store: TaskStore,
+  args: TaskTargetArgs,
+  context: FeatureExecutionContext,
+  eligibleStatus: TaskRecord["status"],
+): Promise<TaskSelection> {
+  const [lists, tasks] = await Promise.all([
+    store.listLists(),
+    store.listTasks(),
+  ]);
+  const referenced = selectReferencedTask(args, context);
+  if (referenced) {
+    const task = tasks.find((candidate) => candidate.id === referenced.taskId);
+    if (
+      !task ||
+      task.listId !== referenced.listId ||
+      task.revision !== referenced.revision
+    ) {
+      return {
+        result: {
+          text: "That task changed after I showed it to you. Please show the list again.",
+        },
+      };
+    }
+    const list = lists.find((candidate) => candidate.id === task.listId);
+    if (!list || task.status !== eligibleStatus) {
+      return { result: ineligibleTaskResult(eligibleStatus) };
+    }
+    return { list, task };
+  }
+
+  const requestedList = args.listName
+    ? selectList(lists, normalizeTaskListName(args.listName))
+    : undefined;
+  if (args.listName && !requestedList) {
+    return {
+      result: {
+        text: `I could not find a list named ${normalizeTaskListName(
+          args.listName,
+        )}.`,
+      },
+    };
+  }
+  const label = args.label
+    ? normalizeTaskLabel(args.label).toLocaleLowerCase("en")
+    : undefined;
+  const eligible = tasks.filter(
+    (task) =>
+      task.status === eligibleStatus &&
+      (args.id === undefined || task.id === args.id) &&
+      (requestedList === undefined || task.listId === requestedList.id) &&
+      (label === undefined || task.label.toLocaleLowerCase("en") === label),
+  );
+  if (eligible.length !== 1) {
+    return {
+      result:
+        eligible.length === 0
+          ? ineligibleTaskResult(eligibleStatus)
+          : {
+              expectsFollowUp: true,
+              text: "More than one eligible task matches. Please name its list or show the list and choose an item.",
+            },
+    };
+  }
+  const task = eligible[0]!;
+  const list = lists.find((candidate) => candidate.id === task.listId);
+  if (!list) throw new Error("Task state refers to an unknown list.");
+  return { list, task };
+}
+
+function selectReferencedTask(
+  args: TaskTargetArgs,
+  context: FeatureExecutionContext,
+) {
+  if (
+    args.ordinal === undefined &&
+    args.reference === undefined &&
+    (args.id !== undefined ||
+      args.label !== undefined ||
+      args.listName !== undefined)
+  ) {
+    return;
+  }
+  const selected = context.selectResultReference?.({
+    ...(args.ordinal === undefined ? {} : { ordinal: args.ordinal }),
+    rawText: context.trustedInputText ?? "",
+    ...(args.reference === undefined ? {} : { reference: args.reference }),
+  });
+  return selected?.target?.kind === "task_item" ? selected.target : undefined;
+}
+
+function ineligibleTaskResult(
+  eligibleStatus: TaskRecord["status"],
+): FeatureResult {
+  return {
+    text:
+      eligibleStatus === "open"
+        ? "I could not find one matching open task to complete."
+        : "I could not find one matching completed task to reopen.",
+  };
+}
+
+function taskStatusResult(
+  list: TaskListRecord,
+  task: TaskRecord,
+): FeatureResult {
+  return {
+    data: {
+      ...(task.completedAt ? { completedAt: task.completedAt } : {}),
+      id: task.id,
+      label: task.label,
+      listId: list.id,
+      listName: list.name,
+      ...(task.reminder ? { reminderStatus: task.reminder.status } : {}),
+      revision: task.revision,
+      status: task.status,
+    },
+    text:
+      task.status === "completed"
+        ? `Completed ${task.label} on your ${list.name} list.`
+        : `Reopened ${task.label} on your ${list.name} list.`,
+  };
 }
 
 async function createTask(
