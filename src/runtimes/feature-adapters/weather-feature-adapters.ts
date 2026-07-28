@@ -1,5 +1,6 @@
 import { createMockWeatherProvider } from "../../adapters/mock/mock-weather.js";
 import { createOpenMeteoWeatherProvider } from "../../adapters/open-meteo/open-meteo-weather.js";
+import { createInMemoryWeatherWatchStore } from "../../adapters/local/in-memory-weather-watch-store.js";
 import { createWeatherFeature } from "../../features/weather/weather-feature.js";
 import {
   defineFeatureAdapterEntry,
@@ -16,8 +17,13 @@ export function createWeatherFeatureRegistryEntry(): FeatureRegistryEntry {
   return {
     adapters: {
       mock: defineFeatureAdapterEntry<WeatherFeatureConfig>({
-        create: ({ adapterConfig }) =>
-          createWeatherFeature(createMockWeatherProvider(), adapterConfig),
+        create: ({ adapterConfig, dependencies }) =>
+          createWeatherFeature(createMockWeatherProvider(), {
+            ...adapterConfig,
+            watchStore: createInMemoryWeatherWatchStore({
+              now: () => dependencies.clock.now(),
+            }),
+          }),
         parseConfig: parseWeatherFeatureConfig,
       }),
       openMeteo: defineFeatureAdapterEntry<WeatherOpenMeteoAdapterConfig>({
@@ -28,7 +34,12 @@ export function createWeatherFeatureRegistryEntry(): FeatureRegistryEntry {
               fetch: dependencies.fetch,
               now: () => dependencies.clock.now(),
             }),
-            adapterConfig,
+            {
+              ...adapterConfig,
+              watchStore: createInMemoryWeatherWatchStore({
+                now: () => dependencies.clock.now(),
+              }),
+            },
           ),
         parseConfig: parseWeatherOpenMeteoAdapterConfig,
       }),

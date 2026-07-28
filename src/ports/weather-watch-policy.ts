@@ -17,6 +17,14 @@ export function assertValidNewWeatherWatch(watch: NewWeatherWatch): void {
   }
 }
 
+export function assertValidWeatherWatchCondition(
+  condition: WeatherWatchCondition,
+): void {
+  if (!isValidCondition(condition)) {
+    throw new Error("Weather watch condition is invalid.");
+  }
+}
+
 export function assertValidWeatherWatchRecord(watch: WeatherWatchRecord): void {
   assertValidNewWeatherWatch(watch);
   if (

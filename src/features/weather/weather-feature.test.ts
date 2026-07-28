@@ -4,6 +4,7 @@ import {
   expectCapabilityMetadata,
 } from "../../test-support/feature-contract.js";
 import { createWeatherProviderFixture } from "../../test-support/weather.js";
+import { createWeatherWatchStoreFixture } from "../../test-support/weather-watch-store.js";
 import { createWeatherFeature } from "./weather-feature.js";
 
 const now = new Date("2026-07-28T12:00:00.000Z");
@@ -14,7 +15,7 @@ const context = {
 
 describe("createWeatherFeature", () => {
   it("declares low-risk current and forecast capabilities", () => {
-    const feature = createWeatherFeature(createWeatherProviderFixture());
+    const feature = createTestWeatherFeature();
 
     expectCapabilityMetadata(feature, {
       name: "weather.current",
@@ -42,7 +43,7 @@ describe("createWeatherFeature", () => {
   it("clarifies rather than inferring a missing location", async () => {
     await expect(
       executeFeature(
-        createWeatherFeature(createWeatherProviderFixture()),
+        createTestWeatherFeature(),
         "weather.current",
         {},
         context,
@@ -55,7 +56,7 @@ describe("createWeatherFeature", () => {
 
   it("returns current conditions with exact protected provider facts", async () => {
     const result = await executeFeature(
-      createWeatherFeature(createWeatherProviderFixture()),
+      createTestWeatherFeature(),
       "weather.current",
       { location: "London" },
       context,
@@ -90,7 +91,7 @@ describe("createWeatherFeature", () => {
 
   it("returns an exact bounded forecast period and hourly/daily facts", async () => {
     const result = await executeFeature(
-      createWeatherFeature(createWeatherProviderFixture()),
+      createTestWeatherFeature(),
       "weather.forecast",
       {
         endAt: "2026-07-29T12:00:00.000Z",
@@ -147,7 +148,7 @@ describe("createWeatherFeature", () => {
 
     await expect(
       executeFeature(
-        createWeatherFeature(ambiguousProvider),
+        createTestWeatherFeature(ambiguousProvider),
         "weather.current",
         { location: "London" },
         context,
@@ -159,7 +160,7 @@ describe("createWeatherFeature", () => {
 
     await expect(
       executeFeature(
-        createWeatherFeature(createWeatherProviderFixture()),
+        createTestWeatherFeature(),
         "weather.current",
         { location: "Nowhere" },
         context,
@@ -175,7 +176,7 @@ describe("createWeatherFeature", () => {
     };
     await expect(
       executeFeature(
-        createWeatherFeature(createWeatherProviderFixture(), {
+        createTestWeatherFeature(createWeatherProviderFixture(), {
           maxForecastAgeMinutes: 360,
         }),
         "weather.current",
@@ -192,3 +193,13 @@ describe("createWeatherFeature", () => {
     });
   });
 });
+
+function createTestWeatherFeature(
+  provider = createWeatherProviderFixture(),
+  options: { maxForecastAgeMinutes?: number } = {},
+) {
+  return createWeatherFeature(provider, {
+    ...options,
+    watchStore: createWeatherWatchStoreFixture({ now: () => now }),
+  });
+}

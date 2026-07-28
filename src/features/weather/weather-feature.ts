@@ -10,6 +10,7 @@ import {
   type FeatureExecutionContext,
 } from "../../ports/feature.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";
+import type { WeatherWatchStore } from "../../ports/weather-watch-store.js";
 import {
   currentWeatherResult,
   forecastWeatherResult,
@@ -19,9 +20,13 @@ import {
   createForecastWeatherPeriod,
   metricWeatherUnits,
   validateWeatherForecast,
-  validateWeatherLocations,
   weatherForecastIsStale,
 } from "./weather-validation.js";
+import { resolveWeatherLocation } from "./weather-location-resolution.js";
+import {
+  createWeatherWatchCapabilities,
+  weatherWatchDeterministicRules,
+} from "./weather-watch-capabilities.js";
 
 const currentParameters = {
   location: { type: "string" },
@@ -43,9 +48,8 @@ type ForecastArgs = FeatureArgsFromParameters<typeof forecastParameters>;
 
 interface WeatherFeatureOptions {
   maxForecastAgeMinutes?: number;
+  watchStore: WeatherWatchStore;
 }
-
-const maxLocationCharacters = 200;
 
 const deterministicRules = [
   {
@@ -71,9 +75,13 @@ const deterministicRules = [
 
 export function createWeatherFeature(
   provider: WeatherProviderPort,
-  options: WeatherFeatureOptions = {},
+  options: WeatherFeatureOptions,
 ) {
   const maxForecastAgeMs = (options.maxForecastAgeMinutes ?? 360) * 60_000;
+  const watchCapabilities = createWeatherWatchCapabilities(
+    provider,
+    options.watchStore,
+  );
 
   return defineDeterministicFeatureRules(
     defineFeature({
@@ -110,11 +118,12 @@ export function createWeatherFeature(
           spokenSummary: "check a forecast for a location",
           summary: "Check a bounded forecast for an explicit location.",
         }),
+        ...watchCapabilities,
       },
       displayName: "Weather",
       id: "weather",
     }),
-    deterministicRules,
+    [...deterministicRules, ...weatherWatchDeterministicRules],
   );
 }
 
@@ -125,40 +134,13 @@ async function executeWeatherRequest(
   maxForecastAgeMs: number,
   mode: "current" | "forecast",
 ) {
-  const place = args.location?.trim();
-  if (!place) {
-    return {
-      expectsFollowUp: true,
-      text: "Which location should I check?",
-    };
-  }
-  if (place.length > maxLocationCharacters) {
-    throw new Error(
-      `Weather locations must not exceed ${maxLocationCharacters} characters.`,
-    );
-  }
-
-  const locations = await provider.findLocations(
-    { place },
-    context.signal ? { signal: context.signal } : {},
+  const resolution = await resolveWeatherLocation(
+    provider,
+    args.location,
+    context,
   );
-  validateWeatherLocations(locations);
-  if (locations.length === 0) {
-    return {
-      expectsFollowUp: true,
-      text: `I could not find a weather location for "${place}". Which location should I use?`,
-    };
-  }
-  if (locations.length > 1) {
-    return {
-      expectsFollowUp: true,
-      text: `I found multiple locations for ${place}: ${locations
-        .map((location) => `${location.name} (${location.countryCode})`)
-        .join(", ")}. Which one did you mean?`,
-    };
-  }
-
-  const location = locations[0]!;
+  if ("result" in resolution) return resolution.result;
+  const { location } = resolution;
   const period =
     mode === "current"
       ? createCurrentWeatherPeriod(context.clock.now())
