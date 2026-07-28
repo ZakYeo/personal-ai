@@ -39,9 +39,9 @@ calendar-result-driven alarm creation.
 ## Implemented Milestone Archive
 
 Detailed acceptance criteria and outcomes for Milestones 1 through 12.1 are kept
-in `docs/09-implemented-milestones.md`. The earlier proposed roadmap after
-Milestone 12.1 has been retired so the next product direction can be selected
-from current user needs rather than inherited provider work.
+in `docs/09-implemented-milestones.md`. The earlier provider-focused roadmap
+after Milestone 12.1 was retired and replaced by capability-focused Milestones
+13 through 17, selected from current user needs.
 
 ## Spike 9: Future Milestone Discovery
 
@@ -109,8 +109,8 @@ Outcome:
   deferred because another credential, billed network adapter, and off-device
   data path add no immediate user outcome.
 - The unimplemented provider-focused roadmap that originally followed
-  Milestone 12.1 was retired on 2026-07-28 pending a new capability-focused
-  product plan.
+  Milestone 12.1 was retired on 2026-07-28 and replaced by the active
+  capability-focused product plan.
 
 ## Milestone 10: Compound Command Plans
 
@@ -256,6 +256,301 @@ Acceptance criteria:
   word, applies deterministic timezone/DST policy, and then confirms normally.
 - Existing single commands, compound plans, conversation, follow-ups, and
   runtime failure boundaries remain compatible, and `npm run check` passes.
+
+## Milestone 13: Explicit Personal Profile and Preferences
+
+Status: planned.
+
+Goal: give the assistant durable, user-controlled personal context so enabled
+features can produce relevant answers without retaining conversation transcripts
+or silently inferring sensitive facts.
+
+Included:
+
+- Typed profile facts for an initial bounded set of preferences such as home
+  location, preferred units, working hours, interests, important people,
+  dietary preferences, and response style.
+- Explicit remember, show, update, and forget capabilities with provenance and
+  created/updated timestamps.
+- One local versioned profile store with deterministic in-memory and durable
+  file adapters, atomic persistence, restrictive permissions, and migration
+  validation from `unknown`.
+- A narrow read-only personal-context port through which later feature adapters
+  request only the fields they need.
+- Human-facing explanations of what is stored, why it is known, and how to
+  correct or delete it.
+
+Excluded:
+
+- Automatic extraction from normal conversation, inferred sensitive traits,
+  conversation transcript retention, embeddings, cloud synchronization, or a
+  general long-term-memory system.
+- Unbounded custom schemas or injecting the entire profile into every provider
+  request.
+
+Thin slices:
+
+1. Define the typed fact categories, provenance, timestamps, validation, and
+   feature contract with deterministic fixtures.
+2. Add an in-memory store and profile show/remember/update/forget behavior,
+   including ambiguity and confirmation policy.
+3. Add the versioned file adapter with atomic replacement, restrictive modes,
+   config-directory-relative paths, and malformed-state coverage.
+4. Add the narrow personal-context reader and prove that consumers receive only
+   explicitly requested fields.
+5. Compose the profile through text and voice runtimes, add privacy-focused
+   integration tests, update operator documentation, and complete the required
+   independent maintainability review.
+
+Acceptance criteria:
+
+- “Remember that I work from home on Fridays” persists an explicit typed fact
+  and “why do you know that?” reports its user-authored provenance.
+- The user can list, correct, forget, or clear stored facts; clearing the whole
+  profile requires confirmation and resumes the exact validated deletion.
+- Restart preserves validated profile state, while malformed or unsupported
+  versions fail safely without exposing raw persisted data.
+- No profile fact reaches an unrelated provider or feature dependency, and
+  normal conversation does not create memory implicitly.
+- `npm run check` passes.
+
+## Milestone 14: Internet Search with Source-Grounded Answers
+
+Status: planned; depends on Milestone 13 only for personalized defaults, not for
+basic search.
+
+Goal: answer questions about current public information through bounded,
+read-only internet search with verifiable sources.
+
+Included:
+
+- A provider-neutral search port and explicit adapter selection with one
+  deterministic adapter and one opt-in real provider.
+- Bounded queries and results containing validated titles, source URLs,
+  extracts, publication times when available, and opaque result references.
+- Concise answers whose citations resolve only to sources returned for the
+  current search.
+- Read-only follow-ups against the latest bounded result set and opt-in use of
+  relevant profile preferences such as home location or interests.
+- Timeout, cancellation, rate-limit, malformed-response, and diagnostic-safe
+  runtime behavior.
+- A strict untrusted-content boundary: search text can supply facts but can
+  never supply commands, permissions, confirmation decisions, or instructions
+  to the assistant.
+
+Excluded:
+
+- Arbitrary web crawling, authenticated browsing, form submission, file
+  downloads, purchases, bypassing paywalls, or executing page content.
+- Treating provider-generated summaries, ranking, publication dates, or source
+  claims as trusted application instructions.
+
+Thin slices:
+
+1. Define validated search result, citation, and provider contracts plus
+   deterministic search scenarios.
+2. Add the search feature, bounded result references, exact citation integrity,
+   and concise text/voice rendering.
+3. Add the selected real adapter with typed config, credential preflight,
+   transport limits, response parsing from `unknown`, and adapter contracts.
+4. Add follow-ups, optional narrow profile context, prompt-injection fixtures,
+   and source-expiry behavior.
+5. Prove CLI, desktop voice, and Pi service composition with an opt-in live
+   smoke, operator documentation, and the required independent maintainability
+   review.
+
+Acceptance criteria:
+
+- A current-information question produces a bounded answer with citations that
+  identify the exact returned sources; fabricated or mismatched citations fail
+  safely.
+- Search results and page-like content cannot request another capability or
+  change confirmation policy.
+- Follow-ups resolve only against the current assistant instance's unexpired
+  result set and never expose provider-private identifiers.
+- Search timeouts and provider failures return a graceful response with internal
+  diagnostics, and default validation makes no network call.
+- `npm run check` passes.
+
+## Milestone 15: Weather, Forecasts, and Weather Watches
+
+Status: planned; depends on Milestone 13.
+
+Goal: provide location-aware current weather and forecasts, then proactively
+notify the user when explicitly requested forecast conditions are detected.
+
+Included:
+
+- Provider-neutral current, hourly, and daily forecast ports with one
+  deterministic adapter and one opt-in real provider.
+- Explicit locations plus a home-location default read narrowly from the
+  personal profile; questions clarify when no usable location exists.
+- Exact observation/forecast timestamps, timezone, units, temperatures,
+  precipitation, wind, and provider freshness metadata in protected result data.
+- Durable, user-created watches for bounded conditions such as forecast rain,
+  temperature, or wind within a specified period.
+- A feature-owned neutral background task that evaluates watches through the
+  same store and provider instance used by the weather feature and delivers
+  notifications through the shared runtime output path.
+
+Excluded:
+
+- Claiming to be an emergency-warning service, inferring precise location,
+  continuous device tracking, climate analysis, or autonomous schedule changes.
+- Silent creation of watches from ordinary weather questions.
+
+Thin slices:
+
+1. Define typed locations, units, forecast periods, freshness, and deterministic
+   weather contracts.
+2. Implement current and forecast capabilities with explicit-location
+   clarification and narrow profile-default resolution.
+3. Add the selected real adapter with config parsing, transport contracts,
+   malformed-data rejection, and opt-in live read smoke.
+4. Add versioned weather-watch persistence, validation, list/cancel behavior,
+   and exact confirmation where a configured policy requires it.
+5. Add deterministic background evaluation, deduplicated delivery, restart and
+   shutdown coverage, text/voice integration, operator documentation, and the
+   required independent maintainability review.
+
+Acceptance criteria:
+
+- “Will I need a coat at home tomorrow morning?” uses only an explicitly stored
+  home location, reports the forecast period and freshness, and preserves exact
+  provider facts internally.
+- An explicit weather watch survives restart, evaluates on an injected clock,
+  and notifies at most once for the same qualifying forecast window.
+- Stale, unavailable, malformed, or ambiguous forecasts are identified rather
+  than presented as current facts.
+- The assistant states that watches are convenience notifications rather than
+  guaranteed emergency alerts.
+- `npm run check` passes.
+
+## Milestone 16: Personal Lists, Tasks, and Reminders
+
+Status: planned; depends on Milestone 13 for personalized defaults only.
+
+Goal: add durable everyday organization with lists, completable tasks, and
+scheduled reminder delivery that remains distinct from alarm lifecycle state.
+
+Included:
+
+- Named lists such as shopping and to-do, with add, show, rename, complete,
+  reopen, edit, and remove operations.
+- Tasks with labels, optional notes, due dates, completion state, and one
+  optional reminder instant.
+- Versioned local persistence parsed from `unknown`, deterministic migration,
+  revision-checked updates, atomic file replacement, and restrictive modes.
+- Bounded opaque references for follow-ups such as “complete the second one.”
+- A runtime-owned reminder task using the exact composed task store, injected
+  clock/timer/shutdown dependencies, durable delivery claims, restart recovery,
+  and shared voice output coordination.
+
+Excluded:
+
+- Shared or collaborative lists, attachments, project-management workflows,
+  automatic prioritization, recurring tasks, location-triggered reminders, or
+  external task-provider synchronization.
+- Treating reminder delivery as task completion or reusing alarm records as task
+  state.
+
+Thin slices:
+
+1. Define canonical list/task/reminder state, revision rules, capabilities, and
+   layered test-support fixtures.
+2. Implement in-memory list and task operations with decoded arguments,
+   confirmation policy, ambiguity handling, and result references.
+3. Add the versioned file store with migration, cloning, serialization, atomic
+   durability, and relative-path composition coverage.
+4. Add reminder claiming, delivery, recovery, acknowledgement, and cleanup
+   through a neutral background task.
+5. Prove compound plans, text/voice/service behavior, safe partial failures,
+   documentation, and the required independent maintainability review.
+
+Acceptance criteria:
+
+- Lists and tasks survive restart and revision-checked operations cannot
+  silently overwrite newer state.
+- “Remind me tomorrow at 9 to submit the form” creates one task and one exact
+  reminder instant; delivery does not silently mark the task complete.
+- Follow-ups resolve only eligible items, and destructive bulk clearing requires
+  confirmation with the exact affected list.
+- Reminder persistence completes before success, delivery is deduplicated across
+  restart windows, and failures preserve diagnostics without losing the task.
+- `npm run check` passes.
+
+## Milestone 17: Daily Briefings and Scheduled Delivery
+
+Status: planned; depends on Milestones 13 through 16.
+
+Goal: combine the user's personal context and enabled read capabilities into a
+concise on-demand or scheduled daily briefing.
+
+Included:
+
+- An on-demand “what does my day look like?” capability covering configured
+  sections from profile preferences, calendar, weather, alarms, and tasks.
+- Optional bounded internet-search topics selected explicitly by the user, such
+  as a small news or interest section.
+- An application-owned briefing aggregator that calls fixed narrow read ports;
+  it does not invoke feature plugins, ask an intent provider to choose tools, or
+  widen the two-read provider workflow.
+- Configurable morning schedule, timezone, sections, spoken length, and
+  quiet-hours behavior.
+- Durable per-schedule delivery slots, restart-safe deduplication, isolated
+  source failures, and delivery through the shared output coordinator.
+
+Excluded:
+
+- Autonomous actions based on briefing content, provider-selected arbitrary
+  sources, open-ended agent planning, advertising, continuous surveillance, or
+  guaranteed emergency notification.
+- Treating a failed optional section as failure of every other briefing section.
+
+Thin slices:
+
+1. Define typed briefing sections, safe source projections, ordering, length,
+   and deterministic aggregation contracts.
+2. Implement on-demand briefings from fixed mock/profile/calendar/weather/task
+   sources with exact protected facts and partial-failure metadata.
+3. Add user-owned schedule and section preferences with quiet-hours and
+   timezone validation.
+4. Add durable scheduled-delivery slots, restart deduplication, shutdown, and
+   shared voice-output coverage.
+5. Add optional bounded search topics, text/voice/Pi integration, operator
+   documentation, and the required independent maintainability review.
+
+Acceptance criteria:
+
+- An on-demand briefing concisely combines only enabled, user-selected sections
+  and identifies unavailable sections without exposing diagnostics.
+- Scheduled delivery occurs at most once per local briefing slot across restart
+  and respects the configured timezone and quiet hours.
+- Briefing aggregation is fixed and application-owned; source content cannot
+  add tools, actions, or new sections.
+- Exact calendar, weather, alarm, and task facts remain protected through final
+  response rewriting.
+- `npm run check` passes.
+
+## Future Considerations
+
+These ideas are intentionally unnumbered and are not committed milestones.
+Promoting one into the active roadmap requires fresh product scope, dependency
+and provider evidence, safety policy, thin slices, and measurable acceptance
+criteria.
+
+- **Home Assistant smart-home control:** read allowlisted device state first,
+  then add confirmed controls with device-class-specific risk policy. Locks,
+  doors, security systems, and safety-critical climate controls must fail
+  closed.
+- **Personal knowledge library:** explicitly import selected local documents,
+  notes, manuals, and bookmarks for source-cited retrieval without automatically
+  crawling the filesystem or exposing raw private content to unrelated
+  providers.
+- **Opt-in adaptive memory:** suggest preferences from repeated interactions but
+  retain nothing inferred until the user approves it. Any future design must
+  distinguish temporary context from durable facts and support provenance,
+  explanation, correction, export, expiry, and deletion.
 
 ## Roadmap Rule
 

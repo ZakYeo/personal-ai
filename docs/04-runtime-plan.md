@@ -445,6 +445,17 @@ serialized store. Failures request orderly service shutdown through the shared
 background-task boundary.
 Retention is contributed even when notification delivery is unavailable; alarm
 delivery scheduling remains conditional on a configured notification output.
+
+Planned weather watches and task reminders follow the same neutral contribution
+shape without sharing feature state: each selected adapter closes over its exact
+store and required provider, while the service runtime supplies only live
+clock, timer, shutdown, diagnostics, and notification output. Planned daily
+briefings contribute a separate scheduled task with durable local delivery
+slots so restart cannot repeat the same local-day briefing. On-demand briefings
+use the same fixed application-owned source aggregator as scheduled delivery.
+No planned background task may ask an intent provider to choose additional
+tools or actions.
+
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
 writing state, resumes the validated command after an explicit yes, asserts the

@@ -1114,5 +1114,6 @@ inventing values for them. Raspberry Pi
 measurements were explicitly deferred because hardware was unavailable. The
 result prevented registration of an unfit production adapter; the proposed
 follow-on milestones were later retired with the rest of the unimplemented
-roadmap after Milestone 12.1. Raw measurements and the reproducible report live
-under `benchmarks/voice/results/`.
+provider-focused roadmap after Milestone 12.1 and replaced by capability-focused
+work. Raw measurements and the reproducible report live under
+`benchmarks/voice/results/`.

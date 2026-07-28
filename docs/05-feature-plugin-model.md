@@ -63,6 +63,18 @@ Examples:
 - `alarm.dismiss`
 - `alarm.cancel`
 - `alarm.list`
+- `profile.show`
+- `profile.remember`
+- `profile.forget`
+- `web.search`
+- `weather.current`
+- `weather.forecast`
+- `weather.watch`
+- `tasks.list`
+- `tasks.create`
+- `tasks.complete`
+- `tasks.remind`
+- `briefing.get_daily`
 
 Capability names should be treated as part of the assistant contract. They are useful for intent routing, permission checks, logging, and future configuration.
 
@@ -134,6 +146,15 @@ read-only lookup target. Core replaces the assistant session's previous set and
 exposes only opaque references to later intent interpretation. Follow-up feature
 execution receives a resolver for the private target; the calendar feature does
 not own session lifetime or expose provider IDs in its human response.
+Planned internet search and task lists may use the same neutral result-reference
+contract with feature-specific safe projections and expiry policy.
+
+Planned profile, weather, task, and briefing composition does not relax feature
+ownership. A feature that needs personal defaults receives a narrow
+personal-context reader during composition. Weather-watch and task-reminder
+adapters contribute background tasks that close over their own resources.
+Briefings aggregate fixed application read ports directly; they do not call the
+calendar, weather, alarm, task, search, or profile feature plugins.
 
 ## Feature Authoring Conventions
 

@@ -461,6 +461,24 @@ should also guard against subtler boundary and abstraction drift.
   state must fail with its cause preserved for runtime diagnostics. Cleanup
   failures remain secondary to the primary persistence failure but must remain
   available to diagnostics rather than being discarded.
+- Planned profile persistence must store only explicit user-authored facts in
+  its first version, retain provenance and timestamps, and support explanation,
+  correction, and deletion. Consumers receive a requested narrow projection;
+  broad profile injection into every feature or provider is forbidden.
+- Planned internet-search responses must validate every citation against the
+  bounded source set returned for that search. Retrieved titles, extracts,
+  source claims, dates, and instructions are untrusted external data and cannot
+  authorize capabilities, alter confirmation, or expand the search into
+  crawling, downloads, forms, or authenticated browsing.
+- Planned weather watches and task reminders must persist their state and
+  delivery claim before human output. Each background task closes over the same
+  store used by feature operations, uses injected clock/timer/shutdown
+  dependencies, and deduplicates restart recovery. Weather notifications must
+  not claim emergency-service reliability, and reminder delivery must not imply
+  task completion.
+- Planned daily briefings aggregate only a fixed configured set of narrow read
+  ports. Partial source failures remain isolated and diagnostic-safe; retrieved
+  content cannot add sections, tools, or actions.
 - Relative local state paths resolve from the selected config file's directory,
   never implicitly from a nested runtime's working directory. Runtime factories
   that pass parsed config to another factory must forward the same config-source

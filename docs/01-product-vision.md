@@ -55,10 +55,13 @@ The assistant should support natural voice commands such as:
 ## Near-Term Direction
 
 Compound plans, calendar result follow-ups, and bounded calendar-to-alarm
-workflows are implemented. The earlier provider-focused roadmap after Milestone
-12.1 has been retired. The next roadmap should prioritize new everyday
-capabilities and a more personalized assistant experience while preserving the
-existing validation, confirmation, privacy, and runtime-boundary guarantees.
+workflows are implemented. Milestones 13 through 17 now prioritize an explicit
+personal profile, source-grounded internet search, weather and forecast
+watches, durable lists/tasks/reminders, and proactive daily briefings. The goal
+is a more personalized everyday assistant while preserving the existing
+validation, confirmation, privacy, and runtime-boundary guarantees. Smart-home
+control, a personal knowledge library, and adaptive memory remain uncommitted
+future considerations.
 
 ## Documentation Maintenance
 

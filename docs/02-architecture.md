@@ -163,6 +163,32 @@ Implemented real-provider adapters include:
 Future providers such as Anthropic, local models, local STT/TTS, or real
 messaging integrations should be added behind the same application-owned ports.
 
+## Planned Capability Expansion
+
+Milestones 13 through 17 extend the application through new ports and feature
+adapters without making features import or invoke one another:
+
+- A profile store port owns explicit user-authored facts and a separate narrow
+  read-only personal-context port exposes only requested fields to composed
+  consumers.
+- Internet search uses a read-only provider port whose validated answers cite a
+  bounded current source set. Retrieved text remains untrusted external data.
+- Weather uses provider-neutral current and forecast ports. Durable weather
+  watches are owned by the weather adapter, which contributes a neutral
+  background task closing over the same watch store and provider instance.
+- Lists and tasks use their own revision-checked store. Reminder delivery closes
+  over that exact store and remains separate from alarm state even when both use
+  the neutral notification and output-coordination boundaries.
+- Daily briefings use an application-owned aggregator over fixed narrow read
+  ports for configured sources. The aggregator does not call feature plugins or
+  delegate source selection to an intent provider.
+
+Profile, search-result, weather-result, task-result, and briefing contracts
+remain application-owned. Provider credentials, transport, persistence paths,
+and selected adapter configuration remain adapter/runtime concerns. Smart-home
+control, a personal knowledge library, and adaptive memory are intentionally
+uncommitted until later discovery defines their boundaries.
+
 ## Compound Command Boundary
 
 Compound commands use two explicit application-owned stages. Intent providers return

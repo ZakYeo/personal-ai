@@ -103,8 +103,11 @@ Current roadmap position:
   application-owned all-day clarification, and typed
   calendar-event-to-alarm snapshot binding. The
   [discovery report](docs/08-spike-9-report.md) records the evidence behind that
-  completed sequence. The unimplemented roadmap after Milestone 12.1 has been
-  retired while the next capability-focused product direction is selected.
+  completed sequence. The active roadmap now prioritizes explicit personal
+  profiles, source-grounded internet search, weather and forecast watches,
+  durable lists/tasks/reminders, and scheduled daily briefings as Milestones 13
+  through 17. Smart-home control, a personal knowledge library, and adaptive
+  memory remain unnumbered future considerations rather than committed work.
   Real providers and hardware validation remain opt-in work outside the default
   deterministic validation gate.
 
