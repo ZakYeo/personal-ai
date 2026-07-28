@@ -116,12 +116,12 @@ Current roadmap position:
   Milestone 15 is implemented after its required independent maintainability
   review. It uses Open-Meteo's key-free non-commercial API, durable local watch
   state, bounded concurrent evaluation, and a narrow optional reader for the
-  explicit home location that Milestone 13 will own. Milestone 16 implementation
-  is complete and validated, including durable lists, revision-checked tasks,
-  restart-safe reminder delivery, text/voice/service integration, and live
-  OpenAI smoke-test support; its required independent maintainability review is
-  still pending. The remaining roadmap prioritizes explicit personal profiles
-  and scheduled daily briefings. Profiles will be
+  explicit home location that Milestone 13 will own. Milestone 16 is implemented
+  after its required independent maintainability review, including durable
+  lists, revision-checked tasks, restart-safe reminder delivery,
+  text/voice/service integration, exact opaque task follow-ups, and opt-in live
+  OpenAI smoke-test support. The remaining roadmap prioritizes explicit
+  personal profiles and scheduled daily briefings. Profiles will be
   created and edited through validated text and voice commands rather than
   hardcoded setup. Smart-home control, a personal
   knowledge library, and adaptive memory remain unnumbered future considerations

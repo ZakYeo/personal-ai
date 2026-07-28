@@ -462,9 +462,10 @@ Acceptance criteria:
 
 ## Milestone 16: Personal Lists, Tasks, and Reminders
 
-Status: implementation complete and validated; the required independent
-maintainability review and any resulting remediation remain pending. Milestone
-13 is required only for later personalized defaults.
+Status: implemented after the required independent maintainability review.
+Detailed outcomes, acceptance evidence, and review remediation are archived in
+`docs/09-implemented-milestones.md`. Milestone 13 is required only for later
+personalized defaults.
 
 Goal: add durable everyday organization with lists, completable tasks, and
 scheduled reminder delivery that remains distinct from alarm lifecycle state.

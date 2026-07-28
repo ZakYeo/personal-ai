@@ -4,6 +4,83 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 16: Personal Lists, Tasks, and Reminders
+
+Status: implemented.
+
+Goal: add durable everyday organization with lists, completable tasks, and
+scheduled reminder delivery that remains distinct from alarm lifecycle state.
+
+Included:
+
+- Named lists with create, show, rename, and confirmed clear operations, plus
+  tasks with labels, optional notes, due dates, completion state, and one
+  optional reminder instant.
+- Task add, remind, complete, reopen, edit, and confirmed remove capabilities
+  authored through the shared typed feature-definition helpers.
+- Versioned in-memory and atomic JSON-file stores with canonical external-data
+  validation, revision-checked updates, restrictive file modes, migration
+  coverage, and config-directory-relative state paths.
+- Process-local opaque task references for ordinal follow-ups, with both the
+  selected task revision and containing list revision pinned in private targets.
+- A feature-owned neutral background task using the exact composed task store,
+  injected clock, timer, shutdown, and notification dependencies, durable
+  claim-before-delivery, restart recovery, and shared voice output coordination.
+- Deterministic and OpenAI intent routing, bounded compound plans, text, voice,
+  service, restart-deduplication, and explicit opt-in live OpenAI smoke coverage.
+
+Excluded:
+
+- Shared or collaborative lists, attachments, project-management workflows,
+  automatic prioritization, recurring tasks, location-triggered reminders, or
+  external task-provider synchronization.
+- Treating reminder delivery as task completion, reusing alarm records as task
+  state, or exposing private store IDs or diagnostics to intent providers.
+
+Outcomes:
+
+- Lists and tasks survive restart. Mutations validate expected revisions, while
+  opaque result references fail closed if either the task or its containing list
+  changes after display or confirmation.
+- Reminder creation persists one exact instant before reporting success.
+  Runtime delivery claims the reminder before output, recovers interrupted
+  claims deterministically, does not silently complete the task, and does not
+  redeliver a terminal reminder after restart.
+- Delivered, acknowledged, and cancelled reminder history is retained for 30
+  days through the live injected clock; active scheduled or claimed reminders
+  and records exactly at the cutoff are preserved.
+- Bulk list clearing and individual removal require deterministic protected
+  confirmation. A confirmation resumes the already validated target without
+  provider reinterpretation.
+- OpenAI follow-up instructions require exact opaque task references from the
+  current result catalog and forbid invented references. End-to-end mocked
+  provider coverage proves normal ordinal follow-ups and stale confirmed-target
+  rejection without exposing private store targets.
+- The fresh thermonuclear maintainability review produced four actionable
+  findings, all addressed: persisted state now rejects non-canonical text and
+  impossible reminder chronology; task references pin containing-list
+  revisions; terminal reminder history is bounded; and provider instructions
+  plus end-to-end coverage enforce exact opaque task follow-ups.
+
+Acceptance criteria:
+
+- Durable file-store and runtime tests prove lists and tasks survive restart,
+  malformed state fails safely, and revision-checked operations cannot silently
+  overwrite newer state.
+- Mocked OpenAI routing proves “remind me tomorrow at 9 to submit the form”
+  creates one task with one protected reminder instant. Configured service tests
+  prove delivery leaves that task incomplete.
+- Feature and runtime tests prove follow-ups select only eligible items, stale
+  references fail closed, and destructive list clearing confirms the exact
+  affected list.
+- Reminder-store, scheduler, and configured-service restart tests prove durable
+  claim-before-output, failure diagnostics, bounded recovery, terminal
+  retention, and deduplicated delivery.
+- The final full `npm run check` passed with 1,082 tests passing and 16 opt-in
+  tests skipped. The live OpenAI task-routing smoke remains explicit opt-in and
+  was not used as completion evidence because external execution approval was
+  not granted.
+
 ## Milestone 15: Weather, Forecasts, and Weather Watches
 
 Status: implemented.
