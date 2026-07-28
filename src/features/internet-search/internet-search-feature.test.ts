@@ -34,6 +34,12 @@ describe("createInternetSearchFeature", () => {
       { query: " TypeScript 5.7 " },
       {
         data: {
+          answer:
+            "TypeScript 5.7 adds checks for variables that have never been initialized. [1]",
+          citation0EndIndex: 78,
+          citation0SourceId: "provider-private-id",
+          citation0StartIndex: 75,
+          citationCount: 1,
           source0Extract:
             "TypeScript 5.7 adds checks for variables that have never been initialized.",
           source0PublishedAt: "2024-11-22T00:00:00.000Z",
@@ -61,7 +67,7 @@ describe("createInternetSearchFeature", () => {
           ],
           kind: "internet_sources",
         },
-        text: "Announcing TypeScript 5.7: TypeScript 5.7 adds checks for variables that have never been initialized. [1: https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/]",
+        text: "TypeScript 5.7 adds checks for variables that have never been initialized. [1] Sources: Announcing TypeScript 5.7 [1: https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/].",
       },
       createFeatureContext(),
     );
@@ -147,11 +153,44 @@ describe("createInternetSearchFeature", () => {
       },
     );
   });
+
+  it("does not attribute the whole synthesized answer to a source without an extract", async () => {
+    await expectDecodedFeatureExecution(
+      createInternetSearchFeature(createFakeSearch()),
+      "internet.follow_up",
+      { ordinal: 1 },
+      {
+        data: {
+          title: "Current source",
+          url: "https://example.com/current",
+        },
+        text: "Current source was cited in the recent answer. [https://example.com/current]",
+      },
+      {
+        ...createFeatureContext(),
+        selectResultReference: () => ({
+          publicReference: {
+            facts: {
+              title: "Current source",
+              url: "https://example.com/current",
+            },
+            kind: "internet_source",
+            ordinal: 1,
+            reference: "internet-source-1",
+          },
+          target: {
+            kind: "internet_source",
+            providerResultId: "snapshot-only",
+          },
+        }),
+      },
+    );
+  });
 });
 
 function createFakeSearch(
   calls: InternetSearchQuery[] = [],
-  results = [
+  sources = [
     {
       extract:
         "TypeScript 5.7 adds checks for variables that have never been initialized.",
@@ -165,7 +204,24 @@ function createFakeSearch(
   return {
     search: (query) => {
       calls.push(query);
-      return Promise.resolve(results);
+      const answer =
+        sources.length === 0
+          ? ""
+          : `${sources[0]!.extract ?? sources[0]!.title} [1]`;
+      return Promise.resolve({
+        answer,
+        citations:
+          sources.length === 0
+            ? []
+            : [
+                {
+                  endIndex: answer.length,
+                  sourceId: sources[0]!.id,
+                  startIndex: answer.length - 3,
+                },
+              ],
+        sources,
+      });
     },
   };
 }

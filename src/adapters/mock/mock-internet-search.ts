@@ -1,9 +1,9 @@
 import type {
   InternetSearchPort,
-  InternetSearchResult,
+  InternetSearchSource,
 } from "../../ports/internet-search.js";
 
-const results: readonly InternetSearchResult[] = [
+const sources: readonly InternetSearchSource[] = [
   {
     extract:
       "TypeScript 5.7 adds checks for variables that have never been initialized.",
@@ -18,14 +18,33 @@ export function createMockInternetSearch(): InternetSearchPort {
   return {
     search: (query) => {
       const queryTerms = query.query.trim().toLowerCase().split(/\s+/u);
-      const matches = results.filter((result) => {
+      const matches = sources.filter((result) => {
         const searchableText =
           `${result.title} ${result.extract}`.toLowerCase();
 
         return queryTerms.every((term) => searchableText.includes(term));
       });
 
-      return Promise.resolve(matches.slice(0, query.maxResults));
+      const selected = matches.slice(0, query.maxResults);
+      const answer =
+        selected.length === 0
+          ? ""
+          : `${selected[0]!.extract ?? selected[0]!.title} [1]`;
+
+      return Promise.resolve({
+        answer,
+        citations:
+          selected.length === 0
+            ? []
+            : [
+                {
+                  endIndex: answer.length,
+                  sourceId: selected[0]!.id,
+                  startIndex: answer.length - 3,
+                },
+              ],
+        sources: selected,
+      });
     },
   };
 }

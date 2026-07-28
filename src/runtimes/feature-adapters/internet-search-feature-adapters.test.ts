@@ -24,7 +24,7 @@ describe("internet search feature adapters", () => {
     ).resolves.toEqual({
       expectsFollowUp: true,
       status: "ok",
-      text: "Announcing TypeScript 5.7: TypeScript 5.7 adds checks for variables that have never been initialized. [1: https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/]",
+      text: "TypeScript 5.7 adds checks for variables that have never been initialized. [1] Sources: Announcing TypeScript 5.7 [1: https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/].",
     });
   });
 

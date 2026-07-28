@@ -51,7 +51,7 @@ export interface CalendarResultReferenceFacts {
 }
 
 export interface InternetSourceResultReferenceFacts {
-  readonly extract: string;
+  readonly extract?: string;
   readonly publishedAt?: string;
   readonly title: string;
   readonly url: string;

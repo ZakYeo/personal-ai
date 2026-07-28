@@ -5,8 +5,9 @@ import type {
 } from "../../ports/feature.js";
 import { defineCapability, defineFeature } from "../../ports/feature.js";
 import type {
+  InternetSearchResponse,
   InternetSearchPort,
-  InternetSearchResult,
+  InternetSearchSource,
 } from "../../ports/internet-search.js";
 import {
   defineDeterministicFeatureRules,
@@ -105,11 +106,8 @@ async function executeSearch(
     throw new Error("Internet search requires a non-empty query.");
   }
 
-  const results = (await search.search({ maxResults, query }, { now })).slice(
-    0,
-    maxResults,
-  );
-  if (results.length === 0) {
+  const response = await search.search({ maxResults, query }, { now });
+  if (response.sources.length === 0) {
     return {
       resultReferences: {
         items: [],
@@ -120,10 +118,10 @@ async function executeSearch(
   }
 
   return {
-    data: createProtectedSourceFacts(results),
+    data: createProtectedSearchFacts(response),
     expectsFollowUp: true,
-    resultReferences: createResultReferences(results),
-    text: results.map(formatCitedResult).join(" "),
+    resultReferences: createResultReferences(response.sources),
+    text: formatCitedAnswer(response),
   };
 }
 
@@ -150,44 +148,62 @@ function answerSearchFollowUp(
   const { facts } = selected.publicReference;
   return {
     data: { ...facts },
-    text: `${facts.title}: ${facts.extract} [${facts.url}]`,
+    text: facts.extract
+      ? `${facts.title}: ${facts.extract} [${facts.url}]`
+      : `${facts.title} was cited in the recent answer. [${facts.url}]`,
   };
 }
 
-function formatCitedResult(
-  result: InternetSearchResult,
-  index: number,
-): string {
-  return `${result.title}: ${result.extract} [${index + 1}: ${result.url}]`;
+function formatCitedAnswer(response: InternetSearchResponse): string {
+  const sourceList = response.sources
+    .map((source, index) => `${source.title} [${index + 1}: ${source.url}]`)
+    .join(", ");
+  return `${response.answer} Sources: ${sourceList}.`;
 }
 
-function createProtectedSourceFacts(results: readonly InternetSearchResult[]) {
-  return results.reduce<Record<string, string | number>>(
-    (facts, result, index) => ({
+function createProtectedSearchFacts(response: InternetSearchResponse) {
+  const sourceFacts = response.sources.reduce<Record<string, string | number>>(
+    (facts, source, index) => ({
       ...facts,
-      [`source${index}Extract`]: result.extract,
-      ...(result.publishedAt
-        ? { [`source${index}PublishedAt`]: result.publishedAt }
+      ...(source.extract ? { [`source${index}Extract`]: source.extract } : {}),
+      ...(source.publishedAt
+        ? { [`source${index}PublishedAt`]: source.publishedAt }
         : {}),
-      [`source${index}Title`]: result.title,
-      [`source${index}Url`]: result.url,
+      [`source${index}Title`]: source.title,
+      [`source${index}Url`]: source.url,
     }),
-    { sourceCount: results.length },
+    { sourceCount: response.sources.length },
   );
+  const citationFacts = response.citations.reduce<
+    Record<string, string | number>
+  >(
+    (facts, citation, index) => ({
+      ...facts,
+      [`citation${index}EndIndex`]: citation.endIndex,
+      [`citation${index}SourceId`]: citation.sourceId,
+      [`citation${index}StartIndex`]: citation.startIndex,
+    }),
+    { citationCount: response.citations.length },
+  );
+  return {
+    answer: response.answer,
+    ...citationFacts,
+    ...sourceFacts,
+  };
 }
 
-function createResultReferences(results: readonly InternetSearchResult[]) {
+function createResultReferences(sources: readonly InternetSearchSource[]) {
   return {
-    items: results.map((result) => ({
+    items: sources.map((source) => ({
       facts: {
-        extract: result.extract,
-        ...(result.publishedAt ? { publishedAt: result.publishedAt } : {}),
-        title: result.title,
-        url: result.url,
+        ...(source.extract ? { extract: source.extract } : {}),
+        ...(source.publishedAt ? { publishedAt: source.publishedAt } : {}),
+        title: source.title,
+        url: source.url,
       },
       target: {
         kind: "internet_source" as const,
-        providerResultId: result.id,
+        providerResultId: source.id,
       },
     })),
     kind: "internet_sources" as const,

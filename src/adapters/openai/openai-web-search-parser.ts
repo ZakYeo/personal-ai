@@ -1,20 +1,22 @@
-import type { InternetSearchResult } from "../../ports/internet-search.js";
+import type {
+  InternetSearchCitation,
+  InternetSearchResponse,
+  InternetSearchSource,
+} from "../../ports/internet-search.js";
 import { isRecord } from "../parsing.js";
 import { OpenAIWebSearchError } from "./openai-web-search-error.js";
 
 export function parseOpenAIWebSearchResponse(
   value: unknown,
   maxResults: number,
-): InternetSearchResult[] {
+): InternetSearchResponse {
   if (!isRecord(value)) {
     throw new OpenAIWebSearchError(
       "OpenAI web search response body must be an object.",
     );
   }
   if (!Array.isArray(value.output)) {
-    throw new OpenAIWebSearchError(
-      "OpenAI web search response did not include output text.",
-    );
+    throw missingOutputTextError();
   }
 
   for (const outputItem of value.output) {
@@ -22,15 +24,13 @@ export function parseOpenAIWebSearchResponse(
     if (parsed) return parsed;
   }
 
-  throw new OpenAIWebSearchError(
-    "OpenAI web search response did not include output text.",
-  );
+  throw missingOutputTextError();
 }
 
 function parseMessage(
   value: unknown,
   maxResults: number,
-): InternetSearchResult[] | undefined {
+): InternetSearchResponse | undefined {
   if (
     !isRecord(value) ||
     value.type !== "message" ||
@@ -46,49 +46,63 @@ function parseMessage(
       typeof content.text === "string" &&
       content.text.trim().length > 0
     ) {
-      return parseCitations(content, maxResults);
+      return parseCitedAnswer(content, maxResults);
     }
   }
 }
 
-function parseCitations(
+function parseCitedAnswer(
   content: Record<string, unknown>,
   maxResults: number,
-): InternetSearchResult[] {
+): InternetSearchResponse {
   if (!Array.isArray(content.annotations)) {
-    throw new OpenAIWebSearchError(
-      "OpenAI web search response did not include URL citations.",
-    );
+    throw missingCitationsError();
   }
 
-  const text = content.text as string;
-  const results: InternetSearchResult[] = [];
-  const seenUrls = new Set<string>();
+  const answer = content.text as string;
+  const sources: InternetSearchSource[] = [];
+  const citations: InternetSearchCitation[] = [];
+  const sourceByUrl = new Map<string, InternetSearchSource>();
 
   for (const annotation of content.annotations) {
     if (!isRecord(annotation) || annotation.type !== "url_citation") continue;
-    const citation = parseCitation(annotation, text, results.length);
-    if (!seenUrls.has(citation.url)) {
-      results.push(citation);
-      seenUrls.add(citation.url);
+    const parsed = parseCitation(annotation, answer);
+    let source = sourceByUrl.get(parsed.url);
+    if (!source) {
+      if (sources.length >= maxResults) {
+        throw new OpenAIWebSearchError(
+          "OpenAI web search response exceeded the configured source limit.",
+        );
+      }
+      source = {
+        id: `openai-search-source-${sources.length + 1}`,
+        title: parsed.title,
+        url: parsed.url,
+      };
+      sources.push(source);
+      sourceByUrl.set(source.url, source);
     }
-    if (results.length >= maxResults) break;
+    citations.push({
+      endIndex: parsed.endIndex,
+      sourceId: source.id,
+      startIndex: parsed.startIndex,
+    });
   }
 
-  if (results.length === 0) {
-    throw new OpenAIWebSearchError(
-      "OpenAI web search response did not include URL citations.",
-    );
-  }
+  if (citations.length === 0) throw missingCitationsError();
 
-  return results;
+  return { answer, citations, sources };
 }
 
 function parseCitation(
   value: Record<string, unknown>,
-  text: string,
-  index: number,
-): InternetSearchResult {
+  answer: string,
+): {
+  endIndex: number;
+  startIndex: number;
+  title: string;
+  url: string;
+} {
   if (typeof value.title !== "string" || value.title.trim().length === 0) {
     throw new OpenAIWebSearchError(
       "OpenAI web search citation title must be a non-empty string.",
@@ -104,7 +118,7 @@ function parseCitation(
     !Number.isInteger(value.end_index) ||
     (value.start_index as number) < 0 ||
     (value.end_index as number) <= (value.start_index as number) ||
-    (value.end_index as number) > text.length
+    (value.end_index as number) > answer.length
   ) {
     throw new OpenAIWebSearchError(
       "OpenAI web search citation indexes are invalid.",
@@ -112,8 +126,8 @@ function parseCitation(
   }
 
   return {
-    extract: text,
-    id: `openai-search-source-${index + 1}`,
+    endIndex: value.end_index as number,
+    startIndex: value.start_index as number,
     title: value.title,
     url: value.url,
   };
@@ -126,4 +140,16 @@ function isSafeWebUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function missingOutputTextError(): OpenAIWebSearchError {
+  return new OpenAIWebSearchError(
+    "OpenAI web search response did not include output text.",
+  );
+}
+
+function missingCitationsError(): OpenAIWebSearchError {
+  return new OpenAIWebSearchError(
+    "OpenAI web search response did not include URL citations.",
+  );
 }
