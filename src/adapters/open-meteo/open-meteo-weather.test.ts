@@ -127,6 +127,34 @@ describe("createOpenMeteoWeatherProvider", () => {
     expect(requested.searchParams.has("apikey")).toBe(false);
   });
 
+  it("rejects a duration that spans more than sixteen local calendar dates", async () => {
+    const fetch = createFetchStub(
+      jsonResponse(createOpenMeteoForecastResponse()),
+    );
+    const provider = createOpenMeteoWeatherProvider({
+      config,
+      fetch,
+      now: () => new Date("2026-07-28T12:00:05.000Z"),
+    });
+    const request = createOpenMeteoForecastRequest();
+
+    await expect(
+      provider.getForecast(
+        {
+          ...request,
+          period: {
+            endAt: "2026-08-13T12:00:00.000Z",
+            startAt: "2026-07-28T12:00:00.000Z",
+          },
+        },
+        {},
+      ),
+    ).rejects.toThrow(
+      "Open-Meteo forecast request spans more than 16 local calendar dates.",
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it.each([
     [
       "mismatched timezone",

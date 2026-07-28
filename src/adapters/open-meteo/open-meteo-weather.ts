@@ -168,4 +168,16 @@ function validateMetricRequest(request: WeatherForecastRequest): void {
       "Open-Meteo forecast request has an invalid period.",
     );
   }
+  const startDate = localDate(new Date(start), request.location.timezone);
+  const endDate = localDate(new Date(end), request.location.timezone);
+  const calendarDays =
+    (Date.parse(`${endDate}T00:00:00.000Z`) -
+      Date.parse(`${startDate}T00:00:00.000Z`)) /
+      (24 * 60 * 60_000) +
+    1;
+  if (calendarDays > 16) {
+    throw new OpenMeteoWeatherError(
+      "Open-Meteo forecast request spans more than 16 local calendar dates.",
+    );
+  }
 }
