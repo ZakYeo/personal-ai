@@ -34,12 +34,12 @@ describe("committed voice benchmark corpus", () => {
     );
 
     validateRecordingIndex(manifest, recordingIndex);
-    expect(manifest.phrases.filter((phrase) => phrase.active)).toHaveLength(27);
+    expect(manifest.phrases.filter((phrase) => phrase.active)).toHaveLength(33);
     expect(
       manifest.phrases.filter(
         (phrase) => phrase.active && phrase.captureTier === "core",
       ),
-    ).toHaveLength(19);
+    ).toHaveLength(25);
     expect(recordingIndex.schemaVersion).toBe(1);
     expect(recordingIndex.recordings).toHaveLength(22);
     expect(findUncoveredCapabilities(capabilityNames, manifest)).toEqual([]);
@@ -53,6 +53,12 @@ describe("committed voice benchmark corpus", () => {
     ).toEqual([
       "internet-search-current-v1",
       "internet-search-follow-up-v1",
+      "weather-coat-home-v1",
+      "weather-current-v1",
+      "weather-forecast-v1",
+      "weather-watch-create-v1",
+      "weather-watch-list-v1",
+      "weather-watch-cancel-v1",
       "calendar-reminder-v1",
     ]);
 

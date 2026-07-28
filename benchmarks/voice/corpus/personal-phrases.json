@@ -149,6 +149,48 @@
       "active": true
     },
     {
+      "id": "weather-coat-home-v1",
+      "text": "Will I need a coat at home tomorrow morning",
+      "capabilities": ["weather.coat"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "weather-current-v1",
+      "text": "What is the current weather in London",
+      "capabilities": ["weather.current"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "weather-forecast-v1",
+      "text": "What is the forecast for London",
+      "capabilities": ["weather.forecast"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "weather-watch-create-v1",
+      "text": "Watch for rain in London tomorrow",
+      "capabilities": ["weather.watch.create"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "weather-watch-list-v1",
+      "text": "List my weather watches",
+      "capabilities": ["weather.watch.list"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "weather-watch-cancel-v1",
+      "text": "Cancel my London rain watch",
+      "capabilities": ["weather.watch.cancel"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
       "id": "compound-calendar-alarm-v1",
       "text": "Check my upcoming calendar events and set a tea alarm for ten minutes",
       "capabilities": ["calendar.search_events", "alarm.create"],
