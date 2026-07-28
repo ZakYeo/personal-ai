@@ -55,7 +55,7 @@ describe("package scripts", () => {
     );
   });
 
-  it("provides a focused live OpenAI weather routing smoke command", async () => {
+  it("provides focused live OpenAI weather and task routing smoke commands", async () => {
     const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
       scripts?: Record<string, string>;
     };
@@ -63,8 +63,14 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.["test:e2e:openai:weather"]).toContain(
       "openai-weather.e2e.test.ts",
     );
+    expect(packageJson.scripts?.["test:e2e:openai:tasks"]).toContain(
+      "openai-persistent-tasks.e2e.test.ts",
+    );
     expect(packageJson.scripts?.["test:e2e:openai"]).toContain(
       "openai-weather.e2e.test.ts",
+    );
+    expect(packageJson.scripts?.["test:e2e:openai"]).toContain(
+      "openai-persistent-tasks.e2e.test.ts",
     );
   });
 });
