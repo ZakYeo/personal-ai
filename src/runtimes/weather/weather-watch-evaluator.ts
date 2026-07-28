@@ -5,6 +5,11 @@ import type {
   WeatherWatchRecord,
   WeatherWatchStore,
 } from "../../ports/weather-watch-store.js";
+import {
+  weatherWatchConditionMatches,
+  weatherWatchConditionValue,
+  weatherWatchMetricLabel,
+} from "../../ports/weather-watch-condition-policy.js";
 import type {
   HourlyWeatherForecast,
   WeatherAttribution,
@@ -127,7 +132,7 @@ async function loadQualifyingForecast(
         (item) =>
           item.forecastAt >= watch.period.startAt &&
           item.forecastAt <= watch.period.endAt &&
-          conditionMatches(watch.condition, item),
+          weatherWatchConditionMatches(watch.condition, item),
       )
       .sort((left, right) =>
         left.forecastAt.localeCompare(right.forecastAt),
@@ -152,52 +157,20 @@ async function loadQualifyingForecast(
   }
 }
 
-function conditionMatches(
-  condition: WeatherWatchCondition,
-  forecast: HourlyWeatherForecast,
-): boolean {
-  switch (condition.metric) {
-    case "precipitation":
-      return forecast.precipitation >= condition.threshold;
-    case "temperature":
-      return condition.operator === "atLeast"
-        ? forecast.temperature >= condition.threshold
-        : forecast.temperature <= condition.threshold;
-    case "windSpeed":
-      return forecast.windSpeed >= condition.threshold;
-  }
-}
-
 function createNotificationText(
   watch: WeatherWatchRecord,
   match: QualifyingForecast,
 ): string {
-  const value = forecastMetricValue(watch.condition, match.forecast);
-  return `Weather watch ${watch.id} matched in ${watch.location.name}: ${metricLabel(
+  const value = weatherWatchConditionValue(watch.condition, match.forecast);
+  return `Weather watch ${
+    watch.id
+  } matched in ${watch.location.name}: ${weatherWatchMetricLabel(
     watch.condition,
   )} is forecast at ${formatValue(value, watch.condition)} from ${
     match.window.startAt
   } to ${match.window.endAt}. Source: ${match.attribution.name} (${
     match.attribution.url
   }). Weather watches are convenience notifications, not guaranteed emergency alerts.`;
-}
-
-function forecastMetricValue(
-  condition: WeatherWatchCondition,
-  forecast: HourlyWeatherForecast,
-): number {
-  switch (condition.metric) {
-    case "precipitation":
-      return forecast.precipitation;
-    case "temperature":
-      return forecast.temperature;
-    case "windSpeed":
-      return forecast.windSpeed;
-  }
-}
-
-function metricLabel(condition: WeatherWatchCondition): string {
-  return condition.metric === "windSpeed" ? "wind speed" : condition.metric;
 }
 
 function formatValue(value: number, condition: WeatherWatchCondition): string {

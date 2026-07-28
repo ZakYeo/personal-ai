@@ -2,6 +2,7 @@ import type {
   WeatherWatchCondition,
   WeatherWatchRecord,
 } from "../../ports/weather-watch-store.js";
+import { weatherWatchMetricLabel } from "../../ports/weather-watch-condition-policy.js";
 
 const weatherWatchReliabilityNotice =
   "Weather watches are convenience notifications, not guaranteed emergency alerts.";
@@ -51,9 +52,7 @@ export function listWeatherWatchesResult(
 export function formatWeatherWatchCondition(
   condition: WeatherWatchCondition,
 ): string {
-  const metric =
-    condition.metric === "windSpeed" ? "wind speed" : condition.metric;
-  return `${metric} ${
+  return `${weatherWatchMetricLabel(condition)} ${
     condition.operator === "atLeast" ? "at least" : "at most"
   } ${condition.threshold} ${condition.unit}`;
 }

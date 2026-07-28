@@ -4,6 +4,7 @@ import type {
   WeatherWatchRecord,
   WeatherWatchStatus,
 } from "../../ports/weather-watch-store.js";
+import { decodeWeatherWatchCondition } from "../../ports/weather-watch-condition-policy.js";
 import { assertValidWeatherWatchRecord } from "../../ports/weather-watch-policy.js";
 import type { WeatherLocation, WeatherPeriod } from "../../ports/weather.js";
 import { isRecord } from "../parsing.js";
@@ -101,43 +102,16 @@ function parseCondition(value: unknown): WeatherWatchCondition {
   ) {
     throw invalidState();
   }
-  if (
-    value.metric === "precipitation" &&
-    value.operator === "atLeast" &&
-    value.unit === "mm"
-  ) {
-    return {
+  try {
+    return decodeWeatherWatchCondition({
       metric: value.metric,
       operator: value.operator,
       threshold: value.threshold,
       unit: value.unit,
-    };
+    });
+  } catch {
+    throw invalidState();
   }
-  if (
-    value.metric === "temperature" &&
-    (value.operator === "atLeast" || value.operator === "atMost") &&
-    value.unit === "celsius"
-  ) {
-    return {
-      metric: value.metric,
-      operator: value.operator,
-      threshold: value.threshold,
-      unit: value.unit,
-    };
-  }
-  if (
-    value.metric === "windSpeed" &&
-    value.operator === "atLeast" &&
-    value.unit === "km/h"
-  ) {
-    return {
-      metric: value.metric,
-      operator: value.operator,
-      threshold: value.threshold,
-      unit: value.unit,
-    };
-  }
-  throw invalidState();
 }
 
 function parseLocation(value: unknown): WeatherLocation {

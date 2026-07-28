@@ -1,6 +1,5 @@
 import type {
   NewWeatherWatch,
-  WeatherWatchCondition,
   WeatherWatchRecord,
 } from "./weather-watch-store.js";
 import type { WeatherPeriod } from "./weather.js";
@@ -9,6 +8,7 @@ import {
   isValidWeatherLocation,
   isValidWeatherPeriod,
 } from "./weather-policy.js";
+import { assertValidWeatherWatchCondition } from "./weather-watch-condition-policy.js";
 
 export function assertValidNewWeatherWatch(watch: NewWeatherWatch): void {
   if (
@@ -17,14 +17,6 @@ export function assertValidNewWeatherWatch(watch: NewWeatherWatch): void {
     !isValidCondition(watch.condition)
   ) {
     throw invalidWatch();
-  }
-}
-
-export function assertValidWeatherWatchCondition(
-  condition: WeatherWatchCondition,
-): void {
-  if (!isValidCondition(condition)) {
-    throw new Error("Weather watch condition is invalid.");
   }
 }
 
@@ -99,30 +91,12 @@ function isValidNotificationWindow(
   );
 }
 
-function isValidCondition(condition: WeatherWatchCondition): boolean {
-  if (!Number.isFinite(condition.threshold)) return false;
-  switch (condition.metric) {
-    case "precipitation":
-      return (
-        condition.operator === "atLeast" &&
-        condition.unit === "mm" &&
-        condition.threshold >= 0 &&
-        condition.threshold <= 1_000
-      );
-    case "temperature":
-      return (
-        (condition.operator === "atLeast" || condition.operator === "atMost") &&
-        condition.unit === "celsius" &&
-        condition.threshold >= -100 &&
-        condition.threshold <= 100
-      );
-    case "windSpeed":
-      return (
-        condition.operator === "atLeast" &&
-        condition.unit === "km/h" &&
-        condition.threshold >= 0 &&
-        condition.threshold <= 500
-      );
+function isValidCondition(condition: NewWeatherWatch["condition"]): boolean {
+  try {
+    assertValidWeatherWatchCondition(condition);
+    return true;
+  } catch {
+    return false;
   }
 }
 

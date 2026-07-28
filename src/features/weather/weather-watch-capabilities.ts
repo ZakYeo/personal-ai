@@ -5,13 +5,9 @@ import {
   type FeatureCapabilityParameters,
   type FeatureExecutionContext,
 } from "../../ports/feature.js";
-import type {
-  WeatherWatchCondition,
-  WeatherWatchStore,
-} from "../../ports/weather-watch-store.js";
-import { assertValidWeatherWatchCondition } from "../../ports/weather-watch-policy.js";
+import type { WeatherWatchStore } from "../../ports/weather-watch-store.js";
+import { decodeWeatherWatchCondition } from "../../ports/weather-watch-condition-policy.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";
-import { metricWeatherUnits } from "../../ports/weather-policy.js";
 import { resolveWeatherLocation } from "./weather-location-resolution.js";
 import { createForecastWeatherPeriod } from "./weather-validation.js";
 import {
@@ -79,7 +75,7 @@ export function createWeatherWatchCapabilities(
     }),
     "weather.watch.create": defineCapability({
       confirmation: (args) => {
-        const condition = parseCondition(args);
+        const condition = decodeWeatherWatchCondition(args);
         const location = args.location.trim();
         return {
           facts: {
@@ -165,7 +161,7 @@ async function createWeatherWatch(
   args: CreateArgs,
   context: FeatureExecutionContext,
 ) {
-  const condition = parseCondition(args);
+  const condition = decodeWeatherWatchCondition(args);
   const period = createForecastWeatherPeriod(args, context.clock.now());
   const resolution = await resolveWeatherLocation(
     provider,
@@ -220,41 +216,4 @@ async function cancelWeatherWatch(
     },
     text: `Cancelled weather watch ${cancelled.id} at ${cancelled.terminalAt}.`,
   };
-}
-
-function parseCondition(args: {
-  metric: string;
-  operator: string;
-  threshold: number;
-}): WeatherWatchCondition {
-  let condition: WeatherWatchCondition;
-  if (args.metric === "precipitation" && args.operator === "atLeast") {
-    condition = {
-      metric: args.metric,
-      operator: args.operator,
-      threshold: args.threshold,
-      unit: metricWeatherUnits.precipitation,
-    };
-  } else if (
-    args.metric === "temperature" &&
-    (args.operator === "atLeast" || args.operator === "atMost")
-  ) {
-    condition = {
-      metric: args.metric,
-      operator: args.operator,
-      threshold: args.threshold,
-      unit: metricWeatherUnits.temperature,
-    };
-  } else if (args.metric === "windSpeed" && args.operator === "atLeast") {
-    condition = {
-      metric: args.metric,
-      operator: args.operator,
-      threshold: args.threshold,
-      unit: metricWeatherUnits.windSpeed,
-    };
-  } else {
-    throw new Error("Weather watch condition is invalid.");
-  }
-  assertValidWeatherWatchCondition(condition);
-  return condition;
 }

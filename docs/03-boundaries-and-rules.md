@@ -494,7 +494,10 @@ should also guard against subtler boundary and abstraction drift.
 - Provider-neutral weather semantics are application owned: one canonical policy
   validates locations, periods, units, attribution, freshness, physical value
   ranges, and ordered unique in-period hourly/daily facts after each adapter has
-  decoded its external shape.
+  decoded its external shape. A separate typed condition policy owns every
+  weather-watch metric's unit, allowed operators, threshold range, forecast
+  value extraction, and matching behavior; persistence only decodes its external
+  shape and human-facing wording remains feature owned.
 - The Open-Meteo adapter uses only the free non-commercial forecast and
   geocoding endpoints without an API key. It preserves required attribution,
   bounds forecast requests to at most 16 local calendar dates, and fails startup
