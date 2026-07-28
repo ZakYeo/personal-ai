@@ -191,6 +191,83 @@
       "active": true
     },
     {
+      "id": "task-list-create-v1",
+      "text": "Create a shopping list",
+      "capabilities": ["task.list.create"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "task-list-show-v1",
+      "text": "Show my shopping list",
+      "capabilities": ["task.list.show"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "task-list-rename-v1",
+      "text": "Rename my shopping list to groceries",
+      "capabilities": ["task.list.rename"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "task-list-clear-v1",
+      "text": "Clear my groceries list",
+      "capabilities": ["task.list.clear"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "task-create-v1",
+      "text": "Add oat milk to my shopping list",
+      "capabilities": ["task.create"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "task-complete-v1",
+      "text": "Complete oat milk on my shopping list",
+      "capabilities": ["task.complete"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "task-reopen-v1",
+      "text": "Reopen oat milk on my shopping list",
+      "capabilities": ["task.reopen"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "task-edit-v1",
+      "text": "Rename oat milk on my shopping list to barista oat milk",
+      "capabilities": ["task.edit"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "task-remove-v1",
+      "text": "Remove oat milk from my shopping list",
+      "capabilities": ["task.remove"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "task-remind-v1",
+      "text": "Remind me tomorrow at nine to submit the form on my to-do list",
+      "capabilities": ["task.remind"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "task-reminder-acknowledge-v1",
+      "text": "Acknowledge the reminder for submit the form on my to-do list",
+      "capabilities": ["task.reminder.acknowledge"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
       "id": "compound-calendar-alarm-v1",
       "text": "Check my upcoming calendar events and set a tea alarm for ten minutes",
       "capabilities": ["calendar.search_events", "alarm.create"],

@@ -13,6 +13,7 @@ import {
   taskTargetParameters,
   type TaskTargetArgs,
 } from "./task-selection.js";
+import { taskSpokenSummary } from "./task-capability-metadata.js";
 
 export function createTaskReminderAcknowledgementCapability(store: TaskStore) {
   return defineCapability({
@@ -22,7 +23,7 @@ export function createTaskReminderAcknowledgementCapability(store: TaskStore) {
       acknowledgeTaskReminder(store, request.args, context),
     parameters: taskTargetParameters,
     risk: "low",
-    spokenSummary: "acknowledge task reminders",
+    spokenSummary: taskSpokenSummary,
     summary: "Acknowledge one task reminder.",
   });
 }

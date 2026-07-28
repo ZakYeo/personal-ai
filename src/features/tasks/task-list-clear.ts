@@ -7,6 +7,7 @@ import {
 import { normalizeTaskListName } from "../../ports/task-policy.js";
 import type { TaskStore } from "../../ports/task-store.js";
 import { selectTaskList } from "./task-selection.js";
+import { taskSpokenSummary } from "./task-capability-metadata.js";
 
 const clearTaskListParameters = {
   listName: { required: true, type: "string" },
@@ -24,7 +25,7 @@ export function createTaskListClearCapability(store: TaskStore) {
     parameters: clearTaskListParameters,
     requiresConfirmation: true,
     risk: "high",
-    spokenSummary: "clear every task from a personal list",
+    spokenSummary: taskSpokenSummary,
     summary: "Permanently clear one exact personal list.",
   });
 }

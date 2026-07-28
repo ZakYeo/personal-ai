@@ -6,6 +6,35 @@ const taskConfig = createLoadedRuntimeConfig({
 });
 
 describe("deterministic task runtime", () => {
+  it("enables local personal lists in the default runtime", async () => {
+    const assistant = await createConfiguredTextRuntimeHarness({
+      useRuntimeDefaultConfig: true,
+    });
+
+    await expect(
+      assistant.handleText("Hey Jarvis, create a shopping list"),
+    ).resolves.toEqual({
+      status: "ok",
+      text: "Created the shopping list.",
+    });
+  });
+
+  it("summarizes the task feature once in the spoken default catalog", async () => {
+    const assistant = await createConfiguredTextRuntimeHarness({
+      useRuntimeDefaultConfig: true,
+    });
+
+    const response = await assistant.handleText("Hey Jarvis, what can you do");
+
+    expect(response).toMatchObject({ status: "ok" });
+    expect(response.text).toContain(
+      "manage personal lists, tasks, and reminders",
+    );
+    expect(
+      response.text.match(/personal lists, tasks, and reminders/gu),
+    ).toHaveLength(1);
+  });
+
   it("creates, shows, and completes an opaque task follow-up", async () => {
     const assistant = await createConfiguredTextRuntimeHarness({
       config: taskConfig,

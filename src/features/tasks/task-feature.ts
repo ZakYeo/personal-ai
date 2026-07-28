@@ -32,6 +32,7 @@ import { createTaskMutationCapabilities } from "./task-mutation-capabilities.js"
 import { createTaskListClearCapability } from "./task-list-clear.js";
 import { createTaskReminderAcknowledgementCapability } from "./task-reminder-capability.js";
 import { taskDeterministicRules } from "./task-deterministic-rules.js";
+import { taskSpokenSummary } from "./task-capability-metadata.js";
 
 const createListParameters = {
   name: { required: true, type: "string" },
@@ -74,7 +75,7 @@ export function createTaskFeature(store: TaskStore) {
             changeTaskStatus(store, request.args, context, "completed"),
           parameters: taskTargetParameters,
           risk: "low",
-          spokenSummary: "complete personal tasks",
+          spokenSummary: taskSpokenSummary,
           summary: "Complete one open task.",
         }),
         "task.create": defineCapability({
@@ -83,7 +84,7 @@ export function createTaskFeature(store: TaskStore) {
           execute: (request) => createTask(store, request.args),
           parameters: createTaskParameters,
           risk: "low",
-          spokenSummary: "add tasks to personal lists",
+          spokenSummary: taskSpokenSummary,
           summary: "Add a task to a named personal list.",
         }),
         ...createTaskMutationCapabilities(store),
@@ -92,7 +93,7 @@ export function createTaskFeature(store: TaskStore) {
           execute: (request) => createList(store, request.args),
           parameters: createListParameters,
           risk: "low",
-          spokenSummary: "create personal lists",
+          spokenSummary: taskSpokenSummary,
           summary: "Create a named personal list.",
         }),
         "task.list.clear": createTaskListClearCapability(store),
@@ -102,7 +103,7 @@ export function createTaskFeature(store: TaskStore) {
             renameList(store, request.args, context),
           parameters: renameListParameters,
           risk: "low",
-          spokenSummary: "rename personal lists",
+          spokenSummary: taskSpokenSummary,
           summary: "Rename an existing personal list.",
         }),
         "task.list.show": defineCapability({
@@ -111,7 +112,7 @@ export function createTaskFeature(store: TaskStore) {
           execute: (request) => showList(store, request.args),
           parameters: showListParameters,
           risk: "low",
-          spokenSummary: "show personal lists and tasks",
+          spokenSummary: taskSpokenSummary,
           summary: "Show personal lists and their tasks.",
           toolChain: "read",
         }),
@@ -123,7 +124,7 @@ export function createTaskFeature(store: TaskStore) {
           parameters: remindTaskParameters,
           requiresConfirmation: true,
           risk: "high",
-          spokenSummary: "create task reminders",
+          spokenSummary: taskSpokenSummary,
           summary: "Add a task with an exact reminder.",
         }),
         "task.reminder.acknowledge":
@@ -135,7 +136,7 @@ export function createTaskFeature(store: TaskStore) {
             changeTaskStatus(store, request.args, context, "open"),
           parameters: taskTargetParameters,
           risk: "low",
-          spokenSummary: "reopen personal tasks",
+          spokenSummary: taskSpokenSummary,
           summary: "Reopen one completed task.",
         }),
       },

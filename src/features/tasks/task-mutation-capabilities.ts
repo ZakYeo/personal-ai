@@ -22,6 +22,7 @@ import {
   taskTargetParameters,
   type TaskTargetArgs,
 } from "./task-selection.js";
+import { taskSpokenSummary } from "./task-capability-metadata.js";
 
 const editTaskParameters = {
   ...taskTargetParameters,
@@ -41,7 +42,7 @@ export function createTaskMutationCapabilities(store: TaskStore) {
       execute: (request, context) => editTask(store, request.args, context),
       parameters: editTaskParameters,
       risk: "low",
-      spokenSummary: "edit personal tasks",
+      spokenSummary: taskSpokenSummary,
       summary: "Edit one task's label, note, or due date.",
     }),
     "task.remove": defineCapability({
@@ -52,7 +53,7 @@ export function createTaskMutationCapabilities(store: TaskStore) {
       parameters: taskTargetParameters,
       requiresConfirmation: true,
       risk: "high",
-      spokenSummary: "remove personal tasks",
+      spokenSummary: taskSpokenSummary,
       summary: "Permanently remove one exact task.",
     }),
   };

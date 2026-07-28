@@ -46,6 +46,10 @@
       "enabled": true,
       "adapter": "local",
       "confirmationRequiredCapabilities": ["alarm.create"]
+    },
+    "tasks": {
+      "enabled": true,
+      "adapter": "local"
     }
   }
 }
