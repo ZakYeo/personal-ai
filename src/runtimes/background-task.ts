@@ -16,3 +16,20 @@ export interface RuntimeBackgroundTask {
   id: string;
   run(context: RuntimeBackgroundTaskContext): Promise<void>;
 }
+
+export const systemRuntimeBackgroundTaskTimer: RuntimeBackgroundTaskTimer = {
+  wait: (delayMs, shutdownSignal) =>
+    new Promise((resolve) => {
+      if (shutdownSignal.aborted) {
+        resolve();
+        return;
+      }
+      const finish = () => {
+        clearTimeout(timeout);
+        shutdownSignal.removeEventListener("abort", finish);
+        resolve();
+      };
+      const timeout = setTimeout(finish, delayMs);
+      shutdownSignal.addEventListener("abort", finish, { once: true });
+    }),
+};

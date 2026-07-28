@@ -30,11 +30,17 @@ type TaskSelection =
   | { list: TaskListRecord; task: TaskRecord }
   | { result: FeatureResult };
 
+interface TaskEligibility {
+  matches(task: TaskRecord): boolean;
+  noMatchText: string;
+}
+
 export async function selectEligibleTask(
   store: TaskStore,
   args: TaskTargetArgs,
   context: FeatureExecutionContext,
   eligibleStatuses: readonly TaskRecord["status"][],
+  eligibility?: TaskEligibility,
 ): Promise<TaskSelection> {
   const [lists, tasks] = await Promise.all([
     store.listLists(),
@@ -55,8 +61,17 @@ export async function selectEligibleTask(
       };
     }
     const list = lists.find((candidate) => candidate.id === task.listId);
-    if (!list || !eligibleStatuses.includes(task.status)) {
-      return { result: ineligibleTaskResult(eligibleStatuses) };
+    if (
+      !list ||
+      !eligibleStatuses.includes(task.status) ||
+      (eligibility && !eligibility.matches(task))
+    ) {
+      return {
+        result: ineligibleTaskResult(
+          eligibleStatuses,
+          eligibility?.noMatchText,
+        ),
+      };
     }
     return { list, task };
   }
@@ -79,6 +94,7 @@ export async function selectEligibleTask(
   const eligible = tasks.filter(
     (task) =>
       eligibleStatuses.includes(task.status) &&
+      (eligibility === undefined || eligibility.matches(task)) &&
       (args.id === undefined || task.id === args.id) &&
       (requestedList === undefined || task.listId === requestedList.id) &&
       (label === undefined || task.label.toLocaleLowerCase("en") === label),
@@ -87,7 +103,7 @@ export async function selectEligibleTask(
     return {
       result:
         eligible.length === 0
-          ? ineligibleTaskResult(eligibleStatuses)
+          ? ineligibleTaskResult(eligibleStatuses, eligibility?.noMatchText)
           : {
               expectsFollowUp: true,
               text: "More than one eligible task matches. Please name its list or show the list and choose an item.",
@@ -133,7 +149,9 @@ function selectReferencedTask(
 
 function ineligibleTaskResult(
   eligibleStatuses: readonly TaskRecord["status"][],
+  customText?: string,
 ): FeatureResult {
+  if (customText) return { text: customText };
   return {
     text:
       eligibleStatuses.length > 1

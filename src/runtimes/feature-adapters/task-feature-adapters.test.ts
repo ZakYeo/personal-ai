@@ -12,7 +12,10 @@ import {
   parseAssistantConfig,
 } from "../config/config.js";
 import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
-import { createConfiguredFeatures } from "../feature-adapter-selection.js";
+import {
+  createConfiguredFeatureSelection,
+  createConfiguredFeatures,
+} from "../feature-adapter-selection.js";
 
 const taskNow = new Date("2026-07-28T09:00:00.000Z");
 
@@ -26,6 +29,89 @@ describe("task feature adapters", () => {
       "tasks",
       "assistant",
     ]);
+  });
+
+  it("contributes retention always and delivery only with notification output", () => {
+    const config = createLoadedRuntimeConfig({
+      tasks: { adapter: "local", enabled: true },
+    });
+    const dependencies = {
+      clock: { now: () => taskNow },
+      env: {},
+      fetch: vi.fn() as typeof fetch,
+    };
+
+    expect(
+      createConfiguredFeatureSelection(config, { dependencies })
+        .backgroundTasks,
+    ).toEqual([expect.objectContaining({ id: "tasks.reminders.retention" })]);
+    expect(
+      createConfiguredFeatureSelection(config, {
+        dependencies: {
+          ...dependencies,
+          notificationDelivery: { deliver: () => Promise.resolve() },
+        },
+      }).backgroundTasks,
+    ).toEqual([
+      expect.objectContaining({ id: "tasks.reminders.delivery" }),
+      expect.objectContaining({ id: "tasks.reminders.retention" }),
+    ]);
+  });
+
+  it("delivers through the exact store composed for the task feature", async () => {
+    const config = createLoadedRuntimeConfig({
+      tasks: { adapter: "local", enabled: true },
+    });
+    const delivered: Array<{ id: string; text: string }> = [];
+    const shutdown = new AbortController();
+    const selection = createConfiguredFeatureSelection(config, {
+      dependencies: {
+        clock: { now: () => taskNow },
+        env: {},
+        fetch: vi.fn() as typeof fetch,
+        notificationDelivery: {
+          deliver: (request) => {
+            delivered.push(request);
+            shutdown.abort();
+            return Promise.resolve();
+          },
+        },
+      },
+    });
+    const feature = selection.features.find(({ id }) => id === "tasks");
+    const deliveryTask = selection.backgroundTasks.find(
+      ({ id }) => id === "tasks.reminders.delivery",
+    );
+    if (!feature || !deliveryTask) {
+      throw new Error("Expected a task feature and delivery task.");
+    }
+    const context = createFeatureContext();
+    await executeFeature(
+      feature,
+      "task.list.create",
+      { name: "To-do" },
+      context,
+    );
+    await executeFeature(
+      feature,
+      "task.remind",
+      {
+        label: "Submit the form",
+        listName: "To-do",
+        reminderAt: "2026-07-29T08:00:00.000Z",
+      },
+      context,
+    );
+
+    await deliveryTask.run({
+      clock: { now: () => new Date("2026-07-29T08:00:00.000Z") },
+      reportFailure: () => {},
+      shutdownSignal: shutdown.signal,
+    });
+
+    expect(delivered).toHaveLength(1);
+    expect(delivered[0]?.id).toMatch(/^task-reminder:task-/u);
+    expect(delivered[0]?.text).toBe("Reminder: Submit the form.");
   });
 
   it("requires a nested state path for the file adapter", () => {

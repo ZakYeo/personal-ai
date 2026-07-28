@@ -1,24 +1,24 @@
-import type { AlarmStore } from "../../ports/alarm-store.js";
 import type { ClockPort } from "../../ports/assistant.js";
+import type { TaskStore } from "../../ports/task-store.js";
 import {
   systemRuntimeBackgroundTaskTimer,
   type RuntimeBackgroundTaskTimer,
 } from "../background-task.js";
 
-interface AlarmRetentionDependencies {
+interface TaskReminderRetentionDependencies {
   clock: ClockPort;
   intervalMs: number;
   retentionMs: number;
   shutdownSignal: AbortSignal;
-  store: AlarmStore;
+  store: TaskStore;
   timer?: RuntimeBackgroundTaskTimer;
 }
 
-export async function runAlarmRetention(
-  dependencies: AlarmRetentionDependencies,
+export async function runTaskReminderRetention(
+  dependencies: TaskReminderRetentionDependencies,
 ): Promise<void> {
   while (!dependencies.shutdownSignal.aborted) {
-    await removeExpiredAlarmHistory(dependencies);
+    await clearExpiredTaskReminderHistory(dependencies);
     await (dependencies.timer ?? systemRuntimeBackgroundTaskTimer).wait(
       dependencies.intervalMs,
       dependencies.shutdownSignal,
@@ -26,14 +26,18 @@ export async function runAlarmRetention(
   }
 }
 
-export function removeExpiredAlarmHistory(
+export function clearExpiredTaskReminderHistory(
   dependencies: Pick<
-    AlarmRetentionDependencies,
+    TaskReminderRetentionDependencies,
     "clock" | "retentionMs" | "store"
   >,
 ): Promise<number> {
+  const now = dependencies.clock.now();
   const cutoff = new Date(
-    dependencies.clock.now().getTime() - dependencies.retentionMs,
+    now.getTime() - dependencies.retentionMs,
   ).toISOString();
-  return dependencies.store.removeTerminalBefore(cutoff);
+  return dependencies.store.clearTerminalRemindersBefore({
+    cutoff,
+    updatedAt: now.toISOString(),
+  });
 }

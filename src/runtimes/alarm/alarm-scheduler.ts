@@ -5,6 +5,10 @@ import type {
   AlarmStatus,
 } from "../../ports/alarm-store.js";
 import type { ClockPort } from "../../ports/assistant.js";
+import {
+  systemRuntimeBackgroundTaskTimer,
+  type RuntimeBackgroundTaskTimer,
+} from "../background-task.js";
 
 export interface AlarmSchedulerConfig {
   missedGraceMs: number;
@@ -25,14 +29,10 @@ export interface AlarmSchedulerDependencies {
   store: AlarmStore;
 }
 
-interface AlarmSchedulerTimer {
-  wait(delayMs: number, shutdownSignal: AbortSignal): Promise<void>;
-}
-
 interface AlarmSchedulerRuntimeDependencies extends AlarmSchedulerDependencies {
   clockRecheckMs: number;
   shutdownSignal: AbortSignal;
-  timer?: AlarmSchedulerTimer;
+  timer?: RuntimeBackgroundTaskTimer;
 }
 
 export async function runAlarmScheduler(
@@ -51,17 +51,12 @@ export async function runAlarmScheduler(
             dependencies.clock.now().getTime(),
         )
       : dependencies.clockRecheckMs;
-    await (dependencies.timer ?? systemAlarmSchedulerTimer).wait(
+    await (dependencies.timer ?? systemRuntimeBackgroundTaskTimer).wait(
       Math.min(untilNextDelivery, dependencies.clockRecheckMs),
       dependencies.shutdownSignal,
     );
   }
 }
-
-const systemAlarmSchedulerTimer: AlarmSchedulerTimer = {
-  wait: (delayMs, shutdownSignal) =>
-    waitForTimerOrShutdown(delayMs, shutdownSignal),
-};
 
 export async function processAlarmSchedulerCycle(
   dependencies: AlarmSchedulerDependencies,
@@ -214,23 +209,4 @@ async function finalizeAlarm(
 
 function terminalStatus(successfulDeliveries: number): AlarmStatus {
   return successfulDeliveries > 0 ? "completed" : "missed";
-}
-
-function waitForTimerOrShutdown(
-  delayMs: number,
-  shutdownSignal: AbortSignal,
-): Promise<void> {
-  if (shutdownSignal.aborted) {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve) => {
-    const finish = () => {
-      clearTimeout(timeout);
-      shutdownSignal.removeEventListener("abort", finish);
-      resolve();
-    };
-    const timeout = setTimeout(finish, delayMs);
-    shutdownSignal.addEventListener("abort", finish, { once: true });
-  });
 }

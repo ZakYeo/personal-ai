@@ -29,6 +29,7 @@ import {
 } from "./task-selection.js";
 import { createTaskMutationCapabilities } from "./task-mutation-capabilities.js";
 import { createTaskListClearCapability } from "./task-list-clear.js";
+import { createTaskReminderAcknowledgementCapability } from "./task-reminder-capability.js";
 
 const createListParameters = {
   name: { required: true, type: "string" },
@@ -121,6 +122,8 @@ export function createTaskFeature(store: TaskStore) {
         spokenSummary: "create task reminders",
         summary: "Add a task with an exact reminder.",
       }),
+      "task.reminder.acknowledge":
+        createTaskReminderAcknowledgementCapability(store),
       "task.reopen": defineCapability({
         description:
           "Reopen one eligible completed task without reactivating any cancelled reminder.",
