@@ -56,6 +56,34 @@ describe("result reference session", () => {
     expect(session.publicReferences()).toEqual([]);
   });
 
+  it("retains snapshot-only internet sources without inventing private targets", () => {
+    const session = createResultReferenceSession();
+
+    session.retain({
+      items: [
+        {
+          facts: {
+            title: "Current source",
+            url: "https://example.com/current",
+          },
+        },
+      ],
+      kind: "internet_sources",
+    });
+
+    expect(session.select({ rawText: "the first source" })).toEqual({
+      publicReference: {
+        facts: {
+          title: "Current source",
+          url: "https://example.com/current",
+        },
+        kind: "internet_source",
+        ordinal: 1,
+        reference: "internet-source-1",
+      },
+    });
+  });
+
   it("clears immediately when conversation history compacts", () => {
     const session = createResultReferenceSession();
     session.retain(resultSet("event"));

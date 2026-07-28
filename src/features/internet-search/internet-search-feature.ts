@@ -206,11 +206,7 @@ function answerSearchFollowUp(
     rawText: context.trustedInputText ?? "",
     ...(args.reference === undefined ? {} : { reference: args.reference }),
   });
-  if (
-    !selected ||
-    selected.target.kind !== "internet_source" ||
-    selected.publicReference.kind !== "internet_source"
-  ) {
+  if (!selected || selected.publicReference.kind !== "internet_source") {
     return {
       expectsFollowUp: true,
       text: "I am not sure which recent internet source you mean.",
@@ -272,10 +268,6 @@ function createResultReferences(sources: readonly InternetSearchSource[]) {
         ...(source.publishedAt ? { publishedAt: source.publishedAt } : {}),
         title: source.title,
         url: source.url,
-      },
-      target: {
-        kind: "internet_source" as const,
-        providerResultId: source.id,
       },
     })),
     kind: "internet_sources" as const,

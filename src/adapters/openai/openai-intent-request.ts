@@ -1,5 +1,6 @@
 import type { AssistantContext } from "../../ports/assistant.js";
 import type { CapabilityCatalogEntry } from "../../ports/capability-catalog.js";
+import type { AssistantResultReference } from "../../ports/result-reference.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 
 export type OpenAIIntentCapability = CapabilityCatalogEntry;
@@ -160,29 +161,43 @@ function formatResultReferences(context: AssistantContext): string {
   if (references.length === 0) return "No unexpired results are available.";
   return [
     "<untrusted_recent_results>",
-    JSON.stringify(
-      references.map((result) =>
-        result.kind === "calendar_event"
-          ? {
-              date: result.facts.date,
-              kind: result.kind,
-              ordinal: result.ordinal,
-              reference: result.reference,
-              ...(result.facts.startAt
-                ? { startAt: result.facts.startAt }
-                : {}),
-              time: result.facts.time,
-              title: result.facts.title,
-            }
-          : {
-              kind: result.kind,
-              ordinal: result.ordinal,
-              reference: result.reference,
-            },
-      ),
-    ),
+    JSON.stringify(references.map(formatResultReference)),
     "</untrusted_recent_results>",
   ].join("\n");
+}
+
+const resultReferenceFormatters = {
+  calendar_event: (
+    result: Extract<
+      AssistantResultReference,
+      { readonly kind: "calendar_event" }
+    >,
+  ) => ({
+    date: result.facts.date,
+    kind: result.kind,
+    ordinal: result.ordinal,
+    reference: result.reference,
+    ...(result.facts.startAt ? { startAt: result.facts.startAt } : {}),
+    time: result.facts.time,
+    title: result.facts.title,
+  }),
+  internet_source: (
+    result: Extract<
+      AssistantResultReference,
+      { readonly kind: "internet_source" }
+    >,
+  ) => ({
+    kind: result.kind,
+    ordinal: result.ordinal,
+    reference: result.reference,
+  }),
+};
+
+function formatResultReference(result: AssistantResultReference) {
+  const formatter = resultReferenceFormatters[result.kind] as (
+    value: AssistantResultReference,
+  ) => Record<string, string | number>;
+  return formatter(result);
 }
 
 function createIntentInterpretationSchema(

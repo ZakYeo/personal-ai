@@ -60,10 +60,6 @@ describe("createInternetSearchFeature", () => {
                 title: "Announcing TypeScript 5.7",
                 url: "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
               },
-              target: {
-                kind: "internet_source",
-                providerResultId: "provider-private-id",
-              },
             },
           ],
           kind: "internet_sources",
@@ -226,10 +222,6 @@ describe("createInternetSearchFeature", () => {
             ordinal: 1,
             reference: "internet-source-1",
           },
-          target: {
-            kind: "internet_source",
-            providerResultId: "provider-private-id",
-          },
         }),
       },
     );
@@ -270,10 +262,6 @@ describe("createInternetSearchFeature", () => {
             kind: "internet_source",
             ordinal: 1,
             reference: "internet-source-1",
-          },
-          target: {
-            kind: "internet_source",
-            providerResultId: "snapshot-only",
           },
         }),
       },

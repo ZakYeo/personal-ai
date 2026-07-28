@@ -185,7 +185,11 @@ async function answerCalendarFollowUp(
     ...(args.reference === undefined ? {} : { reference: args.reference }),
   });
 
-  if (!selected || selected.target.kind !== "calendar_event") {
+  if (
+    !selected ||
+    selected.publicReference.kind !== "calendar_event" ||
+    selected.target?.kind !== "calendar_event"
+  ) {
     return clarify(
       args.detail === "next"
         ? "I could not determine a later event from those recent results."

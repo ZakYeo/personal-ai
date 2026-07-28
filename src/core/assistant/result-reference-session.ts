@@ -82,18 +82,14 @@ export function createResultReferenceSession(): ResultReferenceSession {
       focusedReference = entry.publicReference.reference;
       return {
         publicReference: entry.publicReference,
-        target: entry.target,
+        ...(entry.target ? { target: entry.target } : {}),
       };
     },
     retain(resultSet) {
-      entries =
-        resultSet.kind === "calendar_events"
-          ? resultSet.items
-              .slice(0, 10)
-              .map((item, index) => createCalendarEntry(item, index))
-          : resultSet.items
-              .slice(0, 10)
-              .map((item, index) => createInternetSourceEntry(item, index));
+      const descriptor = resultReferenceDescriptors[resultSet.kind];
+      entries = resultSet.items
+        .slice(0, 10)
+        .map((item, index) => createEntry(item, descriptor, index));
       subsequentTurns = 0;
       focusedReference = undefined;
       retainedSinceLastCompletion = true;
@@ -103,41 +99,48 @@ export function createResultReferenceSession(): ResultReferenceSession {
 
 interface Entry {
   readonly publicReference: AssistantResultReference;
-  readonly target: ResultReferenceTarget;
+  readonly target?: ResultReferenceTarget;
 }
 
-function createCalendarEntry(
-  item: {
-    facts: CalendarResultReferenceFacts;
-    target: Extract<ResultReferenceTarget, { kind: "calendar_event" }>;
-  },
-  index: number,
-): Entry {
-  return {
-    publicReference: Object.freeze({
-      facts: Object.freeze({ ...item.facts }),
-      kind: "calendar_event",
-      ordinal: index + 1,
-      reference: `calendar-event-${index + 1}`,
-    }),
-    target: Object.freeze({ ...item.target }),
-  };
+interface RetainedResultReference {
+  readonly facts:
+    | CalendarResultReferenceFacts
+    | InternetSourceResultReferenceFacts;
+  readonly target?: ResultReferenceTarget;
 }
 
-function createInternetSourceEntry(
-  item: {
-    facts: InternetSourceResultReferenceFacts;
-    target: Extract<ResultReferenceTarget, { kind: "internet_source" }>;
+interface ResultReferenceDescriptor {
+  readonly itemKind: AssistantResultReference["kind"];
+  readonly prefix: string;
+}
+
+const resultReferenceDescriptors = {
+  calendar_events: {
+    itemKind: "calendar_event",
+    prefix: "calendar-event",
   },
+  internet_sources: {
+    itemKind: "internet_source",
+    prefix: "internet-source",
+  },
+} as const satisfies Record<
+  FeatureResultReferenceSet["kind"],
+  ResultReferenceDescriptor
+>;
+
+function createEntry(
+  item: RetainedResultReference,
+  descriptor: ResultReferenceDescriptor,
   index: number,
 ): Entry {
+  const publicReference = Object.freeze({
+    facts: Object.freeze({ ...item.facts }),
+    kind: descriptor.itemKind,
+    ordinal: index + 1,
+    reference: `${descriptor.prefix}-${index + 1}`,
+  }) as AssistantResultReference;
   return {
-    publicReference: Object.freeze({
-      facts: Object.freeze({ ...item.facts }),
-      kind: "internet_source",
-      ordinal: index + 1,
-      reference: `internet-source-${index + 1}`,
-    }),
-    target: Object.freeze({ ...item.target }),
+    publicReference,
+    ...(item.target ? { target: Object.freeze({ ...item.target }) } : {}),
   };
 }

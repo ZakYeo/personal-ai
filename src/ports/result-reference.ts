@@ -13,15 +13,10 @@ export type AssistantResultReference =
       readonly kind: "internet_source";
     });
 
-export type ResultReferenceTarget =
-  | {
-      readonly kind: "calendar_event";
-      readonly providerEventId: string;
-    }
-  | {
-      readonly kind: "internet_source";
-      readonly providerResultId: string;
-    };
+export interface ResultReferenceTarget {
+  readonly kind: "calendar_event";
+  readonly providerEventId: string;
+}
 
 interface CalendarFeatureResultReference {
   readonly facts: CalendarResultReferenceFacts;
@@ -30,7 +25,6 @@ interface CalendarFeatureResultReference {
 
 interface InternetSourceFeatureResultReference {
   readonly facts: InternetSourceResultReferenceFacts;
-  readonly target: Extract<ResultReferenceTarget, { kind: "internet_source" }>;
 }
 
 export type FeatureResultReferenceSet =
@@ -59,7 +53,7 @@ export interface InternetSourceResultReferenceFacts {
 
 export interface ResolvedResultReference {
   readonly publicReference: AssistantResultReference;
-  readonly target: ResultReferenceTarget;
+  readonly target?: ResultReferenceTarget;
 }
 
 export interface ResultReferenceSelectionRequest {
