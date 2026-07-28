@@ -2,6 +2,7 @@ import type { FileAlarmStoreDependencies } from "../adapters/local/file-alarm-st
 import { createAlarmFeatureRegistryEntry } from "./feature-adapters/alarm-feature-adapters.js";
 import { createCalendarFeatureRegistryEntry } from "./feature-adapters/calendar-feature-adapters.js";
 import { createMessagingFeatureRegistryEntry } from "./feature-adapters/messaging-feature-adapters.js";
+import { createInternetSearchFeatureRegistryEntry } from "./feature-adapters/internet-search-feature-adapters.js";
 import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
 
 interface DefaultFeatureAdapterRegistryOptions {
@@ -14,6 +15,7 @@ export function createDefaultFeatureAdapterRegistry(
   return {
     alarms: createAlarmFeatureRegistryEntry(options.alarmStore),
     calendar: createCalendarFeatureRegistryEntry(),
+    internetSearch: createInternetSearchFeatureRegistryEntry(),
     messaging: createMessagingFeatureRegistryEntry(),
   };
 }
