@@ -495,7 +495,10 @@ should also guard against subtler boundary and abstraction drift.
   geocoding endpoints without an API key. It preserves required attribution,
   bounds forecast requests to at most 16 local calendar dates, and fails startup
   if config attempts to smuggle in a credential or paid customer endpoint
-  without a new documented provider decision.
+  without a new documented provider decision. Provider-local timestamps must
+  round-trip exactly through the returned IANA timezone; nonexistent or
+  offset-ambiguous local times fail safely rather than inheriting alarm
+  recurrence normalization.
 - Planned daily briefings aggregate only a fixed configured set of narrow read
   ports. Partial source failures remain isolated and diagnostic-safe; retrieved
   content cannot add sections, tools, or actions.

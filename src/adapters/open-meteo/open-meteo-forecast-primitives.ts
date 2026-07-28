@@ -1,4 +1,7 @@
-import { resolveLocalDateTime } from "../../ports/local-date-time.js";
+import {
+  resolveLocalDateTime,
+  zonedParts,
+} from "../../ports/local-date-time.js";
 import { isRecord } from "../parsing.js";
 import { OpenMeteoWeatherError } from "./open-meteo-error.js";
 
@@ -73,8 +76,12 @@ export function parseOpenMeteoLocalTimestamp(
   };
   if (!validDateTimeParts(parts)) throw malformedOpenMeteoForecast();
   try {
-    return resolveLocalDateTime(parts, timezone).toISOString();
+    const resolved = resolveLocalDateTime(parts, timezone);
+    const candidates = exactLocalTimeCandidates(parts, timezone, resolved);
+    if (candidates.size !== 1) throw malformedOpenMeteoForecast();
+    return [...candidates][0]!;
   } catch (error) {
+    if (error instanceof OpenMeteoWeatherError) throw error;
     throw malformedOpenMeteoForecast(error);
   }
 }
@@ -141,5 +148,68 @@ function validDateTimeParts(parts: {
     rendered.getUTCFullYear() === parts.year &&
     rendered.getUTCMonth() === parts.month - 1 &&
     rendered.getUTCDate() === parts.day
+  );
+}
+
+function exactLocalTimeCandidates(
+  parts: {
+    day: number;
+    hour: number;
+    minute: number;
+    month: number;
+    year: number;
+  },
+  timezone: string,
+  resolved: Date,
+): Set<string> {
+  const localEpoch = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+  );
+  const candidates = new Set<string>();
+  for (const probeTime of [
+    resolved.getTime() - 24 * 60 * 60_000,
+    resolved.getTime(),
+    resolved.getTime() + 24 * 60 * 60_000,
+  ]) {
+    const probe = new Date(probeTime);
+    const rendered = zonedParts(probe, timezone);
+    const offset =
+      Date.UTC(
+        rendered.year,
+        rendered.month - 1,
+        rendered.day,
+        rendered.hour,
+        rendered.minute,
+        rendered.second,
+      ) - probe.getTime();
+    const candidate = new Date(localEpoch - offset);
+    if (localPartsMatch(zonedParts(candidate, timezone), parts)) {
+      candidates.add(candidate.toISOString());
+    }
+  }
+  return candidates;
+}
+
+function localPartsMatch(
+  actual: ReturnType<typeof zonedParts>,
+  expected: {
+    day: number;
+    hour: number;
+    minute: number;
+    month: number;
+    year: number;
+  },
+): boolean {
+  return (
+    actual.year === expected.year &&
+    actual.month === expected.month &&
+    actual.day === expected.day &&
+    actual.hour === expected.hour &&
+    actual.minute === expected.minute &&
+    actual.second === 0
   );
 }

@@ -196,6 +196,30 @@ describe("createOpenMeteoWeatherProvider", () => {
         },
       }),
     ],
+    [
+      "nonexistent local timestamp in a daylight-saving gap",
+      createOpenMeteoForecastResponse({
+        hourly: {
+          precipitation: [0.4],
+          temperature_2m: [17],
+          time: ["2026-03-29T01:30"],
+          weather_code: [61],
+          wind_speed_10m: [14],
+        },
+      }),
+    ],
+    [
+      "ambiguous repeated local timestamp without an offset",
+      createOpenMeteoForecastResponse({
+        hourly: {
+          precipitation: [0.4],
+          temperature_2m: [17],
+          time: ["2026-10-25T01:30"],
+          weather_code: [61],
+          wind_speed_10m: [14],
+        },
+      }),
+    ],
   ])("rejects %s forecast data", async (_label, body) => {
     const provider = createOpenMeteoWeatherProvider({
       config,
