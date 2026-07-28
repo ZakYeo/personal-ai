@@ -42,6 +42,10 @@ export function cloneTaskRecord(task: TaskRecord): TaskRecord {
   };
 }
 
+export function normalizeTaskListName(value: string): string {
+  return value.trim().replace(/\s+/gu, " ");
+}
+
 function hasCanonicalRecordMetadata(record: {
   createdAt: string;
   revision: number;
