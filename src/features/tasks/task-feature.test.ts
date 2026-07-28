@@ -507,6 +507,168 @@ describe("createTaskFeature task completion capabilities", () => {
   });
 });
 
+describe("createTaskFeature task mutation capabilities", () => {
+  it("keeps edits low risk and requires exact confirmation for removal", () => {
+    const feature = createTaskFeature(createTestTaskStore());
+
+    expectCapabilityMetadata(feature, {
+      name: "task.edit",
+      parameters: {
+        clearDueDate: { type: "boolean" },
+        clearNote: { type: "boolean" },
+        id: { type: "string" },
+        label: { type: "string" },
+        listName: { type: "string" },
+        newDueDate: { type: "string" },
+        newLabel: { type: "string" },
+        newNote: { type: "string" },
+        ordinal: { type: "number" },
+        reference: { type: "string" },
+      },
+      risk: "low",
+    });
+    expectCapabilityMetadata(feature, {
+      name: "task.remove",
+      parameters: {
+        id: { type: "string" },
+        label: { type: "string" },
+        listName: { type: "string" },
+        ordinal: { type: "number" },
+        reference: { type: "string" },
+      },
+      requiresConfirmation: true,
+      risk: "high",
+    });
+  });
+
+  it("edits task fields without changing its completion fact", async () => {
+    const store = createTestTaskStore();
+    const list = await store.addList({ name: "To-do" });
+    const created = await store.addTask({
+      dueDate: "2026-07-30",
+      label: "Submit form",
+      listId: list.id,
+      note: "Old note",
+    });
+    const completed = await store.updateTask({
+      changes: { status: "completed" },
+      expectedRevision: created.revision,
+      id: created.id,
+      updatedAt: "2026-06-26T09:00:00.000Z",
+    });
+
+    await expectDecodedFeatureExecution(
+      createTaskFeature(store),
+      "task.edit",
+      {
+        clearDueDate: true,
+        clearNote: true,
+        id: created.id,
+        newLabel: "Submit the signed form",
+      },
+      {
+        data: {
+          completedAt: "2026-06-26T09:00:00.000Z",
+          id: created.id,
+          label: "Submit the signed form",
+          listId: list.id,
+          listName: "To-do",
+          revision: 3,
+          status: "completed",
+        },
+        text: "Updated Submit the signed form on your To-do list.",
+      },
+    );
+    expect(completed?.completedAt).toBe("2026-06-26T09:00:00.000Z");
+  });
+
+  it("renders confirmed removal from safe retained facts", () => {
+    const store = createTestTaskStore();
+    const feature = createTaskFeature(store);
+    const capability = feature.capabilities.find(
+      ({ name }) => name === "task.remove",
+    );
+    const context = taskReferenceContext({
+      label: "Oat milk",
+      listId: "task-list-1",
+      listName: "Shopping",
+      ordinal: 2,
+      revision: 1,
+      taskId: "task-2",
+    });
+
+    expect(
+      capability?.renderConfirmation?.(
+        { ordinal: 2, reference: "task-item-2" },
+        context,
+      ),
+    ).toEqual({
+      facts: {
+        label: "Oat milk",
+        listName: "Shopping",
+        ordinal: 2,
+        reference: "task-item-2",
+      },
+      text: "remove Oat milk from the Shopping list",
+    });
+  });
+
+  it("removes only the retained task revision after confirmation", async () => {
+    const store = createTestTaskStore();
+    const list = await store.addList({ name: "Shopping" });
+    await store.addTask({ label: "Coffee", listId: list.id });
+    const oatMilk = await store.addTask({
+      label: "Oat milk",
+      listId: list.id,
+    });
+
+    await expectDecodedFeatureExecution(
+      createTaskFeature(store),
+      "task.remove",
+      { ordinal: 2, reference: "task-item-2" },
+      {
+        data: {
+          id: oatMilk.id,
+          label: "Oat milk",
+          listId: list.id,
+          listName: "Shopping",
+          revision: 1,
+          status: "open",
+        },
+        text: "Removed Oat milk from your Shopping list.",
+      },
+      taskReferenceContext({
+        label: "Oat milk",
+        listId: list.id,
+        listName: "Shopping",
+        ordinal: 2,
+        revision: oatMilk.revision,
+        taskId: oatMilk.id,
+      }),
+      "remove the second one",
+    );
+    expect((await store.listTasks()).map(({ label }) => label)).toEqual([
+      "Coffee",
+    ]);
+  });
+
+  it("rejects a removal confirmation without an exact human target", () => {
+    const feature = createTaskFeature(createTestTaskStore());
+    const capability = feature.capabilities.find(
+      ({ name }) => name === "task.remove",
+    );
+
+    expect(() =>
+      capability?.renderConfirmation?.(
+        { id: "task-1" },
+        createFeatureContext(),
+      ),
+    ).toThrow(
+      "Task removal requires an exact retained reference or list and label.",
+    );
+  });
+});
+
 function taskReferenceContext(input: {
   label: string;
   listId: string;

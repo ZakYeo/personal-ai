@@ -34,7 +34,7 @@ export async function selectEligibleTask(
   store: TaskStore,
   args: TaskTargetArgs,
   context: FeatureExecutionContext,
-  eligibleStatus: TaskRecord["status"],
+  eligibleStatuses: readonly TaskRecord["status"][],
 ): Promise<TaskSelection> {
   const [lists, tasks] = await Promise.all([
     store.listLists(),
@@ -55,8 +55,8 @@ export async function selectEligibleTask(
       };
     }
     const list = lists.find((candidate) => candidate.id === task.listId);
-    if (!list || task.status !== eligibleStatus) {
-      return { result: ineligibleTaskResult(eligibleStatus) };
+    if (!list || !eligibleStatuses.includes(task.status)) {
+      return { result: ineligibleTaskResult(eligibleStatuses) };
     }
     return { list, task };
   }
@@ -78,7 +78,7 @@ export async function selectEligibleTask(
     : undefined;
   const eligible = tasks.filter(
     (task) =>
-      task.status === eligibleStatus &&
+      eligibleStatuses.includes(task.status) &&
       (args.id === undefined || task.id === args.id) &&
       (requestedList === undefined || task.listId === requestedList.id) &&
       (label === undefined || task.label.toLocaleLowerCase("en") === label),
@@ -87,7 +87,7 @@ export async function selectEligibleTask(
     return {
       result:
         eligible.length === 0
-          ? ineligibleTaskResult(eligibleStatus)
+          ? ineligibleTaskResult(eligibleStatuses)
           : {
               expectsFollowUp: true,
               text: "More than one eligible task matches. Please name its list or show the list and choose an item.",
@@ -132,12 +132,14 @@ function selectReferencedTask(
 }
 
 function ineligibleTaskResult(
-  eligibleStatus: TaskRecord["status"],
+  eligibleStatuses: readonly TaskRecord["status"][],
 ): FeatureResult {
   return {
     text:
-      eligibleStatus === "open"
-        ? "I could not find one matching open task to complete."
-        : "I could not find one matching completed task to reopen.",
+      eligibleStatuses.length > 1
+        ? "I could not find one matching task."
+        : eligibleStatuses[0] === "open"
+          ? "I could not find one matching open task to complete."
+          : "I could not find one matching completed task to reopen.",
   };
 }

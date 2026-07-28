@@ -27,6 +27,7 @@ import {
   taskTargetParameters,
   type TaskTargetArgs,
 } from "./task-selection.js";
+import { createTaskMutationCapabilities } from "./task-mutation-capabilities.js";
 
 const createListParameters = {
   name: { required: true, type: "string" },
@@ -80,6 +81,7 @@ export function createTaskFeature(store: TaskStore) {
         spokenSummary: "add tasks to personal lists",
         summary: "Add a task to a named personal list.",
       }),
+      ...createTaskMutationCapabilities(store),
       "task.list.create": defineCapability({
         description: "Create one durable named personal task list.",
         execute: (request) => createList(store, request.args),
@@ -139,12 +141,9 @@ async function changeTaskStatus(
   context: FeatureExecutionContext,
   status: TaskRecord["status"],
 ): Promise<FeatureResult> {
-  const selection = await selectEligibleTask(
-    store,
-    args,
-    context,
+  const selection = await selectEligibleTask(store, args, context, [
     status === "completed" ? "open" : "completed",
-  );
+  ]);
   if ("result" in selection) return selection.result;
   const updated = await store.updateTask({
     changes: { status },
