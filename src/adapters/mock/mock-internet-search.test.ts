@@ -1,15 +1,11 @@
 import { createMockInternetSearch } from "./mock-internet-search.js";
-import { deterministicTestNow } from "../../test-support/primitives.js";
 
 describe("createMockInternetSearch", () => {
   it("returns bounded deterministic source results", async () => {
     const search = createMockInternetSearch();
 
     await expect(
-      search.search(
-        { maxResults: 1, query: "TypeScript 5.7" },
-        { now: deterministicTestNow },
-      ),
+      search.search({ maxResults: 1, query: "TypeScript 5.7" }, {}),
     ).resolves.toEqual({
       answer:
         "TypeScript 5.7 adds checks for variables that have never been initialized. [1]",
@@ -37,10 +33,7 @@ describe("createMockInternetSearch", () => {
     const search = createMockInternetSearch();
 
     await expect(
-      search.search(
-        { maxResults: 5, query: "unmatched subject" },
-        { now: deterministicTestNow },
-      ),
+      search.search({ maxResults: 5, query: "unmatched subject" }, {}),
     ).resolves.toEqual({
       answer: "",
       citations: [],

@@ -27,8 +27,18 @@ export interface AssistantDependencies {
 }
 
 export interface Assistant {
-  handleText(text: string): Promise<AssistantResponse>;
-  handleTextWithDiagnostics(text: string): Promise<AssistantOutcome>;
+  handleText(
+    text: string,
+    options?: AssistantRequestOptions,
+  ): Promise<AssistantResponse>;
+  handleTextWithDiagnostics(
+    text: string,
+    options?: AssistantRequestOptions,
+  ): Promise<AssistantOutcome>;
+}
+
+interface AssistantRequestOptions {
+  signal?: AbortSignal;
 }
 
 export function createAssistant(
@@ -45,6 +55,7 @@ export function createAssistant(
 
   async function handleTextWithDiagnostics(
     text: string,
+    options: AssistantRequestOptions = {},
   ): Promise<AssistantOutcome> {
     return interaction.run(
       text,
@@ -57,15 +68,25 @@ export function createAssistant(
             resultReferences,
           },
           text,
+          ...(options.signal ? { signal: options.signal } : {}),
         }).run(),
-      (plan) => executeValidatedPlan(plan, dependencies, resultReferences),
+      (plan) =>
+        executeValidatedPlan(
+          plan,
+          dependencies,
+          resultReferences,
+          options.signal,
+        ),
       () => resultReferences.completeTurn(),
     );
   }
 
   return {
-    async handleText(text: string): Promise<AssistantResponse> {
-      const outcome = await handleTextWithDiagnostics(text);
+    async handleText(
+      text: string,
+      options: AssistantRequestOptions = {},
+    ): Promise<AssistantResponse> {
+      const outcome = await handleTextWithDiagnostics(text, options);
 
       return outcome.response;
     },

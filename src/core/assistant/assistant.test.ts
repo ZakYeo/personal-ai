@@ -87,6 +87,33 @@ describe("createAssistant", () => {
     );
   });
 
+  it("scopes request cancellation to the active feature execution", async () => {
+    const shutdown = new AbortController();
+    const execute = vi.fn(() => Promise.resolve({ text: "Handled." }));
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [
+        createFeature({
+          capability: {
+            name: "test.echo",
+            parameters: {},
+            risk: "low",
+          },
+          execute,
+        }),
+      ],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+    });
+
+    await assistant.handleText("hello", { signal: shutdown.signal });
+
+    expect(execute).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ signal: shutdown.signal }),
+    );
+  });
+
   it("rewrites successful command responses when a response rewriter is configured", async () => {
     const command = createCommand("test.echo", { message: "hello" });
     const rewrite = vi.fn(() =>

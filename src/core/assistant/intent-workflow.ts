@@ -47,10 +47,11 @@ interface IntentWorkflowDependencies {
 
 export function createIntentWorkflow(input: {
   dependencies: IntentWorkflowDependencies;
+  signal?: AbortSignal;
   text: string;
 }): { run(): Promise<AssistantOutcome> } {
   const normalizedText = input.text.trim();
-  const context = createContext(input.dependencies);
+  const context = createContext(input.dependencies, input.signal);
   let session: IntentInterpreterSession | undefined;
   const toolChain = createToolChainState();
   let clarificationUsed = false;
@@ -144,6 +145,7 @@ export function createIntentWorkflow(input: {
         validation.plan,
         input.dependencies,
         input.dependencies.resultReferences,
+        context.signal,
       ),
     );
   }
@@ -270,11 +272,13 @@ export function createIntentWorkflow(input: {
 
 function createContext(
   dependencies: IntentWorkflowDependencies,
+  signal: AbortSignal | undefined,
 ): AssistantContext {
   const references = dependencies.resultReferences.publicReferences();
   return {
     clock: dependencies.clock,
     config: dependencies.config,
+    ...(signal ? { signal } : {}),
     ...(references.length > 0 ? { resultReferences: references } : {}),
   };
 }

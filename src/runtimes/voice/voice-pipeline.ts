@@ -39,6 +39,7 @@ interface VoicePipelineDependencies {
   commandAudioInput: AudioInputPort;
   speechToText: SpeechToTextPort;
   outputCoordinator?: VoiceOutputCoordinator;
+  shutdownSignal?: AbortSignal;
   streamingInput?: StreamingVoiceInput;
   streamingOutput?: StreamingVoiceOutput;
   textToSpeech: TextToSpeechPort;

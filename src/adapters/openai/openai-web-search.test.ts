@@ -10,7 +10,6 @@ import {
   providerErrorResponse,
   readJsonRequestBody,
 } from "../../test-support/adapter-contract.js";
-import { deterministicTestNow } from "../../test-support/primitives.js";
 
 const config = {
   apiKeyEnv: "OPENAI_API_KEY",
@@ -53,10 +52,7 @@ describe("createOpenAIWebSearch", () => {
     });
 
     await expect(
-      search.search(
-        { maxResults: 3, query: "current answer" },
-        { now: deterministicTestNow },
-      ),
+      search.search({ maxResults: 3, query: "current answer" }, {}),
     ).resolves.toEqual({
       answer: "A current source says the answer is forty-two. [1]",
       citations: [
@@ -120,10 +116,7 @@ describe("createOpenAIWebSearch", () => {
     });
 
     await expect(
-      search.search(
-        { maxResults: 2, query: "facts" },
-        { now: deterministicTestNow },
-      ),
+      search.search({ maxResults: 2, query: "facts" }, {}),
     ).resolves.toEqual({
       answer,
       citations: [
@@ -184,10 +177,7 @@ describe("createOpenAIWebSearch", () => {
     });
 
     await expect(
-      search.search(
-        { maxResults: 1, query: "facts" },
-        { now: deterministicTestNow },
-      ),
+      search.search({ maxResults: 1, query: "facts" }, {}),
     ).rejects.toThrow(
       "OpenAI web search response exceeded the configured source limit.",
     );
@@ -292,10 +282,7 @@ describe("createOpenAIWebSearch", () => {
       });
 
       await expect(
-        search.search(
-          { maxResults: 3, query: "query" },
-          { now: deterministicTestNow },
-        ),
+        search.search({ maxResults: 3, query: "query" }, {}),
       ).rejects.toThrow(testCase.message);
     }
   });
@@ -327,10 +314,7 @@ describe("createOpenAIWebSearch", () => {
       });
 
       const error = await search
-        .search(
-          { maxResults: 3, query: "query" },
-          { now: deterministicTestNow },
-        )
+        .search({ maxResults: 3, query: "query" }, {})
         .catch((reason: unknown) => reason);
       expect(error).toBeInstanceOf(OpenAIWebSearchError);
       expect(error).toMatchObject({
@@ -338,6 +322,72 @@ describe("createOpenAIWebSearch", () => {
         status: testCase.status,
       });
     }
+  });
+
+  it("cancels response-body consumption when the caller aborts", async () => {
+    const shutdown = new AbortController();
+    let bodyCancelled = false;
+    const fetch = vi.fn<typeof globalThis.fetch>(() =>
+      Promise.resolve(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            cancel() {
+              bodyCancelled = true;
+            },
+            start(controller) {
+              controller.enqueue(new TextEncoder().encode("{"));
+            },
+          }),
+        ),
+      ),
+    );
+    const search = createOpenAIWebSearch({
+      config,
+      env: createProviderCredentialEnv("OPENAI_API_KEY"),
+      fetch,
+    });
+
+    const pending = search.search(
+      { maxResults: 3, query: "query" },
+      { signal: shutdown.signal },
+    );
+    shutdown.abort(new Error("service shutdown"));
+
+    await expect(pending).rejects.toThrow(
+      "OpenAI web search request was cancelled.",
+    );
+    expect(bodyCancelled).toBe(true);
+  });
+
+  it("rejects and cancels provider bodies above the search byte bound", async () => {
+    let bodyCancelled = false;
+    const chunk = new Uint8Array(262_145);
+    const fetch = vi.fn<typeof globalThis.fetch>(() =>
+      Promise.resolve(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            cancel() {
+              bodyCancelled = true;
+            },
+            start(controller) {
+              controller.enqueue(chunk);
+            },
+          }),
+        ),
+      ),
+    );
+    const search = createOpenAIWebSearch({
+      config,
+      env: createProviderCredentialEnv("OPENAI_API_KEY"),
+      fetch,
+    });
+
+    await expect(
+      search.search({ maxResults: 3, query: "query" }, {}),
+    ).rejects.toThrow(
+      "OpenAI web search response body exceeded the configured byte limit.",
+    );
+    expect(bodyCancelled).toBe(true);
   });
 
   it("fails startup-safe when its configured credential is absent", async () => {
@@ -348,10 +398,7 @@ describe("createOpenAIWebSearch", () => {
     });
 
     await expect(
-      search.search(
-        { maxResults: 3, query: "query" },
-        { now: deterministicTestNow },
-      ),
+      search.search({ maxResults: 3, query: "query" }, {}),
     ).rejects.toThrow(
       "OpenAI API key environment variable OPENAI_API_KEY is not set.",
     );

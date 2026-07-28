@@ -1,4 +1,7 @@
-import type { InternetSearchPort } from "../../ports/internet-search.js";
+import {
+  internetSearchLimits,
+  type InternetSearchPort,
+} from "../../ports/internet-search.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 import { requestOpenAIResponse } from "./openai-responses-client.js";
 import { OpenAIWebSearchError } from "./openai-web-search-error.js";
@@ -14,7 +17,7 @@ export function createOpenAIWebSearch(
   options: OpenAIWebSearchOptions,
 ): InternetSearchPort {
   return {
-    search: async (query) => {
+    search: async (query, searchOptions) => {
       const response = await requestOpenAIResponse({
         body: {
           input: createSearchInput(query.query),
@@ -22,12 +25,17 @@ export function createOpenAIWebSearch(
           tool_choice: "required",
           tools: [{ search_context_size: "low", type: "web_search" }],
         },
+        cancelledMessage: "OpenAI web search request was cancelled.",
         config: options.config,
         createError: ({ cause, message, responseBody, status }) =>
           new OpenAIWebSearchError(message, status, responseBody, { cause }),
         env: options.env,
         fetch: options.fetch,
+        maxResponseBodyBytes: internetSearchLimits.responseBodyBytes,
         operation: "web search",
+        responseBodyTooLargeMessage:
+          "OpenAI web search response body exceeded the configured byte limit.",
+        ...(searchOptions.signal ? { signal: searchOptions.signal } : {}),
       });
 
       return parseOpenAIWebSearchResponse(response, query.maxResults);

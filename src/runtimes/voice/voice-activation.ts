@@ -24,6 +24,7 @@ export interface VoiceActivationDependencies {
   audioOutput: AudioOutputPort;
   commandAudioInput: AudioInputPort;
   outputCoordinator?: VoiceOutputCoordinator;
+  shutdownSignal?: AbortSignal;
   speechToText: SpeechToTextPort;
   streamingInput?: StreamingVoiceInput;
   streamingOutput?: StreamingVoiceOutput;

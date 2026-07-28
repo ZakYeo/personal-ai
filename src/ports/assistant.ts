@@ -105,6 +105,7 @@ export interface AssistantContext {
   config: AssistantPolicyConfig;
   clock: ClockPort;
   resultReferences?: readonly AssistantResultReference[];
+  signal?: AbortSignal;
   selectResultReference?(
     request: ResultReferenceSelectionRequest,
   ): ResolvedResultReference | undefined;

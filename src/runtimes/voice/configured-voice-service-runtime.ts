@@ -146,6 +146,7 @@ export function runConfiguredVoiceServiceRuntime(
               ...(adapters.streamingOutput
                 ? { streamingOutput: adapters.streamingOutput }
                 : {}),
+              shutdownSignal,
               textToSpeech: adapters.textToSpeech,
               turnConfig: {
                 wakePhrases: config.assistant.wakePhrases,

@@ -27,9 +27,13 @@ export async function handleAssistantText(
   assistant: Assistant,
   text: string,
   io: VoiceRuntimeIo,
+  signal?: AbortSignal,
 ): Promise<AssistantResponse> {
   try {
-    const outcome = await assistant.handleTextWithDiagnostics(text);
+    const outcome = await assistant.handleTextWithDiagnostics(
+      text,
+      signal ? { signal } : {},
+    );
 
     logAssistantDiagnostics(outcome.diagnostics ?? [], io);
 

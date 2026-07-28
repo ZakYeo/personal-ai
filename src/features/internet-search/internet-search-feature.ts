@@ -83,12 +83,7 @@ export function createInternetSearchFeature(
           summary: "Search current public information with source citations.",
           parameters: searchParameters,
           execute: async (request, context) =>
-            executeSearch(
-              search,
-              request.args,
-              context.clock.now(),
-              maxResults,
-            ),
+            executeSearch(search, request.args, context.signal, maxResults),
         }),
       },
     }),
@@ -99,7 +94,7 @@ export function createInternetSearchFeature(
 async function executeSearch(
   search: InternetSearchPort,
   args: SearchArgs,
-  now: Date,
+  signal: AbortSignal | undefined,
   maxResults: number,
 ) {
   const query = args.query.trim();
@@ -112,7 +107,10 @@ async function executeSearch(
     );
   }
 
-  const response = await search.search({ maxResults, query }, { now });
+  const response = await search.search(
+    { maxResults, query },
+    signal ? { signal } : {},
+  );
   validateSearchResponse(response, maxResults);
   if (response.sources.length === 0) {
     return {

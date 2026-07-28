@@ -3,6 +3,32 @@ import { createVoiceRuntimeDependencies } from "../../test-support/voice-runtime
 import { runDetectedVoiceCommand } from "./voice-command.js";
 
 describe("runDetectedVoiceCommand", () => {
+  it("forwards service shutdown cancellation to assistant handling", async () => {
+    const shutdown = new AbortController();
+    const handleTextWithDiagnostics = vi.fn(() =>
+      Promise.resolve({
+        response: deterministicScenarios.alarmListEmpty.response,
+      }),
+    );
+    const dependencies = createVoiceRuntimeDependencies({
+      assistant: {
+        handleText: vi.fn(),
+        handleTextWithDiagnostics,
+      },
+    });
+
+    await runDetectedVoiceCommand(
+      { ...dependencies, shutdownSignal: shutdown.signal },
+      deterministicScenarios.alarmListEmpty.text,
+      {},
+    );
+
+    expect(handleTextWithDiagnostics).toHaveBeenCalledWith(
+      deterministicScenarios.alarmListEmpty.text,
+      { signal: shutdown.signal },
+    );
+  });
+
   it("uses cohesive streaming output through its public dependency type", async () => {
     const streamedAudio: string[] = [];
     const batchSpeech = vi.fn();

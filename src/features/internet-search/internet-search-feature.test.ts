@@ -1,6 +1,7 @@
 import { createInternetSearchFeature } from "./internet-search-feature.js";
 import type {
   InternetSearchPort,
+  InternetSearchOptions,
   InternetSearchQuery,
 } from "../../ports/internet-search.js";
 import {
@@ -73,6 +74,30 @@ describe("createInternetSearchFeature", () => {
     );
 
     expect(calls).toEqual([{ maxResults: 3, query: "TypeScript 5.7" }]);
+  });
+
+  it("forwards the active request cancellation signal to search", async () => {
+    const shutdown = new AbortController();
+    let receivedOptions: InternetSearchOptions | undefined;
+    const feature = createInternetSearchFeature({
+      search: (_query, options) => {
+        receivedOptions = options;
+        return Promise.resolve({ answer: "", citations: [], sources: [] });
+      },
+    });
+
+    await expectDecodedFeatureExecution(
+      feature,
+      "internet.search",
+      { query: "current answer" },
+      {
+        resultReferences: { items: [], kind: "internet_sources" },
+        text: 'I could not find current sources for "current answer".',
+      },
+      { ...createFeatureContext(), signal: shutdown.signal },
+    );
+
+    expect(receivedOptions).toEqual({ signal: shutdown.signal });
   });
 
   it("returns a graceful response when no current sources match", async () => {

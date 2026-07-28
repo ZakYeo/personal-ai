@@ -18,6 +18,7 @@ export interface VoiceCommandDependencies {
   assistant: Assistant;
   audioOutput: AudioOutputPort;
   outputCoordinator?: VoiceOutputCoordinator;
+  shutdownSignal?: AbortSignal;
   streamingOutput?: StreamingVoiceOutput;
   textToSpeech: TextToSpeechPort;
 }
@@ -37,7 +38,12 @@ export async function runDetectedVoiceCommand(
   logCommandTranscript(io, commandText);
 
   const response = await instrumentation.measure("assistant handling", () =>
-    handleAssistantText(dependencies.assistant, commandText, io),
+    handleAssistantText(
+      dependencies.assistant,
+      commandText,
+      io,
+      dependencies.shutdownSignal,
+    ),
   );
 
   logAssistantResponse(io, response);

@@ -11,11 +11,15 @@ interface OpenAIResponsesErrorOptions {
 
 interface RequestOpenAIResponseOptions {
   body: unknown;
+  cancelledMessage?: string;
   config: OpenAIResponsesConfig;
   createError(options: OpenAIResponsesErrorOptions): Error;
   env: Record<string, string | undefined>;
   fetch: typeof globalThis.fetch;
+  maxResponseBodyBytes?: number;
   operation: string;
+  responseBodyTooLargeMessage?: string;
+  signal?: AbortSignal;
 }
 
 export function requestOpenAIResponse(
@@ -26,6 +30,9 @@ export function requestOpenAIResponse(
   );
 
   return fetchProviderJson({
+    ...(options.cancelledMessage
+      ? { cancelledMessage: options.cancelledMessage }
+      : {}),
     createError: (errorOptions) => options.createError(errorOptions),
     fetch: options.fetch,
     invalidJsonMessage: `OpenAI ${options.operation} response body was not valid JSON.`,
@@ -39,6 +46,13 @@ export function requestOpenAIResponse(
       },
       method: "POST",
     },
+    ...(options.maxResponseBodyBytes === undefined
+      ? {}
+      : { maxResponseBodyBytes: options.maxResponseBodyBytes }),
+    ...(options.responseBodyTooLargeMessage
+      ? { responseBodyTooLargeMessage: options.responseBodyTooLargeMessage }
+      : {}),
+    ...(options.signal ? { signal: options.signal } : {}),
     timeoutMessage: `OpenAI ${options.operation} request timed out after ${options.config.timeoutMs}ms.`,
     timeoutMs: options.config.timeoutMs,
     url: createOpenAIUrl(options.config.baseUrl, "responses"),

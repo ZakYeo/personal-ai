@@ -47,12 +47,14 @@ export function executeValidatedPlan(
   plan: ValidatedAssistantPlan,
   dependencies: CommandExecutionDependencies,
   resultReferences: ResultReferenceSession,
+  signal?: AbortSignal,
 ): Promise<AssistantOutcome> {
   const context: AssistantContext = {
     clock: planRequiresConfirmation(plan)
       ? { now: () => new Date(plan.validatedAt) }
       : dependencies.clock,
     config: dependencies.config,
+    ...(signal ? { signal } : {}),
     ...(resultReferences.publicReferences().length > 0
       ? { resultReferences: resultReferences.publicReferences() }
       : {}),

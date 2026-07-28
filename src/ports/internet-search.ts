@@ -14,7 +14,7 @@ export interface InternetSearchQuery {
 }
 
 export interface InternetSearchOptions {
-  now: Date;
+  signal?: AbortSignal;
 }
 
 export interface InternetSearchCitation {
