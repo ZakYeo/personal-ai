@@ -105,10 +105,11 @@ Current roadmap position:
   application-owned all-day clarification, and typed
   calendar-event-to-alarm snapshot binding. The
   [discovery report](docs/08-spike-9-report.md) records the evidence behind that
-  completed sequence. Milestone 14's source-grounded internet-search
-  implementation is complete and awaiting its required independent review. The
-  remaining roadmap prioritizes explicit personal profiles, weather and forecast
-  watches, durable lists/tasks/reminders, and scheduled daily briefings.
+  completed sequence. Milestone 14 is implemented after its required independent
+  review, with bounded source-grounded search, snapshot-only source follow-ups,
+  terminal-only trust isolation, and cancellation-aware provider transport. The
+  remaining roadmap prioritizes explicit personal profiles, weather and
+  forecast watches, durable lists/tasks/reminders, and scheduled daily briefings.
   Profiles will be created and edited through validated text and voice commands
   rather than hardcoded setup, and the weather milestone selects Open-Meteo's
   key-free non-commercial API. Smart-home control, a personal

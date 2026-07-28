@@ -467,7 +467,9 @@ checked-in deterministic configs use `mock`; desktop and Pi OpenAI operator
 configs select `openai`, capture typed Responses configuration during config
 parsing, and reuse `OPENAI_API_KEY`. The adapter requires the hosted
 `web_search` tool, applies the shared OpenAI JSON transport timeout policy, and
-returns only validated HTTP(S) citation annotations. Text, desktop voice, and Pi
+returns only validated HTTP(S) citation annotations. Response bodies are read
+through a bounded streaming reader, and the active voice-service shutdown signal
+cancels both the request and body consumption. Text, desktop voice, and Pi
 service composition all use the same feature registry entry.
 
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent

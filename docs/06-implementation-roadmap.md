@@ -35,18 +35,18 @@ Milestone 12.1 is implemented after its required independent maintainability
 review. It adds bounded, provider-neutral read-tool chaining before a fully
 validated terminal command or compound plan, initially proving
 calendar-result-driven alarm creation.
-Milestone 14's implementation is complete and awaiting its required independent
-maintainability review. It adds bounded source-grounded internet search,
-deterministic and opt-in OpenAI web-search adapters, visible citation integrity,
-process-local source follow-ups, and shared text, voice, and service
-composition.
+Milestone 14 is implemented after its required independent maintainability
+review. It adds bounded source-grounded internet search, deterministic and
+opt-in OpenAI web-search adapters, visible citation integrity, process-local
+snapshot follow-ups, terminal-only trust isolation, request cancellation, and
+shared text, voice, and service composition.
 
 ## Implemented Milestone Archive
 
-Detailed acceptance criteria and outcomes for Milestones 1 through 12.1 are kept
-in `docs/09-implemented-milestones.md`. The earlier provider-focused roadmap
-after Milestone 12.1 was retired and replaced by capability-focused Milestones
-13 through 17, selected from current user needs.
+Detailed acceptance criteria and outcomes for Milestones 1 through 12.1 and 14
+are kept in `docs/09-implemented-milestones.md`. The earlier provider-focused
+roadmap after Milestone 12.1 was retired and replaced by capability-focused
+Milestones 13 through 17, selected from current user needs.
 
 ## Spike 9: Future Milestone Discovery
 
@@ -333,9 +333,10 @@ Acceptance criteria:
 
 ## Milestone 14: Internet Search with Source-Grounded Answers
 
-Status: implementation complete; required independent maintainability review
-pending. Milestone 13 remains an optional dependency for personalized defaults,
-not for basic search.
+Status: implemented after the required independent maintainability review.
+Detailed scope, review outcomes, and acceptance evidence are archived in
+`docs/09-implemented-milestones.md`. Milestone 13 remains an optional dependency
+for personalized defaults, not for basic search.
 
 Goal: answer questions about current public information through bounded,
 read-only internet search with verifiable sources.

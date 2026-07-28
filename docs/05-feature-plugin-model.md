@@ -143,13 +143,14 @@ high-risk capability.
 
 Feature results may contribute a bounded result-reference set. Calendar and
 internet search use this neutral result contract to provide safe displayed facts
-and a private read-only target. Core replaces the assistant session's previous
-set, caps it at ten entries, expires it after three subsequent completed turns
-or conversation compaction, and exposes only opaque references to later intent
-interpretation. Follow-up feature execution receives a resolver for the private
-target; neither feature owns session lifetime or exposes provider IDs in its
-human response. Future task lists may use the same contract with their own safe
-projection.
+and, only when needed, a private read-only target. Calendar references retain a
+private event lookup target; internet references are immutable displayed
+snapshots with no fabricated provider target. A descriptor-driven core path
+replaces the assistant session's previous set, caps it at ten entries, expires
+it after three subsequent completed turns or conversation compaction, and
+exposes only opaque references to later intent interpretation. Neither feature
+owns session lifetime or exposes provider IDs in its human response. Future task
+lists may use the same contract with their own safe projection.
 
 Planned profile, weather, task, and briefing composition does not relax feature
 ownership. A feature that needs personal defaults receives a narrow

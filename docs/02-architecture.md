@@ -174,9 +174,9 @@ adapters without making features import or invoke one another:
   but only decoded application commands can mutate the store.
 - Implemented internet search uses a read-only provider port with deterministic
   and OpenAI Responses web-search adapters. Core retains at most ten safe opaque
-  source references for three subsequent completed turns, while provider result
-  IDs remain private. The feature constructs every visible citation from the
-  bounded returned set; retrieved text remains untrusted external data.
+  source snapshots for three subsequent completed turns without inventing or
+  retaining provider result IDs. The feature constructs every visible citation
+  from the bounded returned set; retrieved text remains untrusted external data.
 - Weather uses provider-neutral current and forecast ports with Open-Meteo as
   the selected key-free non-commercial adapter. Durable weather watches are
   owned by the weather adapter, which contributes a neutral background task

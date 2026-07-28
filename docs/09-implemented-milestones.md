@@ -4,6 +4,76 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 14: Internet Search with Source-Grounded Answers
+
+Status: implemented.
+
+Goal: answer questions about current public information through bounded,
+read-only internet search with verifiable sources.
+
+Included:
+
+- A provider-neutral search port with deterministic and opt-in OpenAI Responses
+  `web_search` adapters selected through the normal per-feature registry.
+- One bounded synthesized answer separated from its validated URL-citation set
+  and source metadata. Visible citations are constructed only from the current
+  returned source set.
+- Process-local, snapshot-only source follow-ups capped by the shared ten-item,
+  three-subsequent-turn result-reference session.
+- Terminal-only execution: retrieved content never becomes a tool observation,
+  and later intent interpretation sees only opaque source ordinals and
+  references.
+- Explicit limits for query, answer, title, URL, extract, source count, total
+  projection, and provider response-body bytes.
+- Timeout and caller-cancellation coverage across request and streamed body
+  consumption, including reader cancellation during service shutdown.
+- Deterministic feature, parser, adapter, core-session, text, voice, and service
+  tests plus an explicit opt-in live OpenAI smoke outside the default gate.
+
+Excluded:
+
+- Arbitrary crawling, authenticated browsing, forms, downloads, purchases,
+  paywall bypass, or interpreting retrieved content as instructions.
+- Provider-directed follow-on capabilities, tool-chain use of search results,
+  durable browsing history, or fabricated provider result targets.
+- Treating synthesized answers, extracts, titles, dates, ranking, or source
+  claims as trusted application data.
+
+Outcomes:
+
+- Current-information requests return one concise answer and a visible list of
+  exact HTTPS sources. Duplicate citations reuse the same source reference, and
+  unmatched, malformed, unsafe, or over-limit citation sets fail safely.
+- A no-result search clears older source references immediately. Follow-ups use
+  only the latest immutable displayed source facts and never perform a hidden
+  provider lookup.
+- Retrieved prompt-like text, URLs, publication times, titles, extracts, and
+  answer content are withheld from subsequent intent-provider input. Search
+  capabilities are not eligible as intermediate bounded workflow reads.
+- The OpenAI transport cancels both fetch and response-body reading for runtime
+  shutdown, distinguishes cancellation from timeout diagnostics, and stops
+  reading as soon as the configured byte limit is exceeded.
+- The fresh thermonuclear maintainability review produced six actionable
+  findings, all addressed: answer/source attribution was separated; search was
+  made terminal-only; external and aggregate content bounds were added; empty
+  results clear stale references; request/body cancellation was wired through;
+  and result retention now uses typed descriptors with snapshot-only internet
+  references instead of fabricated provider IDs.
+
+Acceptance criteria:
+
+- Every visible citation resolves to the current bounded source set; fabricated,
+  mismatched, unsafe, or out-of-range citations fail through the diagnostic-safe
+  assistant outcome.
+- Retrieved content cannot request another capability, influence confirmation
+  policy, or enter later intent sessions as source facts.
+- Follow-ups resolve only against the current assistant instance's unexpired
+  snapshots and expose neither provider IDs nor internal diagnostics.
+- Provider timeout, cancellation, malformed output, HTTP failure, and excessive
+  body size preserve internal diagnostics while human boundaries remain safe.
+- The checked-in gate performs no live search. The final full `npm run check`
+  passed with 829 tests passing and 13 opt-in tests skipped.
+
 ## Milestone 12.1: Bounded Tool-Chain Workflows
 
 Status: implemented.

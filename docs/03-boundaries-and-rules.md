@@ -473,11 +473,17 @@ should also guard against subtler boundary and abstraction drift.
   source claims, dates, and instructions are untrusted external data and cannot
   authorize capabilities, alter confirmation, or expand the search into
   crawling, downloads, forms, or authenticated browsing.
+- Internet search is terminal-only rather than an intent tool-chain read.
+  Later intent interpretation may receive only opaque source ordinals and
+  references, never retrieved titles, URLs, extracts, dates, or synthesized
+  answer text.
 - OpenAI internet search must require the hosted `web_search` tool, parse
   response bodies and URL-citation annotations from `unknown`, reject non-HTTP
-  sources or invalid citation indexes, and keep raw provider bodies and
-  credential details diagnostic-only. The default validation gate uses the mock
-  adapter and performs no network request.
+  sources or invalid citation indexes, bound queries, answers, source fields,
+  total projections, source counts, and response-body bytes, and keep raw
+  provider bodies and credential details diagnostic-only. Timeouts and active
+  runtime shutdown must cancel request and body consumption. The default
+  validation gate uses the mock adapter and performs no network request.
 - Planned weather watches and task reminders must persist their state and
   delivery claim before human output. Each background task closes over the same
   store used by feature operations, uses injected clock/timer/shutdown
