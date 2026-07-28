@@ -1,11 +1,12 @@
 import { createWeatherProviderFixture } from "../../test-support/weather.js";
+import type { WeatherForecast } from "../../ports/weather.js";
 import {
-  createForecastWeatherPeriod,
   metricWeatherUnits,
   validateWeatherForecast,
   validateWeatherLocations,
   weatherForecastIsStale,
-} from "./weather-validation.js";
+} from "../../ports/weather-policy.js";
+import { createForecastWeatherPeriod } from "./weather-validation.js";
 
 const location = {
   countryCode: "GB",
@@ -60,6 +61,93 @@ describe("weather validation", () => {
         location,
         period,
       ),
+    ).toThrow("Weather provider returned malformed forecast data.");
+  });
+
+  it("compares exact provider facts structurally rather than by property order", async () => {
+    const forecast = await createWeatherProviderFixture().getForecast(
+      { location, period, units: metricWeatherUnits },
+      {},
+    );
+    const reorderedLocation = {
+      timezone: location.timezone,
+      name: location.name,
+      longitude: location.longitude,
+      latitude: location.latitude,
+      countryCode: location.countryCode,
+    };
+
+    expect(() =>
+      validateWeatherForecast(
+        { ...forecast, location: reorderedLocation },
+        location,
+        period,
+      ),
+    ).not.toThrow();
+  });
+
+  it.each([
+    [
+      "an impossible daily calendar date",
+      (forecast: WeatherForecast) => ({
+        ...forecast,
+        daily: [{ ...forecast.daily[0]!, date: "2026-02-30" }],
+      }),
+    ],
+    [
+      "negative precipitation",
+      (forecast: WeatherForecast) => ({
+        ...forecast,
+        current: { ...forecast.current, precipitation: -0.1 },
+      }),
+    ],
+    [
+      "negative wind speed",
+      (forecast: WeatherForecast) => ({
+        ...forecast,
+        hourly: [{ ...forecast.hourly[0]!, windSpeed: -1 }],
+      }),
+    ],
+    [
+      "a duplicate hourly timestamp",
+      (forecast: WeatherForecast) => ({
+        ...forecast,
+        hourly: [forecast.hourly[0]!, { ...forecast.hourly[0]! }],
+      }),
+    ],
+    [
+      "unordered hourly timestamps",
+      (forecast: WeatherForecast) => ({
+        ...forecast,
+        hourly: [
+          {
+            ...forecast.hourly[0]!,
+            forecastAt: "2026-07-29T10:00:00.000Z",
+          },
+          forecast.hourly[0]!,
+        ],
+      }),
+    ],
+    [
+      "an hourly timestamp outside the requested period",
+      (forecast: WeatherForecast) => ({
+        ...forecast,
+        hourly: [
+          {
+            ...forecast.hourly[0]!,
+            forecastAt: "2026-07-30T09:00:00.000Z",
+          },
+        ],
+      }),
+    ],
+  ])("rejects %s", async (_label, mutate) => {
+    const forecast = await createWeatherProviderFixture().getForecast(
+      { location, period, units: metricWeatherUnits },
+      {},
+    );
+
+    expect(() =>
+      validateWeatherForecast(mutate(forecast), location, period),
     ).toThrow("Weather provider returned malformed forecast data.");
   });
 

@@ -1,4 +1,5 @@
 import type { WeatherLocation } from "../../ports/weather.js";
+import { assertValidWeatherLocation } from "../../ports/weather-policy.js";
 import { isRecord } from "../parsing.js";
 import { OpenMeteoWeatherError } from "./open-meteo-error.js";
 
@@ -17,10 +18,10 @@ function parseLocation(value: unknown): WeatherLocation {
   if (
     !isRecord(value) ||
     !isNonEmptyString(value.name) ||
-    !isCountryCode(value.country_code) ||
-    !isCoordinate(value.latitude, -90, 90) ||
-    !isCoordinate(value.longitude, -180, 180) ||
-    !isValidTimezone(value.timezone) ||
+    typeof value.country_code !== "string" ||
+    typeof value.latitude !== "number" ||
+    typeof value.longitude !== "number" ||
+    typeof value.timezone !== "string" ||
     (value.admin1 !== undefined && !isNonEmptyString(value.admin1))
   ) {
     throw malformedGeocoding();
@@ -31,44 +32,23 @@ function parseLocation(value: unknown): WeatherLocation {
     value.admin1.trim() !== value.name.trim()
       ? `, ${value.admin1.trim()}`
       : "";
-  return {
+  const location = {
     countryCode: value.country_code,
     latitude: value.latitude,
     longitude: value.longitude,
     name: `${value.name.trim()}${region}`,
     timezone: value.timezone,
   };
+  try {
+    assertValidWeatherLocation(location);
+    return location;
+  } catch {
+    throw malformedGeocoding();
+  }
 }
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
-}
-
-function isCountryCode(value: unknown): value is string {
-  return typeof value === "string" && /^[A-Z]{2}$/u.test(value);
-}
-
-function isCoordinate(
-  value: unknown,
-  minimum: number,
-  maximum: number,
-): value is number {
-  return (
-    typeof value === "number" &&
-    Number.isFinite(value) &&
-    value >= minimum &&
-    value <= maximum
-  );
-}
-
-function isValidTimezone(value: unknown): value is string {
-  if (!isNonEmptyString(value)) return false;
-  try {
-    new Intl.DateTimeFormat("en", { timeZone: value }).format();
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function malformedGeocoding(): OpenMeteoWeatherError {

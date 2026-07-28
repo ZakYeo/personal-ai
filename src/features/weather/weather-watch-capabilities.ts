@@ -11,11 +11,9 @@ import type {
 } from "../../ports/weather-watch-store.js";
 import { assertValidWeatherWatchCondition } from "../../ports/weather-watch-policy.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";
+import { metricWeatherUnits } from "../../ports/weather-policy.js";
 import { resolveWeatherLocation } from "./weather-location-resolution.js";
-import {
-  createForecastWeatherPeriod,
-  metricWeatherUnits,
-} from "./weather-validation.js";
+import { createForecastWeatherPeriod } from "./weather-validation.js";
 import {
   createdWeatherWatchResult,
   formatWeatherWatchCondition,

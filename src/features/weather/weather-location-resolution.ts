@@ -7,7 +7,7 @@ import type {
   WeatherLocation,
   WeatherProviderPort,
 } from "../../ports/weather.js";
-import { validateWeatherLocations } from "./weather-validation.js";
+import { validateWeatherLocations } from "../../ports/weather-policy.js";
 
 type WeatherLocationResolution =
   | { location: WeatherLocation }

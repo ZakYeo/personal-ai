@@ -86,21 +86,6 @@ export function parseOpenMeteoLocalTimestamp(
   }
 }
 
-export function isOpenMeteoDate(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  const match = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})$/u.exec(value);
-  if (!match?.groups) return false;
-  const year = Number(match.groups.year);
-  const month = Number(match.groups.month);
-  const day = Number(match.groups.day);
-  const rendered = new Date(Date.UTC(year, month - 1, day));
-  return (
-    rendered.getUTCFullYear() === year &&
-    rendered.getUTCMonth() === month - 1 &&
-    rendered.getUTCDate() === day
-  );
-}
-
 export function isFiniteWeatherNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }

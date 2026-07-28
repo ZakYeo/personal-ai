@@ -15,7 +15,7 @@ import {
   metricWeatherUnits,
   validateWeatherForecast,
   weatherForecastIsStale,
-} from "../../features/weather/weather-validation.js";
+} from "../../ports/weather-policy.js";
 import type { RuntimeBackgroundTaskTimer } from "../background-task.js";
 
 interface WeatherWatchEvaluationDependencies {

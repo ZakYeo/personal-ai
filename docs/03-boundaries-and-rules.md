@@ -491,6 +491,10 @@ should also guard against subtler boundary and abstraction drift.
   explicitly convenience notifications rather than claims of emergency-service
   reliability. Planned task reminders must preserve the same claim-before-output
   and restart guarantees without implying task completion.
+- Provider-neutral weather semantics are application owned: one canonical policy
+  validates locations, periods, units, attribution, freshness, physical value
+  ranges, and ordered unique in-period hourly/daily facts after each adapter has
+  decoded its external shape.
 - The Open-Meteo adapter uses only the free non-commercial forecast and
   geocoding endpoints without an API key. It preserves required attribution,
   bounds forecast requests to at most 16 local calendar dates, and fails startup

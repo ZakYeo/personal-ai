@@ -10,6 +10,11 @@ import {
   type FeatureExecutionContext,
 } from "../../ports/feature.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";
+import {
+  metricWeatherUnits,
+  validateWeatherForecast,
+  weatherForecastIsStale,
+} from "../../ports/weather-policy.js";
 import type { WeatherWatchStore } from "../../ports/weather-watch-store.js";
 import type { PersonalContextReaderPort } from "../../ports/personal-context.js";
 import {
@@ -23,9 +28,6 @@ import {
 import {
   createCurrentWeatherPeriod,
   createForecastWeatherPeriod,
-  metricWeatherUnits,
-  validateWeatherForecast,
-  weatherForecastIsStale,
 } from "./weather-validation.js";
 import { resolveWeatherLocation } from "./weather-location-resolution.js";
 import {

@@ -3,6 +3,7 @@ import type {
   WeatherProviderPort,
   WeatherRequestOptions,
 } from "../../ports/weather.js";
+import { weatherLocalDate } from "../../ports/weather-policy.js";
 
 const london = Object.freeze({
   countryCode: "GB",
@@ -30,6 +31,14 @@ export function createMockWeatherProvider(): WeatherProviderPort {
 function createLondonForecast(
   request: Parameters<WeatherProviderPort["getForecast"]>[0],
 ): WeatherForecast {
+  const firstLocalDate = weatherLocalDate(
+    request.period.startAt,
+    request.location.timezone,
+  );
+  const lastLocalDate = weatherLocalDate(
+    request.period.endAt,
+    request.location.timezone,
+  );
   return {
     attribution: {
       name: "Deterministic weather fixture",
@@ -51,7 +60,9 @@ function createLondonForecast(
         weather: "light rain",
         windSpeedMax: 18,
       },
-    ],
+    ].filter(
+      (item) => item.date >= firstLocalDate && item.date <= lastLocalDate,
+    ),
     fetchedAt: "2026-07-28T12:00:05.000Z",
     hourly: [
       {
@@ -61,7 +72,11 @@ function createLondonForecast(
         weather: "light rain",
         windSpeed: 14,
       },
-    ],
+    ].filter(
+      (item) =>
+        item.forecastAt >= request.period.startAt &&
+        item.forecastAt <= request.period.endAt,
+    ),
     location: { ...request.location },
     period: { ...request.period },
     units: { ...request.units },

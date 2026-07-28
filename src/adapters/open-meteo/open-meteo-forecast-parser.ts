@@ -4,12 +4,15 @@ import type {
   HourlyWeatherForecast,
   WeatherForecastRequest,
 } from "../../ports/weather.js";
+import {
+  isCanonicalWeatherDate,
+  weatherLocalDate,
+} from "../../ports/weather-policy.js";
 import { isRecord } from "../parsing.js";
 import {
   hasExactOpenMeteoForecastUnits,
   isFiniteWeatherNumber,
   isNonNegativeWeatherNumber,
-  isOpenMeteoDate,
   malformedOpenMeteoForecast,
   parseOpenMeteoLocalTimestamp,
   parseParallelArrays,
@@ -39,7 +42,7 @@ export function parseOpenMeteoForecast(
 
   return {
     current: parseCurrent(value.current, request.location.timezone),
-    daily: parseDaily(value.daily),
+    daily: parseDaily(value.daily, request.location.timezone, request.period),
     hourly: parseHourly(
       value.hourly,
       request.location.timezone,
@@ -118,7 +121,11 @@ function parseHourlyRow(
   };
 }
 
-function parseDaily(value: unknown): DailyWeatherForecast[] {
+function parseDaily(
+  value: unknown,
+  timezone: string,
+  period: WeatherForecastRequest["period"],
+): DailyWeatherForecast[] {
   if (!isRecord(value)) throw malformedOpenMeteoForecast();
   const rows = parseParallelArrays(value, [
     "time",
@@ -129,13 +136,17 @@ function parseDaily(value: unknown): DailyWeatherForecast[] {
     "wind_speed_10m_max",
   ]);
   if (rows.length > maxDailyIntervals) throw malformedOpenMeteoForecast();
-  return rows.map(parseDailyRow);
+  const firstDate = weatherLocalDate(period.startAt, timezone);
+  const lastDate = weatherLocalDate(period.endAt, timezone);
+  return rows
+    .map(parseDailyRow)
+    .filter(({ date }) => date >= firstDate && date <= lastDate);
 }
 
 function parseDailyRow(row: Record<string, unknown>): DailyWeatherForecast {
   const weather = describeOpenMeteoWeatherCode(row.weather_code);
   if (
-    !isOpenMeteoDate(row.time) ||
+    !isCanonicalWeatherDate(row.time) ||
     !weather ||
     !isFiniteWeatherNumber(row.temperature_2m_max) ||
     !isFiniteWeatherNumber(row.temperature_2m_min) ||

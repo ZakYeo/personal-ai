@@ -3,14 +3,17 @@ import type {
   WeatherWatchCondition,
   WeatherWatchRecord,
 } from "./weather-watch-store.js";
-import type { WeatherLocation, WeatherPeriod } from "./weather.js";
-
-const maxWatchDurationMs = 16 * 24 * 60 * 60_000;
+import type { WeatherPeriod } from "./weather.js";
+import {
+  isCanonicalWeatherTimestamp,
+  isValidWeatherLocation,
+  isValidWeatherPeriod,
+} from "./weather-policy.js";
 
 export function assertValidNewWeatherWatch(watch: NewWeatherWatch): void {
   if (
     !isValidWeatherLocation(watch.location) ||
-    !isValidPeriod(watch.period) ||
+    !isValidWeatherPeriod(watch.period) ||
     !isValidCondition(watch.condition)
   ) {
     throw invalidWatch();
@@ -29,8 +32,8 @@ export function assertValidWeatherWatchRecord(watch: WeatherWatchRecord): void {
   assertValidNewWeatherWatch(watch);
   if (
     watch.id.length === 0 ||
-    !isCanonicalTimestamp(watch.createdAt) ||
-    !isCanonicalTimestamp(watch.updatedAt) ||
+    !isCanonicalWeatherTimestamp(watch.createdAt) ||
+    !isCanonicalWeatherTimestamp(watch.updatedAt) ||
     watch.updatedAt < watch.createdAt ||
     !Number.isInteger(watch.revision) ||
     watch.revision < 1 ||
@@ -72,7 +75,7 @@ function hasConsistentLifecycle(watch: WeatherWatchRecord): boolean {
     return watch.terminalAt === undefined && watch.notification === undefined;
   }
   if (
-    !isCanonicalTimestamp(watch.terminalAt) ||
+    !isCanonicalWeatherTimestamp(watch.terminalAt) ||
     watch.terminalAt !== watch.updatedAt
   ) {
     return false;
@@ -90,37 +93,10 @@ function isValidNotificationWindow(
   watchPeriod: WeatherPeriod,
 ): boolean {
   return (
-    isValidPeriod(window) &&
+    isValidWeatherPeriod(window) &&
     window.startAt >= watchPeriod.startAt &&
     window.endAt <= watchPeriod.endAt
   );
-}
-
-function isValidWeatherLocation(location: WeatherLocation): boolean {
-  return (
-    location.name.trim().length > 0 &&
-    location.name.length <= 200 &&
-    /^[A-Z]{2}$/u.test(location.countryCode) &&
-    Number.isFinite(location.latitude) &&
-    location.latitude >= -90 &&
-    location.latitude <= 90 &&
-    Number.isFinite(location.longitude) &&
-    location.longitude >= -180 &&
-    location.longitude <= 180 &&
-    isCanonicalTimeZone(location.timezone)
-  );
-}
-
-function isValidPeriod(period: WeatherPeriod): boolean {
-  if (
-    !isCanonicalTimestamp(period.startAt) ||
-    !isCanonicalTimestamp(period.endAt)
-  ) {
-    return false;
-  }
-  const duration =
-    new Date(period.endAt).getTime() - new Date(period.startAt).getTime();
-  return duration >= 0 && duration <= maxWatchDurationMs;
 }
 
 function isValidCondition(condition: WeatherWatchCondition): boolean {
@@ -147,24 +123,6 @@ function isValidCondition(condition: WeatherWatchCondition): boolean {
         condition.threshold >= 0 &&
         condition.threshold <= 500
       );
-  }
-}
-
-function isCanonicalTimestamp(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
-}
-
-function isCanonicalTimeZone(value: string): boolean {
-  try {
-    return (
-      new Intl.DateTimeFormat("en", {
-        timeZone: value,
-      }).resolvedOptions().timeZone === value
-    );
-  } catch {
-    return false;
   }
 }
 
