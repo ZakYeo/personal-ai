@@ -4,6 +4,8 @@ import type {
   AlarmStatus,
 } from "./alarm-store.js";
 
+export { isCanonicalIsoTimestamp } from "./temporal-policy.js";
+
 export function resolveAlarmRecurrence(
   frequency: unknown,
   timeZone: unknown,
@@ -77,15 +79,5 @@ export function isTerminalAlarmStatus(status: AlarmRecord["status"]): boolean {
     status === "completed" ||
     status === "dismissed" ||
     status === "missed"
-  );
-}
-
-export function isCanonicalIsoTimestamp(value: unknown): value is string {
-  if (typeof value !== "string") {
-    return false;
-  }
-  const timestamp = new Date(value);
-  return (
-    !Number.isNaN(timestamp.getTime()) && timestamp.toISOString() === value
   );
 }
