@@ -6,12 +6,18 @@ import {
   type FeatureExecutionContext,
   type FeatureResult,
 } from "../../ports/feature.js";
-import { normalizeTaskListName } from "../../ports/task-policy.js";
+import type { AssistantContext } from "../../ports/assistant.js";
+import {
+  normalizeTaskLabel,
+  normalizeTaskListName,
+  normalizeTaskNote,
+} from "../../ports/task-policy.js";
 import type {
   TaskListRecord,
   TaskRecord,
   TaskStore,
 } from "../../ports/task-store.js";
+import { isCanonicalIsoTimestamp } from "../../ports/temporal-policy.js";
 
 const maxDisplayedItems = 10;
 
@@ -31,9 +37,32 @@ const renameListParameters = {
 } as const satisfies FeatureCapabilityParameters;
 type RenameListArgs = FeatureArgsFromParameters<typeof renameListParameters>;
 
+const createTaskParameters = {
+  dueDate: { type: "string" },
+  label: { required: true, type: "string" },
+  listName: { required: true, type: "string" },
+  note: { type: "string" },
+} as const satisfies FeatureCapabilityParameters;
+type CreateTaskArgs = FeatureArgsFromParameters<typeof createTaskParameters>;
+
+const remindTaskParameters = {
+  ...createTaskParameters,
+  reminderAt: { required: true, type: "string" },
+} as const satisfies FeatureCapabilityParameters;
+type RemindTaskArgs = FeatureArgsFromParameters<typeof remindTaskParameters>;
+
 export function createTaskFeature(store: TaskStore) {
   return defineFeature({
     capabilities: {
+      "task.create": defineCapability({
+        description:
+          "Add one task with an optional note and due date to an exact named personal list.",
+        execute: (request) => createTask(store, request.args),
+        parameters: createTaskParameters,
+        risk: "low",
+        spokenSummary: "add tasks to personal lists",
+        summary: "Add a task to a named personal list.",
+      }),
       "task.list.create": defineCapability({
         description: "Create one durable named personal task list.",
         execute: (request) => createList(store, request.args),
@@ -60,10 +89,94 @@ export function createTaskFeature(store: TaskStore) {
         summary: "Show personal lists and their tasks.",
         toolChain: "read",
       }),
+      "task.remind": defineCapability({
+        confirmation: (args, context) => reminderConfirmation(args, context),
+        description:
+          "Add one task with an exact future reminder instant to a named personal list. This requires confirmation.",
+        execute: (request) => createTask(store, request.args),
+        parameters: remindTaskParameters,
+        requiresConfirmation: true,
+        risk: "high",
+        spokenSummary: "create task reminders",
+        summary: "Add a task with an exact reminder.",
+      }),
     },
     displayName: "Lists and Tasks",
     id: "tasks",
   });
+}
+
+async function createTask(
+  store: TaskStore,
+  args: CreateTaskArgs | RemindTaskArgs,
+): Promise<FeatureResult> {
+  const requestedListName = normalizeTaskListName(args.listName);
+  const list = selectList(await store.listLists(), requestedListName);
+  if (!list) {
+    return { text: `I could not find a list named ${requestedListName}.` };
+  }
+  const task = await store.addTask({
+    ...(args.dueDate ? { dueDate: args.dueDate } : {}),
+    label: args.label,
+    listId: list.id,
+    ...(args.note ? { note: args.note } : {}),
+    ...("reminderAt" in args ? { reminderAt: args.reminderAt } : {}),
+  });
+  return createdTaskResult(list, task);
+}
+
+function reminderConfirmation(args: RemindTaskArgs, context: AssistantContext) {
+  assertFutureReminder(args.reminderAt, context.clock.now());
+  const label = normalizeTaskLabel(args.label);
+  const listName = normalizeTaskListName(args.listName);
+  const note = normalizeTaskNote(args.note);
+  return {
+    facts: {
+      ...(args.dueDate ? { dueDate: args.dueDate } : {}),
+      label,
+      listName,
+      ...(note ? { note } : {}),
+      reminderAt: args.reminderAt,
+    },
+    text: `create ${label} on the ${listName} list with a reminder for ${args.reminderAt}`,
+  };
+}
+
+function assertFutureReminder(reminderAt: string, now: Date): void {
+  if (!isCanonicalIsoTimestamp(reminderAt) || reminderAt <= now.toISOString()) {
+    throw new Error("A task reminder must be an exact future ISO timestamp.");
+  }
+}
+
+function createdTaskResult(
+  list: TaskListRecord,
+  task: TaskRecord,
+): FeatureResult {
+  const scheduledReminder =
+    task.reminder?.status === "scheduled" ? task.reminder : undefined;
+  return {
+    data: {
+      ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+      id: task.id,
+      label: task.label,
+      listId: list.id,
+      listName: list.name,
+      ...(task.note ? { note: task.note } : {}),
+      ...(scheduledReminder
+        ? {
+            reminderAt: scheduledReminder.scheduledFor,
+            reminderStatus: scheduledReminder.status,
+          }
+        : {}),
+      revision: task.revision,
+      status: task.status,
+    },
+    expectsFollowUp: true,
+    resultReferences: createTaskResultReferences(list, [task]),
+    text: scheduledReminder
+      ? `Added ${task.label} to your ${list.name} list with a reminder for ${scheduledReminder.scheduledFor}.`
+      : `Added ${task.label} to your ${list.name} list.`,
+  };
 }
 
 async function createList(

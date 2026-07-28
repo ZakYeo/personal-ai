@@ -183,3 +183,165 @@ describe("createTaskFeature list capabilities", () => {
     );
   });
 });
+
+describe("createTaskFeature task creation capabilities", () => {
+  it("separates low-risk task creation from confirmed reminder creation", () => {
+    const feature = createTaskFeature(createTestTaskStore());
+
+    expectCapabilityMetadata(feature, {
+      name: "task.create",
+      parameters: {
+        dueDate: { type: "string" },
+        label: { required: true, type: "string" },
+        listName: { required: true, type: "string" },
+        note: { type: "string" },
+      },
+      risk: "low",
+    });
+    expectCapabilityMetadata(feature, {
+      name: "task.remind",
+      parameters: {
+        dueDate: { type: "string" },
+        label: { required: true, type: "string" },
+        listName: { required: true, type: "string" },
+        note: { type: "string" },
+        reminderAt: { required: true, type: "string" },
+      },
+      requiresConfirmation: true,
+      risk: "high",
+    });
+  });
+
+  it("adds an ordinary task to an exact named list", async () => {
+    const store = createTestTaskStore();
+    const list = await store.addList({ name: "To-do" });
+
+    await expectDecodedFeatureExecution(
+      createTaskFeature(store),
+      "task.create",
+      {
+        dueDate: "2026-07-30",
+        label: "Submit the form",
+        listName: "to-do",
+        note: "Use the signed copy",
+      },
+      {
+        data: {
+          dueDate: "2026-07-30",
+          id: "task-1",
+          label: "Submit the form",
+          listId: list.id,
+          listName: "To-do",
+          note: "Use the signed copy",
+          revision: 1,
+          status: "open",
+        },
+        expectsFollowUp: true,
+        resultReferences: {
+          items: [
+            {
+              facts: {
+                dueDate: "2026-07-30",
+                label: "Submit the form",
+                listName: "To-do",
+                status: "open",
+              },
+              target: {
+                kind: "task_item",
+                listId: list.id,
+                revision: 1,
+                taskId: "task-1",
+              },
+            },
+          ],
+          kind: "task_items",
+        },
+        text: "Added Submit the form to your To-do list.",
+      },
+    );
+  });
+
+  it("renders and persists an exact confirmed reminder snapshot", async () => {
+    const store = createTestTaskStore();
+    const list = await store.addList({ name: "To-do" });
+    const feature = createTaskFeature(store);
+    const capability = feature.capabilities.find(
+      ({ name }) => name === "task.remind",
+    );
+    const args = {
+      label: "Submit the form",
+      listName: "To-do",
+      reminderAt: "2026-07-29T08:00:00.000Z",
+    };
+
+    expect(
+      capability?.renderConfirmation?.(args, createFeatureContext()),
+    ).toEqual({
+      facts: {
+        label: "Submit the form",
+        listName: "To-do",
+        reminderAt: "2026-07-29T08:00:00.000Z",
+      },
+      text: "create Submit the form on the To-do list with a reminder for 2026-07-29T08:00:00.000Z",
+    });
+
+    await expectDecodedFeatureExecution(
+      feature,
+      "task.remind",
+      args,
+      {
+        data: {
+          id: "task-1",
+          label: "Submit the form",
+          listId: list.id,
+          listName: "To-do",
+          reminderAt: "2026-07-29T08:00:00.000Z",
+          reminderStatus: "scheduled",
+          revision: 1,
+          status: "open",
+        },
+        expectsFollowUp: true,
+        resultReferences: {
+          items: [
+            {
+              facts: {
+                label: "Submit the form",
+                listName: "To-do",
+                reminderAt: "2026-07-29T08:00:00.000Z",
+                status: "open",
+              },
+              target: {
+                kind: "task_item",
+                listId: list.id,
+                revision: 1,
+                taskId: "task-1",
+              },
+            },
+          ],
+          kind: "task_items",
+        },
+        text: "Added Submit the form to your To-do list with a reminder for 2026-07-29T08:00:00.000Z.",
+      },
+      {
+        ...createFeatureContext(),
+        validatedConfirmationFacts: {
+          label: "Submit the form",
+          listName: "To-do",
+          reminderAt: "2026-07-29T08:00:00.000Z",
+        },
+      },
+    );
+  });
+
+  it("does not create a task when the named list is absent", async () => {
+    const store = createTestTaskStore();
+
+    await expectDecodedFeatureExecution(
+      createTaskFeature(store),
+      "task.create",
+      { label: "Submit the form", listName: "To-do" },
+      { text: "I could not find a list named To-do." },
+    );
+    expect(await store.listTasks()).toEqual([]);
+  });
+});
