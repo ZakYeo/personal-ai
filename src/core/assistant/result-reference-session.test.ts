@@ -98,6 +98,7 @@ describe("result reference session", () => {
           target: {
             kind: "task_item",
             listId: "private-list-id",
+            listRevision: 2,
             revision: 3,
             taskId: "private-task-id",
           },
@@ -123,6 +124,7 @@ describe("result reference session", () => {
         target: {
           kind: "task_item",
           listId: "private-list-id",
+          listRevision: 2,
           revision: 3,
           taskId: "private-task-id",
         },

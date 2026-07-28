@@ -88,6 +88,7 @@ describe("createTaskFeature list capabilities", () => {
               target: {
                 kind: "task_item",
                 listId: shopping.id,
+                listRevision: shopping.revision,
                 revision: 1,
                 taskId: "task-1",
               },
@@ -101,6 +102,7 @@ describe("createTaskFeature list capabilities", () => {
               target: {
                 kind: "task_item",
                 listId: shopping.id,
+                listRevision: shopping.revision,
                 revision: 1,
                 taskId: "task-2",
               },
@@ -250,6 +252,7 @@ describe("createTaskFeature task creation capabilities", () => {
               target: {
                 kind: "task_item",
                 listId: list.id,
+                listRevision: list.revision,
                 revision: 1,
                 taskId: "task-1",
               },
@@ -314,6 +317,7 @@ describe("createTaskFeature task creation capabilities", () => {
               target: {
                 kind: "task_item",
                 listId: list.id,
+                listRevision: list.revision,
                 revision: 1,
                 taskId: "task-1",
               },
@@ -505,6 +509,37 @@ describe("createTaskFeature task completion capabilities", () => {
       "complete the first one",
     );
   });
+
+  it("does not apply a retained reference after its list revision changes", async () => {
+    const store = createTestTaskStore();
+    const list = await store.addList({ name: "Shopping" });
+    const task = await store.addTask({ label: "Coffee", listId: list.id });
+    await store.renameList({
+      expectedRevision: list.revision,
+      id: list.id,
+      name: "Groceries",
+      updatedAt: "2026-06-26T09:00:00.000Z",
+    });
+
+    await expectDecodedFeatureExecution(
+      createTaskFeature(store),
+      "task.complete",
+      { ordinal: 1 },
+      {
+        text: "That task changed after I showed it to you. Please show the list again.",
+      },
+      taskReferenceContext({
+        label: "Coffee",
+        listId: list.id,
+        listName: "Shopping",
+        ordinal: 1,
+        revision: task.revision,
+        taskId: task.id,
+      }),
+      "complete the first one",
+    );
+    expect((await store.listTasks())[0]?.status).toBe("open");
+  });
 });
 
 describe("createTaskFeature task mutation capabilities", () => {
@@ -652,6 +687,37 @@ describe("createTaskFeature task mutation capabilities", () => {
     ]);
   });
 
+  it("does not remove a retained task after its list revision changes", async () => {
+    const store = createTestTaskStore();
+    const list = await store.addList({ name: "Shopping" });
+    const task = await store.addTask({ label: "Coffee", listId: list.id });
+    await store.renameList({
+      expectedRevision: list.revision,
+      id: list.id,
+      name: "Groceries",
+      updatedAt: "2026-06-26T09:00:00.000Z",
+    });
+
+    await expectDecodedFeatureExecution(
+      createTaskFeature(store),
+      "task.remove",
+      { ordinal: 1, reference: "task-item-1" },
+      {
+        text: "That task changed after I showed it to you. Please show the list again.",
+      },
+      taskReferenceContext({
+        label: "Coffee",
+        listId: list.id,
+        listName: "Shopping",
+        ordinal: 1,
+        revision: task.revision,
+        taskId: task.id,
+      }),
+      "remove the first one",
+    );
+    expect(await store.listTasks()).toHaveLength(1);
+  });
+
   it("rejects a removal confirmation without an exact human target", () => {
     const feature = createTaskFeature(createTestTaskStore());
     const capability = feature.capabilities.find(
@@ -673,6 +739,7 @@ function taskReferenceContext(input: {
   label: string;
   listId: string;
   listName: string;
+  listRevision?: number;
   ordinal: number;
   revision: number;
   taskId: string;
@@ -695,6 +762,7 @@ function taskReferenceContext(input: {
             target: {
               kind: "task_item",
               listId: input.listId,
+              listRevision: input.listRevision ?? 1,
               revision: input.revision,
               taskId: input.taskId,
             },

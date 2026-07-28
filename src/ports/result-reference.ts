@@ -25,6 +25,7 @@ export type ResultReferenceTarget =
   | {
       readonly kind: "task_item";
       readonly listId: string;
+      readonly listRevision: number;
       readonly revision: number;
       readonly taskId: string;
     };

@@ -61,8 +61,14 @@ export async function selectEligibleTask(
       };
     }
     const list = lists.find((candidate) => candidate.id === task.listId);
+    if (!list || list.revision !== referenced.listRevision) {
+      return {
+        result: {
+          text: "That task changed after I showed it to you. Please show the list again.",
+        },
+      };
+    }
     if (
-      !list ||
       !eligibleStatuses.includes(task.status) ||
       (eligibility && !eligibility.matches(task))
     ) {

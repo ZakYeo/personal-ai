@@ -146,6 +146,7 @@ function createTaskResultReferences(
       target: {
         kind: "task_item" as const,
         listId: list.id,
+        listRevision: list.revision,
         revision: task.revision,
         taskId: task.id,
       },
