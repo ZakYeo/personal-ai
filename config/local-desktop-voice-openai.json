@@ -180,6 +180,13 @@
         "model": "gpt-5.4-nano"
       }
     },
+    "weather": {
+      "enabled": true,
+      "adapter": "openMeteo",
+      "watches": {
+        "adapter": "local"
+      }
+    },
     "messaging": {
       "enabled": true,
       "adapter": "mock"

@@ -37,6 +37,10 @@ describe("loadConfig", () => {
           enabled: true,
           adapter: "mock",
         },
+        weather: {
+          enabled: true,
+          adapter: "mock",
+        },
         messaging: { enabled: true, adapter: "mock" },
         alarms: {
           enabled: true,
@@ -124,6 +128,16 @@ describe("loadConfig", () => {
           adapter: "file",
           enabled: true,
           state: { path: "/var/lib/personal-ai/alarms.json" },
+        },
+        weather: {
+          adapter: "openMeteo",
+          enabled: true,
+          watches: {
+            adapter: "file",
+            state: {
+              path: "/var/lib/personal-ai/weather-watches.json",
+            },
+          },
         },
       },
     });

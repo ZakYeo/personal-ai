@@ -51,6 +51,13 @@
       "adapter": "mock",
       "maxResults": 5
     },
+    "weather": {
+      "enabled": true,
+      "adapter": "mock",
+      "watches": {
+        "adapter": "local"
+      }
+    },
     "messaging": {
       "enabled": true,
       "adapter": "mock"

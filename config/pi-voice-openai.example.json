@@ -166,6 +166,16 @@
         "model": "gpt-5.4-nano"
       }
     },
+    "weather": {
+      "enabled": true,
+      "adapter": "openMeteo",
+      "watches": {
+        "adapter": "file",
+        "state": {
+          "path": "/var/lib/personal-ai/weather-watches.json"
+        }
+      }
+    },
     "messaging": {
       "enabled": true,
       "adapter": "mock"
