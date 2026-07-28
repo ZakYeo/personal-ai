@@ -27,6 +27,7 @@ import {
   assertUniqueTaskListName,
   assertUniqueTaskStoreId,
   cloneTaskList,
+  matchesTaskListClearSnapshot,
 } from "./task-store-state.js";
 import {
   assertValidTaskStateDocument,
@@ -108,6 +109,30 @@ export function createFileTaskStore(options: FileTaskStoreOptions): TaskStore {
           fileSystem,
         );
         return cloneTaskRecord(task);
+      }),
+    clearList: (request) =>
+      enqueue(async () => {
+        const state = await readState(options.filePath, fileSystem);
+        const list = state.lists.find(
+          (candidate) => candidate.id === request.listId,
+        );
+        if (
+          !list ||
+          !matchesTaskListClearSnapshot(list, state.tasks, request)
+        ) {
+          return;
+        }
+        const removed = state.tasks.filter(
+          (task) => task.listId === request.listId,
+        );
+        const tasks = state.tasks.filter(
+          (task) => task.listId !== request.listId,
+        );
+        await writeState(options.filePath, { ...state, tasks }, fileSystem);
+        return {
+          list: cloneTaskList(list),
+          removed: removed.map(cloneTaskRecord),
+        };
       }),
     listLists: () =>
       enqueue(async () => {

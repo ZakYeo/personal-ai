@@ -236,6 +236,26 @@ describe("in-memory task store task creation", () => {
 });
 
 describe("in-memory task store task lifecycle", () => {
+  it("fails closed when a bulk-clear snapshot no longer matches", async () => {
+    const { store } = createStore();
+    const list = await store.addList({ name: "To-do" });
+    const first = await store.addTask({
+      label: "Submit form",
+      listId: list.id,
+    });
+    const selectedTasks = [{ id: first.id, revision: first.revision }];
+    await store.addTask({ label: "Newer task", listId: list.id });
+
+    await expect(
+      store.clearList({
+        expectedListRevision: list.revision,
+        listId: list.id,
+        tasks: selectedTasks,
+      }),
+    ).resolves.toBeUndefined();
+    await expect(store.listTasks()).resolves.toHaveLength(2);
+  });
+
   it("completes and reopens a task without reactivating its reminder", async () => {
     const { store } = createStore();
     const list = await store.addList({ name: "To-do" });

@@ -15,6 +15,7 @@ import {
   assertUniqueTaskListName,
   assertUniqueTaskStoreId,
   cloneTaskList,
+  matchesTaskListClearSnapshot,
 } from "./task-store-state.js";
 
 interface InMemoryTaskStoreOptions {
@@ -55,6 +56,21 @@ export function createInMemoryTaskStore(
         const task = createTaskRecord(input, id, options.now());
         tasks.push(task);
         return cloneTaskRecord(task);
+      }),
+    clearList: (request) =>
+      Promise.resolve().then(() => {
+        const list = lists.find((candidate) => candidate.id === request.listId);
+        if (!list || !matchesTaskListClearSnapshot(list, tasks, request)) {
+          return;
+        }
+        const removed = tasks.filter((task) => task.listId === list.id);
+        for (let index = tasks.length - 1; index >= 0; index -= 1) {
+          if (tasks[index]?.listId === list.id) tasks.splice(index, 1);
+        }
+        return {
+          list: cloneTaskList(list),
+          removed: removed.map(cloneTaskRecord),
+        };
       }),
     listLists: () => Promise.resolve(lists.map(cloneTaskList)),
     listTasks: () => Promise.resolve(tasks.map(cloneTaskRecord)),

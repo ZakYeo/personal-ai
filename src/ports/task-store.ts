@@ -73,6 +73,20 @@ export interface RemoveTaskRequest {
   id: string;
 }
 
+export interface ClearTaskListRequest {
+  expectedListRevision: number;
+  listId: string;
+  tasks: Array<{
+    id: string;
+    revision: number;
+  }>;
+}
+
+export interface ClearTaskListResult {
+  list: TaskListRecord;
+  removed: TaskRecord[];
+}
+
 export interface UpdateTaskRequest {
   changes: {
     dueDate?: null | string;
@@ -89,6 +103,9 @@ export interface UpdateTaskRequest {
 export interface TaskStore {
   addList(list: NewTaskList): Promise<TaskListRecord>;
   addTask(task: NewTask): Promise<TaskRecord>;
+  clearList(
+    request: ClearTaskListRequest,
+  ): Promise<ClearTaskListResult | undefined>;
   listLists(): Promise<TaskListRecord[]>;
   listTasks(): Promise<TaskRecord[]>;
   removeTask(request: RemoveTaskRequest): Promise<TaskRecord | undefined>;

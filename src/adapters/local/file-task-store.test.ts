@@ -154,6 +154,44 @@ describe("createFileTaskStore", () => {
     await expect(store.listTasks()).resolves.toEqual([completed]);
   });
 
+  it("atomically persists an exact revision-pinned list clear", async () => {
+    const fileSystem = createMemoryFileSystem();
+    const store = createFileTaskStore({
+      createListId: () => "task-list-1",
+      createTaskId: (() => {
+        let next = 0;
+        return () => `task-${++next}`;
+      })(),
+      filePath: "/state/tasks.json",
+      fileSystem,
+      now: () => initialTime,
+    });
+    const list = await store.addList({ name: "To-do" });
+    const first = await store.addTask({
+      label: "Submit form",
+      listId: list.id,
+    });
+    const second = await store.addTask({
+      label: "Book train",
+      listId: list.id,
+    });
+
+    const cleared = await store.clearList({
+      expectedListRevision: list.revision,
+      listId: list.id,
+      tasks: [
+        { id: first.id, revision: first.revision },
+        { id: second.id, revision: second.revision },
+      ],
+    });
+
+    expect(cleared).toMatchObject({
+      list,
+      removed: [first, second],
+    });
+    await expect(store.listTasks()).resolves.toEqual([]);
+  });
+
   it("persists mutations before reporting success", async () => {
     let persisted = false;
     const store = createFileTaskStore({

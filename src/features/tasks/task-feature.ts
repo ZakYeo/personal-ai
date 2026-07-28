@@ -28,6 +28,7 @@ import {
   type TaskTargetArgs,
 } from "./task-selection.js";
 import { createTaskMutationCapabilities } from "./task-mutation-capabilities.js";
+import { createTaskListClearCapability } from "./task-list-clear.js";
 
 const createListParameters = {
   name: { required: true, type: "string" },
@@ -90,6 +91,7 @@ export function createTaskFeature(store: TaskStore) {
         spokenSummary: "create personal lists",
         summary: "Create a named personal list.",
       }),
+      "task.list.clear": createTaskListClearCapability(store),
       "task.list.rename": defineCapability({
         description: "Rename one existing personal task list.",
         execute: (request, context) => renameList(store, request.args, context),

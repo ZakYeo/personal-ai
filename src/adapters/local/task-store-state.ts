@@ -1,5 +1,9 @@
 import { normalizeTaskListName } from "../../ports/task-policy.js";
-import type { TaskListRecord, TaskRecord } from "../../ports/task-store.js";
+import type {
+  ClearTaskListRequest,
+  TaskListRecord,
+  TaskRecord,
+} from "../../ports/task-store.js";
 
 export const maxTaskLists = 100;
 export const maxTasks = 1_000;
@@ -49,4 +53,25 @@ export function assertUniqueTaskStoreId(
 
 export function cloneTaskList(list: TaskListRecord): TaskListRecord {
   return { ...list };
+}
+
+export function matchesTaskListClearSnapshot(
+  list: TaskListRecord,
+  tasks: readonly TaskRecord[],
+  request: ClearTaskListRequest,
+): boolean {
+  if (
+    list.id !== request.listId ||
+    list.revision !== request.expectedListRevision
+  ) {
+    return false;
+  }
+  const currentTasks = tasks.filter((task) => task.listId === list.id);
+  if (currentTasks.length !== request.tasks.length) return false;
+  const expectedRevisions = new Map(
+    request.tasks.map(({ id, revision }) => [id, revision]),
+  );
+  return currentTasks.every(
+    (task) => expectedRevisions.get(task.id) === task.revision,
+  );
 }
