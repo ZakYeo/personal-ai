@@ -91,6 +91,28 @@ export async function writePersistentAlarmRuntimeConfig(
   return { configPath, statePath };
 }
 
+export async function writePersistentTaskRuntimeConfig(
+  config: RuntimeConfigWithFeatures,
+  statePath = "state/tasks.json",
+): Promise<{ configPath: string; statePath: string }> {
+  const configPath = await writeRuntimeHarnessConfig({
+    ...config,
+    features: {
+      ...config.features,
+      tasks: {
+        adapter: "file",
+        enabled: true,
+        state: { path: statePath },
+      },
+    },
+  });
+
+  return {
+    configPath,
+    statePath: join(dirname(configPath), statePath),
+  };
+}
+
 export function createRuntimeConfigWithUnknownIntentProvider(): LoadedRuntimeConfig {
   return withIntentProvider("unknown");
 }
