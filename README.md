@@ -113,12 +113,12 @@ Current roadmap position:
   completed sequence. Milestone 14 is implemented after its required independent
   review, with bounded source-grounded search, snapshot-only source follow-ups,
   terminal-only trust isolation, and cancellation-aware provider transport.
-  Milestone 15's weather implementation is complete pending its required
-  independent maintainability review and any resulting remediation. It uses
-  Open-Meteo's key-free non-commercial API, durable local watch state, and a
-  narrow optional reader for the explicit home location that Milestone 13 will
-  own. The remaining roadmap prioritizes explicit personal profiles, durable
-  lists/tasks/reminders, and scheduled daily briefings. Profiles will be
+  Milestone 15 is implemented after its required independent maintainability
+  review. It uses Open-Meteo's key-free non-commercial API, durable local watch
+  state, bounded concurrent evaluation, and a narrow optional reader for the
+  explicit home location that Milestone 13 will own. The remaining roadmap
+  prioritizes explicit personal profiles, durable lists/tasks/reminders, and
+  scheduled daily briefings. Profiles will be
   created and edited through validated text and voice commands rather than
   hardcoded setup. Smart-home control, a personal
   knowledge library, and adaptive memory remain unnumbered future considerations

@@ -58,13 +58,13 @@ The assistant should support natural voice commands such as:
 
 Compound plans, calendar result follow-ups, bounded calendar-to-alarm workflows,
 bounded source-grounded internet search, and the Milestone 15 weather
-implementation are present. Weather awaits its required independent
-maintainability review and any resulting remediation. Milestones 13, 16, and 17
-prioritize an explicit personal profile, durable lists/tasks/reminders, and
-proactive daily briefings. The goal is a more personalized everyday assistant
-while preserving the existing validation, confirmation, privacy, and
-runtime-boundary guarantees. Smart-home control, a personal knowledge library,
-and adaptive memory remain uncommitted future considerations.
+implementation are present after their required independent maintainability
+reviews. Milestones 13, 16, and 17 prioritize an explicit personal profile,
+durable lists/tasks/reminders, and proactive daily briefings. The goal is a more
+personalized everyday assistant while preserving the existing validation,
+confirmation, privacy, and runtime-boundary guarantees. Smart-home control, a
+personal knowledge library, and adaptive memory remain uncommitted future
+considerations.
 
 The profile begins empty and is managed through normal text or voice requests
 such as “set my name to Zak” and “what do you know about me?” The language model

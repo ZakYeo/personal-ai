@@ -4,6 +4,88 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 15: Weather, Forecasts, and Weather Watches
+
+Status: implemented.
+
+Goal: provide location-aware current weather and forecasts, then proactively
+notify the user when explicitly requested forecast conditions are detected.
+
+Included:
+
+- Provider-neutral current, hourly, and daily forecast ports with deterministic
+  and opt-in Open-Meteo adapters selected through the per-feature registry.
+- Key-free Open-Meteo geocoding and non-commercial forecast composition with
+  endpoint, timeout, response-size, attribution, and external-data validation.
+- Explicit locations plus one narrow optional reader for an explicitly stored
+  profile home location; missing or unusable locations produce clarification.
+- Protected observation and forecast facts covering timestamps, timezone,
+  units, temperature, precipitation, wind, forecast period, attribution, and
+  freshness.
+- Versioned in-memory and atomic JSON-file weather-watch stores with
+  revision-checked lifecycle transitions, restrictive file modes, canonical
+  validation, a maximum of 1,000 retained records, and a maximum of 24 active
+  watches.
+- A neutral feature-owned background task using the exact composed store and
+  provider, with durable claim-before-delivery, restart-safe deduplication,
+  shutdown-aware polling, shared output coordination, and at most four
+  concurrent forecast request groups.
+
+Excluded:
+
+- Emergency-warning guarantees, inferred precise location, continuous device
+  tracking, climate analysis, autonomous schedule changes, or silent watch
+  creation from ordinary forecast questions.
+- Commercial Open-Meteo use, paid customer endpoints, weather credentials, or
+  an API-key configuration path.
+- Provider-specific resources in neutral runtime orchestration or treating
+  notification delivery as permission for another capability.
+
+Outcomes:
+
+- Current, hourly, and daily answers preserve exact canonical provider facts
+  and required Open-Meteo attribution while keeping human output concise.
+  Provider output with mismatched request facts, invalid units, stale or
+  unordered forecast points, out-of-period dates, or non-finite measurements
+  fails safely.
+- Local timestamps are accepted only when they round-trip to exactly one instant
+  in the returned IANA timezone. Nonexistent daylight-saving times and ambiguous
+  repeated local times are rejected instead of silently normalized.
+- Watches support bounded rain, temperature, and wind conditions, explicit
+  confirmation policy, listing and cancellation, durable lifecycle state, and
+  at-most-once notification for one qualifying forecast window. Human responses
+  state that watches are convenience notifications rather than guaranteed
+  emergency alerts.
+- Compatible active watches share one forecast request. Independent request
+  groups run with bounded concurrency; provider, persistence, and delivery
+  failures are isolated, queued work stops on shutdown, and failures preserve
+  internal diagnostics without exposing adapter details.
+- The fresh thermonuclear maintainability review produced five actionable
+  findings, all addressed: persisted record limits and duplicate-ID rejection
+  were made canonical; ambiguous Open-Meteo timestamps fail closed; weather
+  semantic validation was centralized and strengthened; watch-condition policy
+  was centralized; and evaluation gained an active-watch bound, request
+  grouping, concurrency control, shutdown handling, and per-group/per-watch
+  failure isolation.
+
+Acceptance criteria:
+
+- Personal non-commercial Open-Meteo composition starts without a weather key
+  or credential variable, and the opt-in live Open-Meteo smoke completed
+  successfully against the configured free endpoints.
+- Home-relative questions use only the narrow explicit-home read port, report
+  period and freshness, and preserve exact provider facts internally.
+- Watches survive restart, evaluate from injected runtime dependencies, and
+  notify at most once for a qualifying forecast window.
+- Stale, unavailable, malformed, semantically inconsistent, or timezone-
+  ambiguous forecasts fail through diagnostic-aware safe outcomes.
+- Required attribution and the convenience-not-emergency limitation are
+  present in human-facing behavior.
+- The final full `npm run check` passed with 929 tests passing and 15 opt-in
+  tests skipped. The live OpenAI weather routing smoke remains explicit opt-in
+  and was not used as completion evidence because its external execution
+  approval did not complete.
+
 ## Milestone 14: Internet Search with Source-Grounded Answers
 
 Status: implemented.
