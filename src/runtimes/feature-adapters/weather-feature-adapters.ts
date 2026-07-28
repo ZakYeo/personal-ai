@@ -6,6 +6,7 @@ import { createInMemoryWeatherWatchStore } from "../../adapters/local/in-memory-
 import { createMockWeatherProvider } from "../../adapters/mock/mock-weather.js";
 import { createOpenMeteoWeatherProvider } from "../../adapters/open-meteo/open-meteo-weather.js";
 import { createWeatherFeature } from "../../features/weather/weather-feature.js";
+import type { PersonalContextReaderPort } from "../../ports/personal-context.js";
 import type { WeatherWatchStore } from "../../ports/weather-watch-store.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";
 import type { RuntimeBackgroundTaskContext } from "../background-task.js";
@@ -24,8 +25,13 @@ import {
   type WeatherWatchStoreConfig,
 } from "./weather-feature-adapter-config.js";
 
+interface WeatherFeatureRegistryDependencies {
+  personalContextReader?: PersonalContextReaderPort;
+  watchStore?: FileWeatherWatchStoreDependencies;
+}
+
 export function createWeatherFeatureRegistryEntry(
-  storeDependencies: FileWeatherWatchStoreDependencies = {},
+  registryDependencies: WeatherFeatureRegistryDependencies = {},
 ): FeatureRegistryEntry {
   return {
     adapters: {
@@ -37,10 +43,11 @@ export function createWeatherFeatureRegistryEntry(
             createWeatherWatchStore(
               watchStore,
               dependencies,
-              storeDependencies,
+              registryDependencies.watchStore ?? {},
             ),
             featureConfig.maxForecastAgeMinutes,
             dependencies,
+            registryDependencies.personalContextReader,
           );
         },
         parseConfig: parseWeatherFeatureConfig,
@@ -57,10 +64,11 @@ export function createWeatherFeatureRegistryEntry(
             createWeatherWatchStore(
               watchStore,
               dependencies,
-              storeDependencies,
+              registryDependencies.watchStore ?? {},
             ),
             featureConfig.maxForecastAgeMinutes,
             dependencies,
+            registryDependencies.personalContextReader,
           );
         },
         parseConfig: parseWeatherOpenMeteoAdapterConfig,
@@ -74,9 +82,11 @@ function createWeatherComposition(
   watchStore: WeatherWatchStore,
   maxForecastAgeMinutes: number,
   dependencies: FeatureAdapterDependencies,
+  personalContext?: PersonalContextReaderPort,
 ) {
   const feature = createWeatherFeature(provider, {
     maxForecastAgeMinutes,
+    ...(personalContext ? { personalContext } : {}),
     watchStore,
   });
   if (!dependencies.notificationDelivery) return feature;

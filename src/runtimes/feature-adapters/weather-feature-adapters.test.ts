@@ -13,6 +13,7 @@ import {
   createConfiguredTextRuntimeComposition,
 } from "../configured-text-runtime.js";
 import { parseAssistantConfig } from "../config/config.js";
+import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
 import { validateConfiguredFeatureAdapters } from "../feature-adapter-selection.js";
 
 const weatherNow = new Date("2026-07-28T12:00:05.000Z");
@@ -38,6 +39,40 @@ describe("weather feature adapters", () => {
     expect(response.text).toContain(
       "Source: Deterministic weather fixture (https://example.test/weather-source).",
     );
+  });
+
+  it("routes spoken coat advice through only the injected explicit-home reader", async () => {
+    const readHomeLocation = vi.fn(() =>
+      Promise.resolve({
+        place: "London",
+        provenance: "user-authored" as const,
+      }),
+    );
+    const featureAdapterRegistry = createDefaultFeatureAdapterRegistry({
+      personalContextReader: { readHomeLocation },
+    });
+    const config = parseAssistantConfig(
+      createRawWeatherConfig({ adapter: "mock", enabled: true }),
+      { featureAdapterRegistry },
+    );
+    const assistant = await createConfiguredTextRuntime({
+      config,
+      now: () => weatherNow,
+    });
+
+    const response = await assistant.handleText(
+      "Hey Jarvis, will I need a coat at home tomorrow morning?",
+    );
+
+    expect(response.status).toBe("ok");
+    expect(response.text).toContain(
+      "Yes, take a coat: the forecast includes rain or cool conditions.",
+    );
+    expect(response.text).toContain(
+      "from 2026-07-29T05:00:00.000Z to 2026-07-29T11:00:00.000Z",
+    );
+    expect(response.text).toContain("Fetched at 2026-07-28T12:00:05.000Z");
+    expect(readHomeLocation).toHaveBeenCalledOnce();
   });
 
   it("contributes delivery evaluation over the exact composed watch store", async () => {
