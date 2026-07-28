@@ -460,6 +460,48 @@ describe("OpenAIIntentInterpreter", () => {
     expect(serializedInput).not.toContain("2026-07-28T12:00:00.000Z");
   });
 
+  it("exposes safe task facts without private store targets", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-1",
+        output_text: JSON.stringify({
+          command: null,
+          kind: "unknown",
+          plan: null,
+          response: { status: "unknown", text: "Unknown." },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({ fetch });
+
+    await interpretOnce(interpreter, "complete the second one", {
+      ...context,
+      resultReferences: [
+        {
+          facts: {
+            dueDate: "2026-07-30",
+            label: "Submit the form",
+            listName: "To-do",
+            reminderAt: "2026-07-29T08:00:00.000Z",
+            status: "open",
+          },
+          kind: "task_item",
+          ordinal: 2,
+          reference: "task-item-2",
+        },
+      ],
+    });
+
+    const serializedInput = JSON.stringify(readRequestBody(fetch).input);
+    expect(serializedInput).toContain("task-item-2");
+    expect(serializedInput).toContain("Submit the form");
+    expect(serializedInput).toContain("To-do");
+    expect(serializedInput).toContain("2026-07-30");
+    expect(serializedInput).toContain("2026-07-29T08:00:00.000Z");
+    expect(serializedInput).not.toContain("private-task-id");
+    expect(serializedInput).not.toContain("private-list-id");
+  });
+
   it("rejects conversation output with fallback response text", async () => {
     const fetch = createFetchStub(
       jsonResponse({

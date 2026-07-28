@@ -84,6 +84,53 @@ describe("result reference session", () => {
     });
   });
 
+  it("retains safe task facts while resolving a pinned private task target", () => {
+    const session = createResultReferenceSession();
+
+    session.retain({
+      items: [
+        {
+          facts: {
+            label: "Oat milk",
+            listName: "Shopping",
+            status: "open",
+          },
+          target: {
+            kind: "task_item",
+            listId: "private-list-id",
+            revision: 3,
+            taskId: "private-task-id",
+          },
+        },
+      ],
+      kind: "task_items",
+    });
+
+    expect(session.publicReferences()).toEqual([
+      {
+        facts: {
+          label: "Oat milk",
+          listName: "Shopping",
+          status: "open",
+        },
+        kind: "task_item",
+        ordinal: 1,
+        reference: "task-item-1",
+      },
+    ]);
+    expect(session.select({ rawText: "complete the first one" })).toMatchObject(
+      {
+        target: {
+          kind: "task_item",
+          listId: "private-list-id",
+          revision: 3,
+          taskId: "private-task-id",
+        },
+      },
+    );
+    expect(JSON.stringify(session.publicReferences())).not.toContain("private");
+  });
+
   it("clears immediately when conversation history compacts", () => {
     const session = createResultReferenceSession();
     session.retain(resultSet("event"));

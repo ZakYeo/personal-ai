@@ -11,12 +11,23 @@ export type AssistantResultReference =
   | (AssistantResultReferenceBase & {
       readonly facts: InternetSourceResultReferenceFacts;
       readonly kind: "internet_source";
+    })
+  | (AssistantResultReferenceBase & {
+      readonly facts: TaskResultReferenceFacts;
+      readonly kind: "task_item";
     });
 
-export interface ResultReferenceTarget {
-  readonly kind: "calendar_event";
-  readonly providerEventId: string;
-}
+export type ResultReferenceTarget =
+  | {
+      readonly kind: "calendar_event";
+      readonly providerEventId: string;
+    }
+  | {
+      readonly kind: "task_item";
+      readonly listId: string;
+      readonly revision: number;
+      readonly taskId: string;
+    };
 
 interface CalendarFeatureResultReference {
   readonly facts: CalendarResultReferenceFacts;
@@ -27,6 +38,11 @@ interface InternetSourceFeatureResultReference {
   readonly facts: InternetSourceResultReferenceFacts;
 }
 
+interface TaskFeatureResultReference {
+  readonly facts: TaskResultReferenceFacts;
+  readonly target: Extract<ResultReferenceTarget, { kind: "task_item" }>;
+}
+
 export type FeatureResultReferenceSet =
   | {
       readonly items: readonly CalendarFeatureResultReference[];
@@ -35,6 +51,10 @@ export type FeatureResultReferenceSet =
   | {
       readonly items: readonly InternetSourceFeatureResultReference[];
       readonly kind: "internet_sources";
+    }
+  | {
+      readonly items: readonly TaskFeatureResultReference[];
+      readonly kind: "task_items";
     };
 
 export interface CalendarResultReferenceFacts {
@@ -49,6 +69,14 @@ export interface InternetSourceResultReferenceFacts {
   readonly publishedAt?: string;
   readonly title: string;
   readonly url: string;
+}
+
+export interface TaskResultReferenceFacts {
+  readonly dueDate?: string;
+  readonly label: string;
+  readonly listName: string;
+  readonly reminderAt?: string;
+  readonly status: "completed" | "open";
 }
 
 export interface ResolvedResultReference {

@@ -191,6 +191,18 @@ const resultReferenceFormatters = {
     ordinal: result.ordinal,
     reference: result.reference,
   }),
+  task_item: (
+    result: Extract<AssistantResultReference, { readonly kind: "task_item" }>,
+  ) => ({
+    ...(result.facts.dueDate ? { dueDate: result.facts.dueDate } : {}),
+    kind: result.kind,
+    label: result.facts.label,
+    listName: result.facts.listName,
+    ordinal: result.ordinal,
+    reference: result.reference,
+    ...(result.facts.reminderAt ? { reminderAt: result.facts.reminderAt } : {}),
+    status: result.facts.status,
+  }),
 };
 
 function formatResultReference(result: AssistantResultReference) {

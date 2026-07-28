@@ -6,6 +6,7 @@ import type {
   ResolvedResultReference,
   ResultReferenceSelectionRequest,
   ResultReferenceTarget,
+  TaskResultReferenceFacts,
 } from "../../ports/result-reference.js";
 import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
 
@@ -105,7 +106,8 @@ interface Entry {
 interface RetainedResultReference {
   readonly facts:
     | CalendarResultReferenceFacts
-    | InternetSourceResultReferenceFacts;
+    | InternetSourceResultReferenceFacts
+    | TaskResultReferenceFacts;
   readonly target?: ResultReferenceTarget;
 }
 
@@ -122,6 +124,10 @@ const resultReferenceDescriptors = {
   internet_sources: {
     itemKind: "internet_source",
     prefix: "internet-source",
+  },
+  task_items: {
+    itemKind: "task_item",
+    prefix: "task-item",
   },
 } as const satisfies Record<
   FeatureResultReferenceSet["kind"],

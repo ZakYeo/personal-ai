@@ -75,6 +75,38 @@ describe("createTaskFeature list capabilities", () => {
           task1Status: "open",
           taskCount: 2,
         },
+        expectsFollowUp: true,
+        resultReferences: {
+          items: [
+            {
+              facts: {
+                label: "Coffee",
+                listName: "Shopping",
+                status: "open",
+              },
+              target: {
+                kind: "task_item",
+                listId: shopping.id,
+                revision: 1,
+                taskId: "task-1",
+              },
+            },
+            {
+              facts: {
+                label: "Oat milk",
+                listName: "Shopping",
+                status: "open",
+              },
+              target: {
+                kind: "task_item",
+                listId: shopping.id,
+                revision: 1,
+                taskId: "task-2",
+              },
+            },
+          ],
+          kind: "task_items",
+        },
         text: "Your Shopping list has Coffee and Oat milk.",
       },
     );
@@ -97,6 +129,7 @@ describe("createTaskFeature list capabilities", () => {
           list1Name: "To-do",
           listCount: 2,
         },
+        resultReferences: { items: [], kind: "task_items" },
         text: "You have Shopping and To-do lists.",
       },
     );
@@ -128,7 +161,24 @@ describe("createTaskFeature list capabilities", () => {
       "task.list.show",
       { name: "Shopping" },
       {
+        resultReferences: { items: [], kind: "task_items" },
         text: "I could not find a list named Shopping.",
+      },
+    );
+  });
+
+  it("clears older task references when the selected list is empty", async () => {
+    const store = createTestTaskStore();
+    const list = await store.addList({ name: "Shopping" });
+
+    await expectDecodedFeatureExecution(
+      createTaskFeature(store),
+      "task.list.show",
+      { name: "Shopping" },
+      {
+        data: { listId: list.id, listName: "Shopping", taskCount: 0 },
+        resultReferences: { items: [], kind: "task_items" },
+        text: "Your Shopping list is empty.",
       },
     );
   });

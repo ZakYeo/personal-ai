@@ -314,7 +314,7 @@ function createForgedReferenceFeature(): FeaturePlugin {
           : {}),
       });
       return Promise.resolve(
-        selected
+        selected?.publicReference.kind === "calendar_event"
           ? { text: selected.publicReference.facts.title }
           : {
               expectsFollowUp: true,

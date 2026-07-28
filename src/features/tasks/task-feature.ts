@@ -86,7 +86,10 @@ async function showList(
   const requestedName = normalizeTaskListName(args.name);
   const list = selectList(lists, requestedName);
   if (!list) {
-    return { text: `I could not find a list named ${requestedName}.` };
+    return {
+      resultReferences: emptyTaskReferences(),
+      text: `I could not find a list named ${requestedName}.`,
+    };
   }
   const tasks = (await store.listTasks()).filter(
     (task) => task.listId === list.id,
@@ -125,8 +128,12 @@ async function renameList(
 }
 
 function availableListsResult(lists: readonly TaskListRecord[]): FeatureResult {
-  if (lists.length === 0)
-    return { text: "You do not have any personal lists." };
+  if (lists.length === 0) {
+    return {
+      resultReferences: emptyTaskReferences(),
+      text: "You do not have any personal lists.",
+    };
+  }
   const shown = lists.slice(0, maxDisplayedItems);
   const data = Object.fromEntries(
     shown.flatMap((list, index) => [
@@ -142,6 +149,7 @@ function availableListsResult(lists: readonly TaskListRecord[]): FeatureResult {
         ? { visibleListCount: shown.length }
         : {}),
     },
+    resultReferences: emptyTaskReferences(),
     text: `You have ${joinHuman(
       shown.map((list) => list.name),
     )} lists${remainingSuffix(lists.length, shown.length)}.`,
@@ -155,6 +163,7 @@ function taskListResult(
   if (tasks.length === 0) {
     return {
       data: { listId: list.id, listName: list.name, taskCount: 0 },
+      resultReferences: emptyTaskReferences(),
       text: `Your ${list.name} list is empty.`,
     };
   }
@@ -176,9 +185,41 @@ function taskListResult(
         ? { visibleTaskCount: shown.length }
         : {}),
     },
+    expectsFollowUp: true,
+    resultReferences: createTaskResultReferences(list, shown),
     text: `Your ${list.name} list has ${joinHuman(
       shown.map((task) => task.label),
     )}${remainingSuffix(tasks.length, shown.length)}.`,
+  };
+}
+
+function emptyTaskReferences() {
+  return { items: [], kind: "task_items" as const };
+}
+
+function createTaskResultReferences(
+  list: TaskListRecord,
+  tasks: readonly TaskRecord[],
+) {
+  return {
+    items: tasks.map((task) => ({
+      facts: {
+        ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+        label: task.label,
+        listName: list.name,
+        ...(task.reminder?.status === "scheduled"
+          ? { reminderAt: task.reminder.scheduledFor }
+          : {}),
+        status: task.status,
+      },
+      target: {
+        kind: "task_item" as const,
+        listId: list.id,
+        revision: task.revision,
+        taskId: task.id,
+      },
+    })),
+    kind: "task_items" as const,
   };
 }
 
