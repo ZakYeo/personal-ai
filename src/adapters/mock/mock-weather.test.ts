@@ -15,65 +15,62 @@ describe("createMockWeatherProvider", () => {
       },
     ]);
 
-    await expect(
-      provider.getForecast(
-        {
-          location: locations[0]!,
-          period: {
-            endAt: "2026-07-29T12:00:00.000Z",
-            startAt: "2026-07-28T12:00:00.000Z",
-          },
-          units: {
-            precipitation: "mm",
-            temperature: "celsius",
-            windSpeed: "km/h",
-          },
-        },
-        {},
-      ),
-    ).resolves.toEqual({
-      attribution: {
-        name: "Deterministic weather fixture",
-        url: "https://example.test/weather-source",
-      },
-      current: {
-        observedAt: "2026-07-28T12:00:00.000Z",
-        precipitation: 0,
-        temperature: 21,
-        weather: "partly cloudy",
-        windSpeed: 12,
-      },
-      daily: [
-        {
-          date: "2026-07-29",
-          precipitation: 1.2,
-          temperatureMax: 23,
-          temperatureMin: 15,
-          weather: "light rain",
-          windSpeedMax: 18,
-        },
-      ],
+    const period = {
+      endAt: "2026-07-29T12:00:00.000Z",
+      startAt: "2026-07-28T12:00:00.000Z",
+    };
+    const units = {
+      precipitation: "mm" as const,
+      temperature: "celsius" as const,
+      windSpeed: "km/h" as const,
+    };
+
+    const forecast = await provider.getForecast(
+      { location: locations[0]!, period, units },
+      {},
+    );
+
+    expect(forecast).toMatchObject({
+      attribution: { name: "Deterministic weather fixture" },
+      current: { observedAt: "2026-07-28T12:00:00.000Z", temperature: 21 },
+      daily: [{ date: "2026-07-29", precipitation: 1.2 }],
       fetchedAt: "2026-07-28T12:00:05.000Z",
       hourly: [
         {
           forecastAt: "2026-07-29T09:00:00.000Z",
-          precipitation: 0.4,
           temperature: 17,
-          weather: "light rain",
-          windSpeed: 14,
         },
       ],
       location: locations[0],
-      period: {
-        endAt: "2026-07-29T12:00:00.000Z",
-        startAt: "2026-07-28T12:00:00.000Z",
-      },
-      units: {
-        precipitation: "mm",
-        temperature: "celsius",
-        windSpeed: "km/h",
-      },
+      period,
+      units,
     });
+    expect(forecast).toHaveProperty(
+      "attribution.url",
+      "https://example.test/weather-source",
+    );
+    expect(forecast.current).toEqual(
+      expect.objectContaining({
+        precipitation: 0,
+        weather: "partly cloudy",
+        windSpeed: 12,
+      }),
+    );
+    expect(forecast.daily[0]).toEqual(
+      expect.objectContaining({
+        temperatureMax: 23,
+        temperatureMin: 15,
+        weather: "light rain",
+        windSpeedMax: 18,
+      }),
+    );
+    expect(forecast.hourly[0]).toEqual(
+      expect.objectContaining({
+        precipitation: 0.4,
+        weather: "light rain",
+        windSpeed: 14,
+      }),
+    );
   });
 
   it("returns no guessed location for an unknown place", async () => {
