@@ -12,6 +12,7 @@ import {
   type AtomicFileSystem,
 } from "./atomic-file-replacement.js";
 import {
+  assertValidWeatherWatchStateDocument,
   parseWeatherWatchState,
   type WeatherWatchStateDocument,
 } from "./weather-watch-state-schema.js";
@@ -171,6 +172,7 @@ async function writeState(
   state: WeatherWatchStateDocument,
   fileSystem: WeatherWatchStoreFileSystem,
 ): Promise<void> {
+  assertValidWeatherWatchStateDocument(state);
   return writeLocalJsonState({
     filePath,
     fileSystem,

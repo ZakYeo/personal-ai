@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 import {
+  createActiveWeatherWatch,
   createNewWeatherWatch,
   weatherWatchNow,
 } from "../../test-support/weather-watch-store.js";
@@ -76,6 +77,49 @@ describe("createFileWeatherWatchStore", () => {
     });
 
     await expect(store.list()).rejects.toThrow(message);
+  });
+
+  it("rejects duplicate persisted IDs before an update can target either record", async () => {
+    const directory = await mkdtemp(
+      join(tmpdir(), "personal-ai-weather-watches-"),
+    );
+    const filePath = join(directory, "weather-watches.json");
+    const duplicate = createActiveWeatherWatch();
+    await writeFile(
+      filePath,
+      JSON.stringify({ version: 1, watches: [duplicate, duplicate] }),
+    );
+    const store = createFileWeatherWatchStore({
+      filePath,
+      now: () => weatherWatchNow,
+    });
+
+    await expect(store.list()).rejects.toThrow(
+      "contains duplicate weather watch IDs",
+    );
+  });
+
+  it("rejects an over-capacity add without replacing readable prior state", async () => {
+    const directory = await mkdtemp(
+      join(tmpdir(), "personal-ai-weather-watches-"),
+    );
+    const filePath = join(directory, "weather-watches.json");
+    const watches = Array.from({ length: 1_000 }, (_, index) =>
+      createActiveWeatherWatch({ id: `weather-watch-${index + 1}` }),
+    );
+    const original = { version: 1, watches };
+    await writeFile(filePath, JSON.stringify(original));
+    const store = createFileWeatherWatchStore({
+      createId: () => "weather-watch-1001",
+      filePath,
+      now: () => weatherWatchNow,
+    });
+
+    await expect(store.add(createNewWeatherWatch())).rejects.toThrow(
+      "cannot contain more than 1000 watches",
+    );
+    await expect(readJson(filePath)).resolves.toEqual(original);
+    await expect(store.list()).resolves.toHaveLength(1_000);
   });
 
   it("serializes competing revision updates against the latest persisted state", async () => {

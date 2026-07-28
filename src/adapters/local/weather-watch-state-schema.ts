@@ -27,13 +27,39 @@ export function parseWeatherWatchState(
   if (!isRecord(value) || value.version !== 1) {
     throw new Error("Weather watch state has an unsupported version.");
   }
-  if (
-    !Array.isArray(value.watches) ||
-    value.watches.length > maxStoredWatches
-  ) {
-    throw invalidState();
+  if (!Array.isArray(value.watches)) throw invalidState();
+  const state: WeatherWatchStateDocument = {
+    version: 1,
+    watches: value.watches.map(parseWatch),
+  };
+  assertValidWeatherWatchStateDocument(state);
+  return state;
+}
+
+export function assertValidWeatherWatchStateDocument(
+  state: WeatherWatchStateDocument,
+): void {
+  if (state.watches.length > maxStoredWatches) {
+    throw new Error(
+      `Weather watch state cannot contain more than ${maxStoredWatches} watches.`,
+    );
   }
-  return { version: 1, watches: value.watches.map(parseWatch) };
+  const ids = new Set<string>();
+  for (const watch of state.watches) {
+    if (ids.has(watch.id)) {
+      throw new Error(
+        "Weather watch state contains duplicate weather watch IDs.",
+      );
+    }
+    ids.add(watch.id);
+    try {
+      assertValidWeatherWatchRecord(watch);
+    } catch (cause) {
+      throw new Error("Weather watch state contains invalid watch state.", {
+        cause,
+      });
+    }
+  }
 }
 
 function parseWatch(value: unknown): WeatherWatchRecord {
@@ -62,14 +88,7 @@ function parseWatch(value: unknown): WeatherWatchRecord {
       : { notification: parseNotification(value.notification) }),
     ...(value.terminalAt === undefined ? {} : { terminalAt: value.terminalAt }),
   };
-  try {
-    assertValidWeatherWatchRecord(watch);
-    return watch;
-  } catch (cause) {
-    throw new Error("Weather watch state contains invalid watch state.", {
-      cause,
-    });
-  }
+  return watch;
 }
 
 function parseCondition(value: unknown): WeatherWatchCondition {
