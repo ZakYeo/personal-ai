@@ -54,4 +54,17 @@ describe("package scripts", () => {
       "pi-service-openai-alarms.e2e.test.ts",
     );
   });
+
+  it("provides a focused live OpenAI weather routing smoke command", async () => {
+    const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.["test:e2e:openai:weather"]).toContain(
+      "openai-weather.e2e.test.ts",
+    );
+    expect(packageJson.scripts?.["test:e2e:openai"]).toContain(
+      "openai-weather.e2e.test.ts",
+    );
+  });
 });
