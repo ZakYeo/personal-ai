@@ -14,6 +14,7 @@ import {
 } from "../../ports/task-policy.js";
 import type { TaskRecord, TaskStore } from "../../ports/task-store.js";
 import { isCanonicalIsoTimestamp } from "../../ports/temporal-policy.js";
+import { defineDeterministicFeatureRules } from "../../ports/deterministic-feature-rules.js";
 import {
   availableListsResult,
   createdTaskResult,
@@ -30,6 +31,7 @@ import {
 import { createTaskMutationCapabilities } from "./task-mutation-capabilities.js";
 import { createTaskListClearCapability } from "./task-list-clear.js";
 import { createTaskReminderAcknowledgementCapability } from "./task-reminder-capability.js";
+import { taskDeterministicRules } from "./task-deterministic-rules.js";
 
 const createListParameters = {
   name: { required: true, type: "string" },
@@ -62,82 +64,86 @@ const remindTaskParameters = {
 type RemindTaskArgs = FeatureArgsFromParameters<typeof remindTaskParameters>;
 
 export function createTaskFeature(store: TaskStore) {
-  return defineFeature({
-    capabilities: {
-      "task.complete": defineCapability({
-        description:
-          "Complete one eligible open task by exact ID, label, list, or retained task reference.",
-        execute: (request, context) =>
-          changeTaskStatus(store, request.args, context, "completed"),
-        parameters: taskTargetParameters,
-        risk: "low",
-        spokenSummary: "complete personal tasks",
-        summary: "Complete one open task.",
-      }),
-      "task.create": defineCapability({
-        description:
-          "Add one task with an optional note and due date to an exact named personal list.",
-        execute: (request) => createTask(store, request.args),
-        parameters: createTaskParameters,
-        risk: "low",
-        spokenSummary: "add tasks to personal lists",
-        summary: "Add a task to a named personal list.",
-      }),
-      ...createTaskMutationCapabilities(store),
-      "task.list.create": defineCapability({
-        description: "Create one durable named personal task list.",
-        execute: (request) => createList(store, request.args),
-        parameters: createListParameters,
-        risk: "low",
-        spokenSummary: "create personal lists",
-        summary: "Create a named personal list.",
-      }),
-      "task.list.clear": createTaskListClearCapability(store),
-      "task.list.rename": defineCapability({
-        description: "Rename one existing personal task list.",
-        execute: (request, context) => renameList(store, request.args, context),
-        parameters: renameListParameters,
-        risk: "low",
-        spokenSummary: "rename personal lists",
-        summary: "Rename an existing personal list.",
-      }),
-      "task.list.show": defineCapability({
-        description:
-          "Show one named personal list, or list the available names when no name is supplied.",
-        execute: (request) => showList(store, request.args),
-        parameters: showListParameters,
-        risk: "low",
-        spokenSummary: "show personal lists and tasks",
-        summary: "Show personal lists and their tasks.",
-        toolChain: "read",
-      }),
-      "task.remind": defineCapability({
-        confirmation: (args, context) => reminderConfirmation(args, context),
-        description:
-          "Add one task with an exact future reminder instant to a named personal list. This requires confirmation.",
-        execute: (request) => createTask(store, request.args),
-        parameters: remindTaskParameters,
-        requiresConfirmation: true,
-        risk: "high",
-        spokenSummary: "create task reminders",
-        summary: "Add a task with an exact reminder.",
-      }),
-      "task.reminder.acknowledge":
-        createTaskReminderAcknowledgementCapability(store),
-      "task.reopen": defineCapability({
-        description:
-          "Reopen one eligible completed task without reactivating any cancelled reminder.",
-        execute: (request, context) =>
-          changeTaskStatus(store, request.args, context, "open"),
-        parameters: taskTargetParameters,
-        risk: "low",
-        spokenSummary: "reopen personal tasks",
-        summary: "Reopen one completed task.",
-      }),
-    },
-    displayName: "Lists and Tasks",
-    id: "tasks",
-  });
+  return defineDeterministicFeatureRules(
+    defineFeature({
+      capabilities: {
+        "task.complete": defineCapability({
+          description:
+            "Complete one eligible open task by exact ID, label, list, or retained task reference.",
+          execute: (request, context) =>
+            changeTaskStatus(store, request.args, context, "completed"),
+          parameters: taskTargetParameters,
+          risk: "low",
+          spokenSummary: "complete personal tasks",
+          summary: "Complete one open task.",
+        }),
+        "task.create": defineCapability({
+          description:
+            "Add one task with an optional note and due date to an exact named personal list.",
+          execute: (request) => createTask(store, request.args),
+          parameters: createTaskParameters,
+          risk: "low",
+          spokenSummary: "add tasks to personal lists",
+          summary: "Add a task to a named personal list.",
+        }),
+        ...createTaskMutationCapabilities(store),
+        "task.list.create": defineCapability({
+          description: "Create one durable named personal task list.",
+          execute: (request) => createList(store, request.args),
+          parameters: createListParameters,
+          risk: "low",
+          spokenSummary: "create personal lists",
+          summary: "Create a named personal list.",
+        }),
+        "task.list.clear": createTaskListClearCapability(store),
+        "task.list.rename": defineCapability({
+          description: "Rename one existing personal task list.",
+          execute: (request, context) =>
+            renameList(store, request.args, context),
+          parameters: renameListParameters,
+          risk: "low",
+          spokenSummary: "rename personal lists",
+          summary: "Rename an existing personal list.",
+        }),
+        "task.list.show": defineCapability({
+          description:
+            "Show one named personal list, or list the available names when no name is supplied.",
+          execute: (request) => showList(store, request.args),
+          parameters: showListParameters,
+          risk: "low",
+          spokenSummary: "show personal lists and tasks",
+          summary: "Show personal lists and their tasks.",
+          toolChain: "read",
+        }),
+        "task.remind": defineCapability({
+          confirmation: (args, context) => reminderConfirmation(args, context),
+          description:
+            "Add one task with an exact future reminder instant to a named personal list. This requires confirmation.",
+          execute: (request) => createTask(store, request.args),
+          parameters: remindTaskParameters,
+          requiresConfirmation: true,
+          risk: "high",
+          spokenSummary: "create task reminders",
+          summary: "Add a task with an exact reminder.",
+        }),
+        "task.reminder.acknowledge":
+          createTaskReminderAcknowledgementCapability(store),
+        "task.reopen": defineCapability({
+          description:
+            "Reopen one eligible completed task without reactivating any cancelled reminder.",
+          execute: (request, context) =>
+            changeTaskStatus(store, request.args, context, "open"),
+          parameters: taskTargetParameters,
+          risk: "low",
+          spokenSummary: "reopen personal tasks",
+          summary: "Reopen one completed task.",
+        }),
+      },
+      displayName: "Lists and Tasks",
+      id: "tasks",
+    }),
+    taskDeterministicRules,
+  );
 }
 
 async function changeTaskStatus(
