@@ -63,7 +63,7 @@ describe("weather validation", () => {
     ).toThrow("Weather provider returned malformed forecast data.");
   });
 
-  it("distinguishes stale data from invalid future freshness", async () => {
+  it("identifies stale observation freshness", async () => {
     const forecast = await createWeatherProviderFixture().getForecast(
       { location, period, units: metricWeatherUnits },
       {},
@@ -76,6 +76,13 @@ describe("weather validation", () => {
         360 * 60_000,
       ),
     ).toBe(true);
+    expect(
+      weatherForecastIsStale(
+        forecast,
+        new Date("2026-07-28T12:05:00.000Z"),
+        360 * 60_000,
+      ),
+    ).toBe(false);
     expect(() =>
       weatherForecastIsStale(
         forecast,

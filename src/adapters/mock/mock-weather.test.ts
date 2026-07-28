@@ -54,7 +54,6 @@ describe("createMockWeatherProvider", () => {
         },
       ],
       fetchedAt: "2026-07-28T12:00:05.000Z",
-      generatedAt: "2026-07-28T12:00:00.000Z",
       hourly: [
         {
           forecastAt: "2026-07-29T09:00:00.000Z",

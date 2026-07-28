@@ -71,7 +71,6 @@ describe("createWeatherFeature", () => {
       attributionName: "Deterministic weather fixture",
       attributionUrl: "https://example.test/weather-source",
       fetchedAt: "2026-07-28T12:00:05.000Z",
-      generatedAt: "2026-07-28T12:00:00.000Z",
       latitude: 51.5074,
       location: "London",
       longitude: -0.1278,
@@ -113,7 +112,6 @@ describe("createWeatherFeature", () => {
       daily0WindSpeedMax: 18,
       dailyCount: 1,
       fetchedAt: "2026-07-28T12:00:05.000Z",
-      generatedAt: "2026-07-28T12:00:00.000Z",
       hourly0ForecastAt: "2026-07-29T09:00:00.000Z",
       hourly0Precipitation: 0.4,
       hourly0Temperature: 17,
@@ -187,7 +185,6 @@ describe("createWeatherFeature", () => {
     ).resolves.toEqual({
       data: {
         fetchedAt: "2026-07-28T12:00:05.000Z",
-        generatedAt: "2026-07-28T12:00:00.000Z",
         location: "London",
         timezone: "Europe/London",
       },

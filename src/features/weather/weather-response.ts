@@ -7,7 +7,6 @@ export function currentWeatherResult(forecast: WeatherForecast) {
       attributionName: forecast.attribution.name,
       attributionUrl: forecast.attribution.url,
       fetchedAt: forecast.fetchedAt,
-      generatedAt: forecast.generatedAt,
       latitude: location.latitude,
       location: location.name,
       longitude: location.longitude,
@@ -23,7 +22,7 @@ export function currentWeatherResult(forecast: WeatherForecast) {
       windSpeed: current.windSpeed,
       windSpeedUnit: units.windSpeed,
     },
-    text: `In ${location.name}, it is ${current.temperature}${formatTemperatureUnit(units.temperature)} and ${current.weather}, with ${current.precipitation} ${units.precipitation} precipitation and wind at ${current.windSpeed} ${units.windSpeed}. Observed at ${current.observedAt}; data generated at ${forecast.generatedAt} and fetched at ${forecast.fetchedAt}. ${formatAttribution(forecast)}`,
+    text: `In ${location.name}, it is ${current.temperature}${formatTemperatureUnit(units.temperature)} and ${current.weather}, with ${current.precipitation} ${units.precipitation} precipitation and wind at ${current.windSpeed} ${units.windSpeed}. Observed at ${current.observedAt}; fetched at ${forecast.fetchedAt}. ${formatAttribution(forecast)}`,
   };
 }
 
@@ -47,7 +46,6 @@ export function forecastWeatherResult(forecast: WeatherForecast) {
       ...flattenDaily(forecast),
       ...flattenHourly(forecast),
       fetchedAt: forecast.fetchedAt,
-      generatedAt: forecast.generatedAt,
       latitude: forecast.location.latitude,
       location: forecast.location.name,
       longitude: forecast.location.longitude,
@@ -58,7 +56,7 @@ export function forecastWeatherResult(forecast: WeatherForecast) {
       timezone: forecast.location.timezone,
       windSpeedUnit: forecast.units.windSpeed,
     },
-    text: `${forecast.location.name}'s forecast from ${forecast.period.startAt} to ${forecast.period.endAt}: ${summary || "No forecast intervals are available."} Data generated at ${forecast.generatedAt} and fetched at ${forecast.fetchedAt}. ${formatAttribution(forecast)}`,
+    text: `${forecast.location.name}'s forecast from ${forecast.period.startAt} to ${forecast.period.endAt}: ${summary || "No forecast intervals are available."} Fetched at ${forecast.fetchedAt}. ${formatAttribution(forecast)}`,
   };
 }
 

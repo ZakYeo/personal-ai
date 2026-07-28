@@ -56,7 +56,6 @@ export interface WeatherForecast {
   current: CurrentWeatherObservation;
   daily: DailyWeatherForecast[];
   fetchedAt: string;
-  generatedAt: string;
   hourly: HourlyWeatherForecast[];
   location: WeatherLocation;
   period: WeatherPeriod;

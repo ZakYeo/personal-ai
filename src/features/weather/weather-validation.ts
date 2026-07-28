@@ -73,7 +73,6 @@ export function validateWeatherForecast(
     JSON.stringify(forecast.units) !== JSON.stringify(metricWeatherUnits) ||
     forecast.attribution.name.trim().length === 0 ||
     !isHttpUrl(forecast.attribution.url) ||
-    !isIsoTimestamp(forecast.generatedAt) ||
     !isIsoTimestamp(forecast.fetchedAt) ||
     !isCurrentObservation(forecast.current) ||
     forecast.hourly.length > maxForecastDays * 24 ||
@@ -102,8 +101,8 @@ export function weatherForecastIsStale(
   now: Date,
   maxForecastAgeMs: number,
 ): boolean {
-  const generatedAt = new Date(forecast.generatedAt).getTime();
-  const age = now.getTime() - generatedAt;
+  const observedAt = new Date(forecast.current.observedAt).getTime();
+  const age = now.getTime() - observedAt;
   if (age < -futureToleranceMs) {
     throw new Error("Weather provider returned future-dated freshness data.");
   }

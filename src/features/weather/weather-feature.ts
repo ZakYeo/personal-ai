@@ -173,7 +173,6 @@ async function executeWeatherRequest(
     return {
       data: {
         fetchedAt: forecast.fetchedAt,
-        generatedAt: forecast.generatedAt,
         location: forecast.location.name,
         timezone: forecast.location.timezone,
       },
