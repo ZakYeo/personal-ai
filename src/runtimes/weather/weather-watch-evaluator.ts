@@ -1,18 +1,20 @@
 import type { ClockPort } from "../../ports/assistant.js";
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
-import type {
-  WeatherWatchCondition,
-  WeatherWatchRecord,
-  WeatherWatchStore,
-} from "../../ports/weather-watch-store.js";
 import {
   weatherWatchConditionMatches,
   weatherWatchConditionValue,
   weatherWatchMetricLabel,
 } from "../../ports/weather-watch-condition-policy.js";
+import { assertWeatherWatchActiveLimit } from "../../ports/weather-watch-policy.js";
+import type {
+  WeatherWatchCondition,
+  WeatherWatchRecord,
+  WeatherWatchStore,
+} from "../../ports/weather-watch-store.js";
 import type {
   HourlyWeatherForecast,
   WeatherAttribution,
+  WeatherForecast,
   WeatherProviderPort,
   WeatherPeriod,
 } from "../../ports/weather.js";
@@ -39,12 +41,17 @@ interface WeatherWatchEvaluatorDependencies extends WeatherWatchEvaluationDepend
   timer?: RuntimeBackgroundTaskTimer;
 }
 
+interface ForecastGroup {
+  watches: WeatherWatchRecord[];
+}
+
 interface QualifyingForecast {
   attribution: WeatherAttribution;
   forecast: HourlyWeatherForecast;
   window: WeatherPeriod;
 }
 
+const maxConcurrentForecastRequests = 4;
 const systemWeatherWatchTimer: RuntimeBackgroundTaskTimer = {
   wait: (delayMs, shutdownSignal) =>
     waitForTimerOrShutdown(delayMs, shutdownSignal),
@@ -67,31 +74,112 @@ export async function processWeatherWatchEvaluationCycle(
   dependencies: WeatherWatchEvaluationDependencies,
 ): Promise<void> {
   const watches = await dependencies.store.list();
+  assertWeatherWatchActiveLimit(watches);
   const now = dependencies.clock.now();
+  const eligible = await collectEligibleWatches(dependencies, watches, now);
+  if (dependencies.shutdownSignal?.aborted) return;
+  await processForecastGroups(
+    dependencies,
+    groupCompatibleWatches(eligible),
+    now,
+  );
+}
 
+async function collectEligibleWatches(
+  dependencies: WeatherWatchEvaluationDependencies,
+  watches: readonly WeatherWatchRecord[],
+  now: Date,
+): Promise<WeatherWatchRecord[]> {
+  const eligible: WeatherWatchRecord[] = [];
   for (const watch of watches) {
-    if (dependencies.shutdownSignal?.aborted) return;
+    if (dependencies.shutdownSignal?.aborted) break;
     if (watch.status !== "active") continue;
-    if (now.toISOString() > watch.period.endAt) {
+    if (now.toISOString() <= watch.period.endAt) {
+      eligible.push(watch);
+      continue;
+    }
+    try {
       await dependencies.store.expire({
         expectedRevision: watch.revision,
         expiredAt: now.toISOString(),
         id: watch.id,
       });
-      continue;
+    } catch (error) {
+      reportFailureBestEffort(dependencies, error);
     }
+  }
+  return eligible;
+}
 
-    const match = await loadQualifyingForecast(dependencies, watch, now);
-    if (!match || dependencies.shutdownSignal?.aborted) continue;
-    const claimed = await dependencies.store.claimNotification({
-      claimedAt: now.toISOString(),
-      expectedRevision: watch.revision,
-      id: watch.id,
-      window: match.window,
-    });
-    if (!claimed) continue;
+function groupCompatibleWatches(
+  watches: readonly WeatherWatchRecord[],
+): ForecastGroup[] {
+  const groups = new Map<string, ForecastGroup>();
+  for (const watch of watches) {
+    const key = JSON.stringify([
+      watch.location.countryCode,
+      watch.location.latitude,
+      watch.location.longitude,
+      watch.location.name,
+      watch.location.timezone,
+      watch.period.startAt,
+      watch.period.endAt,
+    ]);
+    const existing = groups.get(key);
+    if (existing) {
+      existing.watches.push(watch);
+    } else {
+      groups.set(key, { watches: [watch] });
+    }
+  }
+  return [...groups.values()];
+}
 
+async function processForecastGroups(
+  dependencies: WeatherWatchEvaluationDependencies,
+  groups: readonly ForecastGroup[],
+  now: Date,
+): Promise<void> {
+  let nextIndex = 0;
+  const worker = async () => {
+    while (!dependencies.shutdownSignal?.aborted) {
+      const group = groups[nextIndex];
+      nextIndex += 1;
+      if (!group) return;
+      await processForecastGroup(dependencies, group, now);
+    }
+  };
+  await Promise.all(
+    Array.from(
+      {
+        length: Math.min(maxConcurrentForecastRequests, groups.length),
+      },
+      worker,
+    ),
+  );
+}
+
+async function processForecastGroup(
+  dependencies: WeatherWatchEvaluationDependencies,
+  group: ForecastGroup,
+  now: Date,
+): Promise<void> {
+  const representative = group.watches[0];
+  if (!representative) return;
+  const forecast = await loadForecast(dependencies, representative, now);
+  if (!forecast || dependencies.shutdownSignal?.aborted) return;
+  for (const watch of group.watches) {
+    if (dependencies.shutdownSignal?.aborted) return;
+    const match = findQualifyingForecast(forecast, watch);
+    if (!match) continue;
     try {
+      const claimed = await dependencies.store.claimNotification({
+        claimedAt: now.toISOString(),
+        expectedRevision: watch.revision,
+        id: watch.id,
+        window: match.window,
+      });
+      if (!claimed) continue;
       await dependencies.delivery.deliver(
         {
           id: claimed.id,
@@ -107,11 +195,11 @@ export async function processWeatherWatchEvaluationCycle(
   }
 }
 
-async function loadQualifyingForecast(
+async function loadForecast(
   dependencies: WeatherWatchEvaluationDependencies,
   watch: WeatherWatchRecord,
   now: Date,
-): Promise<QualifyingForecast | undefined> {
+): Promise<WeatherForecast | undefined> {
   try {
     const forecast = await dependencies.provider.getForecast(
       {
@@ -127,34 +215,34 @@ async function loadQualifyingForecast(
     if (weatherForecastIsStale(forecast, now, dependencies.maxForecastAgeMs)) {
       throw new Error("Weather watch forecast is stale.");
     }
-    const qualifying = [...forecast.hourly]
-      .filter(
-        (item) =>
-          item.forecastAt >= watch.period.startAt &&
-          item.forecastAt <= watch.period.endAt &&
-          weatherWatchConditionMatches(watch.condition, item),
-      )
-      .sort((left, right) =>
-        left.forecastAt.localeCompare(right.forecastAt),
-      )[0];
-    if (!qualifying) return;
-    return {
-      attribution: forecast.attribution,
-      forecast: qualifying,
-      window: {
-        endAt: new Date(
-          Math.min(
-            new Date(qualifying.forecastAt).getTime() + 60 * 60_000,
-            new Date(watch.period.endAt).getTime(),
-          ),
-        ).toISOString(),
-        startAt: qualifying.forecastAt,
-      },
-    };
+    return forecast;
   } catch (error) {
     reportFailureBestEffort(dependencies, error);
     return;
   }
+}
+
+function findQualifyingForecast(
+  forecast: WeatherForecast,
+  watch: WeatherWatchRecord,
+): QualifyingForecast | undefined {
+  const qualifying = forecast.hourly.find((item) =>
+    weatherWatchConditionMatches(watch.condition, item),
+  );
+  if (!qualifying) return;
+  return {
+    attribution: forecast.attribution,
+    forecast: qualifying,
+    window: {
+      endAt: new Date(
+        Math.min(
+          new Date(qualifying.forecastAt).getTime() + 60 * 60_000,
+          new Date(watch.period.endAt).getTime(),
+        ),
+      ).toISOString(),
+      startAt: qualifying.forecastAt,
+    },
+  };
 }
 
 function createNotificationText(

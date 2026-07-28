@@ -3,7 +3,10 @@ import type {
   WeatherWatchRecord,
   WeatherWatchStore,
 } from "../../ports/weather-watch-store.js";
-import { cloneWeatherWatch } from "../../ports/weather-watch-policy.js";
+import {
+  assertWeatherWatchActiveLimit,
+  cloneWeatherWatch,
+} from "../../ports/weather-watch-policy.js";
 import {
   cancelWeatherWatch,
   claimWeatherWatchNotification,
@@ -32,6 +35,7 @@ export function createInMemoryWeatherWatchStore(
           options.now(),
           watches,
         );
+        assertWeatherWatchActiveLimit([...watches, stored]);
         watches.push(stored);
         return cloneWeatherWatch(stored);
       }),

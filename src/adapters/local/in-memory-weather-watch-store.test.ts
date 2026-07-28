@@ -92,6 +92,22 @@ describe("createInMemoryWeatherWatchStore", () => {
     );
   });
 
+  it("rejects a twenty-fifth active watch without changing the existing set", async () => {
+    let id = 0;
+    const store = createInMemoryWeatherWatchStore({
+      createId: () => `weather-watch-${++id}`,
+      now: () => weatherWatchNow,
+    });
+    await Promise.all(
+      Array.from({ length: 24 }, () => store.add(createNewWeatherWatch())),
+    );
+
+    await expect(store.add(createNewWeatherWatch())).rejects.toThrow(
+      "cannot contain more than 24 active watches",
+    );
+    await expect(store.list()).resolves.toHaveLength(24);
+  });
+
   it("cancels only the expected active revision and records the exact terminal time", async () => {
     const store = createInMemoryWeatherWatchStore({
       createId: () => "weather-watch-1",

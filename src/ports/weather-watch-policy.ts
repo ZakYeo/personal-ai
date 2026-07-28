@@ -10,6 +10,21 @@ import {
 } from "./weather-policy.js";
 import { assertValidWeatherWatchCondition } from "./weather-watch-condition-policy.js";
 
+const maxActiveWeatherWatches = 24;
+
+export function assertWeatherWatchActiveLimit(
+  watches: readonly WeatherWatchRecord[],
+): void {
+  if (
+    watches.filter((watch) => watch.status === "active").length >
+    maxActiveWeatherWatches
+  ) {
+    throw new Error(
+      `Weather watch state cannot contain more than ${maxActiveWeatherWatches} active watches.`,
+    );
+  }
+}
+
 export function assertValidNewWeatherWatch(watch: NewWeatherWatch): void {
   if (
     !isValidWeatherLocation(watch.location) ||

@@ -105,7 +105,7 @@ describe("createFileWeatherWatchStore", () => {
     );
     const filePath = join(directory, "weather-watches.json");
     const watches = Array.from({ length: 1_000 }, (_, index) =>
-      createActiveWeatherWatch({ id: `weather-watch-${index + 1}` }),
+      createTerminalWeatherWatch(`weather-watch-${index + 1}`),
     );
     const original = { version: 1, watches };
     await writeFile(filePath, JSON.stringify(original));
@@ -120,6 +120,28 @@ describe("createFileWeatherWatchStore", () => {
     );
     await expect(readJson(filePath)).resolves.toEqual(original);
     await expect(store.list()).resolves.toHaveLength(1_000);
+  });
+
+  it("rejects a twenty-fifth active watch before replacing persisted state", async () => {
+    const directory = await mkdtemp(
+      join(tmpdir(), "personal-ai-weather-watches-"),
+    );
+    const filePath = join(directory, "weather-watches.json");
+    const watches = Array.from({ length: 24 }, (_, index) =>
+      createActiveWeatherWatch({ id: `weather-watch-${index + 1}` }),
+    );
+    const original = { version: 1, watches };
+    await writeFile(filePath, JSON.stringify(original));
+    const store = createFileWeatherWatchStore({
+      createId: () => "weather-watch-25",
+      filePath,
+      now: () => weatherWatchNow,
+    });
+
+    await expect(store.add(createNewWeatherWatch())).rejects.toThrow(
+      "cannot contain more than 24 active watches",
+    );
+    await expect(readJson(filePath)).resolves.toEqual(original);
   });
 
   it("serializes competing revision updates against the latest persisted state", async () => {
@@ -250,4 +272,15 @@ function createMemoryFileSystem(
       await overrides.replaceFile?.(options);
     },
   };
+}
+
+function createTerminalWeatherWatch(id: string) {
+  const terminalAt = "2026-07-28T12:01:00.000Z";
+  return createActiveWeatherWatch({
+    id,
+    revision: 2,
+    status: "cancelled",
+    terminalAt,
+    updatedAt: terminalAt,
+  });
 }
