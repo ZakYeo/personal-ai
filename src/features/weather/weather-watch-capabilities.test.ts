@@ -3,6 +3,7 @@ import {
   executeFeature,
   expectCapabilityMetadata,
 } from "../../test-support/feature-contract.js";
+import { getDeterministicFeatureRules } from "../../ports/deterministic-feature-rules.js";
 import { createWeatherProviderFixture } from "../../test-support/weather.js";
 import { createWeatherWatchStoreFixture } from "../../test-support/weather-watch-store.js";
 import { createWeatherFeature } from "./weather-feature.js";
@@ -14,6 +15,25 @@ const context = {
 };
 
 describe("weather watch capabilities", () => {
+  it("routes one exact bounded rain-watch fixture without changing timestamp case", () => {
+    const rule = getDeterministicFeatureRules(createWeatherWatchFeature()).find(
+      ({ capability }) => capability === "weather.watch.create",
+    );
+
+    expect(
+      rule?.match(
+        "watch for rain in london from 2026-07-28t12:00:00.000z to 2026-07-29t12:00:00.000z",
+      ),
+    ).toEqual({
+      endAt: "2026-07-29T12:00:00.000Z",
+      location: "london",
+      metric: "precipitation",
+      operator: "atLeast",
+      startAt: "2026-07-28T12:00:00.000Z",
+      threshold: 0.1,
+    });
+  });
+
   it("declares confirmed create and cancel writes plus a low-risk list read", () => {
     const feature = createWeatherWatchFeature();
 

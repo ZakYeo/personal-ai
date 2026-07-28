@@ -123,6 +123,25 @@ export function createWeatherWatchCapabilities(
 
 export const weatherWatchDeterministicRules = [
   {
+    capability: "weather.watch.create",
+    match: (text) => {
+      const match =
+        /^watch for rain in (?<location>.+) from (?<startAt>\d{4}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}(?:\.\d{3})?z) to (?<endAt>\d{4}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}(?:\.\d{3})?z)$/u.exec(
+          text,
+        );
+      const { endAt, location, startAt } = match?.groups ?? {};
+      if (!endAt || !location || !startAt) return;
+      return {
+        endAt: canonicalizeNormalizedTimestamp(endAt),
+        location,
+        metric: "precipitation",
+        operator: "atLeast",
+        startAt: canonicalizeNormalizedTimestamp(startAt),
+        threshold: 0.1,
+      };
+    },
+  },
+  {
     capability: "weather.watch.list",
     match: (text) =>
       /\b(?:list|show) (?:my )?weather watches\b/u.test(text) ? {} : undefined,
@@ -137,6 +156,10 @@ export const weatherWatchDeterministicRules = [
     },
   },
 ] as const satisfies readonly DeterministicFeatureRule[];
+
+function canonicalizeNormalizedTimestamp(timestamp: string): string {
+  return `${timestamp.slice(0, 10)}T${timestamp.slice(11, -1)}Z`;
+}
 
 async function createWeatherWatch(
   provider: WeatherProviderPort,
