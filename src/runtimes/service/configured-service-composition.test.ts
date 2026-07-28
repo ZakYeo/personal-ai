@@ -328,6 +328,37 @@ describe("runConfiguredServiceRuntime", () => {
         status: "open",
       }),
     ]);
+
+    let resolveSchedulerWait: (() => void) | undefined;
+    const schedulerWait = new Promise<void>((resolve) => {
+      resolveSchedulerWait = resolve;
+    });
+    const replayDelivery = vi.fn(() => Promise.resolve());
+    await runConfiguredServiceRuntime(
+      {
+        backgroundTaskTimer: {
+          wait: (delayMs, shutdownSignal) => {
+            if (delayMs === 1_000) resolveSchedulerWait?.();
+            return new Promise<void>((resolve) => {
+              shutdownSignal.addEventListener("abort", () => resolve(), {
+                once: true,
+              });
+            });
+          },
+        },
+        configPath,
+        createNotificationDelivery: () => ({ deliver: replayDelivery }),
+        now: () => new Date(scheduledFor),
+      },
+      {
+        validateConfig: () => {},
+        runTurn: async (context) => {
+          await schedulerWait;
+          context.requestShutdown("task reminder replay check complete");
+        },
+      },
+    );
+    expect(replayDelivery).not.toHaveBeenCalled();
   });
 
   it("delivers a user-created weather watch through the configured service task", async () => {
