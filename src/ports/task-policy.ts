@@ -12,6 +12,7 @@ export function assertValidTaskListRecord(list: TaskListRecord): void {
   if (
     !isIdentifier(list.id) ||
     !isBoundedTrimmedText(list.name, maxListNameLength) ||
+    normalizeTaskListName(list.name) !== list.name ||
     !hasCanonicalRecordMetadata(list)
   ) {
     throw new Error("Task list state is invalid.");
@@ -23,13 +24,15 @@ export function assertValidTaskRecord(task: TaskRecord): void {
     !isIdentifier(task.id) ||
     !isIdentifier(task.listId) ||
     !isBoundedTrimmedText(task.label, maxTaskLabelLength) ||
+    normalizeTaskLabel(task.label) !== task.label ||
     (task.note !== undefined &&
-      !isBoundedTrimmedText(task.note, maxTaskNoteLength)) ||
+      (!isBoundedTrimmedText(task.note, maxTaskNoteLength) ||
+        normalizeTaskNote(task.note) !== task.note)) ||
     (task.dueDate !== undefined && !isCanonicalIsoDate(task.dueDate)) ||
     !hasCanonicalRecordMetadata(task) ||
     !hasCanonicalTaskLifecycle(task) ||
     (task.reminder !== undefined &&
-      !hasCanonicalReminderLifecycle(task.reminder, task.updatedAt))
+      !hasCanonicalReminderLifecycle(task.reminder, task))
   ) {
     throw new Error("Task state is invalid.");
   }
@@ -83,9 +86,14 @@ function hasCanonicalTaskLifecycle(task: TaskRecord): boolean {
 
 function hasCanonicalReminderLifecycle(
   reminder: TaskReminder,
-  taskUpdatedAt: string,
+  task: TaskRecord,
 ): boolean {
-  if (!isCanonicalIsoTimestamp(reminder.scheduledFor)) return false;
+  if (
+    !isCanonicalIsoTimestamp(reminder.scheduledFor) ||
+    reminder.scheduledFor <= task.createdAt
+  ) {
+    return false;
+  }
 
   switch (reminder.status) {
     case "scheduled":
@@ -93,7 +101,7 @@ function hasCanonicalReminderLifecycle(
     case "claimed":
       return (
         reminder.claimedAt >= reminder.scheduledFor &&
-        reminder.claimedAt <= taskUpdatedAt &&
+        reminder.claimedAt <= task.updatedAt &&
         isCanonicalIsoTimestamp(reminder.claimedAt) &&
         hasOnlyLifecycleFields(reminder, ["claimedAt"])
       );
@@ -101,7 +109,7 @@ function hasCanonicalReminderLifecycle(
       return (
         reminder.claimedAt >= reminder.scheduledFor &&
         reminder.deliveredAt >= reminder.claimedAt &&
-        reminder.deliveredAt <= taskUpdatedAt &&
+        reminder.deliveredAt <= task.updatedAt &&
         isCanonicalIsoTimestamp(reminder.claimedAt) &&
         isCanonicalIsoTimestamp(reminder.deliveredAt) &&
         hasOnlyLifecycleFields(reminder, ["claimedAt", "deliveredAt"])
@@ -114,7 +122,7 @@ function hasCanonicalReminderLifecycle(
             isCanonicalIsoTimestamp(reminder.deliveredAt))) &&
         reminder.acknowledgedAt >=
           (reminder.deliveredAt ?? reminder.claimedAt) &&
-        reminder.acknowledgedAt <= taskUpdatedAt &&
+        reminder.acknowledgedAt <= task.updatedAt &&
         isCanonicalIsoTimestamp(reminder.claimedAt) &&
         isCanonicalIsoTimestamp(reminder.acknowledgedAt) &&
         hasOnlyLifecycleFields(reminder, [
@@ -127,7 +135,8 @@ function hasCanonicalReminderLifecycle(
       );
     case "cancelled":
       return (
-        reminder.cancelledAt <= taskUpdatedAt &&
+        reminder.cancelledAt >= task.createdAt &&
+        reminder.cancelledAt <= task.updatedAt &&
         isCanonicalIsoTimestamp(reminder.cancelledAt) &&
         hasOnlyLifecycleFields(reminder, ["cancelledAt"])
       );

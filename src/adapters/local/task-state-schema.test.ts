@@ -54,6 +54,58 @@ describe("task state schema", () => {
   });
 
   it.each([
+    ["a non-canonical list name", [{ ...list, name: "To-  do" }], [task]],
+    [
+      "a non-canonical task label",
+      [list],
+      [{ ...task, label: "Submit  form" }],
+    ],
+    ["a non-canonical task note", [list], [{ ...task, note: " Check it" }]],
+  ])("rejects %s", (_label, lists, tasks) => {
+    expect(() => parseTaskState({ version: 2, lists, tasks })).toThrow(
+      /contains invalid task (?:list )?state/u,
+    );
+  });
+
+  it.each([
+    {
+      scheduledFor: "2026-07-28T08:00:00.000Z",
+      status: "scheduled" as const,
+    },
+    {
+      claimedAt: "2026-07-28T08:00:00.000Z",
+      scheduledFor: "2026-07-28T07:59:00.000Z",
+      status: "claimed" as const,
+    },
+    {
+      claimedAt: "2026-07-28T07:50:00.000Z",
+      deliveredAt: "2026-07-28T08:00:00.000Z",
+      scheduledFor: "2026-07-28T07:40:00.000Z",
+      status: "delivered" as const,
+    },
+    {
+      acknowledgedAt: "2026-07-28T08:00:00.000Z",
+      claimedAt: "2026-07-28T07:40:00.000Z",
+      deliveredAt: "2026-07-28T07:50:00.000Z",
+      scheduledFor: "2026-07-28T07:30:00.000Z",
+      status: "acknowledged" as const,
+    },
+    {
+      cancelledAt: "2026-07-28T08:00:00.000Z",
+      scheduledFor: "2026-07-29T08:00:00.000Z",
+      status: "cancelled" as const,
+    },
+  ])("rejects $status reminder history before task creation", (reminder) => {
+    expect(() =>
+      parseTaskState({
+        version: 2,
+        lists: [list],
+        tasks: [{ ...task, reminder }],
+      }),
+    ).toThrow("contains invalid task state");
+  });
+
+  it.each([
     ["a reminder in version one", 1, { ...task, reminder: {} }],
     ["an unknown task status", 2, { ...task, status: "pending" }],
     ["a malformed reminder", 2, { ...task, reminder: { status: "scheduled" } }],
