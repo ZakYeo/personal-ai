@@ -1111,7 +1111,8 @@ hard batch-ready latency/RTF screen. The report explicitly marks network
 isolation, installed size, shutdown latency, thermal state, LibriSpeech scoring,
 and true streaming first-audio/finalization latency as unavailable rather than
 inventing values for them. Raspberry Pi
-measurements were explicitly deferred because hardware was unavailable.
-Milestones 13 and 14 therefore remain blocked rather than registering an
-unfit production adapter. Raw measurements and the reproducible report live
+measurements were explicitly deferred because hardware was unavailable. The
+result prevented registration of an unfit production adapter; the proposed
+follow-on milestones were later retired with the rest of the unimplemented
+roadmap after Milestone 12.1. Raw measurements and the reproducible report live
 under `benchmarks/voice/results/`.

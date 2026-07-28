@@ -55,10 +55,10 @@ The assistant should support natural voice commands such as:
 ## Near-Term Direction
 
 Compound plans, calendar result follow-ups, and bounded calendar-to-alarm
-workflows are implemented. Local voice and local intent providers follow only after reproducible
-desktop and Raspberry Pi benchmarks. Real messaging follows a target-specific
-proof because Matrix clients, Telegram bots, and WhatsApp business messaging do
-not represent the same user outcome. See `docs/08-spike-9-report.md`.
+workflows are implemented. The earlier provider-focused roadmap after Milestone
+12.1 has been retired. The next roadmap should prioritize new everyday
+capabilities and a more personalized assistant experience while preserving the
+existing validation, confirmation, privacy, and runtime-boundary guarantees.
 
 ## Documentation Maintenance
 

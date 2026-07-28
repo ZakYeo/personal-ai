@@ -241,5 +241,5 @@ Python runtime wheels must also be explicit allowlist entries from immutable
 official PyPI file URLs and installed with indexes and dependency resolution
 disabled; PyPI is not an approved model or engine source.
 Normal installation continues to use explicit command or streaming provider
-configuration until Milestones 13 and 14 select and document first-class local
-adapters.
+configuration unless a future, benchmark-backed roadmap selects and documents
+first-class local adapters.

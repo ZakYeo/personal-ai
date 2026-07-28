@@ -102,11 +102,11 @@ Current roadmap position:
   its required independent review; it adds bounded read sessions,
   application-owned all-day clarification, and typed
   calendar-event-to-alarm snapshot binding. The
-  [discovery report](docs/08-spike-9-report.md) makes compound command plans the
-  first post-spike milestone, followed by calendar result follow-ups, measured
-  local voice, target-specific messaging, and a benchmarked local intent
-  provider. Real providers and hardware validation remain opt-in work outside
-  the default deterministic validation gate.
+  [discovery report](docs/08-spike-9-report.md) records the evidence behind that
+  completed sequence. The unimplemented roadmap after Milestone 12.1 has been
+  retired while the next capability-focused product direction is selected.
+  Real providers and hardware validation remain opt-in work outside the default
+  deterministic validation gate.
 
 ## Requirements
 

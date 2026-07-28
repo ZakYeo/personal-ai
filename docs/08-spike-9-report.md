@@ -14,8 +14,9 @@ diagnostic-aware outcome boundaries provide most of the required foundations.
 Calendar result follow-ups were implemented next as Milestone 11. Spike 12 then
 recorded an explicit local-voice no-go. Milestone 12.1 now adds bounded read-tool
 chaining so later commands may use validated safe results without introducing
-an unbounded agent loop. Real messaging and a local intent provider remain
-worthwhile, but each needs a bounded proof before production implementation.
+an unbounded agent loop. The unimplemented recommendations that originally
+followed Milestone 12.1 were retired on 2026-07-28 so a new capability-focused
+roadmap can be selected from current product needs.
 
 ## Candidate Comparison
 
@@ -160,13 +161,10 @@ same application validation as every other intent adapter.
 3. Spike 12: Local Voice Device Benchmark.
 4. Milestone 12.1: Bounded Tool-Chain Workflows (implemented after independent
    review).
-5. Milestone 13: First-Class Local STT.
-6. Milestone 14: First-Class Local TTS.
-7. Spike 15: Messaging Target and Encryption Proof.
-8. Milestone 16: Real Messaging Read and Draft.
-9. Milestone 17: Confirmed Messaging Send.
-10. Spike 18: Local Intent Accuracy Benchmark.
-11. Milestone 19: Local Structured Intent Provider.
+
+The original unimplemented continuation of this ordering was retired on
+2026-07-28. This report remains evidence for the completed discovery and
+implemented sequence, not the active future roadmap.
 
 ## Evidence
 
@@ -187,11 +185,10 @@ and recheck current pricing and data-handling terms before code begins.
 | Piper TTS                  | Offline after model installation with no per-request provider fee; GPL-3.0 implementation, voice-model obligations, local memory, and first-audio latency                                     | [Piper](https://github.com/OHF-Voice/piper1-gpl)                                                                                                                                                  | Benchmark and review distribution obligations before bundling           |
 | Ollama local intent        | No cloud credential or per-request provider fee for local models; model storage, memory, cold start, structured-command accuracy, and Pi latency must be measured                             | [Structured outputs](https://docs.ollama.com/capabilities/structured-outputs) and [tool calling](https://docs.ollama.com/capabilities/tool-calling)                                               | Evaluate only after local voice establishes the offline device path     |
 
-The local benchmark pass/fail thresholds are deliberately assigned to Spike 12
-and Spike 18 because no target-device measurements exist yet. Those spikes must
-record numeric latency, memory, accuracy, and real-time-factor thresholds before
-selecting an implementation; absence of measurements is not evidence of
-fitness.
+The local voice benchmark pass/fail thresholds were deliberately assigned to
+Spike 12 because target-device measurements did not yet exist. Absence of
+measurements remains insufficient evidence of fitness for any future local
+provider selection.
 
 ## Decision Boundaries
 
