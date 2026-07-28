@@ -82,6 +82,17 @@ describe("task policy", () => {
       "completion timestamp on an open task",
       taskRecord({ completedAt: createdAt }),
     ],
+    [
+      "a scheduled reminder on a completed task",
+      taskRecord({
+        completedAt: createdAt,
+        reminder: {
+          scheduledFor: "2026-07-29T08:00:00.000Z",
+          status: "scheduled",
+        },
+        status: "completed",
+      }),
+    ],
   ])("rejects a task with %s", (_label, record) => {
     expect(() => assertValidTaskRecord(record)).toThrow(
       "Task state is invalid.",
@@ -170,5 +181,23 @@ describe("task policy", () => {
       scheduledFor: "2026-07-29T08:00:00.000Z",
       status: "scheduled",
     });
+  });
+
+  it("preserves earlier lifecycle facts across later task edits", () => {
+    expect(() =>
+      assertValidTaskRecord(
+        taskRecord({
+          completedAt: "2026-07-28T10:00:00.000Z",
+          reminder: {
+            claimedAt: "2026-07-28T09:30:00.000Z",
+            deliveredAt: "2026-07-28T09:31:00.000Z",
+            scheduledFor: "2026-07-28T09:15:00.000Z",
+            status: "delivered",
+          },
+          status: "completed",
+          updatedAt: "2026-07-28T11:00:00.000Z",
+        }),
+      ),
+    ).not.toThrow();
   });
 });

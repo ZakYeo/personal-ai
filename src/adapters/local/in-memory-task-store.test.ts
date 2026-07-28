@@ -234,3 +234,120 @@ describe("in-memory task store task creation", () => {
     expect(await store.listTasks()).toHaveLength(1_000);
   });
 });
+
+describe("in-memory task store task lifecycle", () => {
+  it("completes and reopens a task without reactivating its reminder", async () => {
+    const { store } = createStore();
+    const list = await store.addList({ name: "To-do" });
+    const created = await store.addTask({
+      label: "Submit the form",
+      listId: list.id,
+      reminderAt: "2026-07-29T08:00:00.000Z",
+    });
+
+    const completed = await store.updateTask({
+      changes: { status: "completed" },
+      expectedRevision: created.revision,
+      id: created.id,
+      updatedAt: "2026-07-28T10:00:00.000Z",
+    });
+    expect(completed).toMatchObject({
+      completedAt: "2026-07-28T10:00:00.000Z",
+      reminder: {
+        cancelledAt: "2026-07-28T10:00:00.000Z",
+        scheduledFor: "2026-07-29T08:00:00.000Z",
+        status: "cancelled",
+      },
+      revision: 2,
+      status: "completed",
+    });
+
+    const reopened = await store.updateTask({
+      changes: { status: "open" },
+      expectedRevision: completed!.revision,
+      id: created.id,
+      updatedAt: "2026-07-28T11:00:00.000Z",
+    });
+    expect(reopened).toMatchObject({
+      reminder: { status: "cancelled" },
+      revision: 3,
+      status: "open",
+    });
+    expect(reopened).not.toHaveProperty("completedAt");
+  });
+
+  it("edits optional task fields and schedules an exact reminder", async () => {
+    const { store } = createStore();
+    const list = await store.addList({ name: "To-do" });
+    const created = await store.addTask({
+      label: "Submit form",
+      listId: list.id,
+      note: "Old note",
+    });
+
+    const edited = await store.updateTask({
+      changes: {
+        dueDate: "2026-07-30",
+        label: "  Submit the signed form  ",
+        note: null,
+        reminderAt: "2026-07-30T08:00:00.000Z",
+      },
+      expectedRevision: created.revision,
+      id: created.id,
+      updatedAt: "2026-07-28T10:00:00.000Z",
+    });
+
+    expect(edited).toMatchObject({
+      dueDate: "2026-07-30",
+      label: "Submit the signed form",
+      reminder: {
+        scheduledFor: "2026-07-30T08:00:00.000Z",
+        status: "scheduled",
+      },
+      revision: 2,
+    });
+    expect(edited).not.toHaveProperty("note");
+  });
+
+  it("rejects a stale task update without changing state", async () => {
+    const { store } = createStore();
+    const list = await store.addList({ name: "To-do" });
+    const created = await store.addTask({
+      label: "Submit form",
+      listId: list.id,
+    });
+    await store.updateTask({
+      changes: { label: "Submit signed form" },
+      expectedRevision: created.revision,
+      id: created.id,
+      updatedAt: "2026-07-28T10:00:00.000Z",
+    });
+
+    await expect(
+      store.updateTask({
+        changes: { label: "Stale overwrite" },
+        expectedRevision: created.revision,
+        id: created.id,
+        updatedAt: "2026-07-28T11:00:00.000Z",
+      }),
+    ).resolves.toBeUndefined();
+    expect((await store.listTasks())[0]?.label).toBe("Submit signed form");
+  });
+
+  it("removes only the revision that was selected", async () => {
+    const { store } = createStore();
+    const list = await store.addList({ name: "To-do" });
+    const task = await store.addTask({
+      label: "Submit form",
+      listId: list.id,
+    });
+
+    await expect(
+      store.removeTask({ expectedRevision: 2, id: task.id }),
+    ).resolves.toBeUndefined();
+    await expect(
+      store.removeTask({ expectedRevision: 1, id: task.id }),
+    ).resolves.toEqual(task);
+    expect(await store.listTasks()).toEqual([]);
+  });
+});

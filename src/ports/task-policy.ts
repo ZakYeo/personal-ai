@@ -75,8 +75,10 @@ function hasCanonicalTaskLifecycle(task: TaskRecord): boolean {
   return task.status === "open"
     ? task.completedAt === undefined
     : task.status === "completed" &&
-        task.completedAt === task.updatedAt &&
-        isCanonicalIsoTimestamp(task.completedAt);
+        isCanonicalIsoTimestamp(task.completedAt) &&
+        task.completedAt >= task.createdAt &&
+        task.completedAt <= task.updatedAt &&
+        task.reminder?.status !== "scheduled";
 }
 
 function hasCanonicalReminderLifecycle(
@@ -90,26 +92,26 @@ function hasCanonicalReminderLifecycle(
       return hasOnlyLifecycleFields(reminder, []);
     case "claimed":
       return (
-        reminder.claimedAt === taskUpdatedAt &&
         reminder.claimedAt >= reminder.scheduledFor &&
+        reminder.claimedAt <= taskUpdatedAt &&
         isCanonicalIsoTimestamp(reminder.claimedAt) &&
         hasOnlyLifecycleFields(reminder, ["claimedAt"])
       );
     case "delivered":
       return (
-        reminder.deliveredAt === taskUpdatedAt &&
         reminder.claimedAt >= reminder.scheduledFor &&
         reminder.deliveredAt >= reminder.claimedAt &&
+        reminder.deliveredAt <= taskUpdatedAt &&
         isCanonicalIsoTimestamp(reminder.claimedAt) &&
         isCanonicalIsoTimestamp(reminder.deliveredAt) &&
         hasOnlyLifecycleFields(reminder, ["claimedAt", "deliveredAt"])
       );
     case "acknowledged":
       return (
-        reminder.acknowledgedAt === taskUpdatedAt &&
         reminder.claimedAt >= reminder.scheduledFor &&
         reminder.deliveredAt >= reminder.claimedAt &&
         reminder.acknowledgedAt >= reminder.deliveredAt &&
+        reminder.acknowledgedAt <= taskUpdatedAt &&
         isCanonicalIsoTimestamp(reminder.claimedAt) &&
         isCanonicalIsoTimestamp(reminder.deliveredAt) &&
         isCanonicalIsoTimestamp(reminder.acknowledgedAt) &&
@@ -121,7 +123,7 @@ function hasCanonicalReminderLifecycle(
       );
     case "cancelled":
       return (
-        reminder.cancelledAt === taskUpdatedAt &&
+        reminder.cancelledAt <= taskUpdatedAt &&
         isCanonicalIsoTimestamp(reminder.cancelledAt) &&
         hasOnlyLifecycleFields(reminder, ["cancelledAt"])
       );

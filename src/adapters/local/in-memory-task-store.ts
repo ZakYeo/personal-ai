@@ -11,7 +11,7 @@ import {
   applyTaskListRename,
   createTaskListRecord,
 } from "./task-list-record.js";
-import { createTaskRecord } from "./task-record.js";
+import { applyTaskUpdate, createTaskRecord } from "./task-record.js";
 
 const maxTaskLists = 100;
 const maxTasks = 1_000;
@@ -66,6 +66,14 @@ export function createInMemoryTaskStore(
       }),
     listLists: () => Promise.resolve(lists.map(cloneTaskList)),
     listTasks: () => Promise.resolve(tasks.map(cloneTaskRecord)),
+    removeTask: (request) =>
+      Promise.resolve().then(() => {
+        const index = tasks.findIndex((task) => task.id === request.id);
+        const current = tasks[index];
+        if (!current || current.revision !== request.expectedRevision) return;
+        tasks.splice(index, 1);
+        return cloneTaskRecord(current);
+      }),
     renameList: (request) =>
       Promise.resolve().then(() => {
         const index = lists.findIndex((list) => list.id === request.id);
@@ -77,6 +85,16 @@ export function createInMemoryTaskStore(
         if (!renamed) return;
         lists[index] = renamed;
         return cloneTaskList(renamed);
+      }),
+    updateTask: (request) =>
+      Promise.resolve().then(() => {
+        const index = tasks.findIndex((task) => task.id === request.id);
+        const current = tasks[index];
+        if (!current) return;
+        const updated = applyTaskUpdate(current, request);
+        if (!updated) return;
+        tasks[index] = updated;
+        return cloneTaskRecord(updated);
       }),
   };
 }

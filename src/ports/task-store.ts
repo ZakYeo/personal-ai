@@ -68,12 +68,32 @@ export interface RenameTaskListRequest {
   updatedAt: string;
 }
 
+export interface RemoveTaskRequest {
+  expectedRevision: number;
+  id: string;
+}
+
+export interface UpdateTaskRequest {
+  changes: {
+    dueDate?: null | string;
+    label?: string;
+    note?: null | string;
+    reminderAt?: null | string;
+    status?: TaskStatus;
+  };
+  expectedRevision: number;
+  id: string;
+  updatedAt: string;
+}
+
 export interface TaskStore {
   addList(list: NewTaskList): Promise<TaskListRecord>;
   addTask(task: NewTask): Promise<TaskRecord>;
   listLists(): Promise<TaskListRecord[]>;
   listTasks(): Promise<TaskRecord[]>;
+  removeTask(request: RemoveTaskRequest): Promise<TaskRecord | undefined>;
   renameList(
     request: RenameTaskListRequest,
   ): Promise<TaskListRecord | undefined>;
+  updateTask(request: UpdateTaskRequest): Promise<TaskRecord | undefined>;
 }
