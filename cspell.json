@@ -14,6 +14,7 @@
   "version": "0.2",
   "words": [
     "Anthropic",
+    "apikey",
     "AppError",
     "Alexa",
     "ALSA",
@@ -47,6 +48,7 @@
     "dtype",
     "espeak",
     "frombuffer",
+    "generationtime",
     "flatbuffers",
     "getvalue",
     "ggml",
@@ -87,6 +89,7 @@
     "sympy",
     "sudoedit",
     "test-support",
+    "timeformat",
     "tsx",
     "tonistiigi",
     "userland",
