@@ -12,12 +12,17 @@ import {
 
 describe("createInternetSearchFeature", () => {
   it("declares a bounded read-only search capability", () => {
-    expectCapabilityMetadata(createInternetSearchFeature(createFakeSearch()), {
+    const feature = createInternetSearchFeature(createFakeSearch());
+    expectCapabilityMetadata(feature, {
       name: "internet.search",
       parameters: { query: { required: true, type: "string" } },
       risk: "low",
-      toolChain: "read",
     });
+    expect(
+      feature.capabilities
+        .filter((capability) => capability.name.startsWith("internet."))
+        .every((capability) => capability.toolChain === undefined),
+    ).toBe(true);
   });
 
   it("renders exact current-source citations and protected facts", async () => {

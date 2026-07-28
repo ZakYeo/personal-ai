@@ -69,7 +69,6 @@ export function createInternetSearchFeature(
           risk: "low",
           spokenSummary: "ask about recent internet search sources",
           summary: "Ask about a recent internet search source.",
-          toolChain: "read",
           parameters: followUpParameters,
           execute: (request, context) =>
             answerSearchFollowUp(request.args, context),
@@ -80,7 +79,6 @@ export function createInternetSearchFeature(
           risk: "low",
           spokenSummary: "search current public information with sources",
           summary: "Search current public information with source citations.",
-          toolChain: "read",
           parameters: searchParameters,
           execute: async (request, context) =>
             executeSearch(

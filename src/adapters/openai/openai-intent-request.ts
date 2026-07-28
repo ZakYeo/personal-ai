@@ -175,15 +175,9 @@ function formatResultReferences(context: AssistantContext): string {
               title: result.facts.title,
             }
           : {
-              extract: result.facts.extract,
               kind: result.kind,
               ordinal: result.ordinal,
-              ...(result.facts.publishedAt
-                ? { publishedAt: result.facts.publishedAt }
-                : {}),
               reference: result.reference,
-              title: result.facts.title,
-              url: result.facts.url,
             },
       ),
     ),
