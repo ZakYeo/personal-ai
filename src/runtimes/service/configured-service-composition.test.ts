@@ -2,6 +2,7 @@ import { deterministicScenarios } from "../../test-support/deterministic-scenari
 import { enabledDeterministicConfig } from "../../test-support/deterministic-runtime-fixtures.js";
 import {
   writePersistentAlarmRuntimeConfig,
+  writePersistentTaskRuntimeConfig,
   writeRuntimeHarnessConfig,
 } from "../../test-support/runtime-composition.js";
 import type { ServiceTurnContext } from "./service-runtime.js";
@@ -9,6 +10,7 @@ import { runConfiguredServiceRuntime } from "./configured-service-composition.js
 import { dirname } from "node:path";
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import { createFileAlarmStore } from "../../adapters/local/file-alarm-store.js";
+import { createFileTaskStore } from "../../adapters/local/file-task-store.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
 import type {
   RuntimeBackgroundTask,
@@ -254,6 +256,76 @@ describe("runConfiguredServiceRuntime", () => {
         id: "due-alarm",
         status: "ringing",
         successfulDeliveries: 1,
+      }),
+    ]);
+  });
+
+  it("delivers a persisted task reminder without completing its task", async () => {
+    const taskRuntimeConfig = {
+      assistant: {
+        name: "Jarvis",
+        timeZone: "Europe/London",
+        wakePhrases: ["hey jarvis"],
+      },
+      conversation: { provider: "disabled" },
+      features: {},
+      intent: { provider: "deterministic" },
+      responseRewriter: { provider: "disabled" },
+    };
+    const { configPath, statePath } =
+      await writePersistentTaskRuntimeConfig(taskRuntimeConfig);
+    const scheduledFor = "2026-07-29T08:00:00.000Z";
+    const store = createFileTaskStore({
+      filePath: statePath,
+      now: () => new Date("2026-07-28T08:00:00.000Z"),
+    });
+    const list = await store.addList({ name: "To-do" });
+    await store.addTask({
+      label: "Submit the form",
+      listId: list.id,
+      reminderAt: scheduledFor,
+    });
+    let resolveDelivered: (() => void) | undefined;
+    const delivered = new Promise<void>((resolve) => {
+      resolveDelivered = resolve;
+    });
+    const notifications: Array<{ id: string; text: string }> = [];
+
+    await runConfiguredServiceRuntime(
+      {
+        configPath,
+        createNotificationDelivery: () => ({
+          deliver: (notification) => {
+            notifications.push(notification);
+            resolveDelivered?.();
+            return Promise.resolve();
+          },
+        }),
+        now: () => new Date(scheduledFor),
+      },
+      {
+        validateConfig: () => {},
+        runTurn: async (context) => {
+          await delivered;
+          context.requestShutdown("task reminder delivered");
+        },
+      },
+    );
+
+    expect(notifications).toEqual([
+      {
+        id: expect.stringMatching(/^task-reminder:task-/u) as string,
+        text: "Reminder: Submit the form.",
+      },
+    ]);
+    await expect(store.listTasks()).resolves.toEqual([
+      expect.objectContaining({
+        label: "Submit the form",
+        reminder: expect.objectContaining({
+          deliveredAt: scheduledFor,
+          status: "delivered",
+        }) as object,
+        status: "open",
       }),
     ]);
   });

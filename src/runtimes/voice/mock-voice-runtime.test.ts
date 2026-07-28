@@ -2,6 +2,7 @@ import { createMockVoiceRuntime } from "./mock-voice-runtime.js";
 import { runVoiceTurn } from "./voice-turn.js";
 import { jsonResponse } from "../../test-support/adapter-contract.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
+import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
 import {
   deterministicNow,
   enabledDeterministicConfig,
@@ -26,6 +27,55 @@ import { parseAssistantConfig } from "../config/config.js";
 import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
 
 describe("mock voice runtime", () => {
+  it("speaks ordered personal-list writes through configured voice composition", async () => {
+    const runtime = await createMockVoiceRuntime({
+      config: {
+        ...createLoadedRuntimeConfig({
+          tasks: { adapter: "local", enabled: true },
+        }),
+        voice: mockVoiceConfig,
+      },
+      now: () => deterministicNow,
+      utterance:
+        "Hey Jarvis, create a shopping list then rename my shopping list to groceries",
+    });
+
+    await expect(runtime.runOnce()).resolves.toMatchObject({
+      response: {
+        status: "ok",
+        text: "Created the shopping list. Renamed the shopping list to groceries.",
+      },
+      spokenText:
+        "Created the shopping list. Renamed the shopping list to groceries.",
+      status: "spoken",
+    });
+  });
+
+  it("speaks exact task reminder facts before awaiting confirmation", async () => {
+    const runtime = await createMockVoiceRuntime({
+      config: {
+        ...createLoadedRuntimeConfig({
+          tasks: { adapter: "local", enabled: true },
+        }),
+        voice: mockVoiceConfig,
+      },
+      now: () => deterministicNow,
+      utterance:
+        "Hey Jarvis, create a to-do list then remind me at 2026-07-29T08:00:00.000Z to submit the form on my to-do list",
+    });
+
+    await expect(runtime.runOnce()).resolves.toMatchObject({
+      response: {
+        expectsFollowUp: true,
+        status: "needs_confirmation",
+        text: "Please confirm this plan: 1. create submit the form on the to-do list with a reminder for 2026-07-29T08:00:00.000Z. Say yes or no.",
+      },
+      spokenText:
+        "Please confirm this plan: 1. create submit the form on the to-do list with a reminder for 2026-07-29T08:00:00.000Z. Say yes or no.",
+      status: "spoken",
+    });
+  });
+
   it("smoke-speaks one aggregate confirmation for a compound plan", async () => {
     const runtime = await createMockVoiceRuntime({
       config: voiceEnabledDeterministicConfig,
