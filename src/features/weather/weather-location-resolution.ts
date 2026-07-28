@@ -2,6 +2,7 @@ import type {
   FeatureExecutionContext,
   FeatureResult,
 } from "../../ports/feature.js";
+import type { PersonalContextReaderPort } from "../../ports/personal-context.js";
 import type {
   WeatherLocation,
   WeatherProviderPort,
@@ -18,13 +19,28 @@ export async function resolveWeatherLocation(
   provider: WeatherProviderPort,
   location: string | undefined,
   context: FeatureExecutionContext,
+  personalContext?: PersonalContextReaderPort,
 ): Promise<WeatherLocationResolution> {
-  const place = location?.trim();
+  const requestedPlace = location?.trim();
+  const requestsHome =
+    requestedPlace === undefined || requestedPlace.toLowerCase() === "home";
+  const explicitHome = requestsHome
+    ? await personalContext?.readHomeLocation()
+    : undefined;
+  const place =
+    explicitHome?.provenance === "user-authored"
+      ? explicitHome.place.trim()
+      : requestsHome
+        ? undefined
+        : requestedPlace;
   if (!place) {
     return {
       result: {
         expectsFollowUp: true,
-        text: "Which location should I check?",
+        text:
+          requestedPlace?.toLowerCase() === "home" || personalContext
+            ? "I do not have an explicitly stored home location. Which location should I check?"
+            : "Which location should I check?",
       },
     };
   }

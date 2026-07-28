@@ -5,6 +5,7 @@ import {
 } from "../../test-support/feature-contract.js";
 import { createWeatherProviderFixture } from "../../test-support/weather.js";
 import { createWeatherWatchStoreFixture } from "../../test-support/weather-watch-store.js";
+import type { PersonalContextReaderPort } from "../../ports/personal-context.js";
 import { createWeatherFeature } from "./weather-feature.js";
 
 const now = new Date("2026-07-28T12:00:00.000Z");
@@ -23,6 +24,13 @@ describe("createWeatherFeature", () => {
       risk: "low",
     });
     expectCapabilityMetadata(feature, {
+      name: "weather.coat",
+      parameters: {
+        location: { type: "string" },
+      },
+      risk: "low",
+    });
+    expectCapabilityMetadata(feature, {
       name: "weather.forecast",
       parameters: {
         endAt: {
@@ -38,6 +46,96 @@ describe("createWeatherFeature", () => {
       },
       risk: "low",
     });
+  });
+
+  it("uses only an explicitly authored home location for tomorrow morning coat advice", async () => {
+    const readHomeLocation = vi.fn(() =>
+      Promise.resolve({
+        place: "London",
+        provenance: "user-authored" as const,
+      }),
+    );
+
+    const result = await executeFeature(
+      createTestWeatherFeature(createWeatherProviderFixture(), {
+        personalContext: { readHomeLocation },
+      }),
+      "weather.coat",
+      { location: "home" },
+      context,
+    );
+
+    expect(readHomeLocation).toHaveBeenCalledOnce();
+    expect(result.text).toContain(
+      "Yes, take a coat: the forecast includes rain or cool conditions.",
+    );
+    expect(result.text).toContain(
+      "London's forecast from 2026-07-29T05:00:00.000Z to 2026-07-29T11:00:00.000Z",
+    );
+    expect(result.text).toContain("Fetched at 2026-07-28T12:00:05.000Z");
+    expect(result.data).toMatchObject({
+      coatRecommendationAvailable: true,
+      coatRecommended: true,
+      fetchedAt: "2026-07-28T12:00:05.000Z",
+      hourly0ForecastAt: "2026-07-29T09:00:00.000Z",
+      hourly0Precipitation: 0.4,
+      hourly0Temperature: 17,
+      location: "London",
+      periodEndAt: "2026-07-29T11:00:00.000Z",
+      periodStartAt: "2026-07-29T05:00:00.000Z",
+      timezone: "Europe/London",
+    });
+  });
+
+  it("clarifies a home request when no explicitly authored location exists", async () => {
+    const personalContext: PersonalContextReaderPort = {
+      readHomeLocation: () => Promise.resolve(undefined),
+    };
+
+    await expect(
+      executeFeature(
+        createTestWeatherFeature(createWeatherProviderFixture(), {
+          personalContext,
+        }),
+        "weather.coat",
+        { location: "home" },
+        context,
+      ),
+    ).resolves.toEqual({
+      expectsFollowUp: true,
+      text: "I do not have an explicitly stored home location. Which location should I check?",
+    });
+  });
+
+  it("does not infer coat advice when the requested period has no hourly forecast", async () => {
+    const backingProvider = createWeatherProviderFixture();
+    const provider = {
+      ...backingProvider,
+      getForecast: async (
+        ...args: Parameters<typeof backingProvider.getForecast>
+      ) => ({
+        ...(await backingProvider.getForecast(...args)),
+        hourly: [],
+      }),
+    };
+
+    const result = await executeFeature(
+      createTestWeatherFeature(provider),
+      "weather.coat",
+      { location: "London" },
+      context,
+    );
+
+    expect(result.text).toContain(
+      "I cannot determine whether you need a coat because no hourly forecast is available for that period.",
+    );
+    expect(result.data).toMatchObject({
+      coatRecommendationAvailable: false,
+      hourlyCount: 0,
+      periodEndAt: "2026-07-29T11:00:00.000Z",
+      periodStartAt: "2026-07-29T05:00:00.000Z",
+    });
+    expect(result.data).not.toHaveProperty("coatRecommended");
   });
 
   it("clarifies rather than inferring a missing location", async () => {
@@ -196,7 +294,10 @@ describe("createWeatherFeature", () => {
 
 function createTestWeatherFeature(
   provider = createWeatherProviderFixture(),
-  options: { maxForecastAgeMinutes?: number } = {},
+  options: {
+    maxForecastAgeMinutes?: number;
+    personalContext?: PersonalContextReaderPort;
+  } = {},
 ) {
   return createWeatherFeature(provider, {
     ...options,
