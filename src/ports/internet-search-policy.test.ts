@@ -1,10 +1,14 @@
-import { validateInternetSearchCitationIntegrity } from "./internet-search-policy.js";
+import {
+  type InternetSearchCitationIntegrityFailure,
+  validateInternetSearchCitationIntegrity,
+} from "./internet-search-policy.js";
 
 describe("internet search citation integrity", () => {
   it.each([
     {
-      citations: [{ endIndex: 4, sourceId: "one", startIndex: 0 }],
-      label: "out-of-bounds indexes",
+      citations: [{ endIndex: 3, sourceId: "one", startIndex: 0.5 }],
+      expectedFailure: "bounds",
+      label: "non-integer indexes",
       sourceIds: ["one"],
       textLength: 3,
     },
@@ -13,6 +17,7 @@ describe("internet search citation integrity", () => {
         { endIndex: 7, sourceId: "two", startIndex: 4 },
         { endIndex: 3, sourceId: "one", startIndex: 0 },
       ],
+      expectedFailure: "ordering",
       label: "unordered ranges",
       sourceIds: ["one", "two"],
       textLength: 7,
@@ -22,34 +27,58 @@ describe("internet search citation integrity", () => {
         { endIndex: 5, sourceId: "one", startIndex: 0 },
         { endIndex: 7, sourceId: "two", startIndex: 4 },
       ],
+      expectedFailure: "overlap",
       label: "overlapping ranges",
       sourceIds: ["one", "two"],
       textLength: 7,
     },
     {
       citations: [{ endIndex: 3, sourceId: "missing", startIndex: 0 }],
+      expectedFailure: "source_resolution",
       label: "unresolved sources",
       sourceIds: ["one"],
       textLength: 3,
     },
     {
       citations: [{ endIndex: 3, sourceId: "one", startIndex: 0 }],
+      expectedFailure: "source_coverage",
       label: "uncited sources",
       sourceIds: ["one", "two"],
       textLength: 3,
     },
     {
       citations: [],
+      expectedFailure: "duplicate_source",
       label: "duplicate source IDs",
       sourceIds: ["one", "one"],
       textLength: 0,
     },
-  ])("rejects $label", ({ citations, sourceIds, textLength }) => {
+  ])(
+    "classifies $label",
+    ({ citations, expectedFailure, sourceIds, textLength }) => {
+      const createError = vi.fn(
+        (failure: InternetSearchCitationIntegrityFailure) =>
+          new Error(`citation integrity: ${failure}`),
+      );
+
+      expect(() =>
+        validateInternetSearchCitationIntegrity({
+          citations,
+          createError,
+          sourceIds,
+          textLength,
+        }),
+      ).toThrow(`citation integrity: ${expectedFailure}`);
+      expect(createError).toHaveBeenCalledExactlyOnceWith(expectedFailure);
+    },
+  );
+
+  it("uses a canonical default error when no factory is supplied", () => {
     expect(() =>
       validateInternetSearchCitationIntegrity({
-        citations,
-        sourceIds,
-        textLength,
+        citations: [{ endIndex: 4, sourceId: "one", startIndex: 0 }],
+        sourceIds: ["one"],
+        textLength: 3,
       }),
     ).toThrow("Internet search citation integrity validation failed.");
   });
