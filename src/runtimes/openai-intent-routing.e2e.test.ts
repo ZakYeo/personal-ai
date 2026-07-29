@@ -113,17 +113,21 @@ describe.skipIf(!runOpenAIE2E)("OpenAI intent routing live E2E", () => {
     "maps $capability through the live Responses API",
     async ({ capability, parameters, text }) => {
       const interpreter = createInterpreter();
+      const interpretation = await interpretOnce(interpreter, text, context);
+      const command =
+        interpretation.kind === "command"
+          ? interpretation.command
+          : interpretation.kind === "tool_call"
+            ? interpretation.call.command
+            : undefined;
 
-      await expect(interpretOnce(interpreter, text, context)).resolves.toEqual({
-        command: {
-          capability,
-          parameters: expect.objectContaining(parameters) as Record<
-            string,
-            boolean | number | string | null
-          >,
-          rawText: expect.any(String) as string,
-        },
-        kind: "command",
+      expect(command).toEqual({
+        capability,
+        parameters: expect.objectContaining(parameters) as Record<
+          string,
+          boolean | number | string | null
+        >,
+        rawText: expect.any(String) as string,
       });
     },
   );

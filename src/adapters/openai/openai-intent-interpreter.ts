@@ -14,6 +14,7 @@ import {
 import type { OpenAIIntentCapability } from "./openai-intent-request.js";
 import { requestOpenAIResponse } from "./openai-responses-client.js";
 import { parseOpenAIIntentSessionResponse } from "./openai-intent-session-response.js";
+import { guardOpenAIIntentSemantics } from "./openai-intent-semantic-guard.js";
 
 export { OpenAIIntentError } from "./openai-intent-error.js";
 export type { OpenAIIntentCapability } from "./openai-intent-request.js";
@@ -85,21 +86,26 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
           toolNames,
           text,
         );
+        const interpretation = guardOpenAIIntentSemantics(
+          parsed.interpretation,
+          text,
+          capabilityCatalog,
+        );
         started = true;
         previousResponseId = parsed.responseId;
         expectedContinuation =
-          parsed.interpretation.kind === "tool_call"
+          interpretation.kind === "tool_call"
             ? "tool_result"
-            : parsed.interpretation.kind === "clarification" ||
-                parsed.interpretation.kind === "command" ||
-                parsed.interpretation.kind === "plan"
+            : interpretation.kind === "clarification" ||
+                interpretation.kind === "command" ||
+                interpretation.kind === "plan"
               ? "user_reply"
               : undefined;
         pendingCallId =
-          parsed.interpretation.kind === "tool_call"
-            ? parsed.interpretation.call.id
+          interpretation.kind === "tool_call"
+            ? interpretation.call.id
             : undefined;
-        return parsed.interpretation;
+        return interpretation;
       },
     };
   }

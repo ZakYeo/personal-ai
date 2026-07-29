@@ -474,6 +474,116 @@ describe("OpenAIIntentInterpreter", () => {
       "A user asking whether you can perform an enabled capability without supplying its required information is starting that capability",
     );
     expect(input).toContain("The subject or question to search for.");
+    expect(input).toContain(
+      "A question about one named action is not a broad capability-catalog question",
+    );
+    expect(input).toContain(
+      "Choose by the requested object or domain, not by a generic verb",
+    );
+  });
+
+  it("clarifies when a required parameter only echoes the whole request", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-1",
+        output_text: JSON.stringify({
+          command: {
+            capability: "internet.search",
+            parameters: [{ name: "query", value: "Search the web for me." }],
+            rawText: "Search the web for me.",
+          },
+          kind: "command",
+          plan: null,
+          response: null,
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({
+      capabilityCatalog: [internetSearchCapability],
+      fetch,
+    });
+
+    await expect(
+      interpretOnce(interpreter, "Search the web for me.", context),
+    ).resolves.toEqual({
+      kind: "clarification",
+      response: {
+        status: "ok",
+        text: "What details should I use for this request?",
+      },
+    });
+  });
+
+  it("clarifies a narrow action question sent to the capability catalog", async () => {
+    const capabilityList: OpenAIIntentCapability = {
+      capability: {
+        name: "assistant.capabilities.list",
+        risk: "low",
+      },
+      featureId: "assistant",
+      featureName: "Assistant",
+      parameterText: "none",
+    };
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-1",
+        output_text: JSON.stringify({
+          command: {
+            capability: "assistant.capabilities.list",
+            parameters: [],
+            rawText: "Can you search?",
+          },
+          kind: "command",
+          plan: null,
+          response: null,
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({
+      capabilityCatalog: [capabilityList, internetSearchCapability],
+      fetch,
+    });
+
+    await expect(
+      interpretOnce(interpreter, "Can you search?", context),
+    ).resolves.toEqual({
+      kind: "clarification",
+      response: {
+        status: "ok",
+        text: "What details should I use for this request?",
+      },
+    });
+  });
+
+  it("normalizes clarification status to its canonical safe status", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-1",
+        output_text: JSON.stringify({
+          command: null,
+          kind: "clarification",
+          plan: null,
+          response: {
+            status: "needs_confirmation",
+            text: "What would you like me to search for?",
+          },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({
+      capabilityCatalog: [internetSearchCapability],
+      fetch,
+    });
+
+    await expect(
+      interpretOnce(interpreter, "Can you search?", context),
+    ).resolves.toEqual({
+      kind: "clarification",
+      response: {
+        status: "ok",
+        text: "What would you like me to search for?",
+      },
+    });
   });
 
   it("provides only safe opaque calendar references to the provider", async () => {
