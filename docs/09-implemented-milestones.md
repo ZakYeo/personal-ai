@@ -264,6 +264,10 @@ Included:
   tools, and disabled parallel calls, with provider-managed response-state
   privacy documented for operators. Every intent response requires a non-empty
   response ID before its interpretation is accepted.
+- Provider intent output receives a final semantic guard: required string
+  parameters that only echo the normalized request and narrow action questions
+  misclassified as capability-list commands become one canonical clarification
+  instead of executing a guessed command.
 - Calendar-event-to-alarm binding with exact timed-event instants, deterministic
   all-day local-time resolution in `assistant.timeZone`, protected confirmation
   facts, and snapshot rather than tracking semantics.

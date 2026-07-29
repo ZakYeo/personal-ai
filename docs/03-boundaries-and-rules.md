@@ -161,6 +161,13 @@ and calculated instant at confirmation, persist no calendar provider ID, and do
 not follow event edits or deletion. All-day events require an explicit local
 time resolved in the canonical assistant IANA timezone.
 
+Provider intent output must pass a semantic guard before entering that
+transaction. A required string parameter equal to the whole normalized request
+is an unresolved restatement, not a usable value. A narrow question about one
+action must not become the broad capability-list command. Both cases become one
+canonical clarification, and provider clarification statuses are normalized to
+the clarification branch's safe status.
+
 Every confirmation-required capability must deterministically render its exact
 decoded action through an application-owned declaration. Aggregate prompts must
 include every risky step's protected recipient, destination, content, label,

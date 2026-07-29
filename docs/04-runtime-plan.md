@@ -538,7 +538,10 @@ current-information requests through live OpenAI intent interpretation and the
 hosted web-search tool, then requires bounded structured HTTPS citations and
 URL-free human text. The focused `npm run test:e2e:openai:intent` matrix also
 checks varied valid search wording and resumable clarification for requests
-with no search topic. Both are excluded from the default validation gate.
+with no search topic. Adapter-level semantic guards catch echoed required
+values and narrow action questions misclassified as broad capability-list
+requests even when the model ignores those routing instructions. Both smokes
+are excluded from the default validation gate.
 The opt-in `npm run test:e2e:open-meteo` smoke validates the key-free live
 adapter path independently. The opt-in `npm run test:e2e:openai:weather` smoke
 validates live intent routing to the deterministic weather feature; both remain
