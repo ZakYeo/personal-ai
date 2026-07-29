@@ -64,20 +64,25 @@ function parseCitedAnswer(
   if (answer.length > internetSearchLimits.answerCharacters) {
     throw contentBoundsError();
   }
+  const parsedCitations = content.annotations
+    .filter(
+      (annotation): annotation is Record<string, unknown> =>
+        isRecord(annotation) && annotation.type === "url_citation",
+    )
+    .map((annotation) => parseCitation(annotation, answer))
+    .sort(
+      (left, right) =>
+        left.startIndex - right.startIndex || left.endIndex - right.endIndex,
+    );
+  validateNonOverlappingCitations(parsedCitations);
+
   const sources: InternetSearchSource[] = [];
-  const citations: InternetSearchCitation[] = [];
   const sourceByUrl = new Map<string, InternetSearchSource>();
 
-  for (const annotation of content.annotations) {
-    if (!isRecord(annotation) || annotation.type !== "url_citation") continue;
-    const parsed = parseCitation(annotation, answer);
+  for (const parsed of parsedCitations) {
     let source = sourceByUrl.get(parsed.url);
     if (!source) {
-      if (sources.length >= maxResults) {
-        throw new OpenAIWebSearchError(
-          "OpenAI web search response exceeded the configured source limit.",
-        );
-      }
+      if (sources.length >= maxResults) continue;
       source = {
         id: `openai-search-source-${sources.length + 1}`,
         title: parsed.title,
@@ -86,27 +91,29 @@ function parseCitedAnswer(
       sources.push(source);
       sourceByUrl.set(source.url, source);
     }
-    citations.push({
-      endIndex: parsed.endIndex,
-      sourceId: source.id,
-      startIndex: parsed.startIndex,
-    });
   }
 
-  if (citations.length === 0) throw missingCitationsError();
+  if (parsedCitations.length === 0) throw missingCitationsError();
 
-  return { answer, citations, sources };
+  return projectSelectedCitations(
+    answer,
+    parsedCitations,
+    sourceByUrl,
+    sources,
+  );
+}
+
+interface ParsedCitation {
+  endIndex: number;
+  startIndex: number;
+  title: string;
+  url: string;
 }
 
 function parseCitation(
   value: Record<string, unknown>,
   answer: string,
-): {
-  endIndex: number;
-  startIndex: number;
-  title: string;
-  url: string;
-} {
+): ParsedCitation {
   if (typeof value.title !== "string" || value.title.trim().length === 0) {
     throw new OpenAIWebSearchError(
       "OpenAI web search citation title must be a non-empty string.",
@@ -141,6 +148,48 @@ function parseCitation(
     title: value.title,
     url: value.url,
   };
+}
+
+function validateNonOverlappingCitations(
+  citations: readonly ParsedCitation[],
+): void {
+  for (let index = 1; index < citations.length; index += 1) {
+    if (citations[index]!.startIndex < citations[index - 1]!.endIndex) {
+      throw new OpenAIWebSearchError(
+        "OpenAI web search citation ranges must not overlap.",
+      );
+    }
+  }
+}
+
+function projectSelectedCitations(
+  answer: string,
+  parsedCitations: readonly ParsedCitation[],
+  sourceByUrl: ReadonlyMap<string, InternetSearchSource>,
+  sources: InternetSearchSource[],
+): InternetSearchResponse {
+  const citations: InternetSearchCitation[] = [];
+  let projectedAnswer = "";
+  let cursor = 0;
+
+  for (const parsed of parsedCitations) {
+    projectedAnswer += answer.slice(cursor, parsed.startIndex);
+    const source = sourceByUrl.get(parsed.url);
+    if (source) {
+      const citationText = answer.slice(parsed.startIndex, parsed.endIndex);
+      const startIndex = projectedAnswer.length;
+      projectedAnswer += citationText;
+      citations.push({
+        endIndex: projectedAnswer.length,
+        sourceId: source.id,
+        startIndex,
+      });
+    }
+    cursor = parsed.endIndex;
+  }
+
+  projectedAnswer += answer.slice(cursor);
+  return { answer: projectedAnswer, citations, sources };
 }
 
 function isSafeWebUrl(value: string): boolean {
