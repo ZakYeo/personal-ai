@@ -685,6 +685,8 @@ The checked-in local desktop configuration explicitly selects WSLg PulseAudio
 input and output devices and allowlists only `PULSE_SERVER` for those commands.
 Its batch and streaming playback commands use a 60-second deadline so valid
 longer spoken responses are not terminated at the previous 30-second boundary.
+Both playback commands add 250 ms of leading silence so WSLg can activate the
+PulseAudio sink before the first speech sample.
 The openWakeWord sidecar selects the same source when `PULSE_SERVER` is present,
 falls back to the native SoX default recorder otherwise, and suppresses the
 known unavailable-CUDA warning when its pinned ONNX runtime is CPU-only.

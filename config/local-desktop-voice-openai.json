@@ -116,7 +116,9 @@
         "-",
         "-t",
         "pulseaudio",
-        "default"
+        "default",
+        "pad",
+        "0.25"
       ],
       "environmentAllowlist": ["PULSE_SERVER"],
       "timeoutMs": 60000
@@ -175,7 +177,7 @@
     },
     "audioOutput": {
       "command": "sox",
-      "args": ["-q", "{input}", "-t", "pulseaudio", "default"],
+      "args": ["-q", "{input}", "-t", "pulseaudio", "default", "pad", "0.25"],
       "environmentAllowlist": ["PULSE_SERVER"],
       "timeoutMs": 60000
     }

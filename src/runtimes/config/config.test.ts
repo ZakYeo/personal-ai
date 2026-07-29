@@ -136,6 +136,11 @@ describe("loadConfig", () => {
     ]);
     expect(desktopVoice?.audioOutput?.timeoutMs).toBe(60_000);
     expect(desktopVoice?.streamingAudioOutput?.timeoutMs).toBe(60_000);
+    expect(desktopVoice?.audioOutput?.args?.slice(-2)).toEqual(["pad", "0.25"]);
+    expect(desktopVoice?.streamingAudioOutput?.args?.slice(-2)).toEqual([
+      "pad",
+      "0.25",
+    ]);
   });
 
   it("keeps Pi durable feature state under the systemd-owned state directory", async () => {
