@@ -284,9 +284,22 @@ describe.skipIf(!runOpenAIE2E)(
       await expect(
         assistant.handleText("Hey Jarvis, create a to-do list."),
       ).resolves.toMatchObject({ status: "ok" });
-      const confirmation = await assistant.handleText(
-        "Hey Jarvis, remind me tomorrow at 9 to submit the form.",
+      const confirmationOutcome = await assistant.handleTextWithDiagnostics(
+        "Hey Jarvis, remind me tomorrow at 9 to submit the form on my to-do list.",
       );
+      const confirmation = confirmationOutcome.response;
+      if (confirmation.status === "error") {
+        const diagnosticMessage = confirmationOutcome.diagnostics
+          ?.map((diagnostic) =>
+            diagnostic.cause instanceof Error
+              ? diagnostic.cause.message
+              : diagnostic.message,
+          )
+          .join("; ");
+        throw new Error(
+          `Live task reminder routing failed: ${diagnosticMessage ?? "no diagnostic"}`,
+        );
+      }
       expect(confirmation).toMatchObject({
         expectsFollowUp: true,
         status: "needs_confirmation",

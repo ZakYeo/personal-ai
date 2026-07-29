@@ -352,6 +352,15 @@ describe("OpenAIIntentInterpreter", () => {
     expect(JSON.stringify(body.input)).toContain(
       "When kind is command, command must be populated",
     );
+    expect(JSON.stringify(body.input)).toContain(
+      `Current time: ${deterministicTestNow.toISOString()}.`,
+    );
+    expect(JSON.stringify(body.input)).toContain(
+      "Assistant time zone: Europe/London.",
+    );
+    expect(JSON.stringify(body.input)).toContain(
+      "Resolve relative dates and times into exact capability parameters",
+    );
   });
 
   it("returns a conversation classification from structured provider output", async () => {
