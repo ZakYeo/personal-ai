@@ -42,7 +42,7 @@ describe("internet search citation integrity", () => {
     {
       citations: [{ endIndex: 3, sourceId: "one", startIndex: 0 }],
       expectedFailure: "source_coverage",
-      label: "uncited sources",
+      label: "sources without citations",
       sourceIds: ["one", "two"],
       textLength: 3,
     },
