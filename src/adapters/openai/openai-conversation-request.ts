@@ -8,6 +8,7 @@ import {
   type OpenAIIntentCapability,
 } from "./openai-intent-request.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
+import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 
 export function createOpenAIConversationRequestBody(
   input: string,
@@ -25,6 +26,7 @@ export function createOpenAIConversationRequestBody(
               `You are ${context.config.assistant.name}, a concise personal voice assistant.`,
               "Answer the user's general question conversationally.",
               "Your response text will be spoken aloud, so keep it brief and use natural sentences.",
+              openAISpokenStyleInstruction,
               "Avoid bullets, numbered lists, semicolon-delimited lists, parentheses for asides, and code-like wording unless the user explicitly asks for technical details.",
               "Do not mention internal capability names such as alarm.list or calendar.search_events in normal user-facing answers.",
               "Do not claim to execute commands or access unavailable tools.",

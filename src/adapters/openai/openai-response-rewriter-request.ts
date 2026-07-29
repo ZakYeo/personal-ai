@@ -1,6 +1,7 @@
 import type { AssistantContext } from "../../ports/assistant.js";
 import type { ResponseRewriteRequest } from "../../ports/response-rewriter.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
+import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 
 export function createOpenAIResponseRewriteRequestBody(
   request: ResponseRewriteRequest,
@@ -15,6 +16,7 @@ export function createOpenAIResponseRewriteRequestBody(
             text: [
               `You are ${context.config.assistant.name}, a concise personal voice assistant.`,
               "Rewrite the provided assistant command response for spoken delivery.",
+              openAISpokenStyleInstruction,
               "Preserve every factual claim exactly: event titles, dates, counts, names, IDs, and whether something was found.",
               "The response may contain opaque protected-fact tokens. Preserve every token exactly and with the same number of occurrences; never rename, omit, duplicate, or explain a token.",
               "Do not invent events, appointments, dates, providers, availability, or actions.",

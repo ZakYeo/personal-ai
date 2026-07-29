@@ -22,9 +22,15 @@ describe("internet search feature adapters", () => {
         "Hey Jarvis, search the internet for TypeScript 5.7",
       ),
     ).resolves.toEqual({
+      citations: [
+        {
+          title: "Announcing TypeScript 5.7",
+          url: "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
+        },
+      ],
       expectsFollowUp: true,
       status: "ok",
-      text: "TypeScript 5.7 adds checks for variables that have never been initialized. [1] Sources: Announcing TypeScript 5.7 [1: https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/].",
+      text: "TypeScript 5.7 adds checks for variables that have never been initialized. Source: Announcing TypeScript 5.7.",
     });
   });
 
@@ -40,8 +46,14 @@ describe("internet search feature adapters", () => {
     await expect(
       assistant.handleText("What did the first source say?"),
     ).resolves.toEqual({
+      citations: [
+        {
+          title: "Announcing TypeScript 5.7",
+          url: "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
+        },
+      ],
       status: "ok",
-      text: "Announcing TypeScript 5.7: TypeScript 5.7 adds checks for variables that have never been initialized. [https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/]",
+      text: "Announcing TypeScript 5.7: TypeScript 5.7 adds checks for variables that have never been initialized.",
     });
   });
 

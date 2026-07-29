@@ -173,6 +173,7 @@ async function executeFeatureCommand(
       input.executionContext,
     );
     const response: AssistantResponse = {
+      ...(result.citations ? { citations: result.citations } : {}),
       ...(result.expectsFollowUp ? { expectsFollowUp: true } : {}),
       status: "ok",
       text: result.text,

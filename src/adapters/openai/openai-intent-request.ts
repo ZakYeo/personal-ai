@@ -2,6 +2,7 @@ import type { AssistantContext } from "../../ports/assistant.js";
 import type { CapabilityCatalogEntry } from "../../ports/capability-catalog.js";
 import type { AssistantResultReference } from "../../ports/result-reference.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
+import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 
 export type OpenAIIntentCapability = CapabilityCatalogEntry;
 
@@ -59,6 +60,7 @@ function createIntentInstructions(
     "Map requests to enabled assistant capabilities when possible.",
     "When a capability matches but required information is missing, use kind clarification and ask one concise question for that information.",
     "Never fill a required parameter with words that merely restate the capability request; required values must contain the user's actual subject, value, or constraint.",
+    openAISpokenStyleInstruction,
     "Questions about the assistant's enabled capabilities must use the enabled assistant capability that lists them when one is present.",
     "Use kind command with command populated and response null when a capability matches.",
     "Use kind plan with plan populated, command and response null, and one to three fully resolved commands when the user requests multiple enabled capabilities in one utterance.",

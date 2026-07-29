@@ -15,6 +15,7 @@ import {
   type DeterministicFeatureRule,
 } from "../../ports/deterministic-feature-rules.js";
 import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
+import { containsControlCharacters } from "../../ports/text-safety.js";
 
 const searchParameters = {
   query: {
@@ -128,6 +129,7 @@ async function executeSearch(
   }
 
   return {
+    citations: createAssistantCitations(response.sources),
     data: createProtectedSearchFacts(response),
     expectsFollowUp: true,
     resultReferences: createResultReferences(response.sources),
@@ -146,8 +148,10 @@ function validateSearchResponse(
       (source) =>
         source.title.length === 0 ||
         source.title.length > internetSearchLimits.titleCharacters ||
+        containsControlCharacters(source.title) ||
         !isHttpUrl(source.url) ||
         source.url.length > internetSearchLimits.urlCharacters ||
+        containsControlCharacters(source.url) ||
         (source.extract?.length ?? 0) > internetSearchLimits.extractCharacters,
     )
   ) {
@@ -220,18 +224,50 @@ function answerSearchFollowUp(
 
   const { facts } = selected.publicReference;
   return {
+    citations: [{ title: facts.title, url: facts.url }],
     data: { ...facts },
     text: facts.extract
-      ? `${facts.title}: ${facts.extract} [${facts.url}]`
-      : `${facts.title} was cited in the recent answer. [${facts.url}]`,
+      ? `${facts.title}: ${facts.extract}`
+      : `${facts.title} was cited in the recent answer.`,
   };
 }
 
 function formatCitedAnswer(response: InternetSearchResponse): string {
-  const sourceList = response.sources
-    .map((source, index) => `${source.title} [${index + 1}: ${source.url}]`)
-    .join(", ");
-  return `${response.answer} Sources: ${sourceList}.`;
+  const answer = removeCitationMarkup(response);
+  const sourceList = formatSpokenSourceList(
+    response.sources.map((source) => source.title),
+  );
+  return `${answer} ${response.sources.length === 1 ? "Source" : "Sources"}: ${sourceList}.`;
+}
+
+function removeCitationMarkup(response: InternetSearchResponse): string {
+  const citations = [...response.citations].sort(
+    (left, right) => left.startIndex - right.startIndex,
+  );
+  let answer = "";
+  let cursor = 0;
+  for (const citation of citations) {
+    answer += response.answer.slice(cursor, citation.startIndex);
+    cursor = citation.endIndex;
+  }
+  answer += response.answer.slice(cursor);
+  return answer
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/giu, "$1")
+    .replace(/https?:\/\/[^\s)\]]+/giu, "")
+    .replace(/\[\d+\]/gu, "")
+    .replace(/\s+([,.!?;:])/gu, "$1")
+    .replace(/\s{2,}/gu, " ")
+    .trim();
+}
+
+function formatSpokenSourceList(titles: readonly string[]): string {
+  if (titles.length <= 1) return titles[0] ?? "";
+  if (titles.length === 2) return `${titles[0]} and ${titles[1]}`;
+  return `${titles.slice(0, -1).join(", ")}, and ${titles.at(-1)}`;
+}
+
+function createAssistantCitations(sources: readonly InternetSearchSource[]) {
+  return sources.map(({ title, url }) => ({ title, url }));
 }
 
 function createProtectedSearchFacts(response: InternetSearchResponse) {

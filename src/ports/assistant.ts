@@ -15,7 +15,13 @@ export type AssistantResponseStatus =
 export interface AssistantResponse {
   status: AssistantResponseStatus;
   text: string;
+  citations?: readonly AssistantCitation[];
   expectsFollowUp?: boolean;
+}
+
+export interface AssistantCitation {
+  title: string;
+  url: string;
 }
 
 export function assistantResponseExpectsFollowUp(

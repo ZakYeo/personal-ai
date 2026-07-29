@@ -1,4 +1,5 @@
 import type {
+  AssistantCitation,
   AssistantCommand,
   AssistantContext,
   AssistantCommandParameters,
@@ -30,6 +31,7 @@ export type FeatureCapabilityParameters = Record<
 
 export interface FeatureResult {
   text: string;
+  citations?: readonly AssistantCitation[];
   data?: AssistantCommandParameters;
   expectsFollowUp?: boolean;
   resultReferences?: FeatureResultReferenceSet;

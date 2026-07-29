@@ -41,6 +41,12 @@ describe("createInternetSearchFeature", () => {
       "internet.search",
       { query: " TypeScript 5.7 " },
       {
+        citations: [
+          {
+            title: "Announcing TypeScript 5.7",
+            url: "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
+          },
+        ],
         data: {
           answer:
             "TypeScript 5.7 adds checks for variables that have never been initialized. [1]",
@@ -71,7 +77,7 @@ describe("createInternetSearchFeature", () => {
           ],
           kind: "internet_sources",
         },
-        text: "TypeScript 5.7 adds checks for variables that have never been initialized. [1] Sources: Announcing TypeScript 5.7 [1: https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/].",
+        text: "TypeScript 5.7 adds checks for variables that have never been initialized. Source: Announcing TypeScript 5.7.",
       },
       createFeatureContext(),
     );
@@ -173,6 +179,59 @@ describe("createInternetSearchFeature", () => {
     );
   });
 
+  it("removes unannotated web and citation syntax from human-facing text", async () => {
+    const answer =
+      "The answer is forty-two https://leak.example/path [details](https://other.example/path) [1]";
+    const citationStart = answer.lastIndexOf("[1]");
+
+    await expectDecodedFeatureExecution(
+      createInternetSearchFeature({
+        search: () =>
+          Promise.resolve({
+            answer,
+            citations: [
+              {
+                endIndex: citationStart + 3,
+                sourceId: "current",
+                startIndex: citationStart,
+              },
+            ],
+            sources: [
+              {
+                id: "current",
+                title: "Current source",
+                url: "https://example.com/current",
+              },
+            ],
+          }),
+      }),
+      "internet.search",
+      { query: "current answer" },
+      {
+        citations: [
+          {
+            title: "Current source",
+            url: "https://example.com/current",
+          },
+        ],
+        data: expect.any(Object) as Record<string, string | number>,
+        expectsFollowUp: true,
+        resultReferences: {
+          items: [
+            {
+              facts: {
+                title: "Current source",
+                url: "https://example.com/current",
+              },
+            },
+          ],
+          kind: "internet_sources",
+        },
+        text: "The answer is forty-two details Source: Current source.",
+      },
+    );
+  });
+
   it("rejects oversized answer projections from every adapter", async () => {
     await expectFeatureRejects(
       createInternetSearchFeature({
@@ -199,12 +258,44 @@ describe("createInternetSearchFeature", () => {
     );
   });
 
+  it("rejects source metadata containing terminal control characters", async () => {
+    await expectFeatureRejects(
+      createInternetSearchFeature({
+        search: () =>
+          Promise.resolve({
+            answer: "Answer [1]",
+            citations: [{ endIndex: 10, sourceId: "current", startIndex: 7 }],
+            sources: [
+              {
+                id: "current",
+                title: "Unsafe\u001B]8;;https://attacker.test\u0007",
+                url: "https://example.com/current",
+              },
+            ],
+          }),
+      }),
+      {
+        capability: "internet.search",
+        parameters: { query: "current answer" },
+        rawText: "search",
+      },
+      { query: "current answer" },
+      "Internet search returned content outside safe bounds.",
+    );
+  });
+
   it("answers follow-ups only through a selected opaque source reference", async () => {
     await expectDecodedFeatureExecution(
       createInternetSearchFeature(createFakeSearch()),
       "internet.follow_up",
       { ordinal: 1 },
       {
+        citations: [
+          {
+            title: "Announcing TypeScript 5.7",
+            url: "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
+          },
+        ],
         data: {
           extract:
             "TypeScript 5.7 adds checks for variables that have never been initialized.",
@@ -212,7 +303,7 @@ describe("createInternetSearchFeature", () => {
           title: "Announcing TypeScript 5.7",
           url: "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
         },
-        text: "Announcing TypeScript 5.7: TypeScript 5.7 adds checks for variables that have never been initialized. [https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/]",
+        text: "Announcing TypeScript 5.7: TypeScript 5.7 adds checks for variables that have never been initialized.",
       },
       {
         ...createFeatureContext(),
@@ -252,11 +343,17 @@ describe("createInternetSearchFeature", () => {
       "internet.follow_up",
       { ordinal: 1 },
       {
+        citations: [
+          {
+            title: "Current source",
+            url: "https://example.com/current",
+          },
+        ],
         data: {
           title: "Current source",
           url: "https://example.com/current",
         },
-        text: "Current source was cited in the recent answer. [https://example.com/current]",
+        text: "Current source was cited in the recent answer.",
       },
       {
         ...createFeatureContext(),

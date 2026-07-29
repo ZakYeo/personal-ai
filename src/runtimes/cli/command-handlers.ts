@@ -22,6 +22,7 @@ import {
   buildVoiceServiceRuntimeOptions,
 } from "./runtime-options.js";
 import type { CliDependencies, CliIo } from "./types.js";
+import { renderAssistantResponseText } from "../assistant-response-rendering.js";
 
 export async function runAskCommand(
   parsed: ParsedAskCommand,
@@ -30,7 +31,7 @@ export async function runAskCommand(
 ): Promise<number> {
   const response = await handleRuntimeCommand(parsed, io, dependencies);
 
-  io.stdout.write(`${response.text}\n`);
+  writeAssistantResponse(io, response);
   return response.status === "error" ? 1 : 0;
 }
 
@@ -42,7 +43,7 @@ export async function runVoiceCommand(
   const result = await handleVoiceCommand(parsed, io, dependencies);
 
   if (!result.outputWritten) {
-    io.stdout.write(`${result.response.text}\n`);
+    writeAssistantResponse(io, result.response);
   }
 
   return result.response.status === "error" ? 1 : 0;
@@ -56,7 +57,7 @@ export async function runPiServiceCommand(
   const result = await handlePiServiceCommand(parsed, io, dependencies);
 
   if (result.status !== "stopped") {
-    io.stdout.write(`${result.response.text}\n`);
+    writeAssistantResponse(io, result.response);
     return 1;
   }
 
@@ -75,11 +76,19 @@ export async function runDesktopVoiceServiceCommand(
   );
 
   if (result.status !== "stopped") {
-    io.stdout.write(`${result.response.text}\n`);
+    writeAssistantResponse(io, result.response);
     return 1;
   }
 
   return 0;
+}
+
+function writeAssistantResponse(io: CliIo, response: AssistantResponse): void {
+  io.stdout.write(
+    `${renderAssistantResponseText(response, {
+      hyperlinks: io.supportsHyperlinks === true,
+    })}\n`,
+  );
 }
 
 async function handleRuntimeCommand(

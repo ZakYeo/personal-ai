@@ -145,6 +145,9 @@ describe("OpenAIConversationResponder", () => {
     const systemPrompt = messages[0]?.content[0]?.text ?? "";
 
     expect(systemPrompt).toContain("spoken aloud");
+    expect(systemPrompt).toContain(
+      "Never include raw URLs, Markdown links, citation brackets, or internal identifiers in spoken text",
+    );
     expect(systemPrompt).toContain("Avoid bullets");
     expect(systemPrompt).toContain("Do not mention internal capability names");
     expect(systemPrompt).toContain("alarm.list");

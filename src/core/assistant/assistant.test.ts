@@ -131,7 +131,16 @@ describe("createAssistant", () => {
               message: { type: "string", required: true },
             },
           },
-          execute: () => Promise.resolve({ text: "Handled on 2026-09-12." }),
+          execute: () =>
+            Promise.resolve({
+              citations: [
+                {
+                  title: "Example source",
+                  url: "https://example.com/source",
+                },
+              ],
+              text: "Handled on 2026-09-12.",
+            }),
         }),
       ],
       intentInterpreter: createInterpreter(command),
@@ -139,6 +148,12 @@ describe("createAssistant", () => {
     });
 
     await expect(assistant.handleText("hello")).resolves.toEqual({
+      citations: [
+        {
+          title: "Example source",
+          url: "https://example.com/source",
+        },
+      ],
       status: "ok",
       text: "Handled naturally.",
     });
@@ -148,6 +163,12 @@ describe("createAssistant", () => {
         command,
         originalText: "hello",
         response: {
+          citations: [
+            {
+              title: "Example source",
+              url: "https://example.com/source",
+            },
+          ],
           status: "ok",
           text: "Handled on 2026-09-12.",
         },

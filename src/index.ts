@@ -4,6 +4,7 @@ export type {
   AssistantDependencies,
 } from "./core/assistant/index.js";
 export type {
+  AssistantCitation,
   AssistantCommand,
   AssistantCommandParameters,
   AssistantDiagnostic,

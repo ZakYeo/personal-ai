@@ -13,6 +13,7 @@ export async function main(
   args: string[] = process.argv.slice(2),
   io: CliIo = {
     env: process.env,
+    supportsHyperlinks: process.stdout.isTTY,
     stderr: process.stderr,
     stdout: process.stdout,
   },
@@ -29,6 +30,7 @@ if (
     () => main(),
     {
       env: process.env,
+      supportsHyperlinks: process.stdout.isTTY,
       stderr: process.stderr,
       stdout: process.stdout,
     },

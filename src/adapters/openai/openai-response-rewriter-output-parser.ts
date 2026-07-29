@@ -1,6 +1,7 @@
 import { OpenAIResponseRewriterError } from "./openai-response-rewriter-error.js";
 import { isRecord } from "../parsing.js";
 import { parseOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
+import { isOpenAISpokenTextSafe } from "./openai-spoken-style.js";
 
 export function parseOpenAIResponseRewrite(value: string): { text: string } {
   const parsed = parseOpenAIStructuredOutput(value, {
@@ -20,6 +21,11 @@ export function parseOpenAIResponseRewrite(value: string): { text: string } {
   if (typeof parsed.text !== "string" || parsed.text.length === 0) {
     throw new OpenAIResponseRewriterError(
       "OpenAI response rewrite text must be a non-empty string.",
+    );
+  }
+  if (!isOpenAISpokenTextSafe(parsed.text)) {
+    throw new OpenAIResponseRewriterError(
+      "OpenAI response rewrite text must be suitable for spoken delivery.",
     );
   }
 

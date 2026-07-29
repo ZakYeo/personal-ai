@@ -3,6 +3,38 @@ import { createVoiceRuntimeDependencies } from "../../test-support/voice-runtime
 import { runDetectedVoiceCommand } from "./voice-command.js";
 
 describe("runDetectedVoiceCommand", () => {
+  it("speaks natural citation titles without passing link targets to text-to-speech", async () => {
+    const synthesize = vi.fn((text: string) => Promise.resolve({ text }));
+    const response = {
+      citations: [
+        {
+          title: "Donald Trump",
+          url: "https://en.wikipedia.org/wiki/Donald_Trump?utm_source=openai",
+        },
+      ],
+      status: "ok" as const,
+      text: "Donald Trump was born on June 14, 1946. Source: Donald Trump.",
+    };
+    const dependencies = createVoiceRuntimeDependencies({
+      assistant: {
+        handleText: () => Promise.resolve(response),
+        handleTextWithDiagnostics: () =>
+          Promise.resolve({
+            response,
+          }),
+      },
+    });
+
+    await runDetectedVoiceCommand(
+      { ...dependencies, textToSpeech: { synthesize } },
+      "Search the web for Donald Trump's birthday.",
+      {},
+    );
+
+    expect(synthesize).toHaveBeenCalledWith(response.text);
+    expect(JSON.stringify(synthesize.mock.calls)).not.toContain("https://");
+  });
+
   it("forwards service shutdown cancellation to assistant handling", async () => {
     const shutdown = new AbortController();
     const handleTextWithDiagnostics = vi.fn(() =>

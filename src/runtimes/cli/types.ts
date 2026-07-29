@@ -7,6 +7,7 @@ import type { ServiceProcessSignals } from "../service/service-runtime.js";
 
 export interface CliIo {
   env: NodeJS.ProcessEnv;
+  supportsHyperlinks?: boolean;
   stderr: Pick<NodeJS.WriteStream, "write">;
   stdout: Pick<NodeJS.WriteStream, "write">;
 }

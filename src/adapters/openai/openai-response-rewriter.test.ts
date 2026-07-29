@@ -42,6 +42,12 @@ const request = {
     },
   ],
   response: {
+    citations: [
+      {
+        title: "Private link target",
+        url: "https://example.com/private-citation-target",
+      },
+    ],
     status: "ok" as const,
     text: "Your upcoming calendar events are: Dentist on __ASSISTANT_PROTECTED_FACT_0__.",
   },
@@ -80,11 +86,15 @@ describe("OpenAIResponseRewriter", () => {
     expect(JSON.stringify(body.input)).toContain(
       "approved exact or relative-date renderings",
     );
+    expect(JSON.stringify(body.input)).toContain(
+      "Never include raw URLs, Markdown links, citation brackets, or internal identifiers in spoken text",
+    );
     expect(JSON.stringify(body.input)).toContain("Do not invent events");
     expect(JSON.stringify(body.input)).toContain(
       "__ASSISTANT_PROTECTED_FACT_0__",
     );
     expect(JSON.stringify(body.input)).not.toContain("2026-09-12");
+    expect(JSON.stringify(body.input)).not.toContain("private-citation-target");
     expect(JSON.stringify(body.input)).toContain("calendar.search_events");
   });
 
@@ -142,6 +152,22 @@ describe("OpenAIResponseRewriter", () => {
 
     await expect(rewriter.rewrite(request, context)).rejects.toThrow(
       "OpenAI response rewrite text must be a non-empty string.",
+    );
+  });
+
+  it("rejects rewritten spoken text containing a raw URL", async () => {
+    const rewriter = createRewriter({
+      fetch: createFetchStub(
+        jsonResponse({
+          output_text: JSON.stringify({
+            text: "Read https://example.com/private aloud.",
+          }),
+        }),
+      ),
+    });
+
+    await expect(rewriter.rewrite(request, context)).rejects.toThrow(
+      "OpenAI response rewrite text must be suitable for spoken delivery.",
     );
   });
 });
