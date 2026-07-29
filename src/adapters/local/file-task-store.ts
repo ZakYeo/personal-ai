@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 
 import { cloneTaskRecord } from "../../ports/task-policy.js";
 import type {
@@ -7,10 +6,6 @@ import type {
   TaskRecord,
   TaskStore,
 } from "../../ports/task-store.js";
-import {
-  atomicReplaceFile,
-  type AtomicFileSystem,
-} from "./atomic-file-replacement.js";
 import {
   readLocalJsonState,
   type LocalJsonStateFileSystem,
@@ -41,6 +36,11 @@ import {
   parseTaskState,
   type TaskStateDocument,
 } from "./task-state-schema.js";
+import { createNodeLocalJsonStateFileSystem } from "./node-local-json-state-file-system.js";
+import {
+  createSerializedExecutor,
+  type SerializedExecutor,
+} from "./serialized-executor.js";
 
 export type TaskStoreFileSystem = LocalJsonStateFileSystem;
 
@@ -55,34 +55,12 @@ interface FileTaskStoreOptions extends FileTaskStoreDependencies {
   now: () => Date;
 }
 
-const nodeAtomicFileSystem: AtomicFileSystem = {
-  open,
-  rename,
-  unlink,
-};
-
-const nodeFileSystem: TaskStoreFileSystem = {
-  mkdir: (path, options) => mkdir(path, options),
-  readFile: (path) => readFile(path, "utf8"),
-  replaceFile: (options) =>
-    atomicReplaceFile({ ...options, fileSystem: nodeAtomicFileSystem }),
-};
-
 export function createFileTaskStore(options: FileTaskStoreOptions): TaskStore {
   const createListId =
     options.createListId ?? (() => `task-list-${randomUUID()}`);
   const createTaskId = options.createTaskId ?? (() => `task-${randomUUID()}`);
-  const fileSystem = options.fileSystem ?? nodeFileSystem;
-  let pending: Promise<void> = Promise.resolve();
-
-  function enqueue<T>(operation: () => Promise<T>): Promise<T> {
-    const result = pending.then(operation);
-    pending = result.then(
-      () => {},
-      () => {},
-    );
-    return result;
-  }
+  const fileSystem = options.fileSystem ?? createNodeLocalJsonStateFileSystem();
+  const enqueue = createSerializedExecutor();
 
   return {
     acknowledgeReminder: (request) =>
@@ -214,7 +192,7 @@ export function createFileTaskStore(options: FileTaskStoreOptions): TaskStore {
 function updateList(
   filePath: string,
   fileSystem: TaskStoreFileSystem,
-  enqueue: <T>(operation: () => Promise<T>) => Promise<T>,
+  enqueue: SerializedExecutor,
   id: string,
   update: (
     list: TaskListRecord,
@@ -238,7 +216,7 @@ function updateList(
 function updateTask(
   filePath: string,
   fileSystem: TaskStoreFileSystem,
-  enqueue: <T>(operation: () => Promise<T>) => Promise<T>,
+  enqueue: SerializedExecutor,
   id: string,
   update: (task: TaskRecord) => TaskRecord | undefined,
 ): Promise<TaskRecord | undefined> {

@@ -1,5 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 
 import type {
   NewWeatherWatch,
@@ -7,10 +6,6 @@ import type {
   WeatherWatchStore,
 } from "../../ports/weather-watch-store.js";
 import { cloneWeatherWatch } from "../../ports/weather-watch-policy.js";
-import {
-  atomicReplaceFile,
-  type AtomicFileSystem,
-} from "./atomic-file-replacement.js";
 import {
   assertValidWeatherWatchStateDocument,
   parseWeatherWatchState,
@@ -27,6 +22,11 @@ import {
   type LocalJsonStateFileSystem,
   writeLocalJsonState,
 } from "./json-state-file.js";
+import { createNodeLocalJsonStateFileSystem } from "./node-local-json-state-file-system.js";
+import {
+  createSerializedExecutor,
+  type SerializedExecutor,
+} from "./serialized-executor.js";
 
 export type WeatherWatchStoreFileSystem = LocalJsonStateFileSystem;
 
@@ -40,34 +40,12 @@ interface FileWeatherWatchStoreOptions extends FileWeatherWatchStoreDependencies
   now: () => Date;
 }
 
-const nodeAtomicFileSystem: AtomicFileSystem = {
-  open,
-  rename,
-  unlink,
-};
-
-const nodeFileSystem: WeatherWatchStoreFileSystem = {
-  mkdir: (path, options) => mkdir(path, options),
-  readFile: (path) => readFile(path, "utf8"),
-  replaceFile: (options) =>
-    atomicReplaceFile({ ...options, fileSystem: nodeAtomicFileSystem }),
-};
-
 export function createFileWeatherWatchStore(
   options: FileWeatherWatchStoreOptions,
 ): WeatherWatchStore {
   const createId = options.createId ?? (() => `weather-watch-${randomUUID()}`);
-  const fileSystem = options.fileSystem ?? nodeFileSystem;
-  let pending: Promise<void> = Promise.resolve();
-
-  function enqueue<T>(operation: () => Promise<T>): Promise<T> {
-    const result = pending.then(operation);
-    pending = result.then(
-      () => {},
-      () => {},
-    );
-    return result;
-  }
+  const fileSystem = options.fileSystem ?? createNodeLocalJsonStateFileSystem();
+  const enqueue = createSerializedExecutor();
 
   return {
     add: (watch) =>
@@ -121,7 +99,7 @@ export function createFileWeatherWatchStore(
 function updateStoredWatch(
   filePath: string,
   fileSystem: WeatherWatchStoreFileSystem,
-  enqueue: <T>(operation: () => Promise<T>) => Promise<T>,
+  enqueue: SerializedExecutor,
   id: string,
   update: (watch: WeatherWatchRecord) => WeatherWatchRecord | undefined,
 ): Promise<WeatherWatchRecord | undefined> {

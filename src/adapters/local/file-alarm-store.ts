@@ -1,14 +1,9 @@
-import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import type {
   AlarmRecord,
   AlarmStore,
   NewAlarmRecord,
 } from "../../ports/alarm-store.js";
-import {
-  atomicReplaceFile,
-  type AtomicFileSystem,
-} from "./atomic-file-replacement.js";
 import {
   applyAlarmLifecycleUpdate,
   cloneAlarmRecord,
@@ -23,6 +18,8 @@ import {
   type LocalJsonStateFileSystem,
   writeLocalJsonState,
 } from "./json-state-file.js";
+import { createNodeLocalJsonStateFileSystem } from "./node-local-json-state-file-system.js";
+import { createSerializedExecutor } from "./serialized-executor.js";
 
 export type AlarmStoreFileSystem = LocalJsonStateFileSystem;
 
@@ -38,35 +35,13 @@ export type FileAlarmStoreDependencies = Pick<
   "createId" | "fileSystem"
 >;
 
-const nodeAtomicFileSystem: AtomicFileSystem = {
-  open,
-  rename,
-  unlink,
-};
-
-const nodeFileSystem: AlarmStoreFileSystem = {
-  mkdir: (path, options) => mkdir(path, options),
-  readFile: (path) => readFile(path, "utf8"),
-  replaceFile: (options) =>
-    atomicReplaceFile({ ...options, fileSystem: nodeAtomicFileSystem }),
-};
-
 export function createFileAlarmStore(
   options: FileAlarmStoreOptions,
 ): AlarmStore {
   const createId = options.createId ?? randomUUID;
-  const fileSystem = options.fileSystem ?? nodeFileSystem;
+  const fileSystem = options.fileSystem ?? createNodeLocalJsonStateFileSystem();
   const { now } = options;
-  let pending: Promise<void> = Promise.resolve();
-
-  function enqueue<T>(operation: () => Promise<T>): Promise<T> {
-    const result = pending.then(operation);
-    pending = result.then(
-      () => {},
-      () => {},
-    );
-    return result;
-  }
+  const enqueue = createSerializedExecutor();
 
   return {
     add: (alarm) =>
