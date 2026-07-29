@@ -171,11 +171,12 @@ function projectSelectedCitations(
   const citations: InternetSearchCitation[] = [];
   let projectedAnswer = "";
   let cursor = 0;
+  let retainedEveryCitation = true;
 
   for (const parsed of parsedCitations) {
-    projectedAnswer += answer.slice(cursor, parsed.startIndex);
     const source = sourceByUrl.get(parsed.url);
     if (source) {
+      projectedAnswer += answer.slice(cursor, parsed.startIndex);
       const citationText = answer.slice(parsed.startIndex, parsed.endIndex);
       const startIndex = projectedAnswer.length;
       projectedAnswer += citationText;
@@ -184,11 +185,13 @@ function projectSelectedCitations(
         sourceId: source.id,
         startIndex,
       });
+    } else {
+      retainedEveryCitation = false;
     }
     cursor = parsed.endIndex;
   }
 
-  projectedAnswer += answer.slice(cursor);
+  if (retainedEveryCitation) projectedAnswer += answer.slice(cursor);
   return { answer: projectedAnswer, citations, sources };
 }
 

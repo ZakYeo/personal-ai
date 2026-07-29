@@ -179,7 +179,7 @@ describe("createOpenAIWebSearch", () => {
     await expect(
       search.search({ maxResults: 1, query: "facts" }, {}),
     ).resolves.toEqual({
-      answer: "[1] ",
+      answer: "[1]",
       citations: [
         {
           endIndex: 3,
@@ -245,7 +245,7 @@ describe("createOpenAIWebSearch", () => {
     await expect(
       search.search({ maxResults: 1, query: "facts" }, {}),
     ).resolves.toEqual({
-      answer: "First [1] second  first again [3].",
+      answer: "First [1] first again [3]",
       citations: [
         {
           endIndex: firstStart + 3,
@@ -253,9 +253,9 @@ describe("createOpenAIWebSearch", () => {
           startIndex: firstStart,
         },
         {
-          endIndex: repeatedStart,
+          endIndex: 25,
           sourceId: "openai-search-source-1",
-          startIndex: repeatedStart - 3,
+          startIndex: 22,
         },
       ],
       sources: [
