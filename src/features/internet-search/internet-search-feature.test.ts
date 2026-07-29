@@ -232,6 +232,52 @@ describe("createInternetSearchFeature", () => {
     );
   });
 
+  it("humanizes untrusted source titles before speech and retention", async () => {
+    await expectDecodedFeatureExecution(
+      createInternetSearchFeature({
+        search: () =>
+          Promise.resolve({
+            answer: "Current answer [1]",
+            citations: [{ endIndex: 18, sourceId: "current", startIndex: 15 }],
+            sources: [
+              {
+                extract: "See **the details** at www.example.com [2].",
+                id: "current",
+                title:
+                  "[Current **source**](https://example.com/title) https://leak.example [3]",
+                url: "https://example.com/current",
+              },
+            ],
+          }),
+      }),
+      "internet.search",
+      { query: "current answer" },
+      {
+        citations: [
+          {
+            title: "Current source",
+            url: "https://example.com/current",
+          },
+        ],
+        data: expect.any(Object) as Record<string, string | number>,
+        expectsFollowUp: true,
+        resultReferences: {
+          items: [
+            {
+              facts: {
+                extract: "See the details.",
+                title: "Current source",
+                url: "https://example.com/current",
+              },
+            },
+          ],
+          kind: "internet_sources",
+        },
+        text: "Current answer Source: Current source.",
+      },
+    );
+  });
+
   it("rejects oversized answer projections from every adapter", async () => {
     await expectFeatureRejects(
       createInternetSearchFeature({
@@ -269,6 +315,33 @@ describe("createInternetSearchFeature", () => {
               {
                 id: "current",
                 title: "Unsafe\u001B]8;;https://attacker.test\u0007",
+                url: "https://example.com/current",
+              },
+            ],
+          }),
+      }),
+      {
+        capability: "internet.search",
+        parameters: { query: "current answer" },
+        rawText: "search",
+      },
+      { query: "current answer" },
+      "Internet search returned content outside safe bounds.",
+    );
+  });
+
+  it("rejects source extracts containing terminal control characters", async () => {
+    await expectFeatureRejects(
+      createInternetSearchFeature({
+        search: () =>
+          Promise.resolve({
+            answer: "Answer [1]",
+            citations: [{ endIndex: 10, sourceId: "current", startIndex: 7 }],
+            sources: [
+              {
+                extract: "Unsafe\u001B]8;;https://attacker.test\u0007",
+                id: "current",
+                title: "Current",
                 url: "https://example.com/current",
               },
             ],
@@ -361,6 +434,44 @@ describe("createInternetSearchFeature", () => {
           publicReference: {
             facts: {
               title: "Current source",
+              url: "https://example.com/current",
+            },
+            kind: "internet_source",
+            ordinal: 1,
+            reference: "internet-source-1",
+          },
+        }),
+      },
+    );
+  });
+
+  it("humanizes untrusted titles and extracts in source follow-ups", async () => {
+    await expectDecodedFeatureExecution(
+      createInternetSearchFeature(createFakeSearch()),
+      "internet.follow_up",
+      { ordinal: 1 },
+      {
+        citations: [
+          {
+            title: "Source one",
+            url: "https://example.com/current",
+          },
+        ],
+        data: {
+          extract: "Useful details.",
+          title: "Source one",
+          url: "https://example.com/current",
+        },
+        text: "Source one: Useful details.",
+      },
+      {
+        ...createFeatureContext(),
+        selectResultReference: () => ({
+          publicReference: {
+            facts: {
+              extract: "**Useful details** at https://example.com/private [2].",
+              title:
+                "[Source one](https://example.com/title) www.example.com [1]",
               url: "https://example.com/current",
             },
             kind: "internet_source",

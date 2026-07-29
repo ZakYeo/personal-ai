@@ -16,6 +16,7 @@ import {
 } from "../../ports/deterministic-feature-rules.js";
 import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
 import { containsControlCharacters } from "../../ports/text-safety.js";
+import { humanizeInternetSearchText } from "./internet-search-human-text.js";
 
 const searchParameters = {
   query: {
@@ -127,13 +128,14 @@ async function executeSearch(
       text: `I could not find current sources for "${query}".`,
     };
   }
+  const humanSources = humanizeSources(response.sources);
 
   return {
-    citations: createAssistantCitations(response.sources),
+    citations: createAssistantCitations(humanSources),
     data: createProtectedSearchFacts(response),
     expectsFollowUp: true,
-    resultReferences: createResultReferences(response.sources),
-    text: formatCitedAnswer(response),
+    resultReferences: createResultReferences(humanSources),
+    text: formatCitedAnswer(response, humanSources),
   };
 }
 
@@ -143,6 +145,7 @@ function validateSearchResponse(
 ): void {
   if (
     response.answer.length > internetSearchLimits.answerCharacters ||
+    containsControlCharacters(response.answer) ||
     response.sources.length > maxResults ||
     response.sources.some(
       (source) =>
@@ -152,7 +155,10 @@ function validateSearchResponse(
         !isHttpUrl(source.url) ||
         source.url.length > internetSearchLimits.urlCharacters ||
         containsControlCharacters(source.url) ||
-        (source.extract?.length ?? 0) > internetSearchLimits.extractCharacters,
+        (source.extract?.length ?? 0) >
+          internetSearchLimits.extractCharacters ||
+        (source.extract !== undefined &&
+          containsControlCharacters(source.extract)),
     )
   ) {
     throw new Error("Internet search returned content outside safe bounds.");
@@ -223,21 +229,28 @@ function answerSearchFollowUp(
   }
 
   const { facts } = selected.publicReference;
+  const title = humanizeInternetSearchText(facts.title) || "Selected source";
+  const extract = facts.extract
+    ? humanizeInternetSearchText(facts.extract)
+    : undefined;
   return {
-    citations: [{ title: facts.title, url: facts.url }],
-    data: { ...facts },
-    text: facts.extract
-      ? `${facts.title}: ${facts.extract}`
-      : `${facts.title} was cited in the recent answer.`,
+    citations: [{ title, url: facts.url }],
+    data: { ...facts, ...(extract ? { extract } : {}), title },
+    text: extract
+      ? `${title}: ${extract}`
+      : `${title} was cited in the recent answer.`,
   };
 }
 
-function formatCitedAnswer(response: InternetSearchResponse): string {
+function formatCitedAnswer(
+  response: InternetSearchResponse,
+  sources: readonly InternetSearchSource[],
+): string {
   const answer = removeCitationMarkup(response);
   const sourceList = formatSpokenSourceList(
-    response.sources.map((source) => source.title),
+    sources.map((source) => source.title),
   );
-  return `${answer} ${response.sources.length === 1 ? "Source" : "Sources"}: ${sourceList}.`;
+  return `${answer} ${sources.length === 1 ? "Source" : "Sources"}: ${sourceList}.`;
 }
 
 function removeCitationMarkup(response: InternetSearchResponse): string {
@@ -251,13 +264,25 @@ function removeCitationMarkup(response: InternetSearchResponse): string {
     cursor = citation.endIndex;
   }
   answer += response.answer.slice(cursor);
-  return answer
-    .replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/giu, "$1")
-    .replace(/https?:\/\/[^\s)\]]+/giu, "")
-    .replace(/\[\d+\]/gu, "")
-    .replace(/\s+([,.!?;:])/gu, "$1")
-    .replace(/\s{2,}/gu, " ")
-    .trim();
+  return humanizeInternetSearchText(answer);
+}
+
+function humanizeSources(
+  sources: readonly InternetSearchSource[],
+): InternetSearchSource[] {
+  return sources.map((source, index) => {
+    const { extract: rawExtract, ...sourceWithoutExtract } = source;
+    const title =
+      humanizeInternetSearchText(source.title) || `Source ${index + 1}`;
+    const extract = rawExtract
+      ? humanizeInternetSearchText(rawExtract)
+      : undefined;
+    return {
+      ...sourceWithoutExtract,
+      ...(extract ? { extract } : {}),
+      title,
+    };
+  });
 }
 
 function formatSpokenSourceList(titles: readonly string[]): string {
