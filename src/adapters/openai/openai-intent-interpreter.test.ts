@@ -46,6 +46,25 @@ const calendarReadCapability: OpenAIIntentCapability = {
   parameterText: "query: string (optional)",
 };
 
+const internetSearchCapability: OpenAIIntentCapability = {
+  capability: {
+    description: "Search current public internet sources.",
+    name: "internet.search",
+    parameters: {
+      query: {
+        description: "The subject or question to search for.",
+        required: true,
+        type: "string",
+      },
+    },
+    risk: "low",
+  },
+  featureId: "internetSearch",
+  featureName: "Internet search",
+  parameterText:
+    "query: string (required; The subject or question to search for.)",
+};
+
 describe("OpenAIIntentInterpreter", () => {
   it("continues a provider tool call with previous_response_id and a safe observation", async () => {
     const fetch = vi
@@ -382,6 +401,76 @@ describe("OpenAIIntentInterpreter", () => {
     ).resolves.toEqual({
       kind: "conversation",
     });
+  });
+
+  it.each(["unknown", "unsupported"] as const)(
+    "fails closed by ignoring an inactive command on a %s response",
+    async (kind) => {
+      const fetch = createFetchStub(
+        jsonResponse({
+          id: "response-1",
+          output_text: JSON.stringify({
+            command: {
+              capability: "internet.search",
+              parameters: [{ name: "query", value: "can you search" }],
+              rawText: "Can you search the web for me?",
+            },
+            kind,
+            plan: null,
+            response: {
+              status: kind,
+              text: "What would you like me to search for?",
+            },
+          }),
+        }),
+      );
+      const interpreter = createInterpreter({
+        capabilityCatalog: [internetSearchCapability],
+        fetch,
+      });
+
+      await expect(
+        interpretOnce(interpreter, "Can you search the web for me?", context),
+      ).resolves.toEqual({
+        kind,
+        response: {
+          status: kind,
+          text: "What would you like me to search for?",
+        },
+      });
+    },
+  );
+
+  it("instructs the provider to clarify capability requests missing required user information", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-1",
+        output_text: JSON.stringify({
+          command: null,
+          kind: "clarification",
+          plan: null,
+          response: {
+            status: "ok",
+            text: "What would you like me to search for?",
+          },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({
+      capabilityCatalog: [internetSearchCapability],
+      fetch,
+    });
+
+    await interpretOnce(interpreter, "Can you search?", context);
+
+    const input = JSON.stringify(readRequestBody(fetch).input);
+    expect(input).toContain(
+      "When a capability matches but required information is missing",
+    );
+    expect(input).toContain(
+      "Never fill a required parameter with words that merely restate the capability request",
+    );
+    expect(input).toContain("The subject or question to search for.");
   });
 
   it("provides only safe opaque calendar references to the provider", async () => {

@@ -17,7 +17,12 @@ import {
 import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
 
 const searchParameters = {
-  query: { required: true, type: "string" },
+  query: {
+    description:
+      "The actual subject or question to search for, excluding generic requests to search or look something up.",
+    required: true,
+    type: "string",
+  },
 } as const satisfies FeatureCapabilityParameters;
 
 type SearchArgs = FeatureArgsFromParameters<typeof searchParameters>;

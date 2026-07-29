@@ -72,11 +72,6 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   if (value.kind === "clarification") {
-    if (value.command !== null || value.plan !== null) {
-      throw new OpenAIIntentError(
-        "OpenAI intent clarification response must set command and plan to null.",
-      );
-    }
     return {
       kind: "clarification",
       response: parseAssistantResponse(value.response),
@@ -84,17 +79,6 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   if (value.kind === "unknown" || value.kind === "unsupported") {
-    if (value.command !== null) {
-      throw new OpenAIIntentError(
-        "OpenAI intent fallback response must set command to null.",
-      );
-    }
-    if (value.plan !== null) {
-      throw new OpenAIIntentError(
-        "OpenAI intent fallback response must set plan to null.",
-      );
-    }
-
     return {
       kind: value.kind,
       response: parseAssistantResponse(value.response),

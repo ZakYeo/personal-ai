@@ -16,7 +16,14 @@ describe("createInternetSearchFeature", () => {
     const feature = createInternetSearchFeature(createFakeSearch());
     expectCapabilityMetadata(feature, {
       name: "internet.search",
-      parameters: { query: { required: true, type: "string" } },
+      parameters: {
+        query: {
+          description:
+            "The actual subject or question to search for, excluding generic requests to search or look something up.",
+          required: true,
+          type: "string",
+        },
+      },
       risk: "low",
     });
     expect(
