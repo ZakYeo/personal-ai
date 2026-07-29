@@ -526,6 +526,8 @@ Common development commands:
   persistent-alarm smoke.
 - `npm run test:e2e:openai:tasks` - run the focused opt-in live OpenAI
   persistent-task reminder smoke.
+  Trusted Codex sessions load `.codex/rules/openai-task-smoke.rules`, which
+  allowlists this exact command after Codex is restarted.
 - `npm run test:e2e:openai:plans` - run the focused opt-in live OpenAI compound
   plan smoke.
 - `npm run test:e2e:openai:calendar-followup` - run the focused opt-in live

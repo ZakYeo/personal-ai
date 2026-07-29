@@ -1,0 +1,14 @@
+# Allow the repository's focused live OpenAI task-routing smoke.
+prefix_rule(
+    pattern = ["npm", "run", "test:e2e:openai:tasks"],
+    decision = "allow",
+    justification = "Runs the checked-in focused OpenAI task-routing smoke.",
+    match = [
+        "npm run test:e2e:openai:tasks",
+    ],
+    not_match = [
+        "npm run test:e2e:openai",
+        "npm run test:e2e:openai:weather",
+        "npm test",
+    ],
+)

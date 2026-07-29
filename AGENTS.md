@@ -180,6 +180,7 @@
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run test:e2e:openai` - run the opt-in live OpenAI intent routing E2E test with `.env`.
 - `npm run test:e2e:openai:alarms` - run the focused opt-in live OpenAI persistent-alarm creation-safety, listing, and restart smoke with `.env`.
+- `npm run test:e2e:openai:tasks` - run the focused opt-in live OpenAI persistent-task reminder and opaque-follow-up smoke with `.env`; `.codex/rules/openai-task-smoke.rules` allowlists only this exact command for trusted project sessions and takes effect after Codex restarts.
 - `npm run test:e2e:openai:plans` - run the focused opt-in live OpenAI compound calendar-and-alarm plan smoke with `.env`.
 - `npm run test:e2e:openai:calendar-followup` - run the focused opt-in live OpenAI and Google Calendar result-follow-up smoke with `.env`.
 - `npm run test:e2e:openai:pi` - run the focused opt-in live OpenAI confirmed-alarm smoke through Raspberry Pi service composition without audio hardware.
