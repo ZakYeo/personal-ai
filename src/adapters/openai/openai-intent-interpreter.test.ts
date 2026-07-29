@@ -470,6 +470,9 @@ describe("OpenAIIntentInterpreter", () => {
     expect(input).toContain(
       "Never fill a required parameter with words that merely restate the capability request",
     );
+    expect(input).toContain(
+      "A user asking whether you can perform an enabled capability without supplying its required information is starting that capability",
+    );
     expect(input).toContain("The subject or question to search for.");
   });
 

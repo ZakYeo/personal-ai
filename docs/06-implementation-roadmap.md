@@ -37,9 +37,10 @@ validated terminal command or compound plan, initially proving
 calendar-result-driven alarm creation.
 Milestone 14 is implemented after its required independent maintainability
 review. It adds bounded source-grounded internet search, deterministic and
-opt-in OpenAI web-search adapters, visible citation integrity, process-local
-snapshot follow-ups, terminal-only trust isolation, request cancellation, and
-shared text, voice, and service composition.
+opt-in OpenAI web-search adapters, bounded citation projection, clickable
+source-title metadata, URL-free speech, process-local snapshot follow-ups,
+terminal-only trust isolation, request cancellation, and shared text, voice,
+and service composition.
 
 ## Implemented Milestone Archive
 
@@ -348,7 +349,8 @@ Included:
 - Bounded queries and results containing validated titles, source URLs,
   extracts, publication times when available, and opaque result references.
 - Concise answers whose citations resolve only to sources returned for the
-  current search.
+  current search, with natural source titles in speech and validated URLs kept
+  as separate link metadata.
 - Read-only follow-ups against the latest bounded result set and opt-in use of
   relevant profile preferences such as home location or interests.
 - Timeout, cancellation, rate-limit, malformed-response, and diagnostic-safe

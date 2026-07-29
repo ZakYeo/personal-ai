@@ -163,6 +163,12 @@ owns session lifetime or exposes provider IDs in its human response. Task list
 results use the same contract with safe label, list, status, due-date, note, and
 reminder projections while keeping storage IDs private.
 
+Internet-search feature results also expose validated citation metadata
+separately from natural response text. Exact URLs remain link targets and
+snapshot facts; spoken wording contains source titles only. If a provider
+returns more valid cited sources than configured, the adapter projects the
+first-cited sources and rebuilds retained offsets before the feature sees them.
+
 Profile, weather, task, and briefing composition does not relax feature
 ownership. A feature that needs personal defaults receives a narrow
 personal-context reader during composition. The implemented weather feature

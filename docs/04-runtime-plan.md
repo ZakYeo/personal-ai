@@ -507,10 +507,14 @@ checked-in deterministic configs use `mock`; desktop and Pi OpenAI operator
 configs select `openai`, capture typed Responses configuration during config
 parsing, and reuse `OPENAI_API_KEY`. The adapter requires the hosted
 `web_search` tool, applies the shared OpenAI JSON transport timeout policy, and
-returns only validated HTTP(S) citation annotations. Response bodies are read
+validates every HTTP(S) citation annotation before projecting first-cited
+sources into the configured result limit. Response bodies are read
 through a bounded streaming reader, and the active voice-service shutdown signal
 cancels both the request and body consumption. Text, desktop voice, and Pi
-service composition all use the same feature registry entry.
+service composition all use the same feature registry entry. Search answers
+carry exact URLs only as structured citation/reference metadata; normal text
+and speech use source titles, while hyperlink-capable CLI output attaches the
+URL as a hidden title link target.
 
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
@@ -525,10 +529,12 @@ outside `npm run check`.
 Development CLI runs load `.env` when present through Node's
 `--env-file-if-exists` support, so local provider credentials can be supplied
 without prefixing each `npm run cli` invocation.
-The opt-in `npm run test:e2e:openai:search` smoke routes a current-information
-request through live OpenAI intent interpretation and the hosted web-search
-tool, then requires a safe assistant response with visible HTTPS citations. It
-is excluded from the default validation gate.
+The opt-in `npm run test:e2e:openai:search` smoke routes varied fact and
+current-information requests through live OpenAI intent interpretation and the
+hosted web-search tool, then requires bounded structured HTTPS citations and
+URL-free human text. The focused `npm run test:e2e:openai:intent` matrix also
+checks varied valid search wording and resumable clarification for requests
+with no search topic. Both are excluded from the default validation gate.
 The opt-in `npm run test:e2e:open-meteo` smoke validates the key-free live
 adapter path independently. The opt-in `npm run test:e2e:openai:weather` smoke
 validates live intent routing to the deterministic weather feature; both remain

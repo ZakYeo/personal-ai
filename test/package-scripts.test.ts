@@ -73,4 +73,14 @@ describe("package scripts", () => {
       "openai-persistent-tasks.e2e.test.ts",
     );
   });
+
+  it("provides a focused live OpenAI intent flexibility smoke command", async () => {
+    const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.["test:e2e:openai:intent"]).toContain(
+      "openai-intent-routing.e2e.test.ts",
+    );
+  });
 });

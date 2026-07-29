@@ -68,6 +68,24 @@ const liveRoutingScenarios = [
     text: "Hey Jarvis, search the internet for the current stable TypeScript release.",
   },
   {
+    capability: "internet.search",
+    parameters: {
+      query: expect.stringMatching(
+        /donald trump.*birthday|birthday.*donald trump/i,
+      ) as string,
+    },
+    text: "Could you look online and tell me Donald Trump's birthday?",
+  },
+  {
+    capability: "internet.search",
+    parameters: {
+      query: expect.stringMatching(
+        /typescript.*release|release.*typescript/i,
+      ) as string,
+    },
+    text: "Please look up which TypeScript release is currently stable.",
+  },
+  {
     capability: "alarm.create",
     parameters: {
       minutesFromNow: 10,
@@ -79,6 +97,13 @@ const liveRoutingScenarios = [
     parameters: {},
     text: "Hey Jarvis, list my alarms",
   },
+] as const;
+
+const liveClarificationScenarios = [
+  "Can you search?",
+  "Can you search the web for me?",
+  "Could you look something up online?",
+  "Search the web for me.",
 ] as const;
 
 const runOpenAIE2E = env.PERSONAL_AI_RUN_OPENAI_E2E === "1";
@@ -99,6 +124,21 @@ describe.skipIf(!runOpenAIE2E)("OpenAI intent routing live E2E", () => {
           rawText: expect.any(String) as string,
         },
         kind: "command",
+      });
+    },
+  );
+
+  it.each(liveClarificationScenarios)(
+    "asks for the missing search topic: %s",
+    async (text) => {
+      const interpreter = createInterpreter();
+
+      await expect(interpretOnce(interpreter, text, context)).resolves.toEqual({
+        kind: "clarification",
+        response: {
+          status: "ok",
+          text: expect.stringMatching(/\?/u) as string,
+        },
       });
     },
   );

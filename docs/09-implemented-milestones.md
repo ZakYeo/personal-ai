@@ -175,8 +175,11 @@ Included:
 - A provider-neutral search port with deterministic and opt-in OpenAI Responses
   `web_search` adapters selected through the normal per-feature registry.
 - One bounded synthesized answer separated from its validated URL-citation set
-  and source metadata. Visible citations are constructed only from the current
-  returned source set.
+  and source metadata. Every annotation is validated; excess valid sources are
+  projected by first citation into the configured limit with rebuilt offsets.
+- Human responses use natural source titles without raw URLs, Markdown links,
+  citation brackets, or duplicated source lists. Exact HTTPS URLs remain
+  structured metadata for result follow-ups and hidden clickable title targets.
 - Process-local, snapshot-only source follow-ups capped by the shared ten-item,
   three-subsequent-turn result-reference session.
 - Terminal-only execution: retrieved content never becomes a tool observation,
@@ -200,9 +203,10 @@ Excluded:
 
 Outcomes:
 
-- Current-information requests return one concise answer and a visible list of
-  exact HTTPS sources. Duplicate citations reuse the same source reference, and
-  unmatched, malformed, unsafe, or over-limit citation sets fail safely.
+- Current-information requests return one concise answer with natural source
+  titles and bounded validated HTTPS citation metadata. Duplicate citations
+  reuse the same source reference; excess valid sources are projected, while
+  unmatched, malformed, overlapping, or unsafe citation sets fail safely.
 - A no-result search clears older source references immediately. Follow-ups use
   only the latest immutable displayed source facts and never perform a hidden
   provider lookup.
@@ -221,7 +225,7 @@ Outcomes:
 
 Acceptance criteria:
 
-- Every visible citation resolves to the current bounded source set; fabricated,
+- Every retained citation resolves to the current bounded source set; fabricated,
   mismatched, unsafe, or out-of-range citations fail through the diagnostic-safe
   assistant outcome.
 - Retrieved content cannot request another capability, influence confirmation

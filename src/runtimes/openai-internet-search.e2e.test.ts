@@ -5,41 +5,58 @@ import { parseAssistantConfig } from "./config/config.js";
 
 const runOpenAIE2E = env.PERSONAL_AI_RUN_OPENAI_E2E === "1";
 
+const liveSearchScenarios = [
+  "Hey Jarvis, search the internet for the current stable TypeScript release.",
+  "Search the web for Donald Trump's birthday.",
+  "What are today's major public technology headlines?",
+] as const;
+
 describe.skipIf(!runOpenAIE2E)(
   "OpenAI source-grounded internet search live E2E",
   () => {
-    it("routes a current question through live web search with visible citations", async () => {
-      const assistant = await createConfiguredTextRuntime({
-        config: createLiveSearchConfig(),
-        env: { OPENAI_API_KEY: env.OPENAI_API_KEY },
-        fetch: globalThis.fetch,
-      });
+    it.each(liveSearchScenarios)(
+      "returns bounded, humanized citations for: %s",
+      async (text) => {
+        const assistant = await createConfiguredTextRuntime({
+          config: createLiveSearchConfig(),
+          env: { OPENAI_API_KEY: env.OPENAI_API_KEY },
+          fetch: globalThis.fetch,
+        });
 
-      const outcome = await assistant.handleTextWithDiagnostics(
-        "Hey Jarvis, search the internet for the current stable TypeScript release.",
-      );
-      if (outcome.response.status !== "ok") {
-        const diagnosticMessage = outcome.diagnostics
-          ?.map((diagnostic) =>
-            diagnostic.cause instanceof Error
-              ? diagnostic.cause.message
-              : diagnostic.message,
-          )
-          .join("; ");
-        throw new Error(
-          `Live internet search failed: ${diagnosticMessage ?? "no diagnostic"}`,
+        const outcome = await assistant.handleTextWithDiagnostics(text);
+        if (outcome.response.status !== "ok") {
+          const diagnosticMessage = outcome.diagnostics
+            ?.map((diagnostic) =>
+              diagnostic.cause instanceof Error
+                ? diagnostic.cause.message
+                : diagnostic.message,
+            )
+            .join("; ");
+          throw new Error(
+            `Live internet search failed: ${diagnosticMessage ?? "no diagnostic"}`,
+          );
+        }
+
+        expect(outcome).toMatchObject({
+          response: {
+            citations: expect.any(Array) as unknown[],
+            expectsFollowUp: true,
+            status: "ok",
+          },
+        });
+        expect(outcome.response.citations!.length).toBeGreaterThan(0);
+        expect(outcome.response.citations!.length).toBeLessThanOrEqual(5);
+        for (const citation of outcome.response.citations!) {
+          expect(["http:", "https:"]).toContain(new URL(citation.url).protocol);
+          expect(outcome.response.text).toContain(citation.title);
+        }
+        expect(outcome.response.text).not.toMatch(
+          /https?:\/\/|\bwww\.|\[[^\]]+\]\([^)]+\)|\[\d+\]/iu,
         );
-      }
-
-      expect(outcome).toMatchObject({
-        response: {
-          expectsFollowUp: true,
-          status: "ok",
-        },
-      });
-      expect(outcome.response.text).toMatch(/https:\/\//u);
-      expect(outcome.response.text).not.toContain("OPENAI_API_KEY");
-    }, 60_000);
+        expect(outcome.response.text).not.toContain("OPENAI_API_KEY");
+      },
+      60_000,
+    );
   },
 );
 

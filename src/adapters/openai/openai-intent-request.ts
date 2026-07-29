@@ -59,6 +59,7 @@ function createIntentInstructions(
     "Use kind clarification with an ok response populated only when one user answer is required to resolve the workflow.",
     "Map requests to enabled assistant capabilities when possible.",
     "When a capability matches but required information is missing, use kind clarification and ask one concise question for that information.",
+    "A user asking whether you can perform an enabled capability without supplying its required information is starting that capability, so clarify for the missing information rather than describing capabilities or inventing a value.",
     "Never fill a required parameter with words that merely restate the capability request; required values must contain the user's actual subject, value, or constraint.",
     openAISpokenStyleInstruction,
     "Questions about the assistant's enabled capabilities must use the enabled assistant capability that lists them when one is present.",

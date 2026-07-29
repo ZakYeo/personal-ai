@@ -473,6 +473,16 @@ should also guard against subtler boundary and abstraction drift.
   source claims, dates, and instructions are untrusted external data and cannot
   authorize capabilities, alter confirmation, or expand the search into
   crawling, downloads, forms, or authenticated browsing.
+- A provider returning more valid cited sources than requested is projected by
+  first citation into the configured result limit after every annotation is
+  validated; retained citation offsets are rebuilt after excluded annotation
+  spans are removed. Malformed, overlapping, unsafe, or unresolved citations
+  still fail closed.
+- Search responses keep exact URLs in validated citation and result-reference
+  metadata. Human text and speech use natural source titles without raw URLs,
+  Markdown links, bracketed citation markers, or duplicated source lists.
+  Hyperlink-capable text boundaries may use the exact URL as a hidden title
+  link target.
 - Internet search is terminal-only rather than an intent tool-chain read.
   Later intent interpretation may receive only opaque source ordinals and
   references, never retrieved titles, URLs, extracts, dates, or synthesized
@@ -480,7 +490,7 @@ should also guard against subtler boundary and abstraction drift.
 - OpenAI internet search must require the hosted `web_search` tool, parse
   response bodies and URL-citation annotations from `unknown`, reject non-HTTP
   sources or invalid citation indexes, bound queries, answers, source fields,
-  total projections, source counts, and response-body bytes, and keep raw
+  total projections, projected source counts, and response-body bytes, and keep raw
   provider bodies and credential details diagnostic-only. Timeouts and active
   runtime shutdown must cancel request and body consumption. The default
   validation gate uses the mock adapter and performs no network request.
