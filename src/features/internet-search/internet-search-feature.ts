@@ -10,6 +10,7 @@ import type {
   InternetSearchSource,
 } from "../../ports/internet-search.js";
 import { internetSearchLimits } from "../../ports/internet-search.js";
+import { validateInternetSearchCitationIntegrity } from "../../ports/internet-search-policy.js";
 import {
   defineDeterministicFeatureRules,
   type DeterministicFeatureRule,
@@ -167,27 +168,15 @@ function validateSearchResponse(
     throw new Error("Internet search returned content outside safe bounds.");
   }
 
-  const sourceIds = new Set(response.sources.map((source) => source.id));
-  const citedSourceIds = new Set(
-    response.citations.map((citation) => citation.sourceId),
-  );
-  if (
-    sourceIds.size !== response.sources.length ||
-    citedSourceIds.size !== sourceIds.size ||
-    response.citations.some(
-      (citation) =>
-        !sourceIds.has(citation.sourceId) ||
-        !Number.isInteger(citation.startIndex) ||
-        !Number.isInteger(citation.endIndex) ||
-        citation.startIndex < 0 ||
-        citation.endIndex <= citation.startIndex ||
-        citation.endIndex > response.answer.length,
-    )
-  ) {
-    throw new Error(
-      "Internet search returned citations that do not resolve to its source set.",
-    );
-  }
+  validateInternetSearchCitationIntegrity({
+    citations: response.citations,
+    createError: () =>
+      new Error(
+        "Internet search returned citations that do not resolve to its source set.",
+      ),
+    sourceIds: response.sources.map((source) => source.id),
+    textLength: response.answer.length,
+  });
 
   const projectionCharacters =
     response.answer.length +

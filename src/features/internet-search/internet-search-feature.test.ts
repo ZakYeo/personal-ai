@@ -179,6 +179,35 @@ describe("createInternetSearchFeature", () => {
     );
   });
 
+  it("rejects overlapping citations from any adapter", async () => {
+    await expectFeatureRejects(
+      createInternetSearchFeature({
+        search: () =>
+          Promise.resolve({
+            answer: "Answer [1]",
+            citations: [
+              { endIndex: 9, sourceId: "current", startIndex: 7 },
+              { endIndex: 10, sourceId: "current", startIndex: 8 },
+            ],
+            sources: [
+              {
+                id: "current",
+                title: "Current",
+                url: "https://example.com/current",
+              },
+            ],
+          }),
+      }),
+      {
+        capability: "internet.search",
+        parameters: { query: "current answer" },
+        rawText: "search",
+      },
+      { query: "current answer" },
+      "Internet search returned citations that do not resolve to its source set.",
+    );
+  });
+
   it("removes unannotated web and citation syntax from human-facing text", async () => {
     const answer =
       "The answer is forty-two https://leak.example/path [details](https://other.example/path) [1]";

@@ -4,6 +4,10 @@ import type {
   InternetSearchSource,
 } from "../../ports/internet-search.js";
 import { internetSearchLimits } from "../../ports/internet-search.js";
+import {
+  type InternetSearchCitationIntegrityFailure,
+  validateInternetSearchCitationIntegrity,
+} from "../../ports/internet-search-policy.js";
 import { isRecord } from "../parsing.js";
 import { OpenAIWebSearchError } from "./openai-web-search-error.js";
 
@@ -69,12 +73,8 @@ function parseCitedAnswer(
       (annotation): annotation is Record<string, unknown> =>
         isRecord(annotation) && annotation.type === "url_citation",
     )
-    .map((annotation) => parseCitation(annotation, answer))
-    .sort(
-      (left, right) =>
-        left.startIndex - right.startIndex || left.endIndex - right.endIndex,
-    );
-  validateNonOverlappingCitations(parsedCitations);
+    .map(parseCitation);
+  validateParsedCitationIntegrity(answer, parsedCitations);
 
   const sources: InternetSearchSource[] = [];
   const sourceByUrl = new Map<string, InternetSearchSource>();
@@ -110,10 +110,7 @@ interface ParsedCitation {
   url: string;
 }
 
-function parseCitation(
-  value: Record<string, unknown>,
-  answer: string,
-): ParsedCitation {
+function parseCitation(value: Record<string, unknown>): ParsedCitation {
   if (typeof value.title !== "string" || value.title.trim().length === 0) {
     throw new OpenAIWebSearchError(
       "OpenAI web search citation title must be a non-empty string.",
@@ -131,35 +128,34 @@ function parseCitation(
     throw contentBoundsError();
   }
   if (
-    !Number.isInteger(value.start_index) ||
-    !Number.isInteger(value.end_index) ||
-    (value.start_index as number) < 0 ||
-    (value.end_index as number) <= (value.start_index as number) ||
-    (value.end_index as number) > answer.length
+    typeof value.start_index !== "number" ||
+    typeof value.end_index !== "number"
   ) {
-    throw new OpenAIWebSearchError(
-      "OpenAI web search citation indexes are invalid.",
-    );
+    throw createCitationIntegrityError("bounds");
   }
 
   return {
-    endIndex: value.end_index as number,
-    startIndex: value.start_index as number,
+    endIndex: value.end_index,
+    startIndex: value.start_index,
     title: value.title,
     url: value.url,
   };
 }
 
-function validateNonOverlappingCitations(
+function validateParsedCitationIntegrity(
+  answer: string,
   citations: readonly ParsedCitation[],
 ): void {
-  for (let index = 1; index < citations.length; index += 1) {
-    if (citations[index]!.startIndex < citations[index - 1]!.endIndex) {
-      throw new OpenAIWebSearchError(
-        "OpenAI web search citation ranges must not overlap.",
-      );
-    }
-  }
+  validateInternetSearchCitationIntegrity({
+    citations: citations.map(({ endIndex, startIndex, url }) => ({
+      endIndex,
+      sourceId: url,
+      startIndex,
+    })),
+    createError: createCitationIntegrityError,
+    sourceIds: [...new Set(citations.map(({ url }) => url))],
+    textLength: answer.length,
+  });
 }
 
 function projectSelectedCitations(
@@ -192,7 +188,29 @@ function projectSelectedCitations(
   }
 
   if (retainedEveryCitation) projectedAnswer += answer.slice(cursor);
-  return { answer: projectedAnswer, citations, sources };
+  const response = { answer: projectedAnswer, citations, sources };
+  validateInternetSearchCitationIntegrity({
+    citations,
+    createError: createCitationIntegrityError,
+    sourceIds: sources.map(({ id }) => id),
+    textLength: projectedAnswer.length,
+  });
+  return response;
+}
+
+function createCitationIntegrityError(
+  failure: InternetSearchCitationIntegrityFailure,
+): OpenAIWebSearchError {
+  const messages: Record<InternetSearchCitationIntegrityFailure, string> = {
+    bounds: "OpenAI web search citation indexes are invalid.",
+    duplicate_source: "OpenAI web search citation source IDs must be unique.",
+    ordering: "OpenAI web search citation ranges must be ordered.",
+    overlap: "OpenAI web search citation ranges must not overlap.",
+    source_coverage: "OpenAI web search sources must all be cited.",
+    source_resolution:
+      "OpenAI web search citations must resolve to returned sources.",
+  };
+  return new OpenAIWebSearchError(messages[failure]);
 }
 
 function isSafeWebUrl(value: string): boolean {

@@ -298,6 +298,36 @@ describe("createOpenAIWebSearch", () => {
     ).rejects.toThrow("OpenAI web search citation ranges must not overlap.");
   });
 
+  it("rejects out-of-order citation annotations before projection", async () => {
+    const search = createOpenAIWebSearch({
+      config,
+      env: createProviderCredentialEnv("OPENAI_API_KEY"),
+      fetch: createFetchStub(
+        jsonResponse({
+          output: [
+            {
+              content: [
+                {
+                  annotations: [
+                    citation(4, 7, "Second", "https://two.example/fact"),
+                    citation(0, 3, "First", "https://one.example/fact"),
+                  ],
+                  text: "[1] [2]",
+                  type: "output_text",
+                },
+              ],
+              type: "message",
+            },
+          ],
+        }),
+      ),
+    });
+
+    await expect(
+      search.search({ maxResults: 2, query: "facts" }, {}),
+    ).rejects.toThrow("OpenAI web search citation ranges must be ordered.");
+  });
+
   it("rejects malformed, citation-free, or unsafe provider output", async () => {
     const cases = [
       {
