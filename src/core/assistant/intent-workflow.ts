@@ -25,6 +25,7 @@ import {
   createPlanConfirmationPrompt,
   planRequiresConfirmation,
 } from "./plan-confirmation.js";
+import { createSemanticallyValidatedIntentSession } from "./intent-semantic-validation.js";
 import { validateAssistantPlan } from "./plan-validation.js";
 import type { ResultReferenceSession } from "./result-reference-session.js";
 import {
@@ -69,10 +70,14 @@ export function createIntentWorkflow(input: {
     }
 
     try {
-      session = input.dependencies.intentInterpreter.start(
-        normalizedText,
-        context,
-      );
+      session = createSemanticallyValidatedIntentSession({
+        capabilityCatalog: input.dependencies.capabilityRouting.catalog,
+        originalText: normalizedText,
+        session: input.dependencies.intentInterpreter.start(
+          normalizedText,
+          context,
+        ),
+      });
       return handleInterpretation(await session.next());
     } catch (error) {
       return decorate(unexpectedOutcome(error));

@@ -14,7 +14,6 @@ import {
 import type { OpenAIIntentCapability } from "./openai-intent-request.js";
 import { requestOpenAIResponse } from "./openai-responses-client.js";
 import { parseOpenAIIntentSessionResponse } from "./openai-intent-session-response.js";
-import { guardOpenAIIntentSemantics } from "./openai-intent-semantic-guard.js";
 
 export { OpenAIIntentError } from "./openai-intent-error.js";
 export type { OpenAIIntentCapability } from "./openai-intent-request.js";
@@ -86,11 +85,7 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
           toolNames,
           text,
         );
-        const interpretation = guardOpenAIIntentSemantics(
-          parsed.interpretation,
-          text,
-          capabilityCatalog,
-        );
+        const interpretation = parsed.interpretation;
         started = true;
         previousResponseId = parsed.responseId;
         expectedContinuation =
