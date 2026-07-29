@@ -89,7 +89,8 @@ The core coordinates assistant behavior:
 - Receives normalized user input.
 - Tracks conversation/session context.
 - Calls the configured intent interpreter.
-- Applies an adapter-boundary semantic guard to provider intent output:
+- Applies one core-owned, provider-neutral semantic guard to every command
+  proposed through an intent session:
   required string values cannot merely echo the whole request, narrow action
   questions cannot become broad capability-list commands, and clarification
   status is canonicalized before core stores the pending interaction.
