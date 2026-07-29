@@ -5,11 +5,11 @@ import {
 import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
 import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
+import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import { isRecord } from "../config/config-parse-utils.js";
 import { resolveLocalStatePath } from "../local-state-path.js";
 import {
   defineFeatureAdapterEntry,
-  type FeatureAdapterDependencies,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import { runAlarmScheduler } from "../alarm/alarm-scheduler.js";
@@ -17,43 +17,62 @@ import { runAlarmRetention } from "../alarm/alarm-retention.js";
 import type { RuntimeBackgroundTaskContext } from "../background-task.js";
 
 export function createAlarmFeatureRegistryEntry(
-  dependencies: FileAlarmStoreDependencies = {},
+  dependencies: FileAlarmStoreDependencies & {
+    configDirectory?: string;
+    notificationDelivery?: NotificationDeliveryPort;
+  } = {},
 ): FeatureRegistryEntry {
   return {
     adapters: {
-      file: defineFeatureAdapterEntry({
-        create: ({ adapterConfig, dependencies: runtimeDependencies }) => {
-          const alarmStore = createFileAlarmStore({
-            ...dependencies,
-            filePath: resolveLocalStatePath(
-              adapterConfig.filePath,
-              runtimeDependencies.configDirectory,
-            ),
-            now: () => runtimeDependencies.clock.now(),
-          });
-
-          return createAlarmComposition(alarmStore, runtimeDependencies);
-        },
-        parseConfig: parseFileAlarmStoreConfig,
-        selectDependencies: selectAlarmDependencies,
-      }),
-      local: defineFeatureAdapterEntry({
-        create: ({ dependencies: runtimeDependencies }) => {
-          const alarmStore = createInMemoryAlarmStore({
-            now: () => runtimeDependencies.clock.now(),
-          });
-          return createAlarmComposition(alarmStore, runtimeDependencies);
-        },
-        parseConfig: () => {},
-        selectDependencies: selectAlarmDependencies,
-      }),
+      file: createFileAlarmAdapterEntry(dependencies),
+      local: createLocalAlarmAdapterEntry(dependencies.notificationDelivery),
     },
   };
 }
 
+function createFileAlarmAdapterEntry(
+  dependencies: FileAlarmStoreDependencies & {
+    configDirectory?: string;
+    notificationDelivery?: NotificationDeliveryPort;
+  },
+) {
+  const { configDirectory, notificationDelivery, ...storeDependencies } =
+    dependencies;
+  return defineFeatureAdapterEntry({
+    create: ({ adapterConfig, runtime }) => {
+      const alarmStore = createFileAlarmStore({
+        ...storeDependencies,
+        filePath: resolveLocalStatePath(
+          adapterConfig.filePath,
+          configDirectory,
+        ),
+        now: () => runtime.clock.now(),
+      });
+
+      return createAlarmComposition(alarmStore, notificationDelivery);
+    },
+    parseConfig: parseFileAlarmStoreConfig,
+  });
+}
+
+function createLocalAlarmAdapterEntry(
+  notificationDelivery: NotificationDeliveryPort | undefined,
+) {
+  return defineFeatureAdapterEntry({
+    create: ({ runtime }) =>
+      createAlarmComposition(
+        createInMemoryAlarmStore({
+          now: () => runtime.clock.now(),
+        }),
+        notificationDelivery,
+      ),
+    parseConfig: () => {},
+  });
+}
+
 function createAlarmComposition(
   alarmStore: AlarmStore,
-  dependencies: ReturnType<typeof selectAlarmDependencies>,
+  notificationDelivery: NotificationDeliveryPort | undefined,
 ) {
   const feature = createAlarmFeature(alarmStore);
   const retentionTask = {
@@ -69,11 +88,10 @@ function createAlarmComposition(
         ...(context.timer ? { timer: context.timer } : {}),
       }),
   };
-  if (!dependencies.notificationDelivery) {
+  if (!notificationDelivery) {
     return { backgroundTasks: [retentionTask], feature };
   }
 
-  const notificationDelivery = dependencies.notificationDelivery;
   return {
     backgroundTasks: [
       {
@@ -102,18 +120,6 @@ function createAlarmComposition(
       retentionTask,
     ],
     feature,
-  };
-}
-
-function selectAlarmDependencies(dependencies: FeatureAdapterDependencies) {
-  return {
-    clock: dependencies.clock,
-    ...(dependencies.configDirectory
-      ? { configDirectory: dependencies.configDirectory }
-      : {}),
-    ...(dependencies.notificationDelivery
-      ? { notificationDelivery: dependencies.notificationDelivery }
-      : {}),
   };
 }
 

@@ -15,9 +15,11 @@ import { createDefaultResponseRewriterProviderRegistry } from "../runtimes/respo
 import { resolveConfiguredRuntimeProvider } from "../runtimes/runtime-provider-registry.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { createDefaultFeatureAdapterRegistry } from "../runtimes/default-feature-adapter-registry.js";
 
 type ConfiguredTextRuntimeHarnessOptions = Partial<{
   config: LoadedRuntimeConfig;
+  configDirectory: string;
   configPath: string;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
@@ -36,6 +38,9 @@ export async function createConfiguredTextRuntimeHarness(
 
   return createConfiguredTextRuntime({
     ...(config ? { config } : {}),
+    ...(options.configDirectory
+      ? { configDirectory: options.configDirectory }
+      : {}),
     ...(options.configPath ? { configPath: options.configPath } : {}),
     ...(options.env ? { env: options.env } : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
@@ -184,30 +189,45 @@ export function withConversationProvider(
   };
 }
 
-export function createRuntimeConfigWithGoogleCalendarAdapter(): LoadedRuntimeConfig {
-  return parseAssistantConfig({
-    ...enabledDeterministicConfig,
-    features: {
-      calendar: {
-        enabled: true,
-        adapter: "google",
-        upcomingWindowDays: 92,
-        google: {
-          accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
-          baseUrl: "https://calendar.example.test/v3",
-          calendarId: "primary",
-          clientIdEnv: "GOOGLE_CALENDAR_CLIENT_ID",
-          clientSecretEnv: "GOOGLE_CALENDAR_CLIENT_SECRET",
-          maxResults: 10,
-          refreshTokenEnv: "GOOGLE_CALENDAR_REFRESH_TOKEN",
-          tokenUrl: "https://oauth2.googleapis.com/token",
-          timeoutMs: 30_000,
+export function createRuntimeConfigWithGoogleCalendarAdapter(
+  dependencies: {
+    env?: Record<string, string | undefined>;
+    fetch?: typeof fetch;
+  } = {},
+): LoadedRuntimeConfig {
+  return parseAssistantConfig(
+    {
+      ...enabledDeterministicConfig,
+      features: {
+        calendar: {
+          enabled: true,
+          adapter: "google",
+          upcomingWindowDays: 92,
+          google: {
+            accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
+            baseUrl: "https://calendar.example.test/v3",
+            calendarId: "primary",
+            clientIdEnv: "GOOGLE_CALENDAR_CLIENT_ID",
+            clientSecretEnv: "GOOGLE_CALENDAR_CLIENT_SECRET",
+            maxResults: 10,
+            refreshTokenEnv: "GOOGLE_CALENDAR_REFRESH_TOKEN",
+            tokenUrl: "https://oauth2.googleapis.com/token",
+            timeoutMs: 30_000,
+          },
         },
+        messaging: { adapter: "mock", enabled: true },
+        alarms: { adapter: "local", enabled: true },
       },
-      messaging: { adapter: "mock", enabled: true },
-      alarms: { adapter: "local", enabled: true },
     },
-  });
+    {
+      featureAdapterRegistry: createDefaultFeatureAdapterRegistry({
+        calendar: {
+          env: dependencies.env ?? {},
+          fetch: dependencies.fetch ?? globalThis.fetch,
+        },
+      }),
+    },
+  );
 }
 
 export function createRuntimeConfigWithUnknownFeatureAdapter(): Record<

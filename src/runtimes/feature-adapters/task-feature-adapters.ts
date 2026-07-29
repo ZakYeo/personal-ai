@@ -5,11 +5,11 @@ import {
 import { createInMemoryTaskStore } from "../../adapters/local/in-memory-task-store.js";
 import { createTaskFeature } from "../../features/tasks/task-feature.js";
 import type { TaskStore } from "../../ports/task-store.js";
+import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import type { RuntimeBackgroundTaskContext } from "../background-task.js";
 import { isRecord } from "../config/config-parse-utils.js";
 import {
   defineFeatureAdapterEntry,
-  type FeatureAdapterDependencies,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import { resolveLocalStatePath } from "../local-state-path.js";
@@ -17,44 +17,62 @@ import { runTaskReminderRetention } from "../tasks/task-reminder-retention.js";
 import { runTaskReminderScheduler } from "../tasks/task-reminder-scheduler.js";
 
 export function createTaskFeatureRegistryEntry(
-  dependencies: FileTaskStoreDependencies = {},
+  dependencies: FileTaskStoreDependencies & {
+    configDirectory?: string;
+    notificationDelivery?: NotificationDeliveryPort;
+  } = {},
 ): FeatureRegistryEntry {
   return {
     adapters: {
-      file: defineFeatureAdapterEntry({
-        create: ({ adapterConfig, dependencies: runtimeDependencies }) =>
-          createTaskComposition(
-            createFileTaskStore({
-              ...dependencies,
-              filePath: resolveLocalStatePath(
-                adapterConfig.filePath,
-                runtimeDependencies.configDirectory,
-              ),
-              now: () => runtimeDependencies.clock.now(),
-            }),
-            runtimeDependencies,
-          ),
-        parseConfig: parseFileTaskStoreConfig,
-        selectDependencies: selectTaskDependencies,
-      }),
-      local: defineFeatureAdapterEntry({
-        create: ({ dependencies: runtimeDependencies }) =>
-          createTaskComposition(
-            createInMemoryTaskStore({
-              now: () => runtimeDependencies.clock.now(),
-            }),
-            runtimeDependencies,
-          ),
-        parseConfig: () => {},
-        selectDependencies: selectTaskDependencies,
-      }),
+      file: createFileTaskAdapterEntry(dependencies),
+      local: createLocalTaskAdapterEntry(dependencies.notificationDelivery),
     },
   };
 }
 
+function createFileTaskAdapterEntry(
+  dependencies: FileTaskStoreDependencies & {
+    configDirectory?: string;
+    notificationDelivery?: NotificationDeliveryPort;
+  },
+) {
+  const { configDirectory, notificationDelivery, ...storeDependencies } =
+    dependencies;
+  return defineFeatureAdapterEntry({
+    create: ({ adapterConfig, runtime }) =>
+      createTaskComposition(
+        createFileTaskStore({
+          ...storeDependencies,
+          filePath: resolveLocalStatePath(
+            adapterConfig.filePath,
+            configDirectory,
+          ),
+          now: () => runtime.clock.now(),
+        }),
+        notificationDelivery,
+      ),
+    parseConfig: parseFileTaskStoreConfig,
+  });
+}
+
+function createLocalTaskAdapterEntry(
+  notificationDelivery: NotificationDeliveryPort | undefined,
+) {
+  return defineFeatureAdapterEntry({
+    create: ({ runtime }) =>
+      createTaskComposition(
+        createInMemoryTaskStore({
+          now: () => runtime.clock.now(),
+        }),
+        notificationDelivery,
+      ),
+    parseConfig: () => {},
+  });
+}
+
 function createTaskComposition(
   store: TaskStore,
-  dependencies: ReturnType<typeof selectTaskDependencies>,
+  delivery: NotificationDeliveryPort | undefined,
 ) {
   const feature = createTaskFeature(store);
   const retentionTask = {
@@ -70,10 +88,9 @@ function createTaskComposition(
         ...(context.timer ? { timer: context.timer } : {}),
       }),
   };
-  if (!dependencies.notificationDelivery) {
+  if (!delivery) {
     return { backgroundTasks: [retentionTask], feature };
   }
-  const delivery = dependencies.notificationDelivery;
   return {
     backgroundTasks: [
       {
@@ -95,18 +112,6 @@ function createTaskComposition(
       retentionTask,
     ],
     feature,
-  };
-}
-
-function selectTaskDependencies(dependencies: FeatureAdapterDependencies) {
-  return {
-    clock: dependencies.clock,
-    ...(dependencies.configDirectory
-      ? { configDirectory: dependencies.configDirectory }
-      : {}),
-    ...(dependencies.notificationDelivery
-      ? { notificationDelivery: dependencies.notificationDelivery }
-      : {}),
   };
 }
 

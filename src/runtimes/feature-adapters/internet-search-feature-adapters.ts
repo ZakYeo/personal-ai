@@ -4,7 +4,6 @@ import { createOpenAIWebSearch } from "../../adapters/openai/openai-web-search.j
 import { createInternetSearchFeature } from "../../features/internet-search/internet-search-feature.js";
 import {
   defineFeatureAdapterEntry,
-  type FeatureAdapterDependencies,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import {
@@ -12,7 +11,14 @@ import {
   parseInternetSearchOpenAIAdapterConfig,
 } from "./internet-search-feature-adapter-config.js";
 
-export function createInternetSearchFeatureRegistryEntry(): FeatureRegistryEntry {
+interface InternetSearchFeatureRegistryDependencies {
+  env: Record<string, string | undefined>;
+  fetch: typeof fetch;
+}
+
+export function createInternetSearchFeatureRegistryEntry(
+  dependencies: InternetSearchFeatureRegistryDependencies,
+): FeatureRegistryEntry {
   return {
     adapters: {
       mock: defineFeatureAdapterEntry({
@@ -21,10 +27,9 @@ export function createInternetSearchFeatureRegistryEntry(): FeatureRegistryEntry
             maxResults: adapterConfig.maxResults,
           }),
         parseConfig: parseInternetSearchFeatureConfig,
-        selectDependencies: () => ({}),
       }),
       openai: defineFeatureAdapterEntry({
-        create: ({ adapterConfig, dependencies }) =>
+        create: ({ adapterConfig }) =>
           createInternetSearchFeature(
             createOpenAIWebSearch({
               config: adapterConfig.openai,
@@ -34,8 +39,7 @@ export function createInternetSearchFeatureRegistryEntry(): FeatureRegistryEntry
             { maxResults: adapterConfig.maxResults },
           ),
         parseConfig: parseInternetSearchOpenAIAdapterConfig,
-        selectDependencies: selectProviderDependencies,
-        validateStartup: ({ adapterConfig, dependencies }) => {
+        validateStartup: (adapterConfig) => {
           resolveOpenAIApiKey(
             adapterConfig.openai,
             dependencies.env,
@@ -51,8 +55,4 @@ export function createInternetSearchFeatureRegistryEntry(): FeatureRegistryEntry
       }),
     },
   };
-}
-
-function selectProviderDependencies(dependencies: FeatureAdapterDependencies) {
-  return { env: dependencies.env, fetch: dependencies.fetch };
 }

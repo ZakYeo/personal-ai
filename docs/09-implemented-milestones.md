@@ -880,9 +880,16 @@ Implemented structure:
 - Feature adapter registration uses an explicit nested feature-to-adapter
   registry, currently covering `calendar.mock`, `messaging.mock`, and
   `alarms.local`.
-- Feature adapter factories receive a narrow runtime-owned context containing
-  adapter dependencies and the selected feature config instead of broad loaded
-  runtime config.
+- Feature adapter entries capture their narrow provider, local-state,
+  notification, personal-context, and test dependencies when the registry is
+  built. Factories receive the selected typed adapter config plus only the
+  universal live clock, and startup preflight reuses the same immutable
+  feature-local captures.
+- Injected parsed configs perform one explicit registry rebind when callers
+  supply feature runtime overrides such as a config directory, provider
+  transport, environment, or notification output. Service notification
+  delivery keeps the config-first factory contract and is connected through a
+  one-time internal forwarding port before feature construction.
 - Feature selection keeps canonical errors for missing adapter IDs, unknown
   feature IDs, and unregistered adapter IDs.
 - Runtime composition test support includes one-change helpers for adapter IDs,

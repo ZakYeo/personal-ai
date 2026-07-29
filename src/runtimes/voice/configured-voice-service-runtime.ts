@@ -28,7 +28,6 @@ import {
 } from "./voice-activation.js";
 import type { VoiceRuntimeIo } from "./voice-turn.js";
 import { validateOpenWakeWordStartup } from "./openwakeword-startup-check.js";
-import type { FeatureAdapterDependencies } from "../feature-adapter-registry.js";
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import { createVoiceAlarmDelivery } from "./voice-alarm-delivery.js";
 import { createVoiceOutputCoordinator } from "./voice-output-coordinator.js";
@@ -97,7 +96,6 @@ export function runConfiguredVoiceServiceRuntime(
           voiceConfig,
           config,
         );
-
         return createVoiceAlarmDelivery(
           (deliverySignal) =>
             (
@@ -115,8 +113,7 @@ export function runConfiguredVoiceServiceRuntime(
       },
     },
     {
-      validateConfig: (config, dependencies) =>
-        validateVoiceServiceConfig(config, dependencies),
+      validateConfig: (config) => validateVoiceServiceConfig(config, env),
       runTurn: async ({ assistant, config, shutdownSignal }) => {
         const voiceConfig = requireVoiceConfig(config);
         const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
@@ -169,7 +166,7 @@ export function runConfiguredVoiceServiceRuntime(
 
 async function validateVoiceServiceConfig(
   config: LoadedRuntimeConfig,
-  featureAdapterDependencies: FeatureAdapterDependencies,
+  env: Record<string, string | undefined>,
 ): Promise<void> {
   const voiceConfig = requireVoiceConfig(config);
   const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
@@ -177,10 +174,6 @@ async function validateVoiceServiceConfig(
     config,
   );
 
-  await validateOpenWakeWordStartup(
-    voiceConfig,
-    desktopVoiceConfig,
-    featureAdapterDependencies.env,
-  );
-  validateConfiguredFeatureAdapters(config, featureAdapterDependencies);
+  await validateOpenWakeWordStartup(voiceConfig, desktopVoiceConfig, env);
+  validateConfiguredFeatureAdapters(config);
 }

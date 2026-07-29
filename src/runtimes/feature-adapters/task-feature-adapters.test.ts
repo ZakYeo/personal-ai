@@ -35,22 +35,24 @@ describe("task feature adapters", () => {
     const config = createLoadedRuntimeConfig({
       tasks: { adapter: "local", enabled: true },
     });
-    const dependencies = {
-      clock: { now: () => taskNow },
-      env: {},
-      fetch: vi.fn() as typeof fetch,
-    };
+    const runtime = { clock: { now: () => taskNow } };
 
     expect(
-      createConfiguredFeatureSelection(config, { dependencies })
-        .backgroundTasks,
+      createConfiguredFeatureSelection(config, { runtime }).backgroundTasks,
     ).toEqual([expect.objectContaining({ id: "tasks.reminders.retention" })]);
+    const deliveryConfig = parseAssistantConfig(
+      rawTaskConfig({ adapter: "local", enabled: true }),
+      {
+        featureAdapterRegistry: createDefaultFeatureAdapterRegistry({
+          tasks: {
+            notificationDelivery: { deliver: () => Promise.resolve() },
+          },
+        }),
+      },
+    );
     expect(
-      createConfiguredFeatureSelection(config, {
-        dependencies: {
-          ...dependencies,
-          notificationDelivery: { deliver: () => Promise.resolve() },
-        },
+      createConfiguredFeatureSelection(deliveryConfig, {
+        runtime,
       }).backgroundTasks,
     ).toEqual([
       expect.objectContaining({ id: "tasks.reminders.delivery" }),
@@ -59,24 +61,26 @@ describe("task feature adapters", () => {
   });
 
   it("delivers through the exact store composed for the task feature", async () => {
-    const config = createLoadedRuntimeConfig({
-      tasks: { adapter: "local", enabled: true },
-    });
     const delivered: Array<{ id: string; text: string }> = [];
     const shutdown = new AbortController();
-    const selection = createConfiguredFeatureSelection(config, {
-      dependencies: {
-        clock: { now: () => taskNow },
-        env: {},
-        fetch: vi.fn() as typeof fetch,
-        notificationDelivery: {
-          deliver: (request) => {
-            delivered.push(request);
-            shutdown.abort();
-            return Promise.resolve();
+    const config = parseAssistantConfig(
+      rawTaskConfig({ adapter: "local", enabled: true }),
+      {
+        featureAdapterRegistry: createDefaultFeatureAdapterRegistry({
+          tasks: {
+            notificationDelivery: {
+              deliver: (request) => {
+                delivered.push(request);
+                shutdown.abort();
+                return Promise.resolve();
+              },
+            },
           },
-        },
+        }),
       },
+    );
+    const selection = createConfiguredFeatureSelection(config, {
+      runtime: { clock: { now: () => taskNow } },
     });
     const feature = selection.features.find(({ id }) => id === "tasks");
     const deliveryTask = selection.backgroundTasks.find(
@@ -157,10 +161,9 @@ describe("task feature adapters", () => {
       ),
     );
     const firstSource = await loadConfigWithSource({ configPath });
-    const firstFeature = createFeatures(
-      firstSource.config,
-      firstSource.configDirectory,
-    ).find((feature) => feature.id === "tasks");
+    const firstFeature = createFeatures(firstSource.config).find(
+      (feature) => feature.id === "tasks",
+    );
     if (!firstFeature) throw new Error("Expected the task feature.");
     const context = createFeatureContext();
     await executeFeature(
@@ -177,10 +180,9 @@ describe("task feature adapters", () => {
     );
 
     const restartedSource = await loadConfigWithSource({ configPath });
-    const restartedFeature = createFeatures(
-      restartedSource.config,
-      restartedSource.configDirectory,
-    ).find((feature) => feature.id === "tasks");
+    const restartedFeature = createFeatures(restartedSource.config).find(
+      (feature) => feature.id === "tasks",
+    );
     if (!restartedFeature) throw new Error("Expected the task feature.");
     const response = await executeFeature(
       restartedFeature,
@@ -249,17 +251,9 @@ describe("task feature adapters", () => {
   });
 });
 
-function createFeatures(
-  config: ReturnType<typeof parseAssistantConfig>,
-  configDirectory?: string,
-) {
+function createFeatures(config: ReturnType<typeof parseAssistantConfig>) {
   return createConfiguredFeatures(config, {
-    dependencies: {
-      clock: { now: () => taskNow },
-      ...(configDirectory ? { configDirectory } : {}),
-      env: {},
-      fetch: vi.fn() as typeof fetch,
-    },
+    runtime: { clock: { now: () => taskNow } },
   });
 }
 

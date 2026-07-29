@@ -1,5 +1,6 @@
 import { parseAssistantConfig } from "../config/config.js";
 import { createConfiguredTextRuntime } from "../configured-text-runtime.js";
+import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
 import { validateConfiguredFeatureAdapters } from "../feature-adapter-selection.js";
 import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
 import { deterministicTestNow } from "../../test-support/primitives.js";
@@ -123,22 +124,23 @@ describe("internet search feature adapters", () => {
   });
 
   it("validates the selected OpenAI credential without making a request", () => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
     const config = parseAssistantConfig(
       createRawSearchConfig({
         adapter: "openai",
         enabled: true,
         openai: { model: "search-model" },
       }),
+      {
+        featureAdapterRegistry: createDefaultFeatureAdapterRegistry({
+          internetSearch: { env: {}, fetch },
+        }),
+      },
     );
-    const fetch = vi.fn();
 
-    expect(() =>
-      validateConfiguredFeatureAdapters(config, {
-        clock: { now: () => deterministicTestNow },
-        env: {},
-        fetch,
-      }),
-    ).toThrow("OpenAI web search is selected but OPENAI_API_KEY is not set.");
+    expect(() => validateConfiguredFeatureAdapters(config)).toThrow(
+      "OpenAI web search is selected but OPENAI_API_KEY is not set.",
+    );
     expect(fetch).not.toHaveBeenCalled();
   });
 });

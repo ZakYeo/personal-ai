@@ -7,12 +7,12 @@ import { createMockWeatherProvider } from "../../adapters/mock/mock-weather.js";
 import { createOpenMeteoWeatherProvider } from "../../adapters/open-meteo/open-meteo-weather.js";
 import { createWeatherFeature } from "../../features/weather/weather-feature.js";
 import type { PersonalContextReaderPort } from "../../ports/personal-context.js";
+import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import type { WeatherWatchStore } from "../../ports/weather-watch-store.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";
 import type { RuntimeBackgroundTaskContext } from "../background-task.js";
 import {
   defineFeatureAdapterEntry,
-  type FeatureAdapterDependencies,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import { resolveLocalStatePath } from "../local-state-path.js";
@@ -24,54 +24,57 @@ import {
 } from "./weather-feature-adapter-config.js";
 
 interface WeatherFeatureRegistryDependencies {
+  configDirectory?: string;
+  fetch: typeof fetch;
+  notificationDelivery?: NotificationDeliveryPort;
   personalContextReader?: PersonalContextReaderPort;
   watchStore?: FileWeatherWatchStoreDependencies;
 }
 
 export function createWeatherFeatureRegistryEntry(
-  registryDependencies: WeatherFeatureRegistryDependencies = {},
+  registryDependencies: WeatherFeatureRegistryDependencies,
 ): FeatureRegistryEntry {
   return {
     adapters: {
       mock: defineFeatureAdapterEntry({
-        create: ({ adapterConfig, dependencies }) => {
+        create: ({ adapterConfig, runtime }) => {
           const { watchStore, ...featureConfig } = adapterConfig;
           return createWeatherComposition(
             createMockWeatherProvider(),
             createWeatherWatchStore(
               watchStore,
-              dependencies,
+              runtime,
+              registryDependencies.configDirectory,
               registryDependencies.watchStore ?? {},
             ),
             featureConfig.maxForecastAgeMinutes,
-            dependencies,
+            registryDependencies.notificationDelivery,
             registryDependencies.personalContextReader,
           );
         },
         parseConfig: parseWeatherFeatureConfig,
-        selectDependencies: selectWeatherDependencies,
       }),
       openMeteo: defineFeatureAdapterEntry({
-        create: ({ adapterConfig, dependencies }) => {
+        create: ({ adapterConfig, runtime }) => {
           const { openMeteo, watchStore, ...featureConfig } = adapterConfig;
           return createWeatherComposition(
             createOpenMeteoWeatherProvider({
               config: openMeteo,
-              fetch: dependencies.fetch,
-              now: () => dependencies.clock.now(),
+              fetch: registryDependencies.fetch,
+              now: () => runtime.clock.now(),
             }),
             createWeatherWatchStore(
               watchStore,
-              dependencies,
+              runtime,
+              registryDependencies.configDirectory,
               registryDependencies.watchStore ?? {},
             ),
             featureConfig.maxForecastAgeMinutes,
-            dependencies,
+            registryDependencies.notificationDelivery,
             registryDependencies.personalContextReader,
           );
         },
         parseConfig: parseWeatherOpenMeteoAdapterConfig,
-        selectDependencies: selectOpenMeteoWeatherDependencies,
       }),
     },
   };
@@ -81,7 +84,7 @@ function createWeatherComposition(
   provider: WeatherProviderPort,
   watchStore: WeatherWatchStore,
   maxForecastAgeMinutes: number,
-  dependencies: ReturnType<typeof selectWeatherDependencies>,
+  notificationDelivery: NotificationDeliveryPort | undefined,
   personalContext?: PersonalContextReaderPort,
 ) {
   const feature = createWeatherFeature(provider, {
@@ -89,8 +92,8 @@ function createWeatherComposition(
     ...(personalContext ? { personalContext } : {}),
     watchStore,
   });
-  if (!dependencies.notificationDelivery) return feature;
-  const delivery = dependencies.notificationDelivery;
+  if (!notificationDelivery) return feature;
+  const delivery = notificationDelivery;
   return {
     backgroundTasks: [
       {
@@ -118,39 +121,16 @@ function createWeatherComposition(
 
 function createWeatherWatchStore(
   config: WeatherWatchStoreConfig,
-  dependencies: ReturnType<typeof selectWeatherDependencies>,
+  runtime: { clock: { now(): Date } },
+  configDirectory: string | undefined,
   storeDependencies: FileWeatherWatchStoreDependencies,
 ): WeatherWatchStore {
-  const now = () => dependencies.clock.now();
+  const now = () => runtime.clock.now();
   return config.adapter === "file"
     ? createFileWeatherWatchStore({
         ...storeDependencies,
-        filePath: resolveLocalStatePath(
-          config.filePath,
-          dependencies.configDirectory,
-        ),
+        filePath: resolveLocalStatePath(config.filePath, configDirectory),
         now,
       })
     : createInMemoryWeatherWatchStore({ now });
-}
-
-function selectWeatherDependencies(dependencies: FeatureAdapterDependencies) {
-  return {
-    clock: dependencies.clock,
-    ...(dependencies.configDirectory
-      ? { configDirectory: dependencies.configDirectory }
-      : {}),
-    ...(dependencies.notificationDelivery
-      ? { notificationDelivery: dependencies.notificationDelivery }
-      : {}),
-  };
-}
-
-function selectOpenMeteoWeatherDependencies(
-  dependencies: FeatureAdapterDependencies,
-) {
-  return {
-    ...selectWeatherDependencies(dependencies),
-    fetch: dependencies.fetch,
-  };
 }

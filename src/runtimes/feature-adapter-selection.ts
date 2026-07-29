@@ -5,12 +5,12 @@ import {
 } from "../ports/capability-catalog.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
-import type { FeatureAdapterDependencies } from "./feature-adapter-registry.js";
+import type { FeatureAdapterRuntimeContext } from "./feature-adapter-registry.js";
 import type { RuntimeBackgroundTask } from "./background-task.js";
 
 export {
   defineFeatureAdapterEntry,
-  type FeatureAdapterDependencies,
+  type FeatureAdapterRuntimeContext,
   type FeatureAdapterRegistry,
 } from "./feature-adapter-registry.js";
 
@@ -21,7 +21,7 @@ interface ConfiguredFeatureSelection {
 }
 
 interface CreateConfiguredFeaturesOptions {
-  dependencies: FeatureAdapterDependencies;
+  runtime: FeatureAdapterRuntimeContext;
 }
 
 export function createConfiguredFeatures(
@@ -53,11 +53,10 @@ export function createConfiguredFeatureSelection(
 
 export function validateConfiguredFeatureAdapters(
   config: LoadedRuntimeConfig,
-  dependencies: FeatureAdapterDependencies,
 ): void {
   for (const featureConfig of Object.values(config.features)) {
     if (featureConfig.enabled) {
-      featureConfig.resolvedAdapter.validateStartup?.(dependencies);
+      featureConfig.resolvedAdapter.validateStartup?.();
     }
   }
 }
@@ -76,7 +75,7 @@ function createAdapterBackedFeatures(
             selectConfiguredFeatureAdapter(
               featureId,
               featureConfig,
-              options.dependencies,
+              options.runtime,
             ),
           ]
         : [],
@@ -89,9 +88,9 @@ function selectConfiguredFeatureAdapter(
     LoadedRuntimeConfig["features"][string],
     { enabled: true }
   >,
-  dependencies: FeatureAdapterDependencies,
+  runtime: FeatureAdapterRuntimeContext,
 ): { backgroundTasks?: RuntimeBackgroundTask[]; feature: FeaturePlugin } {
-  const created = featureConfig.resolvedAdapter.create(dependencies);
+  const created = featureConfig.resolvedAdapter.create(runtime);
   const composition = isFeatureAdapterComposition(created)
     ? created
     : { feature: created };

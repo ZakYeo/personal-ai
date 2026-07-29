@@ -29,6 +29,9 @@ const defaultConfigPath = fileURLToPath(
 interface LoadConfigOptions {
   configPath?: string;
   featureAdapterRegistry?: FeatureAdapterRegistry;
+  createFeatureAdapterRegistry?: (
+    configDirectory: string,
+  ) => FeatureAdapterRegistry;
   desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
   intentProviderRegistry?: IntentProviderRegistry;
   conversationProviderRegistry?: ConversationProviderRegistry;
@@ -59,10 +62,27 @@ export async function loadConfigWithSource(
 ): Promise<LoadedConfigSource> {
   const configPath = resolve(options.configPath ?? defaultConfigPath);
   const rawConfig = await readFile(configPath, "utf8");
+  const configDirectory = dirname(configPath);
 
   return {
-    config: parseAssistantConfig(JSON.parse(rawConfig), options),
-    configDirectory: dirname(configPath),
+    config: parseAssistantConfig(JSON.parse(rawConfig), {
+      ...options,
+      ...(options.featureAdapterRegistry
+        ? { featureAdapterRegistry: options.featureAdapterRegistry }
+        : options.createFeatureAdapterRegistry
+          ? {
+              featureAdapterRegistry:
+                options.createFeatureAdapterRegistry(configDirectory),
+            }
+          : {
+              featureAdapterRegistry: createDefaultFeatureAdapterRegistry({
+                alarms: { configDirectory },
+                tasks: { configDirectory },
+                weather: { configDirectory },
+              }),
+            }),
+    }),
+    configDirectory,
   };
 }
 

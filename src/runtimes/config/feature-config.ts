@@ -60,6 +60,29 @@ export function parseFeaturesConfig(
   return features;
 }
 
+export function rebindFeatureAdapters(
+  features: ParsedFeaturesConfig,
+  registry: FeatureAdapterRegistry,
+): ParsedFeaturesConfig {
+  const rebound: ParsedFeaturesConfig = {};
+  for (const [featureId, feature] of Object.entries(features)) {
+    if (!feature.enabled) {
+      rebound[featureId] = feature;
+      continue;
+    }
+    const entry = selectFeatureAdapterEntry(
+      featureId,
+      feature.adapter,
+      registry,
+    );
+    rebound[featureId] = {
+      ...feature,
+      resolvedAdapter: feature.resolvedAdapter.rebind(entry),
+    };
+  }
+  return rebound;
+}
+
 function createEnabledFeatureConfig(
   featureId: string,
   featureConfig: Record<string, unknown>,
@@ -138,19 +161,27 @@ function parseSelectedFeatureAdapter(
   adapterId: string,
   registry: FeatureAdapterRegistry,
 ): ResolvedFeatureAdapter {
+  return selectFeatureAdapterEntry(featureId, adapterId, registry).parse(
+    featureConfig,
+  );
+}
+
+function selectFeatureAdapterEntry(
+  featureId: string,
+  adapterId: string,
+  registry: FeatureAdapterRegistry,
+) {
   const featureRegistry = registry[featureId];
 
   if (!featureRegistry) {
     throw new Error(`Config feature "${featureId}" is not registered.`);
   }
 
-  const adapter = selectConfiguredRuntimeEntry({
+  return selectConfiguredRuntimeEntry({
     configuredId: adapterId,
     missingMessage: `Config feature "${featureId}".adapter must be set for enabled features.`,
     registry: featureRegistry.adapters,
     unknownMessage: (configuredAdapterId) =>
       `Config feature "${featureId}" adapter "${configuredAdapterId}" is not registered.`,
   });
-
-  return adapter.parse(featureConfig);
 }

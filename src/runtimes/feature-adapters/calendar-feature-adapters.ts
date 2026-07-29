@@ -4,7 +4,6 @@ import { createMockCalendar } from "../../adapters/mock/mock-calendar.js";
 import { createCalendarFeature } from "../../features/calendar/calendar-feature.js";
 import {
   defineFeatureAdapterEntry,
-  type FeatureAdapterDependencies,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import {
@@ -13,7 +12,14 @@ import {
   type CalendarGoogleAdapterConfig,
 } from "./calendar-feature-adapter-config.js";
 
-export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
+interface CalendarFeatureRegistryDependencies {
+  env: Record<string, string | undefined>;
+  fetch: typeof fetch;
+}
+
+export function createCalendarFeatureRegistryEntry(
+  dependencies: CalendarFeatureRegistryDependencies,
+): FeatureRegistryEntry {
   return {
     adapters: {
       google: defineFeatureAdapterEntry({
@@ -21,8 +27,8 @@ export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
           return createCalendarFeature(
             createGoogleCalendarAdapter({
               config: context.adapterConfig.google,
-              env: context.dependencies.env,
-              fetch: context.dependencies.fetch,
+              env: dependencies.env,
+              fetch: dependencies.fetch,
             }),
             {
               upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
@@ -30,8 +36,7 @@ export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
           );
         },
         parseConfig: parseCalendarGoogleAdapterConfig,
-        selectDependencies: selectProviderDependencies,
-        validateStartup: ({ adapterConfig, dependencies }) =>
+        validateStartup: (adapterConfig) =>
           validateGoogleCalendarStartup(adapterConfig, dependencies.env),
       }),
       mock: defineFeatureAdapterEntry({
@@ -40,14 +45,9 @@ export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
             upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
           }),
         parseConfig: parseCalendarFeatureConfig,
-        selectDependencies: () => ({}),
       }),
     },
   };
-}
-
-function selectProviderDependencies(dependencies: FeatureAdapterDependencies) {
-  return { env: dependencies.env, fetch: dependencies.fetch };
 }
 
 function validateGoogleCalendarStartup(

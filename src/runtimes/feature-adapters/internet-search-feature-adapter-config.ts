@@ -2,11 +2,11 @@ import type { OpenAIResponsesConfig } from "../../adapters/openai/openai-respons
 import { parseOpenAIResponsesConfig } from "../config/openai-responses-config.js";
 import { parseOptionalPositiveInteger } from "../config/config-parse-utils.js";
 
-export interface InternetSearchFeatureConfig {
+interface InternetSearchFeatureConfig {
   maxResults: number;
 }
 
-export interface InternetSearchOpenAIAdapterConfig extends InternetSearchFeatureConfig {
+interface InternetSearchOpenAIAdapterConfig extends InternetSearchFeatureConfig {
   openai: OpenAIResponsesConfig;
 }
 

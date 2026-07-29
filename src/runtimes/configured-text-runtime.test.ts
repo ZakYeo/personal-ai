@@ -16,6 +16,7 @@ import {
   writeRuntimeHarnessConfig,
 } from "../test-support/runtime-composition.js";
 import type { Assistant } from "../core/assistant/assistant.js";
+import { createLoadedRuntimeConfig } from "../test-support/core-assistant.js";
 
 describe("createConfiguredTextRuntime", () => {
   it("smoke-executes a calendar and alarm plan after one exact confirmation", async () => {
@@ -369,6 +370,10 @@ describe("createConfiguredTextRuntime", () => {
           { status: 200 },
         ),
       );
+    const env = {
+      GOOGLE_CALENDAR_ACCESS_TOKEN: "test-google-token",
+      OPENAI_API_KEY: "test-openai-key",
+    };
     const googleConfig = createRuntimeConfigWithGoogleCalendarAdapter();
     const assistant = await createConfiguredTextRuntimeHarness({
       config: {
@@ -376,10 +381,7 @@ describe("createConfiguredTextRuntime", () => {
         responseRewriter:
           createRuntimeConfigWithOpenAIResponseRewriter().responseRewriter,
       },
-      env: {
-        GOOGLE_CALENDAR_ACCESS_TOKEN: "test-google-token",
-        OPENAI_API_KEY: "test-openai-key",
-      },
+      env,
       fetch,
       now: () => new Date("2026-07-13T09:00:00.000Z"),
     });
@@ -414,9 +416,10 @@ describe("createConfiguredTextRuntime", () => {
         { status: 200 },
       ),
     );
+    const env = { GOOGLE_CALENDAR_ACCESS_TOKEN: "test-google-token" };
     const assistant = await createConfiguredTextRuntimeHarness({
       config: createRuntimeConfigWithGoogleCalendarAdapter(),
-      env: { GOOGLE_CALENDAR_ACCESS_TOKEN: "test-google-token" },
+      env,
       fetch,
     });
 
@@ -448,9 +451,10 @@ describe("createConfiguredTextRuntime", () => {
         { status: 200 },
       ),
     );
+    const env = { GOOGLE_CALENDAR_ACCESS_TOKEN: "test-google-token" };
     const assistant = await createConfiguredTextRuntimeHarness({
       config: createRuntimeConfigWithGoogleCalendarAdapter(),
-      env: { GOOGLE_CALENDAR_ACCESS_TOKEN: "test-google-token" },
+      env,
       fetch,
       now: () => now,
     });
@@ -469,6 +473,23 @@ describe("createConfiguredTextRuntime", () => {
       expect.stringContaining("timeMin=2026-06-26T09%3A01%3A00.000Z"),
       expect.any(Object),
     );
+  });
+
+  it("binds an injected config directory before constructing file adapters", async () => {
+    const assistant = await createConfiguredTextRuntimeHarness({
+      config: createLoadedRuntimeConfig({
+        alarms: {
+          adapter: "file",
+          enabled: true,
+          state: { path: "state/alarms.json" },
+        },
+      }),
+      configDirectory: "/tmp/personal-ai-injected-config-test",
+    });
+
+    await expect(
+      assistant.handleText(deterministicScenarios.alarmListEmpty.text),
+    ).resolves.toEqual(deterministicScenarios.alarmListEmpty.response);
   });
 
   it("rejects enabled features without registered adapters", async () => {

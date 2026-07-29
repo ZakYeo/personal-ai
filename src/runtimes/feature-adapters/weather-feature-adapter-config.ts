@@ -9,12 +9,12 @@ export type WeatherWatchStoreConfig =
   | { adapter: "file"; filePath: string }
   | { adapter: "local" };
 
-export interface WeatherFeatureConfig {
+interface WeatherFeatureConfig {
   maxForecastAgeMinutes: number;
   watchStore: WeatherWatchStoreConfig;
 }
 
-export interface WeatherOpenMeteoAdapterConfig extends WeatherFeatureConfig {
+interface WeatherOpenMeteoAdapterConfig extends WeatherFeatureConfig {
   openMeteo: OpenMeteoWeatherConfig;
 }
 

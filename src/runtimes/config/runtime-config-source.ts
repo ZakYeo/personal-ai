@@ -1,6 +1,9 @@
 import { loadConfigWithSource } from "./config.js";
 import type { LoadedConfigSource, LoadedRuntimeConfig } from "./config.js";
 import type { FeatureAdapterRegistry } from "../feature-adapter-registry.js";
+import { createRuntimeFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
+import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
+import { rebindFeatureAdapters } from "./feature-config.js";
 import { isAbsolute } from "node:path";
 
 export type RuntimeConfigSource =
@@ -18,6 +21,9 @@ interface ConfiguredRuntimeConfigSourceOptions {
   configDirectory?: string;
   configPath?: string;
   featureAdapterRegistry?: FeatureAdapterRegistry;
+  env?: Record<string, string | undefined>;
+  fetch?: typeof fetch;
+  notificationDelivery?: NotificationDeliveryPort;
 }
 
 export function resolveConfiguredRuntimeConfigSource(
@@ -33,9 +39,61 @@ export function resolveConfiguredRuntimeConfigSource(
         ...(options.configPath ? { configPath: options.configPath } : {}),
         ...(options.featureAdapterRegistry
           ? { featureAdapterRegistry: options.featureAdapterRegistry }
-          : {}),
+          : {
+              createFeatureAdapterRegistry: (configDirectory: string) =>
+                createRuntimeFeatureAdapterRegistry({
+                  configDirectory,
+                  env: options.env ?? process.env,
+                  fetch: options.fetch ?? globalThis.fetch,
+                  ...(options.notificationDelivery
+                    ? {
+                        notificationDelivery: options.notificationDelivery,
+                      }
+                    : {}),
+                }),
+            }),
       }),
+  }).then((source) =>
+    options.config &&
+    !options.featureAdapterRegistry &&
+    hasFeatureBindingOverrides(options)
+      ? rebindRuntimeConfigSource(source, options)
+      : source,
+  );
+}
+
+function hasFeatureBindingOverrides(
+  options: ConfiguredRuntimeConfigSourceOptions,
+): boolean {
+  return (
+    options.configDirectory !== undefined ||
+    options.env !== undefined ||
+    options.fetch !== undefined ||
+    options.notificationDelivery !== undefined
+  );
+}
+
+function rebindRuntimeConfigSource(
+  source: RuntimeConfigSource,
+  options: ConfiguredRuntimeConfigSourceOptions,
+): RuntimeConfigSource {
+  const registry = createRuntimeFeatureAdapterRegistry({
+    ...(source.configDirectory
+      ? { configDirectory: source.configDirectory }
+      : {}),
+    env: options.env ?? process.env,
+    fetch: options.fetch ?? globalThis.fetch,
+    ...(options.notificationDelivery
+      ? { notificationDelivery: options.notificationDelivery }
+      : {}),
   });
+  return {
+    ...source,
+    config: {
+      ...source.config,
+      features: rebindFeatureAdapters(source.config.features, registry),
+    },
+  };
 }
 
 export async function resolveRuntimeConfigSource(

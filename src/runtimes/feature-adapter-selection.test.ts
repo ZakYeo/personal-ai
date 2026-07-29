@@ -9,28 +9,34 @@ import {
   createConfiguredFeatureSelection,
   createConfiguredFeatures,
   defineFeatureAdapterEntry,
-  type FeatureAdapterDependencies,
+  type FeatureAdapterRuntimeContext,
   type FeatureAdapterRegistry,
   validateConfiguredFeatureAdapters,
 } from "./feature-adapter-selection.js";
 
-const featureAdapterDependencies: FeatureAdapterDependencies = {
+import { createDefaultFeatureAdapterRegistry } from "./default-feature-adapter-registry.js";
+
+const featureAdapterRuntime: FeatureAdapterRuntimeContext = {
   clock: { now: () => new Date("2026-07-14T09:00:00.000Z") },
-  env: {},
-  fetch: vi.fn() as typeof fetch,
 };
 
 describe("createConfiguredFeatures", () => {
   it("collects neutral runtime tasks contributed by selected features", () => {
-    const selection = createConfiguredFeatureSelection(
-      enabledDeterministicConfig,
+    const config = parseAssistantConfig(
+      createMinimalFeatureConfig({
+        alarms: { adapter: "local", enabled: true },
+      }),
       {
-        dependencies: {
-          ...featureAdapterDependencies,
-          notificationDelivery: { deliver: () => Promise.resolve() },
-        },
+        featureAdapterRegistry: createDefaultFeatureAdapterRegistry({
+          alarms: {
+            notificationDelivery: { deliver: () => Promise.resolve() },
+          },
+        }),
       },
     );
+    const selection = createConfiguredFeatureSelection(config, {
+      runtime: featureAdapterRuntime,
+    });
 
     expect(selection.backgroundTasks).toEqual([
       expect.objectContaining({
@@ -50,7 +56,7 @@ describe("createConfiguredFeatures", () => {
   it("contributes alarm retention without notification delivery", () => {
     const selection = createConfiguredFeatureSelection(
       enabledDeterministicConfig,
-      { dependencies: featureAdapterDependencies },
+      { runtime: featureAdapterRuntime },
     );
 
     expect(selection.backgroundTasks).toEqual([
@@ -65,16 +71,13 @@ describe("createConfiguredFeatures", () => {
     let observedContext:
       | {
           adapterConfig: { endpoint: string };
-          dependencies: { clock: FeatureAdapterDependencies["clock"] };
+          runtime: FeatureAdapterRuntimeContext;
         }
       | undefined;
     const registry: FeatureAdapterRegistry = {
       notes: {
         adapters: {
-          remote: defineFeatureAdapterEntry<
-            { endpoint: string },
-            { clock: FeatureAdapterDependencies["clock"] }
-          >({
+          remote: defineFeatureAdapterEntry<{ endpoint: string }>({
             create: (context) => {
               observedContext = context;
 
@@ -87,7 +90,6 @@ describe("createConfiguredFeatures", () => {
 
               return { endpoint: featureConfig.endpoint };
             },
-            selectDependencies: ({ clock }) => ({ clock }),
           }),
         },
       },
@@ -106,15 +108,15 @@ describe("createConfiguredFeatures", () => {
     expect(config.features.notes).not.toHaveProperty("endpoint");
     expect(
       createConfiguredFeatures(config, {
-        dependencies: featureAdapterDependencies,
+        runtime: featureAdapterRuntime,
       }).map((feature) => feature.id),
     ).toEqual(["notes", "assistant"]);
     expect(observedContext).toMatchObject({
       adapterConfig: { endpoint: "https://notes.test" },
-      dependencies: { clock: featureAdapterDependencies.clock },
+      runtime: featureAdapterRuntime,
     });
-    expect(observedContext?.dependencies).not.toHaveProperty("env");
-    expect(observedContext?.dependencies).not.toHaveProperty("fetch");
+    expect(observedContext?.runtime).not.toHaveProperty("env");
+    expect(observedContext?.runtime).not.toHaveProperty("fetch");
   });
 
   it("ignores disabled features before requiring a registered feature or adapter ID", () => {
@@ -124,22 +126,22 @@ describe("createConfiguredFeatures", () => {
 
     expect(() =>
       createConfiguredFeatures(config, {
-        dependencies: featureAdapterDependencies,
+        runtime: featureAdapterRuntime,
       }),
     ).not.toThrow();
   });
 
   it("runs startup preflight with the typed config captured by the selected entry", () => {
     const validateStartup = vi.fn();
+    const providerDependencies = { env: { NOTES_TOKEN: "secret" } };
     const registry: FeatureAdapterRegistry = {
       notes: {
         adapters: {
           remote: defineFeatureAdapterEntry({
             create: () => createTestFeature("notes"),
             parseConfig: () => ({ tokenEnv: "NOTES_TOKEN" }),
-            selectDependencies: ({ env }) => ({ env }),
-            validateStartup: ({ adapterConfig, dependencies }) => {
-              validateStartup(adapterConfig, dependencies.env);
+            validateStartup: (adapterConfig) => {
+              validateStartup(adapterConfig, providerDependencies.env);
             },
           }),
         },
@@ -151,16 +153,11 @@ describe("createConfiguredFeatures", () => {
       }),
       { featureAdapterRegistry: registry },
     );
-    const dependencies = {
-      ...featureAdapterDependencies,
-      env: { NOTES_TOKEN: "secret" },
-    };
-
-    validateConfiguredFeatureAdapters(config, dependencies);
+    validateConfiguredFeatureAdapters(config);
 
     expect(validateStartup).toHaveBeenCalledWith(
       { tokenEnv: "NOTES_TOKEN" },
-      dependencies.env,
+      providerDependencies.env,
     );
   });
 
@@ -171,7 +168,6 @@ describe("createConfiguredFeatures", () => {
           mismatched: defineFeatureAdapterEntry({
             create: () => createTestFeature("calendar"),
             parseConfig: () => ({}),
-            selectDependencies: () => ({}),
           }),
         },
       },
@@ -185,7 +181,7 @@ describe("createConfiguredFeatures", () => {
 
     expect(() =>
       createConfiguredFeatures(config, {
-        dependencies: featureAdapterDependencies,
+        runtime: featureAdapterRuntime,
       }),
     ).toThrow(
       'Config feature "notes" adapter created feature "calendar" instead.',
@@ -200,7 +196,6 @@ describe("createConfiguredFeatures", () => {
             create: () =>
               createTestFeature("notes", "assistant.capabilities.list"),
             parseConfig: () => ({}),
-            selectDependencies: () => ({}),
           }),
         },
       },
@@ -214,7 +209,7 @@ describe("createConfiguredFeatures", () => {
 
     expect(() =>
       createConfiguredFeatures(config, {
-        dependencies: featureAdapterDependencies,
+        runtime: featureAdapterRuntime,
       }),
     ).toThrow(
       'Capability "assistant.capabilities.list" is declared by both "notes" and "assistant".',
@@ -223,7 +218,7 @@ describe("createConfiguredFeatures", () => {
 
   it("does not expose registry-level deterministic rules", () => {
     const selection = createConfiguredFeatureSelection(disabledCalendarConfig, {
-      dependencies: featureAdapterDependencies,
+      runtime: featureAdapterRuntime,
     });
 
     expect(selection.features.map((feature) => feature.id)).toEqual([
@@ -276,7 +271,7 @@ describe("createConfiguredFeatures", () => {
 
     expect(
       createConfiguredFeatures(config, {
-        dependencies: featureAdapterDependencies,
+        runtime: featureAdapterRuntime,
       }).map((feature) => feature.id),
     ).toEqual(["calendar", "assistant"]);
   });

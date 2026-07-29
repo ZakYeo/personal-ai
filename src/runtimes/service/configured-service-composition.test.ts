@@ -7,7 +7,6 @@ import {
 } from "../../test-support/runtime-composition.js";
 import type { ServiceTurnContext } from "./service-runtime.js";
 import { runConfiguredServiceRuntime } from "./configured-service-composition.js";
-import { dirname } from "node:path";
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import { createFileAlarmStore } from "../../adapters/local/file-alarm-store.js";
 import { createFileTaskStore } from "../../adapters/local/file-task-store.js";
@@ -17,17 +16,32 @@ import type {
   RuntimeBackgroundTaskContext,
 } from "../background-task.js";
 import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
+import type { LoadedRuntimeConfig } from "../config/config.js";
+import { parseAssistantConfig } from "../config/config.js";
+import { defineFeatureAdapterEntry } from "../feature-adapter-registry.js";
+import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
+import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
 
 describe("runConfiguredServiceRuntime", () => {
   it("composes the configured text assistant from an injected config path", async () => {
     const configPath = await writeRuntimeHarnessConfig(
       enabledDeterministicConfig,
     );
+    const createNotificationDelivery = vi.fn(
+      ({ config }: { config: LoadedRuntimeConfig }) => {
+        expect(config.features.alarms).toMatchObject({
+          adapter: "local",
+          enabled: true,
+        });
+        return { deliver: () => Promise.resolve() };
+      },
+    );
 
     await expect(
       runConfiguredServiceRuntime(
         {
           configPath,
+          createNotificationDelivery,
           now: () => new Date("2026-06-26T09:00:00.000Z"),
           retryAfterFailure: () => Promise.resolve(),
         },
@@ -49,6 +63,7 @@ describe("runConfiguredServiceRuntime", () => {
       status: "stopped",
       turnsCompleted: 1,
     });
+    expect(createNotificationDelivery).toHaveBeenCalledOnce();
   });
 
   it("forwards the loaded config directory to persistent alarm storage", async () => {
@@ -83,7 +98,7 @@ describe("runConfiguredServiceRuntime", () => {
     );
   });
 
-  it("passes the loaded config context to startup validation", async () => {
+  it("passes the loaded config to startup validation", async () => {
     const configPath = await writeRuntimeHarnessConfig(
       enabledDeterministicConfig,
     );
@@ -95,8 +110,11 @@ describe("runConfiguredServiceRuntime", () => {
           retryAfterFailure: () => Promise.resolve(),
         },
         {
-          validateConfig: (_config, dependencies) => {
-            expect(dependencies.configDirectory).toBe(dirname(configPath));
+          validateConfig: (config) => {
+            expect(config.features.alarms).toMatchObject({
+              adapter: "local",
+              enabled: true,
+            });
           },
           runTurn: (context) => {
             context.requestShutdown("test complete");
@@ -105,6 +123,48 @@ describe("runConfiguredServiceRuntime", () => {
         },
       ),
     ).resolves.toMatchObject({ status: "stopped" });
+  });
+
+  it("preserves custom pre-bound adapters without runtime binding overrides", async () => {
+    const create = vi.fn(() =>
+      createAlarmFeature(
+        createInMemoryAlarmStore({
+          now: () => new Date("2026-07-14T09:00:00.000Z"),
+        }),
+      ),
+    );
+    const config = parseAssistantConfig(
+      {
+        ...enabledDeterministicConfig,
+        features: { alarms: { adapter: "custom", enabled: true } },
+      },
+      {
+        featureAdapterRegistry: {
+          alarms: {
+            adapters: {
+              custom: defineFeatureAdapterEntry({
+                create,
+                parseConfig: () => ({}),
+              }),
+            },
+          },
+        },
+      },
+    );
+
+    await expect(
+      runConfiguredServiceRuntime(
+        { config },
+        {
+          validateConfig: () => {},
+          runTurn: (context) => {
+            context.requestShutdown("test complete");
+            return Promise.resolve();
+          },
+        },
+      ),
+    ).resolves.toMatchObject({ status: "stopped" });
+    expect(create).toHaveBeenCalledOnce();
   });
 
   it("starts feature-contributed background tasks through neutral service orchestration", async () => {

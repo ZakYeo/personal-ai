@@ -29,6 +29,7 @@ import type {
   IntentInterpreterPort,
 } from "../ports/intent.js";
 import { deterministicTestNow } from "./primitives.js";
+import type { FeatureAdapterRegistry } from "../runtimes/feature-adapter-registry.js";
 
 export const fixedNow = deterministicTestNow;
 
@@ -55,27 +56,31 @@ export function createAssistantConfig(
 
 export function createLoadedRuntimeConfig(
   features: Record<string, Record<string, unknown>>,
+  featureAdapterRegistry?: FeatureAdapterRegistry,
 ): LoadedRuntimeConfig {
-  return parseAssistantConfig({
-    assistant: {
-      name: "Jarvis",
-      timeZone: "Europe/London",
-      wakePhrases: ["hey jarvis"],
-    },
-    conversation: {
-      history: {
-        maxTurnsBeforeCompaction: 5,
+  return parseAssistantConfig(
+    {
+      assistant: {
+        name: "Jarvis",
+        timeZone: "Europe/London",
+        wakePhrases: ["hey jarvis"],
       },
-      provider: "disabled",
+      conversation: {
+        history: {
+          maxTurnsBeforeCompaction: 5,
+        },
+        provider: "disabled",
+      },
+      intent: {
+        provider: "deterministic",
+      },
+      responseRewriter: {
+        provider: "disabled",
+      },
+      features,
     },
-    intent: {
-      provider: "deterministic",
-    },
-    responseRewriter: {
-      provider: "disabled",
-    },
-    features,
-  });
+    featureAdapterRegistry ? { featureAdapterRegistry } : {},
+  );
 }
 
 export function enableFeatures(...featureIds: string[]): AssistantPolicyConfig {

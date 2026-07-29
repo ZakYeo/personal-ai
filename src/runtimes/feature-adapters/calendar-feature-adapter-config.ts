@@ -5,7 +5,7 @@ import {
   parseOptionalPositiveInteger,
 } from "../config/config-parse-utils.js";
 
-export interface CalendarFeatureConfig {
+interface CalendarFeatureConfig {
   upcomingWindowDays: number;
 }
 

@@ -234,6 +234,17 @@ feature-to-adapter registry. Existing deterministic adapters are selected as
 should add entries to the same registry shape and receive narrow adapter
 dependencies/config from runtime composition rather than importing provider
 selection policy into feature modules.
+Feature registry construction captures provider transport, environment,
+configuration-directory, notification, personal-context, and store test seams
+inside only the entries that use them. The common adapter construction context
+contains only the universal live clock. Startup preflight and construction
+therefore share the same captured feature-local dependencies instead of
+projecting them independently from a growing runtime dependency bag.
+When an already parsed runtime config is injected with explicit runtime
+overrides, composition rebinds its selected entries once through the same
+feature registry before construction. This preserves relative-state,
+provider-transport, and notification injection without reopening the common
+adapter factory context.
 The runtime also adds a built-in `assistant` feature that lists or describes the
 enabled capability catalog. It is runtime-owned rather than user-configured, and
 it must stay backed by the same generated feature metadata used by provider

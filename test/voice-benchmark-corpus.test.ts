@@ -23,10 +23,8 @@ describe("committed voice benchmark corpus", () => {
       loadConfig(),
     ]);
     const features = createConfiguredFeatures(config, {
-      dependencies: {
+      runtime: {
         clock: { now: () => new Date("2026-07-15T09:00:00.000Z") },
-        env: {},
-        fetch: () => Promise.reject(new Error("Unexpected benchmark fetch.")),
       },
     });
     const capabilityNames = features.flatMap((feature) =>

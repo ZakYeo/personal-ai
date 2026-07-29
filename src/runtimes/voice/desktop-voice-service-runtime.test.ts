@@ -10,7 +10,11 @@ import {
   createDesktopVoiceConfig,
 } from "../../test-support/desktop-voice-runtime.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
-import { createCapturedWriter, line } from "../../test-support/primitives.js";
+import {
+  createCapturedWriter,
+  line,
+  writeTempJsonFile,
+} from "../../test-support/primitives.js";
 import { createServiceSignalController } from "../../test-support/service-runtime.js";
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
 
@@ -35,11 +39,12 @@ describe("runDesktopVoiceServiceRuntime", () => {
       startBackgroundTask = resolve;
     });
     let now = new Date("2026-07-14T09:00:00.000Z");
+    const configPath = await writeTempJsonFile(
+      createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+    );
 
     await runDesktopVoiceServiceRuntime({
-      config: createDesktopVoiceConfig(
-        deterministicScenarios.alarmListEmpty.text,
-      ),
+      configPath,
       createVoiceAdapters: () => ({
         ...createSuccessfulActivationAdapters(),
       }),

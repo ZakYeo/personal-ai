@@ -9,6 +9,7 @@ import { createConfiguredIntentInterpreter } from "./intent-provider-selection.j
 import { createConfiguredResponseRewriter } from "./response-rewriter-selection.js";
 import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
 import { resolveConfiguredRuntimeConfigSource } from "./config/runtime-config-source.js";
+import type { RuntimeConfigSource } from "./config/runtime-config-source.js";
 import type { NotificationDeliveryPort } from "../ports/notification-delivery.js";
 import type { RuntimeBackgroundTask } from "./background-task.js";
 
@@ -38,22 +39,22 @@ export async function createConfiguredTextRuntimeComposition(
   options: ConfiguredTextRuntimeOptions = {},
 ): Promise<ConfiguredTextRuntimeComposition> {
   const configSource = await resolveConfiguredRuntimeConfigSource(options);
+  return createConfiguredTextRuntimeCompositionFromResolvedSource(
+    configSource,
+    options,
+  );
+}
+
+export function createConfiguredTextRuntimeCompositionFromResolvedSource(
+  configSource: RuntimeConfigSource,
+  options: Pick<ConfiguredTextRuntimeOptions, "env" | "fetch" | "now"> = {},
+): ConfiguredTextRuntimeComposition {
   const { config } = configSource;
   const clock = createClock(options.now);
   const env = options.env ?? process.env;
   const fetch = options.fetch ?? globalThis.fetch;
   const featureSelection = createConfiguredFeatureSelection(config, {
-    dependencies: {
-      clock,
-      ...(configSource.configDirectory
-        ? { configDirectory: configSource.configDirectory }
-        : {}),
-      env,
-      fetch,
-      ...(options.notificationDelivery
-        ? { notificationDelivery: options.notificationDelivery }
-        : {}),
-    },
+    runtime: { clock },
   });
   const conversation = createConfiguredConversation(
     config,

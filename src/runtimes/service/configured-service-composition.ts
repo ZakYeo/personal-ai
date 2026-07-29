@@ -1,6 +1,6 @@
 import type { Assistant } from "../../core/assistant/index.js";
 import {
-  createConfiguredTextRuntimeComposition,
+  createConfiguredTextRuntimeCompositionFromResolvedSource,
   type ConfiguredTextRuntimeOptions,
 } from "../configured-text-runtime.js";
 import {
@@ -25,12 +25,14 @@ import {
   type ServiceTurnFailureContext,
 } from "./service-runtime.js";
 import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-registry.js";
-import type { FeatureAdapterDependencies } from "../feature-adapter-registry.js";
+import { createRuntimeFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import type {
   RuntimeBackgroundTask,
   RuntimeBackgroundTaskContext,
 } from "../background-task.js";
+import { createDeferredNotificationDelivery } from "../deferred-notification-delivery.js";
+import { rebindFeatureAdapters } from "../config/feature-config.js";
 
 interface ConfiguredServiceCompositionOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -59,10 +61,7 @@ interface ConfiguredServiceTurnContext extends ServiceTurnContext {
 
 interface ConfiguredServiceRuntimeCallbacks {
   runTurn(context: ConfiguredServiceTurnContext): Promise<void>;
-  validateConfig(
-    config: LoadedRuntimeConfig,
-    dependencies: FeatureAdapterDependencies,
-  ): Promise<void> | void;
+  validateConfig(config: LoadedRuntimeConfig): Promise<void> | void;
 }
 
 export async function runConfiguredServiceRuntime(
@@ -76,9 +75,8 @@ export async function runConfiguredServiceRuntime(
   };
 
   try {
-    startup = await createConfiguredServiceStartup(
-      options,
-      (config, dependencies) => callbacks.validateConfig(config, dependencies),
+    startup = await createConfiguredServiceStartup(options, (config) =>
+      callbacks.validateConfig(config),
     );
   } catch (error) {
     logRuntimeFailure(error, options.io ?? {});
@@ -149,38 +147,54 @@ export async function runConfiguredServiceRuntime(
 
 async function createConfiguredServiceStartup(
   options: ConfiguredServiceCompositionOptions,
-  validateConfig: (
-    config: LoadedRuntimeConfig,
-    dependencies: FeatureAdapterDependencies,
-  ) => Promise<void> | void,
+  validateConfig: (config: LoadedRuntimeConfig) => Promise<void> | void,
 ): Promise<{
   assistant: Assistant;
   backgroundTasks: RuntimeBackgroundTask[];
   config: LoadedRuntimeConfig;
 }> {
-  const configSource = await loadServiceConfig(options);
+  const deferredDelivery = options.createNotificationDelivery
+    ? createDeferredNotificationDelivery()
+    : undefined;
+  let configSource = await loadServiceConfig(options, deferredDelivery?.port);
+  if (
+    options.config &&
+    !options.featureAdapterRegistry &&
+    hasServiceFeatureBindingOverrides(options)
+  ) {
+    configSource = rebindServiceConfigSource(
+      configSource,
+      options,
+      deferredDelivery?.port,
+    );
+  }
   const { config } = configSource;
-  const notificationDelivery = options.createNotificationDelivery?.({ config });
-  const featureAdapterDependencies: FeatureAdapterDependencies = {
-    clock: { now: options.now ?? (() => new Date()) },
-    env: options.env ?? process.env,
-    fetch: options.fetch ?? globalThis.fetch,
-    ...(notificationDelivery ? { notificationDelivery } : {}),
-    ...(configSource.configDirectory
-      ? { configDirectory: configSource.configDirectory }
-      : {}),
-  };
-  await validateConfig(config, featureAdapterDependencies);
+  if (deferredDelivery && options.createNotificationDelivery) {
+    deferredDelivery.bind(options.createNotificationDelivery({ config }));
+  }
+  await validateConfig(config);
 
-  const composition = await createConfiguredTextRuntimeComposition({
-    ...configSource,
-    env: featureAdapterDependencies.env,
-    fetch: featureAdapterDependencies.fetch,
-    ...(notificationDelivery ? { notificationDelivery } : {}),
-    ...(options.now ? { now: options.now } : {}),
-  });
+  const composition = createConfiguredTextRuntimeCompositionFromResolvedSource(
+    configSource,
+    {
+      env: options.env ?? process.env,
+      fetch: options.fetch ?? globalThis.fetch,
+      ...(options.now ? { now: options.now } : {}),
+    },
+  );
 
   return { ...composition, config };
+}
+
+function hasServiceFeatureBindingOverrides(
+  options: ConfiguredServiceCompositionOptions,
+): boolean {
+  return (
+    options.configDirectory !== undefined ||
+    options.env !== undefined ||
+    options.fetch !== undefined ||
+    options.createNotificationDelivery !== undefined
+  );
 }
 
 function runBackgroundTask(
@@ -203,6 +217,7 @@ function logRuntimeFailureBestEffort(
 
 function loadServiceConfig(
   options: ConfiguredServiceCompositionOptions,
+  notificationDelivery: NotificationDeliveryPort | undefined,
 ): Promise<RuntimeConfigSource> {
   return resolveRuntimeConfigSource({
     ...(options.config ? { config: options.config } : {}),
@@ -221,6 +236,39 @@ function loadServiceConfig(
         ...(options.featureAdapterRegistry
           ? { featureAdapterRegistry: options.featureAdapterRegistry }
           : {}),
+        ...(!options.featureAdapterRegistry
+          ? {
+              createFeatureAdapterRegistry: (configDirectory: string) =>
+                createRuntimeFeatureAdapterRegistry({
+                  configDirectory,
+                  env: options.env ?? process.env,
+                  fetch: options.fetch ?? globalThis.fetch,
+                  ...(notificationDelivery ? { notificationDelivery } : {}),
+                }),
+            }
+          : {}),
       }),
   });
+}
+
+function rebindServiceConfigSource(
+  source: RuntimeConfigSource,
+  options: ConfiguredServiceCompositionOptions,
+  notificationDelivery: NotificationDeliveryPort | undefined,
+): RuntimeConfigSource {
+  const registry = createRuntimeFeatureAdapterRegistry({
+    ...(source.configDirectory
+      ? { configDirectory: source.configDirectory }
+      : {}),
+    env: options.env ?? process.env,
+    fetch: options.fetch ?? globalThis.fetch,
+    ...(notificationDelivery ? { notificationDelivery } : {}),
+  });
+  return {
+    ...source,
+    config: {
+      ...source.config,
+      features: rebindFeatureAdapters(source.config.features, registry),
+    },
+  };
 }

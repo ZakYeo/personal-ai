@@ -28,7 +28,9 @@ Implemented today:
   stable application/config/state paths, restart policy, and operator guidance.
 - Config-driven adapter selection for intent, features, and voice components.
 - Explicit nested feature adapter registration whose selected entries parse,
-  retain, construct, and preflight their own typed adapter configuration.
+  retain, construct, and preflight their own typed adapter configuration;
+  entries capture feature-local IO and provider dependencies while the shared
+  construction context exposes only the live clock.
 - Focused runtime config resolvers for assistant policy, intent providers,
   conversation providers, response rewriters, voice adapter IDs, and desktop
   voice command settings.

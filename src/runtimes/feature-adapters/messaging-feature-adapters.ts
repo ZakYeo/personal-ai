@@ -10,7 +10,6 @@ export function createMessagingFeatureRegistryEntry(): FeatureRegistryEntry {
       mock: defineFeatureAdapterEntry({
         create: () => createMessagingFeature(),
         parseConfig: () => {},
-        selectDependencies: () => ({}),
       }),
     },
   };

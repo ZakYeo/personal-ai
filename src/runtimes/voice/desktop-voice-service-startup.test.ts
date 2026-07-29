@@ -12,7 +12,7 @@ import {
   line,
   writeTempJsonFile,
 } from "../../test-support/primitives.js";
-import { createRuntimeConfigWithGoogleCalendarAdapter } from "../../test-support/runtime-composition.js";
+import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
 import { createServiceSignalController } from "../../test-support/service-runtime.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
@@ -84,19 +84,33 @@ describe("desktop voice service startup", () => {
   it("fails startup with Google Calendar setup guidance when the refresh token is missing", async () => {
     const stderr = createCapturedWriter();
     const runVoiceActivation = vi.fn();
+    const env = {
+      GOOGLE_CALENDAR_CLIENT_ID: "test-client-id",
+      GOOGLE_CALENDAR_CLIENT_SECRET: "test-client-secret",
+    };
+    const googleFeatures = createLoadedRuntimeConfig(
+      {
+        calendar: {
+          adapter: "google",
+          enabled: true,
+          google: {},
+          upcomingWindowDays: 92,
+        },
+      },
+      createDefaultFeatureAdapterRegistry({
+        calendar: { env, fetch: globalThis.fetch },
+      }),
+    ).features;
 
     await expect(
       runDesktopVoiceServiceRuntime({
         config: createDesktopVoiceConfig(
           deterministicScenarios.alarmListEmpty.text,
           {
-            features: createRuntimeConfigWithGoogleCalendarAdapter().features,
+            features: googleFeatures,
           },
         ),
-        env: {
-          GOOGLE_CALENDAR_CLIENT_ID: "test-client-id",
-          GOOGLE_CALENDAR_CLIENT_SECRET: "test-client-secret",
-        },
+        env,
         io: { stderr },
         retryAfterFailure: () => Promise.resolve(),
         runVoiceActivation,
@@ -127,6 +141,7 @@ describe("desktop voice service startup", () => {
       },
     });
     const validateStartup = vi.fn();
+    const capturedDependencies = { configDirectory: dirname(configPath) };
     const defaultRegistry = createDefaultFeatureAdapterRegistry();
 
     await expect(
@@ -144,11 +159,8 @@ describe("desktop voice service startup", () => {
                     }),
                   ),
                 parseConfig: () => ({}),
-                selectDependencies: ({ configDirectory }) => ({
-                  configDirectory,
-                }),
-                validateStartup: ({ dependencies }) => {
-                  validateStartup(dependencies);
+                validateStartup: () => {
+                  validateStartup(capturedDependencies);
                   throw new Error("stop after validation");
                 },
               }),

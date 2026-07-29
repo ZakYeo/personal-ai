@@ -339,13 +339,7 @@ describe("weather feature adapters", () => {
     );
     const fetch = vi.fn();
 
-    expect(() =>
-      validateConfiguredFeatureAdapters(config, {
-        clock: { now: () => weatherNow },
-        env: createEnvThatRejectsReads(),
-        fetch,
-      }),
-    ).not.toThrow();
+    expect(() => validateConfiguredFeatureAdapters(config)).not.toThrow();
     expect(fetch).not.toHaveBeenCalled();
   });
 });
