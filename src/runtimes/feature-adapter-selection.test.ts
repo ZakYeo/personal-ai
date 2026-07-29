@@ -15,6 +15,8 @@ import {
 } from "./feature-adapter-selection.js";
 
 import { createDefaultFeatureAdapterRegistry } from "./default-feature-adapter-registry.js";
+import { defineFeatureAdapter } from "./feature-adapter-registry.js";
+import { rebindFeatureAdapters } from "./config/feature-config.js";
 
 const featureAdapterRuntime: FeatureAdapterRuntimeContext = {
   clock: { now: () => new Date("2026-07-14T09:00:00.000Z") },
@@ -159,6 +161,48 @@ describe("createConfiguredFeatures", () => {
       { tokenEnv: "NOTES_TOKEN" },
       providerDependencies.env,
     );
+  });
+
+  it("rebinds dependencies without parsing selected adapter config again", () => {
+    const parseConfig = vi.fn(() => ({ endpoint: "https://notes.test" }));
+    const adapter = defineFeatureAdapter({ parseConfig });
+    const originalCreate = vi.fn(() => createTestFeature("notes"));
+    const replacementCreate = vi.fn(() => createTestFeature("notes"));
+    const config = parseAssistantConfig(
+      createMinimalFeatureConfig({
+        notes: { adapter: "remote", enabled: true },
+      }),
+      {
+        featureAdapterRegistry: {
+          notes: {
+            adapters: {
+              remote: adapter.bind({ create: originalCreate }),
+            },
+          },
+        },
+      },
+    );
+    const reboundConfig = {
+      ...config,
+      features: rebindFeatureAdapters(config.features, {
+        notes: {
+          adapters: {
+            remote: adapter.bind({ create: replacementCreate }),
+          },
+        },
+      }),
+    };
+
+    createConfiguredFeatures(reboundConfig, {
+      runtime: featureAdapterRuntime,
+    });
+
+    expect(parseConfig).toHaveBeenCalledOnce();
+    expect(originalCreate).not.toHaveBeenCalled();
+    expect(replacementCreate).toHaveBeenCalledWith({
+      adapterConfig: { endpoint: "https://notes.test" },
+      runtime: featureAdapterRuntime,
+    });
   });
 
   it("rejects adapters that construct a different feature ID", () => {

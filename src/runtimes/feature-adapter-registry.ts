@@ -11,12 +11,17 @@ interface FeatureAdapterContext<TAdapterConfig> {
   runtime: FeatureAdapterRuntimeContext;
 }
 
-interface FeatureAdapterDefinition<TAdapterConfig> {
+interface FeatureAdapterBinding<TAdapterConfig> {
   create(
     context: FeatureAdapterContext<TAdapterConfig>,
   ): FeaturePlugin | FeatureAdapterComposition;
-  parseConfig(featureConfig: Record<string, unknown>): TAdapterConfig;
   validateStartup?(adapterConfig: TAdapterConfig): void;
+}
+
+interface FeatureAdapterEntryDefinition<
+  TAdapterConfig,
+> extends FeatureAdapterBinding<TAdapterConfig> {
+  parseConfig(featureConfig: Record<string, unknown>): TAdapterConfig;
 }
 
 export interface ResolvedFeatureAdapter {
@@ -24,7 +29,6 @@ export interface ResolvedFeatureAdapter {
     runtime: FeatureAdapterRuntimeContext,
   ): FeaturePlugin | FeatureAdapterComposition;
   validateStartup?(): void;
-  rebind(entry: FeatureAdapterEntry): ResolvedFeatureAdapter;
 }
 
 export interface FeatureAdapterComposition {
@@ -34,6 +38,7 @@ export interface FeatureAdapterComposition {
 
 export interface FeatureAdapterEntry {
   parse(featureConfig: Record<string, unknown>): ResolvedFeatureAdapter;
+  rebind(resolved: ResolvedFeatureAdapter): ResolvedFeatureAdapter;
 }
 
 export interface FeatureRegistryEntry {
@@ -42,25 +47,51 @@ export interface FeatureRegistryEntry {
 
 export type FeatureAdapterRegistry = Record<string, FeatureRegistryEntry>;
 
-export function defineFeatureAdapterEntry<TAdapterConfig>(
-  entry: FeatureAdapterDefinition<TAdapterConfig>,
-): FeatureAdapterEntry {
+export function defineFeatureAdapter<TAdapterConfig>(definition: {
+  parseConfig(featureConfig: Record<string, unknown>): TAdapterConfig;
+}) {
+  const parsedConfigs = new WeakMap<
+    ResolvedFeatureAdapter,
+    { value: TAdapterConfig }
+  >();
+
   return {
-    parse: (featureConfig) => {
-      const adapterConfig = entry.parseConfig(featureConfig);
+    bind(binding: FeatureAdapterBinding<TAdapterConfig>): FeatureAdapterEntry {
+      const resolve = (
+        adapterConfig: TAdapterConfig,
+      ): ResolvedFeatureAdapter => {
+        const resolved: ResolvedFeatureAdapter = {
+          create: (runtime) =>
+            binding.create({
+              adapterConfig,
+              runtime,
+            }),
+          ...(binding.validateStartup
+            ? {
+                validateStartup: () => binding.validateStartup?.(adapterConfig),
+              }
+            : {}),
+        };
+        parsedConfigs.set(resolved, { value: adapterConfig });
+        return resolved;
+      };
+
       return {
-        create: (runtime) =>
-          entry.create({
-            adapterConfig,
-            runtime,
-          }),
-        ...(entry.validateStartup
-          ? {
-              validateStartup: () => entry.validateStartup?.(adapterConfig),
-            }
-          : {}),
-        rebind: (replacement) => replacement.parse(featureConfig),
+        parse: (featureConfig) =>
+          resolve(definition.parseConfig(featureConfig)),
+        rebind: (resolved) => {
+          const parsedConfig = parsedConfigs.get(resolved);
+          return parsedConfig ? resolve(parsedConfig.value) : resolved;
+        },
       };
     },
   };
+}
+
+export function defineFeatureAdapterEntry<TAdapterConfig>(
+  entry: FeatureAdapterEntryDefinition<TAdapterConfig>,
+): FeatureAdapterEntry {
+  return defineFeatureAdapter({
+    parseConfig: (featureConfig) => entry.parseConfig(featureConfig),
+  }).bind(entry);
 }

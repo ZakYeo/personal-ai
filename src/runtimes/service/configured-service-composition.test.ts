@@ -125,7 +125,7 @@ describe("runConfiguredServiceRuntime", () => {
     ).resolves.toMatchObject({ status: "stopped" });
   });
 
-  it("preserves custom pre-bound adapters without runtime binding overrides", async () => {
+  it("preserves custom pre-bound adapters under provider dependency overrides", async () => {
     const create = vi.fn(() =>
       createAlarmFeature(
         createInMemoryAlarmStore({
@@ -154,7 +154,7 @@ describe("runConfiguredServiceRuntime", () => {
 
     await expect(
       runConfiguredServiceRuntime(
-        { config },
+        { config, env: {}, fetch: vi.fn() },
         {
           validateConfig: () => {},
           runTurn: (context) => {

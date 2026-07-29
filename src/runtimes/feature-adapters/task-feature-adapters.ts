@@ -9,12 +9,19 @@ import type { NotificationDeliveryPort } from "../../ports/notification-delivery
 import type { RuntimeBackgroundTaskContext } from "../background-task.js";
 import { isRecord } from "../config/config-parse-utils.js";
 import {
-  defineFeatureAdapterEntry,
+  defineFeatureAdapter,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import { resolveLocalStatePath } from "../local-state-path.js";
 import { runTaskReminderRetention } from "../tasks/task-reminder-retention.js";
 import { runTaskReminderScheduler } from "../tasks/task-reminder-scheduler.js";
+
+const fileTaskAdapter = defineFeatureAdapter({
+  parseConfig: parseFileTaskStoreConfig,
+});
+const localTaskAdapter = defineFeatureAdapter({
+  parseConfig: parseLocalTaskConfig,
+});
 
 export function createTaskFeatureRegistryEntry(
   dependencies: FileTaskStoreDependencies & {
@@ -38,7 +45,7 @@ function createFileTaskAdapterEntry(
 ) {
   const { configDirectory, notificationDelivery, ...storeDependencies } =
     dependencies;
-  return defineFeatureAdapterEntry({
+  return fileTaskAdapter.bind({
     create: ({ adapterConfig, runtime }) =>
       createTaskComposition(
         createFileTaskStore({
@@ -51,14 +58,13 @@ function createFileTaskAdapterEntry(
         }),
         notificationDelivery,
       ),
-    parseConfig: parseFileTaskStoreConfig,
   });
 }
 
 function createLocalTaskAdapterEntry(
   notificationDelivery: NotificationDeliveryPort | undefined,
 ) {
-  return defineFeatureAdapterEntry({
+  return localTaskAdapter.bind({
     create: ({ runtime }) =>
       createTaskComposition(
         createInMemoryTaskStore({
@@ -66,9 +72,10 @@ function createLocalTaskAdapterEntry(
         }),
         notificationDelivery,
       ),
-    parseConfig: () => {},
   });
 }
+
+function parseLocalTaskConfig(): void {}
 
 function createTaskComposition(
   store: TaskStore,

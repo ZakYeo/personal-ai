@@ -70,14 +70,12 @@ export function rebindFeatureAdapters(
       rebound[featureId] = feature;
       continue;
     }
-    const entry = selectFeatureAdapterEntry(
-      featureId,
-      feature.adapter,
-      registry,
-    );
+    const entry = registry[featureId]?.adapters[feature.adapter];
     rebound[featureId] = {
       ...feature,
-      resolvedAdapter: feature.resolvedAdapter.rebind(entry),
+      resolvedAdapter: entry
+        ? entry.rebind(feature.resolvedAdapter)
+        : feature.resolvedAdapter,
     };
   }
   return rebound;

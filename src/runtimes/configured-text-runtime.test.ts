@@ -17,6 +17,10 @@ import {
 } from "../test-support/runtime-composition.js";
 import type { Assistant } from "../core/assistant/assistant.js";
 import { createLoadedRuntimeConfig } from "../test-support/core-assistant.js";
+import { parseAssistantConfig } from "./config/config.js";
+import { defineFeatureAdapterEntry } from "./feature-adapter-registry.js";
+import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
+import { createInMemoryAlarmStore } from "../adapters/local/in-memory-alarm-store.js";
 
 describe("createConfiguredTextRuntime", () => {
   it("smoke-executes a calendar and alarm plan after one exact confirmation", async () => {
@@ -49,6 +53,43 @@ describe("createConfiguredTextRuntime", () => {
     await expect(
       assistant.handleText(deterministicScenarios.calendarWedding.text),
     ).resolves.toEqual(deterministicScenarios.calendarWedding.response);
+  });
+
+  it("preserves custom pre-bound adapters under provider dependency overrides", async () => {
+    const create = vi.fn(() =>
+      createAlarmFeature(
+        createInMemoryAlarmStore({
+          now: () => new Date("2026-07-14T09:00:00.000Z"),
+        }),
+      ),
+    );
+    const config = parseAssistantConfig(
+      {
+        ...disabledCalendarConfig,
+        features: { alarms: { adapter: "custom", enabled: true } },
+      },
+      {
+        featureAdapterRegistry: {
+          alarms: {
+            adapters: {
+              custom: defineFeatureAdapterEntry({
+                create,
+                parseConfig: () => ({}),
+              }),
+            },
+          },
+        },
+      },
+    );
+
+    await expect(
+      createConfiguredTextRuntimeHarness({
+        config,
+        env: {},
+        fetch: vi.fn(),
+      }),
+    ).resolves.toBeDefined();
+    expect(create).toHaveBeenCalledOnce();
   });
 
   it("smoke-routes upcoming calendar events through the mock calendar adapter", async () => {

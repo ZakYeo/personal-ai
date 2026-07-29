@@ -3,12 +3,9 @@ import {
   createConfiguredTextRuntimeCompositionFromResolvedSource,
   type ConfiguredTextRuntimeOptions,
 } from "../configured-text-runtime.js";
+import { type LoadedRuntimeConfig } from "../config/config.js";
 import {
-  loadConfigWithSource,
-  type LoadedRuntimeConfig,
-} from "../config/config.js";
-import {
-  resolveRuntimeConfigSource,
+  resolveConfiguredRuntimeConfigSource,
   type RuntimeConfigSource,
 } from "../config/runtime-config-source.js";
 import {
@@ -25,14 +22,12 @@ import {
   type ServiceTurnFailureContext,
 } from "./service-runtime.js";
 import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-registry.js";
-import { createRuntimeFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import type {
   RuntimeBackgroundTask,
   RuntimeBackgroundTaskContext,
 } from "../background-task.js";
 import { createDeferredNotificationDelivery } from "../deferred-notification-delivery.js";
-import { rebindFeatureAdapters } from "../config/feature-config.js";
 
 interface ConfiguredServiceCompositionOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -156,18 +151,7 @@ async function createConfiguredServiceStartup(
   const deferredDelivery = options.createNotificationDelivery
     ? createDeferredNotificationDelivery()
     : undefined;
-  let configSource = await loadServiceConfig(options, deferredDelivery?.port);
-  if (
-    options.config &&
-    !options.featureAdapterRegistry &&
-    hasServiceFeatureBindingOverrides(options)
-  ) {
-    configSource = rebindServiceConfigSource(
-      configSource,
-      options,
-      deferredDelivery?.port,
-    );
-  }
+  const configSource = await loadServiceConfig(options, deferredDelivery?.port);
   const { config } = configSource;
   if (deferredDelivery && options.createNotificationDelivery) {
     deferredDelivery.bind(options.createNotificationDelivery({ config }));
@@ -184,17 +168,6 @@ async function createConfiguredServiceStartup(
   );
 
   return { ...composition, config };
-}
-
-function hasServiceFeatureBindingOverrides(
-  options: ConfiguredServiceCompositionOptions,
-): boolean {
-  return (
-    options.configDirectory !== undefined ||
-    options.env !== undefined ||
-    options.fetch !== undefined ||
-    options.createNotificationDelivery !== undefined
-  );
 }
 
 function runBackgroundTask(
@@ -219,56 +192,23 @@ function loadServiceConfig(
   options: ConfiguredServiceCompositionOptions,
   notificationDelivery: NotificationDeliveryPort | undefined,
 ): Promise<RuntimeConfigSource> {
-  return resolveRuntimeConfigSource({
+  return resolveConfiguredRuntimeConfigSource({
     ...(options.config ? { config: options.config } : {}),
     ...(options.configDirectory
       ? { configDirectory: options.configDirectory }
       : {}),
-    load: () =>
-      loadConfigWithSource({
-        ...(options.configPath ? { configPath: options.configPath } : {}),
-        ...(options.desktopVoiceProviderAdapterRegistry
-          ? {
-              desktopVoiceProviderAdapterRegistry:
-                options.desktopVoiceProviderAdapterRegistry,
-            }
-          : {}),
-        ...(options.featureAdapterRegistry
-          ? { featureAdapterRegistry: options.featureAdapterRegistry }
-          : {}),
-        ...(!options.featureAdapterRegistry
-          ? {
-              createFeatureAdapterRegistry: (configDirectory: string) =>
-                createRuntimeFeatureAdapterRegistry({
-                  configDirectory,
-                  env: options.env ?? process.env,
-                  fetch: options.fetch ?? globalThis.fetch,
-                  ...(notificationDelivery ? { notificationDelivery } : {}),
-                }),
-            }
-          : {}),
-      }),
-  });
-}
-
-function rebindServiceConfigSource(
-  source: RuntimeConfigSource,
-  options: ConfiguredServiceCompositionOptions,
-  notificationDelivery: NotificationDeliveryPort | undefined,
-): RuntimeConfigSource {
-  const registry = createRuntimeFeatureAdapterRegistry({
-    ...(source.configDirectory
-      ? { configDirectory: source.configDirectory }
+    ...(options.configPath ? { configPath: options.configPath } : {}),
+    ...(options.desktopVoiceProviderAdapterRegistry
+      ? {
+          desktopVoiceProviderAdapterRegistry:
+            options.desktopVoiceProviderAdapterRegistry,
+        }
       : {}),
-    env: options.env ?? process.env,
-    fetch: options.fetch ?? globalThis.fetch,
+    ...(options.featureAdapterRegistry
+      ? { featureAdapterRegistry: options.featureAdapterRegistry }
+      : {}),
+    ...(options.env ? { env: options.env } : {}),
+    ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(notificationDelivery ? { notificationDelivery } : {}),
   });
-  return {
-    ...source,
-    config: {
-      ...source.config,
-      features: rebindFeatureAdapters(source.config.features, registry),
-    },
-  };
 }

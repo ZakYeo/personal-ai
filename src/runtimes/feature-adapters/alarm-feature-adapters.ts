@@ -9,12 +9,19 @@ import type { NotificationDeliveryPort } from "../../ports/notification-delivery
 import { isRecord } from "../config/config-parse-utils.js";
 import { resolveLocalStatePath } from "../local-state-path.js";
 import {
-  defineFeatureAdapterEntry,
+  defineFeatureAdapter,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import { runAlarmScheduler } from "../alarm/alarm-scheduler.js";
 import { runAlarmRetention } from "../alarm/alarm-retention.js";
 import type { RuntimeBackgroundTaskContext } from "../background-task.js";
+
+const fileAlarmAdapter = defineFeatureAdapter({
+  parseConfig: parseFileAlarmStoreConfig,
+});
+const localAlarmAdapter = defineFeatureAdapter({
+  parseConfig: parseLocalAlarmConfig,
+});
 
 export function createAlarmFeatureRegistryEntry(
   dependencies: FileAlarmStoreDependencies & {
@@ -38,7 +45,7 @@ function createFileAlarmAdapterEntry(
 ) {
   const { configDirectory, notificationDelivery, ...storeDependencies } =
     dependencies;
-  return defineFeatureAdapterEntry({
+  return fileAlarmAdapter.bind({
     create: ({ adapterConfig, runtime }) => {
       const alarmStore = createFileAlarmStore({
         ...storeDependencies,
@@ -51,14 +58,13 @@ function createFileAlarmAdapterEntry(
 
       return createAlarmComposition(alarmStore, notificationDelivery);
     },
-    parseConfig: parseFileAlarmStoreConfig,
   });
 }
 
 function createLocalAlarmAdapterEntry(
   notificationDelivery: NotificationDeliveryPort | undefined,
 ) {
-  return defineFeatureAdapterEntry({
+  return localAlarmAdapter.bind({
     create: ({ runtime }) =>
       createAlarmComposition(
         createInMemoryAlarmStore({
@@ -66,9 +72,10 @@ function createLocalAlarmAdapterEntry(
         }),
         notificationDelivery,
       ),
-    parseConfig: () => {},
   });
 }
+
+function parseLocalAlarmConfig(): void {}
 
 function createAlarmComposition(
   alarmStore: AlarmStore,

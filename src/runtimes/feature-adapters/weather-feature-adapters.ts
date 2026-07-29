@@ -12,7 +12,7 @@ import type { WeatherWatchStore } from "../../ports/weather-watch-store.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";
 import type { RuntimeBackgroundTaskContext } from "../background-task.js";
 import {
-  defineFeatureAdapterEntry,
+  defineFeatureAdapter,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import { resolveLocalStatePath } from "../local-state-path.js";
@@ -31,12 +31,19 @@ interface WeatherFeatureRegistryDependencies {
   watchStore?: FileWeatherWatchStoreDependencies;
 }
 
+const mockWeatherAdapter = defineFeatureAdapter({
+  parseConfig: parseWeatherFeatureConfig,
+});
+const openMeteoWeatherAdapter = defineFeatureAdapter({
+  parseConfig: parseWeatherOpenMeteoAdapterConfig,
+});
+
 export function createWeatherFeatureRegistryEntry(
   registryDependencies: WeatherFeatureRegistryDependencies,
 ): FeatureRegistryEntry {
   return {
     adapters: {
-      mock: defineFeatureAdapterEntry({
+      mock: mockWeatherAdapter.bind({
         create: ({ adapterConfig, runtime }) => {
           const { watchStore, ...featureConfig } = adapterConfig;
           return createWeatherComposition(
@@ -52,9 +59,8 @@ export function createWeatherFeatureRegistryEntry(
             registryDependencies.personalContextReader,
           );
         },
-        parseConfig: parseWeatherFeatureConfig,
       }),
-      openMeteo: defineFeatureAdapterEntry({
+      openMeteo: openMeteoWeatherAdapter.bind({
         create: ({ adapterConfig, runtime }) => {
           const { openMeteo, watchStore, ...featureConfig } = adapterConfig;
           return createWeatherComposition(
@@ -74,7 +80,6 @@ export function createWeatherFeatureRegistryEntry(
             registryDependencies.personalContextReader,
           );
         },
-        parseConfig: parseWeatherOpenMeteoAdapterConfig,
       }),
     },
   };

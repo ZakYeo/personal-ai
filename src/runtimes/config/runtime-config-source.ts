@@ -5,6 +5,7 @@ import { createRuntimeFeatureAdapterRegistry } from "../default-feature-adapter-
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import { rebindFeatureAdapters } from "./feature-config.js";
 import { isAbsolute } from "node:path";
+import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-registry.js";
 
 export type RuntimeConfigSource =
   | LoadedConfigSource
@@ -20,6 +21,7 @@ interface ConfiguredRuntimeConfigSourceOptions {
   config?: LoadedRuntimeConfig;
   configDirectory?: string;
   configPath?: string;
+  desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
   featureAdapterRegistry?: FeatureAdapterRegistry;
   env?: Record<string, string | undefined>;
   fetch?: typeof fetch;
@@ -37,6 +39,12 @@ export function resolveConfiguredRuntimeConfigSource(
     load: () =>
       loadConfigWithSource({
         ...(options.configPath ? { configPath: options.configPath } : {}),
+        ...(options.desktopVoiceProviderAdapterRegistry
+          ? {
+              desktopVoiceProviderAdapterRegistry:
+                options.desktopVoiceProviderAdapterRegistry,
+            }
+          : {}),
         ...(options.featureAdapterRegistry
           ? { featureAdapterRegistry: options.featureAdapterRegistry }
           : {

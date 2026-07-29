@@ -3,7 +3,7 @@ import { resolveOpenAIApiKey } from "../../adapters/openai/openai-client.js";
 import { createOpenAIWebSearch } from "../../adapters/openai/openai-web-search.js";
 import { createInternetSearchFeature } from "../../features/internet-search/internet-search-feature.js";
 import {
-  defineFeatureAdapterEntry,
+  defineFeatureAdapter,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import {
@@ -16,19 +16,25 @@ interface InternetSearchFeatureRegistryDependencies {
   fetch: typeof fetch;
 }
 
+const mockInternetSearchAdapter = defineFeatureAdapter({
+  parseConfig: parseInternetSearchFeatureConfig,
+});
+const openAIInternetSearchAdapter = defineFeatureAdapter({
+  parseConfig: parseInternetSearchOpenAIAdapterConfig,
+});
+
 export function createInternetSearchFeatureRegistryEntry(
   dependencies: InternetSearchFeatureRegistryDependencies,
 ): FeatureRegistryEntry {
   return {
     adapters: {
-      mock: defineFeatureAdapterEntry({
+      mock: mockInternetSearchAdapter.bind({
         create: ({ adapterConfig }) =>
           createInternetSearchFeature(createMockInternetSearch(), {
             maxResults: adapterConfig.maxResults,
           }),
-        parseConfig: parseInternetSearchFeatureConfig,
       }),
-      openai: defineFeatureAdapterEntry({
+      openai: openAIInternetSearchAdapter.bind({
         create: ({ adapterConfig }) =>
           createInternetSearchFeature(
             createOpenAIWebSearch({
@@ -38,7 +44,6 @@ export function createInternetSearchFeatureRegistryEntry(
             }),
             { maxResults: adapterConfig.maxResults },
           ),
-        parseConfig: parseInternetSearchOpenAIAdapterConfig,
         validateStartup: (adapterConfig) => {
           resolveOpenAIApiKey(
             adapterConfig.openai,

@@ -3,7 +3,7 @@ import { resolveGoogleCalendarCredentials } from "../../adapters/google-calendar
 import { createMockCalendar } from "../../adapters/mock/mock-calendar.js";
 import { createCalendarFeature } from "../../features/calendar/calendar-feature.js";
 import {
-  defineFeatureAdapterEntry,
+  defineFeatureAdapter,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import {
@@ -17,12 +17,19 @@ interface CalendarFeatureRegistryDependencies {
   fetch: typeof fetch;
 }
 
+const googleCalendarAdapter = defineFeatureAdapter({
+  parseConfig: parseCalendarGoogleAdapterConfig,
+});
+const mockCalendarAdapter = defineFeatureAdapter({
+  parseConfig: parseCalendarFeatureConfig,
+});
+
 export function createCalendarFeatureRegistryEntry(
   dependencies: CalendarFeatureRegistryDependencies,
 ): FeatureRegistryEntry {
   return {
     adapters: {
-      google: defineFeatureAdapterEntry({
+      google: googleCalendarAdapter.bind({
         create: (context) => {
           return createCalendarFeature(
             createGoogleCalendarAdapter({
@@ -35,16 +42,14 @@ export function createCalendarFeatureRegistryEntry(
             },
           );
         },
-        parseConfig: parseCalendarGoogleAdapterConfig,
         validateStartup: (adapterConfig) =>
           validateGoogleCalendarStartup(adapterConfig, dependencies.env),
       }),
-      mock: defineFeatureAdapterEntry({
+      mock: mockCalendarAdapter.bind({
         create: (context) =>
           createCalendarFeature(createMockCalendar(), {
             upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
           }),
-        parseConfig: parseCalendarFeatureConfig,
       }),
     },
   };
