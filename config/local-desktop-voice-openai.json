@@ -198,7 +198,10 @@
       "enabled": true,
       "adapter": "openMeteo",
       "watches": {
-        "adapter": "local"
+        "adapter": "file",
+        "state": {
+          "path": "state/weather-watches.json"
+        }
       }
     },
     "messaging": {
@@ -207,7 +210,10 @@
     },
     "alarms": {
       "enabled": true,
-      "adapter": "local",
+      "adapter": "file",
+      "state": {
+        "path": "state/alarms.json"
+      },
       "confirmationRequiredCapabilities": ["alarm.create"]
     },
     "tasks": {

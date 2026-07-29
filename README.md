@@ -173,7 +173,9 @@ application-owned clarification can resume the exact provider session.
 
 The default desktop OpenAI voice service config used by `npm start` selects the
 Google Calendar adapter, OpenAI internet search, the OpenAI response rewriter,
-and a config-relative durable task store. Internet search reuses
+Open-Meteo weather, and config-relative durable alarm, weather-watch, and task
+stores. This enables every currently implemented feature; explicit personal
+profiles and daily briefings remain planned milestones. Internet search reuses
 `OPENAI_API_KEY`; its bounded source
 annotations become visible HTTPS citations, and retrieved text remains
 untrusted data. Google Calendar access
@@ -448,7 +450,8 @@ npm run cli -- ask --config path/to/google-calendar-config.json "Hey Jarvis, wha
 ```
 
 Persist alarms by selecting the file adapter in a local config. The checked-in
-default continues to use the deterministic in-memory adapter. Relative paths
+deterministic default continues to use the in-memory adapter, while the
+`npm start` config persists alarms to `state/alarms.json`. Relative paths
 resolve from the directory containing the selected config, as demonstrated by
 `config/persistent-alarms.example.json`.
 

@@ -176,17 +176,42 @@ describe("loadConfig", () => {
     );
   });
 
-  it("persists desktop OpenAI tasks relative to the selected config", async () => {
+  it("enables every implemented desktop feature with durable local state where supported", async () => {
     const input: unknown = JSON.parse(
       await readFile("config/local-desktop-voice-openai.json", "utf8"),
     );
 
     expect(input).toMatchObject({
       features: {
+        alarms: {
+          adapter: "file",
+          enabled: true,
+          state: { path: "state/alarms.json" },
+        },
+        calendar: {
+          adapter: "google",
+          enabled: true,
+        },
+        internetSearch: {
+          adapter: "openai",
+          enabled: true,
+        },
+        messaging: {
+          adapter: "mock",
+          enabled: true,
+        },
         tasks: {
           adapter: "file",
           enabled: true,
           state: { path: "state/tasks.json" },
+        },
+        weather: {
+          adapter: "openMeteo",
+          enabled: true,
+          watches: {
+            adapter: "file",
+            state: { path: "state/weather-watches.json" },
+          },
         },
       },
     });

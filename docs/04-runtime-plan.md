@@ -424,7 +424,9 @@ variables and out of repository config files. The checked-in default config
 remains deterministic and uses mock/local adapters.
 The committed `config/persistent-alarms.example.json` keeps its state path local
 to the example config directory. A deployed service may instead use an absolute
-device path. The alarm file is single-process-owned: operations are serialized
+device path. The checked-in desktop OpenAI config persists alarms to
+`state/alarms.json` relative to its config directory. The alarm file is
+single-process-owned: operations are serialized
 within one adapter instance and reread current state, while cross-process locks
 remain outside the supported boundary. Configured desktop and Raspberry Pi
 voice services give that same store to the neutral alarm scheduler and deliver
@@ -490,9 +492,10 @@ actions.
 The selected weather provider is Open-Meteo's free non-commercial forecast and
 geocoding service. Runtime config may select endpoint and timeout policy but has
 no weather API-key field or weather credential preflight. Checked-in
-deterministic config selects the mock provider and local watch state; desktop/Pi
-OpenAI operator config selects Open-Meteo, and Pi uses
-`/var/lib/personal-ai/weather-watches.json`. The opt-in
+deterministic config selects the mock provider and local watch state. Desktop
+and Pi OpenAI operator configs select Open-Meteo. The desktop config persists
+watches to `state/weather-watches.json` relative to its config directory, while
+Pi uses `/var/lib/personal-ai/weather-watches.json`. The opt-in
 `npm run test:e2e:open-meteo` smoke exercises a live key-free current forecast.
 The opt-in `npm run test:e2e:openai:weather` smoke exercises live OpenAI routing
 through the deterministic weather adapter. Text and voice profile commands use
