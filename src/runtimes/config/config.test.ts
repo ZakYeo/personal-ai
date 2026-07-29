@@ -134,6 +134,8 @@ describe("loadConfig", () => {
     expect(desktopVoice?.wakeActivation?.environmentAllowlist).toEqual([
       "PULSE_SERVER",
     ]);
+    expect(desktopVoice?.audioOutput?.timeoutMs).toBe(60_000);
+    expect(desktopVoice?.streamingAudioOutput?.timeoutMs).toBe(60_000);
   });
 
   it("keeps Pi durable feature state under the systemd-owned state directory", async () => {

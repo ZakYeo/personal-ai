@@ -119,7 +119,7 @@
         "default"
       ],
       "environmentAllowlist": ["PULSE_SERVER"],
-      "timeoutMs": 30000
+      "timeoutMs": 60000
     },
     "openAIRealtimeTranscription": {
       "model": "gpt-realtime-whisper"
@@ -177,7 +177,7 @@
       "command": "sox",
       "args": ["-q", "{input}", "-t", "pulseaudio", "default"],
       "environmentAllowlist": ["PULSE_SERVER"],
-      "timeoutMs": 10000
+      "timeoutMs": 60000
     }
   },
   "features": {

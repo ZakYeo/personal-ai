@@ -149,7 +149,9 @@ different false-wake tradeoff.
 The checked-in local desktop config targets WSLg's explicit PulseAudio source
 and sink and forwards only `PULSE_SERVER` to its audio commands. The
 openWakeWord listener makes the same selection when that variable is present
-and otherwise retains SoX's native default recorder.
+and otherwise retains SoX's native default recorder. Desktop playback keeps a
+60-second command deadline so longer spoken answers can finish without being
+misclassified as failed.
 The default desktop command capture uses SoX silence detection after wake
 activation so recording stops shortly after trailing silence while retaining an
 eight-second maximum capture guard.
