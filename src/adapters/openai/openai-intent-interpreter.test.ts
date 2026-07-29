@@ -659,6 +659,32 @@ describe("OpenAIIntentInterpreter", () => {
     });
   });
 
+  it.each([
+    ["clarification", "See https://example.com for choices."],
+    ["unknown", "See www.example.com for details."],
+    ["unsupported", "Read [the source](https://example.com)."],
+    ["clarification", "Choose the source marked [1]."],
+  ])("rejects %s response text unsuitable for speech", async (kind, text) => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-1",
+        output_text: JSON.stringify({
+          command: null,
+          kind,
+          plan: null,
+          response: { status: "unknown", text },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({ fetch });
+
+    await expect(
+      interpretOnce(interpreter, "Can you help?", context),
+    ).rejects.toThrow(
+      "OpenAI intent response text must be suitable for spoken delivery.",
+    );
+  });
+
   it("extracts text from Responses API output content", async () => {
     const fetch = createFetchStub(
       jsonResponse({

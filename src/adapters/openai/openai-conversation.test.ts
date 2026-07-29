@@ -234,6 +234,30 @@ describe("OpenAIConversationResponder", () => {
     );
   });
 
+  it.each([
+    "See https://example.com for details.",
+    "See www.example.com for details.",
+    "Read [the source](https://example.com).",
+    "The answer is supported by [1].",
+  ])("rejects conversation text unsuitable for speech: %s", async (text) => {
+    const responder = createResponder({
+      fetch: createFetchStub(
+        jsonResponse({
+          output_text: JSON.stringify({
+            expectsFollowUp: false,
+            text,
+          }),
+        }),
+      ),
+    });
+
+    await expect(
+      responder.respond("Tell me more.", { recentTurns: [] }, context),
+    ).rejects.toThrow(
+      "OpenAI conversation response text must be suitable for spoken delivery.",
+    );
+  });
+
   it("rejects missing provider output text with conversation errors", async () => {
     const responder = createResponder({
       fetch: createFetchStub(jsonResponse({ output: [] })),

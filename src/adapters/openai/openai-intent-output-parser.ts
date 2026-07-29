@@ -8,6 +8,7 @@ import type { IntentInterpretation } from "../../ports/intent.js";
 import { OpenAIIntentError } from "./openai-intent-error.js";
 import { isRecord } from "../parsing.js";
 import { parseOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
+import { isOpenAISpokenTextSafe } from "./openai-spoken-style.js";
 
 export function parseOpenAIIntentOutput(value: string): IntentInterpretation {
   return parseIntentInterpretation(
@@ -202,6 +203,11 @@ function parseAssistantResponse(value: unknown): AssistantResponse {
   if (typeof value.text !== "string" || value.text.length === 0) {
     throw new OpenAIIntentError(
       "OpenAI intent response text must be a non-empty string.",
+    );
+  }
+  if (!isOpenAISpokenTextSafe(value.text)) {
+    throw new OpenAIIntentError(
+      "OpenAI intent response text must be suitable for spoken delivery.",
     );
   }
 

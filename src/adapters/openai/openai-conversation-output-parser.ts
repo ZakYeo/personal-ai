@@ -1,6 +1,7 @@
 import { OpenAIConversationError } from "./openai-conversation-error.js";
 import { isRecord } from "../parsing.js";
 import { parseOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
+import { isOpenAISpokenTextSafe } from "./openai-spoken-style.js";
 
 export function parseOpenAIConversationResponse(value: string): {
   expectsFollowUp: boolean;
@@ -17,6 +18,11 @@ export function parseOpenAIConversationResponse(value: string): {
   if (typeof parsed.text !== "string" || parsed.text.length === 0) {
     throw new OpenAIConversationError(
       "OpenAI conversation response text must be a non-empty string.",
+    );
+  }
+  if (!isOpenAISpokenTextSafe(parsed.text)) {
+    throw new OpenAIConversationError(
+      "OpenAI conversation response text must be suitable for spoken delivery.",
     );
   }
 
