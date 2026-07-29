@@ -6,6 +6,7 @@ describe("systemRuntimeBackgroundTaskTimer", () => {
   });
 
   it("resolves immediately without listeners when already aborted", async () => {
+    vi.useFakeTimers();
     const shutdown = new AbortController();
     shutdown.abort();
     const addEventListener = vi.spyOn(shutdown.signal, "addEventListener");
@@ -13,6 +14,7 @@ describe("systemRuntimeBackgroundTaskTimer", () => {
     await systemRuntimeBackgroundTaskTimer.wait(60_000, shutdown.signal);
 
     expect(addEventListener).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("removes the abort listener after the timeout fires", async () => {
@@ -22,6 +24,7 @@ describe("systemRuntimeBackgroundTaskTimer", () => {
       shutdown.signal,
       "removeEventListener",
     );
+    const addEventListener = vi.spyOn(shutdown.signal, "addEventListener");
     const waiting = systemRuntimeBackgroundTaskTimer.wait(
       60_000,
       shutdown.signal,
@@ -30,9 +33,11 @@ describe("systemRuntimeBackgroundTaskTimer", () => {
     await vi.advanceTimersByTimeAsync(60_000);
     await waiting;
 
+    const registeredListener = addEventListener.mock.calls[0]?.[1];
+    expect(registeredListener).toEqual(expect.any(Function));
     expect(removeEventListener).toHaveBeenCalledExactlyOnceWith(
       "abort",
-      expect.any(Function),
+      registeredListener,
     );
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -44,6 +49,7 @@ describe("systemRuntimeBackgroundTaskTimer", () => {
       shutdown.signal,
       "removeEventListener",
     );
+    const addEventListener = vi.spyOn(shutdown.signal, "addEventListener");
     const waiting = systemRuntimeBackgroundTaskTimer.wait(
       60_000,
       shutdown.signal,
@@ -52,9 +58,11 @@ describe("systemRuntimeBackgroundTaskTimer", () => {
     shutdown.abort();
     await waiting;
 
+    const registeredListener = addEventListener.mock.calls[0]?.[1];
+    expect(registeredListener).toEqual(expect.any(Function));
     expect(removeEventListener).toHaveBeenCalledExactlyOnceWith(
       "abort",
-      expect.any(Function),
+      registeredListener,
     );
     expect(vi.getTimerCount()).toBe(0);
   });
