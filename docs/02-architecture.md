@@ -192,9 +192,11 @@ adapters without making features import or invoke one another:
   source snapshots for three subsequent completed turns without inventing or
   retaining provider result IDs. The adapter validates every returned
   annotation and projects excess valid sources into the configured result
-  limit. The feature exposes natural source titles plus separate validated link
-  metadata, keeping raw URLs and citation markup out of speech; retrieved text
-  remains untrusted external data.
+  limit without retaining claims supported only by excluded citations. One
+  feature-owned human-text policy sanitizes answers, titles, and extracts before
+  speech or result-reference retention. The feature exposes those natural
+  source titles plus separate validated link metadata; retrieved text remains
+  untrusted external data.
 - Weather uses provider-neutral current and forecast ports with Open-Meteo as
   the selected key-free non-commercial adapter. Durable weather watches are
   owned by the weather adapter, which contributes a neutral background task

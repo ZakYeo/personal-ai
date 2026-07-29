@@ -508,13 +508,17 @@ configs select `openai`, capture typed Responses configuration during config
 parsing, and reuse `OPENAI_API_KEY`. The adapter requires the hosted
 `web_search` tool, applies the shared OpenAI JSON transport timeout policy, and
 validates every HTTP(S) citation annotation before projecting first-cited
-sources into the configured result limit. Response bodies are read
-through a bounded streaming reader, and the active voice-service shutdown signal
-cancels both the request and body consumption. Text, desktop voice, and Pi
-service composition all use the same feature registry entry. Search answers
-carry exact URLs only as structured citation/reference metadata; normal text
-and speech use source titles, while hyperlink-capable CLI output attaches the
-URL as a hidden title link target.
+sources into the configured result limit; answer regions supported only by
+excluded sources are discarded. Response bodies are read through a bounded
+streaming reader, and the active voice-service shutdown signal cancels both the
+request and body consumption. Text, desktop voice, and Pi service composition
+all use the same feature registry entry. Search answers carry exact URLs only as
+structured citation/reference metadata. One feature-owned policy sanitizes
+answers, source titles, and extracts before speech or retention, while
+hyperlink-capable CLI output attaches URLs with a one-pass non-overlapping hidden
+title-link renderer. OpenAI intent fallback, clarification, conversation, and
+response-rewriter output parsers independently enforce the shared spoken-text
+policy after prompting.
 
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without

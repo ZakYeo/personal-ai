@@ -54,7 +54,8 @@ Implemented today:
   timeouts, provider failures, and malformed responses.
 - Bounded source-grounded internet search with deterministic and opt-in OpenAI
   web-search adapters, clickable source-title citations, URL-free spoken
-  answers, and process-local source follow-ups.
+  answers and follow-ups, conservative excess-source projection, and
+  process-local source follow-ups.
 - Provider-neutral current and forecast weather with deterministic and
   key-free Open-Meteo adapters, protected location/timezone/unit/freshness
   facts, explicit-home coat guidance, and required source attribution.
@@ -180,10 +181,11 @@ Google Calendar adapter, OpenAI internet search, the OpenAI response rewriter,
 Open-Meteo weather, and config-relative durable alarm, weather-watch, and task
 stores. This enables every currently implemented feature; explicit personal
 profiles and daily briefings remain planned milestones. Internet search reuses
-`OPENAI_API_KEY`; its bounded source annotations become natural source titles
-with validated HTTPS link metadata, while raw URLs and citation markup are
-excluded from speech. Retrieved text remains untrusted data. Google Calendar access
-requires local OAuth credentials in `.env`: `GOOGLE_CALENDAR_CLIENT_ID`,
+`OPENAI_API_KEY`; its bounded source annotations become sanitized natural source
+titles with validated HTTPS link metadata, while raw URLs and citation markup
+are excluded from initial and follow-up speech. Retrieved text remains untrusted
+data. Google Calendar access requires local OAuth credentials in `.env`:
+`GOOGLE_CALENDAR_CLIENT_ID`,
 `GOOGLE_CALENDAR_CLIENT_SECRET`, and `GOOGLE_CALENDAR_REFRESH_TOKEN`. If you
 already have the client ID and secret, run `npm run setup:google-calendar` to
 approve read-only calendar access and print the refresh-token line to add to

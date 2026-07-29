@@ -176,10 +176,14 @@ Included:
   `web_search` adapters selected through the normal per-feature registry.
 - One bounded synthesized answer separated from its validated URL-citation set
   and source metadata. Every annotation is validated; excess valid sources are
-  projected by first citation into the configured limit with rebuilt offsets.
+  projected by first citation into the configured limit with rebuilt offsets,
+  and claims supported only by excluded citations are discarded.
 - Human responses use natural source titles without raw URLs, Markdown links,
   citation brackets, or duplicated source lists. Exact HTTPS URLs remain
   structured metadata for result follow-ups and hidden clickable title targets.
+  One feature-owned policy sanitizes answers, titles, and extracts before speech
+  or result-reference retention, and terminal links render once with
+  deterministic non-overlap precedence.
 - Process-local, snapshot-only source follow-ups capped by the shared ten-item,
   three-subsequent-turn result-reference session.
 - Terminal-only execution: retrieved content never becomes a tool observation,
@@ -205,8 +209,9 @@ Outcomes:
 
 - Current-information requests return one concise answer with natural source
   titles and bounded validated HTTPS citation metadata. Duplicate citations
-  reuse the same source reference; excess valid sources are projected, while
-  unmatched, malformed, overlapping, or unsafe citation sets fail safely.
+  reuse the same source reference; excess valid sources and their unsupported
+  claims are projected out, while unmatched, malformed, overlapping, or unsafe
+  citation sets fail safely.
 - A no-result search clears older source references immediately. Follow-ups use
   only the latest immutable displayed source facts and never perform a hidden
   provider lookup.

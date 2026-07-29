@@ -475,14 +475,20 @@ should also guard against subtler boundary and abstraction drift.
   crawling, downloads, forms, or authenticated browsing.
 - A provider returning more valid cited sources than requested is projected by
   first citation into the configured result limit after every annotation is
-  validated; retained citation offsets are rebuilt after excluded annotation
-  spans are removed. Malformed, overlapping, unsafe, or unresolved citations
-  still fail closed.
+  validated. Answer regions associated with excluded citations are discarded,
+  retained citation offsets are rebuilt, and unsupported claims are never left
+  behind. Malformed, overlapping, unsafe, or unresolved citations still fail
+  closed.
 - Search responses keep exact URLs in validated citation and result-reference
-  metadata. Human text and speech use natural source titles without raw URLs,
-  Markdown links, bracketed citation markers, or duplicated source lists.
-  Hyperlink-capable text boundaries may use the exact URL as a hidden title
-  link target.
+  metadata. One application-owned search human-text policy sanitizes answers,
+  titles, and extracts before speech or result-reference retention. Human text
+  and speech contain no raw URLs, Markdown links, bracketed citation markers,
+  terminal controls, or duplicated source lists. Hyperlink-capable text
+  boundaries may use the exact URL as a hidden title link target through a
+  deterministic one-pass, non-overlapping renderer.
+- OpenAI intent fallback and clarification text, conversation text, and response
+  rewrites must pass the shared spoken-text validator after provider parsing.
+  Spoken safety cannot rely on prompt compliance alone.
 - Internet search is terminal-only rather than an intent tool-chain read.
   Later intent interpretation may receive only opaque source ordinals and
   references, never retrieved titles, URLs, extracts, dates, or synthesized
