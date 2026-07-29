@@ -52,4 +52,47 @@ describe("assistant response rendering", () => {
       ),
     ).toBe("Unsafe citation.");
   });
+
+  it("uses the first URL for duplicate citation titles without nesting links", () => {
+    const rendered = renderAssistantResponseText(
+      {
+        citations: [
+          { title: "Same source", url: "https://first.example/source" },
+          { title: "Same source", url: "https://second.example/source" },
+        ],
+        status: "ok",
+        text: "Same source and Same source.",
+      },
+      { hyperlinks: true },
+    );
+
+    expect(rendered.split("\u001B]8;;")).toHaveLength(5);
+    expect(rendered).toContain("https://first.example/source");
+    expect(rendered).not.toContain("https://second.example/source");
+  });
+
+  it("renders overlapping citation titles once with longest-title precedence", () => {
+    const rendered = renderAssistantResponseText(
+      {
+        citations: [
+          { title: "Trump", url: "https://short.example/source" },
+          {
+            title: "Donald Trump",
+            url: "https://long.example/source",
+          },
+        ],
+        status: "ok",
+        text: "Donald Trump and Trump.",
+      },
+      { hyperlinks: true },
+    );
+
+    expect(rendered.split("\u001B]8;;")).toHaveLength(5);
+    expect(rendered).toContain(
+      "\u001B]8;;https://long.example/source\u0007Donald Trump\u001B]8;;\u0007",
+    );
+    expect(rendered).toContain(
+      "\u001B]8;;https://short.example/source\u0007Trump\u001B]8;;\u0007",
+    );
+  });
 });
