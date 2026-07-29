@@ -1,5 +1,6 @@
 import { deterministicScenarios } from "../test-support/deterministic-scenarios.js";
 import { disabledCalendarConfig } from "../test-support/deterministic-runtime-fixtures.js";
+import { readJsonRequestBody } from "../test-support/adapter-contract.js";
 import {
   createConfiguredTextRuntimeHarness,
   createRuntimeConfigWithGoogleCalendarAdapter,
@@ -115,7 +116,7 @@ describe("createConfiguredTextRuntime", () => {
     );
   });
 
-  it("wires OpenAI intent providers into the assistant", async () => {
+  it("routes capability questions as terminal OpenAI commands, not read tools", async () => {
     const fetch = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
@@ -124,9 +125,9 @@ describe("createConfiguredTextRuntime", () => {
             kind: "command",
             plan: null,
             command: {
-              capability: "alarm.list",
+              capability: "assistant.capabilities.list",
               parameters: [],
-              rawText: deterministicScenarios.alarmListEmpty.text,
+              rawText: deterministicScenarios.capabilityList.text,
             },
             response: null,
           }),
@@ -141,14 +142,38 @@ describe("createConfiguredTextRuntime", () => {
     });
 
     await expect(
-      assistant.handleText(deterministicScenarios.alarmListEmpty.text),
-    ).resolves.toEqual(deterministicScenarios.alarmListEmpty.response);
+      assistant.handleText(deterministicScenarios.capabilityList.text),
+    ).resolves.toEqual(deterministicScenarios.capabilityList.response);
 
     expect(fetch).toHaveBeenCalledWith(
       "https://api.openai.test/v1/responses",
       expect.objectContaining({
         method: "POST",
       }),
+    );
+
+    const body = readJsonRequestBody<{
+      text: {
+        format: {
+          schema: {
+            properties: {
+              command: {
+                properties: { capability: { enum: string[] } };
+              };
+            };
+          };
+        };
+      };
+      tools: Array<{ description: string }>;
+    }>(fetch);
+    expect(
+      body.text.format.schema.properties.command.properties.capability.enum,
+    ).toContain("assistant.capabilities.list");
+    expect(body.tools.map(({ description }) => description)).not.toEqual(
+      expect.arrayContaining([
+        "List the assistant capabilities enabled in this runtime using the generated capability catalog.",
+        "Describe one enabled assistant capability by stable capability name.",
+      ]),
     );
   });
 

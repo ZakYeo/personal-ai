@@ -55,7 +55,6 @@ export function createCapabilityInfoFeature(): FeaturePlugin {
             "List the assistant capabilities enabled in this runtime using the generated capability catalog.",
           risk: "low",
           summary: "List enabled assistant capabilities.",
-          toolChain: "read",
           parameters: capabilityListParameters,
           execute: (_request, context) =>
             listCapabilities(context.capabilityCatalog),
@@ -65,7 +64,6 @@ export function createCapabilityInfoFeature(): FeaturePlugin {
             "Describe one enabled assistant capability by stable capability name.",
           risk: "low",
           summary: "Describe one enabled assistant capability.",
-          toolChain: "read",
           parameters: capabilityDescribeParameters,
           execute: (request, context) =>
             describeCapability(context.capabilityCatalog, request.args),

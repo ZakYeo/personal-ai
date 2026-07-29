@@ -50,6 +50,17 @@ describe("createCapabilityInfoFeature", () => {
     });
   });
 
+  it("keeps human-facing capability answers terminal-only", () => {
+    const feature = createFeature();
+
+    expect(
+      feature.capabilities.map(({ name, toolChain }) => ({ name, toolChain })),
+    ).toEqual([
+      { name: "assistant.capabilities.list", toolChain: undefined },
+      { name: "assistant.capabilities.describe", toolChain: undefined },
+    ]);
+  });
+
   it("handles capability list and describe commands", () => {
     const feature = createFeature();
 

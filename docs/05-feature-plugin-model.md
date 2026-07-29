@@ -188,7 +188,10 @@ For each capability:
 - Set `risk` to `low` or `high`.
 - Set `toolChain: "read"` only for idempotent read capabilities whose safe
   result projection is suitable for an intent provider. Omission means terminal
-  only and fails closed.
+  only and fails closed. Capabilities that already produce the final
+  human-facing answer, including the built-in capability catalog list and
+  description commands, remain terminal-only rather than becoming intermediate
+  provider observations.
 - Provide a short user-facing `summary` and fuller `description`. Runtime
   composition uses these fields for provider prompts and the assistant
   capability catalog, so capability-awareness should come from metadata rather
