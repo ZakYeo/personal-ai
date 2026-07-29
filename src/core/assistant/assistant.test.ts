@@ -62,7 +62,7 @@ describe("createAssistant", () => {
       intentInterpreter: createInterpreter(command),
     });
 
-    await expect(assistant.handleText(" hello ")).resolves.toEqual({
+    await expect(assistant.handleText(" echo hello ")).resolves.toEqual({
       status: "ok",
       text: "Handled deterministically.",
     });
@@ -147,7 +147,7 @@ describe("createAssistant", () => {
       responseRewriter: { rewrite },
     });
 
-    await expect(assistant.handleText("hello")).resolves.toEqual({
+    await expect(assistant.handleText("echo hello")).resolves.toEqual({
       citations: [
         {
           title: "Example source",
@@ -161,7 +161,7 @@ describe("createAssistant", () => {
       {
         capability: "test.echo",
         command,
-        originalText: "hello",
+        originalText: "echo hello",
         response: {
           citations: [
             {

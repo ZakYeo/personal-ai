@@ -67,7 +67,7 @@ describe("core assistant test support", () => {
       intentInterpreter: createInterpreter(command),
     });
 
-    await expect(assistant.handleText("hello")).resolves.toEqual({
+    await expect(assistant.handleText("echo hello")).resolves.toEqual({
       status: "ok",
       text: "Handled hello.",
     });
