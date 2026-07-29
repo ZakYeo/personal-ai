@@ -49,7 +49,7 @@ describe("weather feature adapters", () => {
       }),
     );
     const featureAdapterRegistry = createDefaultFeatureAdapterRegistry({
-      personalContextReader: { readHomeLocation },
+      weather: { personalContextReader: { readHomeLocation } },
     });
     const config = parseAssistantConfig(
       createRawWeatherConfig({ adapter: "mock", enabled: true }),

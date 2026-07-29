@@ -112,12 +112,14 @@ describe("mock voice runtime", () => {
 
   it("speaks stored-home coat advice through configured voice composition", async () => {
     const featureAdapterRegistry = createDefaultFeatureAdapterRegistry({
-      personalContextReader: {
-        readHomeLocation: () =>
-          Promise.resolve({
-            place: "London",
-            provenance: "user-authored",
-          }),
+      weather: {
+        personalContextReader: {
+          readHomeLocation: () =>
+            Promise.resolve({
+              place: "London",
+              provenance: "user-authored",
+            }),
+        },
       },
     });
     const config = parseAssistantConfig(

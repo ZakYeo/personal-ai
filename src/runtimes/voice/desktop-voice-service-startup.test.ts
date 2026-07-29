@@ -144,6 +144,9 @@ describe("desktop voice service startup", () => {
                     }),
                   ),
                 parseConfig: () => ({}),
+                selectDependencies: ({ configDirectory }) => ({
+                  configDirectory,
+                }),
                 validateStartup: ({ dependencies }) => {
                   validateStartup(dependencies);
                   throw new Error("stop after validation");

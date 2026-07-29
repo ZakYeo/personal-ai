@@ -20,8 +20,6 @@ import { runWeatherWatchEvaluator } from "../weather/weather-watch-evaluator.js"
 import {
   parseWeatherFeatureConfig,
   parseWeatherOpenMeteoAdapterConfig,
-  type WeatherFeatureConfig,
-  type WeatherOpenMeteoAdapterConfig,
   type WeatherWatchStoreConfig,
 } from "./weather-feature-adapter-config.js";
 
@@ -35,7 +33,7 @@ export function createWeatherFeatureRegistryEntry(
 ): FeatureRegistryEntry {
   return {
     adapters: {
-      mock: defineFeatureAdapterEntry<WeatherFeatureConfig>({
+      mock: defineFeatureAdapterEntry({
         create: ({ adapterConfig, dependencies }) => {
           const { watchStore, ...featureConfig } = adapterConfig;
           return createWeatherComposition(
@@ -51,8 +49,9 @@ export function createWeatherFeatureRegistryEntry(
           );
         },
         parseConfig: parseWeatherFeatureConfig,
+        selectDependencies: selectWeatherDependencies,
       }),
-      openMeteo: defineFeatureAdapterEntry<WeatherOpenMeteoAdapterConfig>({
+      openMeteo: defineFeatureAdapterEntry({
         create: ({ adapterConfig, dependencies }) => {
           const { openMeteo, watchStore, ...featureConfig } = adapterConfig;
           return createWeatherComposition(
@@ -72,6 +71,7 @@ export function createWeatherFeatureRegistryEntry(
           );
         },
         parseConfig: parseWeatherOpenMeteoAdapterConfig,
+        selectDependencies: selectOpenMeteoWeatherDependencies,
       }),
     },
   };
@@ -81,7 +81,7 @@ function createWeatherComposition(
   provider: WeatherProviderPort,
   watchStore: WeatherWatchStore,
   maxForecastAgeMinutes: number,
-  dependencies: FeatureAdapterDependencies,
+  dependencies: ReturnType<typeof selectWeatherDependencies>,
   personalContext?: PersonalContextReaderPort,
 ) {
   const feature = createWeatherFeature(provider, {
@@ -118,7 +118,7 @@ function createWeatherComposition(
 
 function createWeatherWatchStore(
   config: WeatherWatchStoreConfig,
-  dependencies: FeatureAdapterDependencies,
+  dependencies: ReturnType<typeof selectWeatherDependencies>,
   storeDependencies: FileWeatherWatchStoreDependencies,
 ): WeatherWatchStore {
   const now = () => dependencies.clock.now();
@@ -132,4 +132,25 @@ function createWeatherWatchStore(
         now,
       })
     : createInMemoryWeatherWatchStore({ now });
+}
+
+function selectWeatherDependencies(dependencies: FeatureAdapterDependencies) {
+  return {
+    clock: dependencies.clock,
+    ...(dependencies.configDirectory
+      ? { configDirectory: dependencies.configDirectory }
+      : {}),
+    ...(dependencies.notificationDelivery
+      ? { notificationDelivery: dependencies.notificationDelivery }
+      : {}),
+  };
+}
+
+function selectOpenMeteoWeatherDependencies(
+  dependencies: FeatureAdapterDependencies,
+) {
+  return {
+    ...selectWeatherDependencies(dependencies),
+    fetch: dependencies.fetch,
+  };
 }

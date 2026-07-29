@@ -217,11 +217,13 @@ describe("task feature adapters", () => {
   it("accepts injected narrow task-state IO", async () => {
     const stateFailure = new Error("controlled task state failure");
     const registry = createDefaultFeatureAdapterRegistry({
-      taskStore: {
-        fileSystem: {
-          mkdir: () => Promise.resolve(),
-          readFile: () => Promise.reject(stateFailure),
-          replaceFile: () => Promise.resolve(),
+      tasks: {
+        store: {
+          fileSystem: {
+            mkdir: () => Promise.resolve(),
+            readFile: () => Promise.reject(stateFailure),
+            replaceFile: () => Promise.resolve(),
+          },
         },
       },
     });

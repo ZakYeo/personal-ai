@@ -65,13 +65,16 @@ describe("createConfiguredFeatures", () => {
     let observedContext:
       | {
           adapterConfig: { endpoint: string };
-          dependencies: FeatureAdapterDependencies;
+          dependencies: { clock: FeatureAdapterDependencies["clock"] };
         }
       | undefined;
     const registry: FeatureAdapterRegistry = {
       notes: {
         adapters: {
-          remote: defineFeatureAdapterEntry<{ endpoint: string }>({
+          remote: defineFeatureAdapterEntry<
+            { endpoint: string },
+            { clock: FeatureAdapterDependencies["clock"] }
+          >({
             create: (context) => {
               observedContext = context;
 
@@ -84,6 +87,7 @@ describe("createConfiguredFeatures", () => {
 
               return { endpoint: featureConfig.endpoint };
             },
+            selectDependencies: ({ clock }) => ({ clock }),
           }),
         },
       },
@@ -107,8 +111,10 @@ describe("createConfiguredFeatures", () => {
     ).toEqual(["notes", "assistant"]);
     expect(observedContext).toMatchObject({
       adapterConfig: { endpoint: "https://notes.test" },
-      dependencies: featureAdapterDependencies,
+      dependencies: { clock: featureAdapterDependencies.clock },
     });
+    expect(observedContext?.dependencies).not.toHaveProperty("env");
+    expect(observedContext?.dependencies).not.toHaveProperty("fetch");
   });
 
   it("ignores disabled features before requiring a registered feature or adapter ID", () => {
@@ -128,9 +134,10 @@ describe("createConfiguredFeatures", () => {
     const registry: FeatureAdapterRegistry = {
       notes: {
         adapters: {
-          remote: defineFeatureAdapterEntry<{ tokenEnv: string }>({
+          remote: defineFeatureAdapterEntry({
             create: () => createTestFeature("notes"),
             parseConfig: () => ({ tokenEnv: "NOTES_TOKEN" }),
+            selectDependencies: ({ env }) => ({ env }),
             validateStartup: ({ adapterConfig, dependencies }) => {
               validateStartup(adapterConfig, dependencies.env);
             },
@@ -164,6 +171,7 @@ describe("createConfiguredFeatures", () => {
           mismatched: defineFeatureAdapterEntry({
             create: () => createTestFeature("calendar"),
             parseConfig: () => ({}),
+            selectDependencies: () => ({}),
           }),
         },
       },
@@ -192,6 +200,7 @@ describe("createConfiguredFeatures", () => {
             create: () =>
               createTestFeature("notes", "assistant.capabilities.list"),
             parseConfig: () => ({}),
+            selectDependencies: () => ({}),
           }),
         },
       },

@@ -11,17 +11,20 @@ export interface FeatureAdapterDependencies {
   notificationDelivery?: NotificationDeliveryPort;
 }
 
-interface FeatureAdapterContext<TAdapterConfig> {
+interface FeatureAdapterContext<TAdapterConfig, TDependencies> {
   adapterConfig: TAdapterConfig;
-  dependencies: FeatureAdapterDependencies;
+  dependencies: TDependencies;
 }
 
-interface FeatureAdapterDefinition<TAdapterConfig> {
+interface FeatureAdapterDefinition<TAdapterConfig, TDependencies> {
   create(
-    context: FeatureAdapterContext<TAdapterConfig>,
+    context: FeatureAdapterContext<TAdapterConfig, TDependencies>,
   ): FeaturePlugin | FeatureAdapterComposition;
   parseConfig(featureConfig: Record<string, unknown>): TAdapterConfig;
-  validateStartup?(context: FeatureAdapterContext<TAdapterConfig>): void;
+  selectDependencies(dependencies: FeatureAdapterDependencies): TDependencies;
+  validateStartup?(
+    context: FeatureAdapterContext<TAdapterConfig, TDependencies>,
+  ): void;
 }
 
 export interface ResolvedFeatureAdapter {
@@ -46,19 +49,25 @@ export interface FeatureRegistryEntry {
 
 export type FeatureAdapterRegistry = Record<string, FeatureRegistryEntry>;
 
-export function defineFeatureAdapterEntry<TAdapterConfig>(
-  entry: FeatureAdapterDefinition<TAdapterConfig>,
+export function defineFeatureAdapterEntry<TAdapterConfig, TDependencies>(
+  entry: FeatureAdapterDefinition<TAdapterConfig, TDependencies>,
 ): FeatureAdapterEntry {
   return {
     parse: (featureConfig) => {
       const adapterConfig = entry.parseConfig(featureConfig);
-
       return {
-        create: (dependencies) => entry.create({ adapterConfig, dependencies }),
+        create: (dependencies) =>
+          entry.create({
+            adapterConfig,
+            dependencies: entry.selectDependencies(dependencies),
+          }),
         ...(entry.validateStartup
           ? {
               validateStartup: (dependencies: FeatureAdapterDependencies) =>
-                entry.validateStartup?.({ adapterConfig, dependencies }),
+                entry.validateStartup?.({
+                  adapterConfig,
+                  dependencies: entry.selectDependencies(dependencies),
+                }),
             }
           : {}),
       };

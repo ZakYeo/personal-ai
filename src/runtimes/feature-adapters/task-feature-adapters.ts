@@ -35,6 +35,7 @@ export function createTaskFeatureRegistryEntry(
             runtimeDependencies,
           ),
         parseConfig: parseFileTaskStoreConfig,
+        selectDependencies: selectTaskDependencies,
       }),
       local: defineFeatureAdapterEntry({
         create: ({ dependencies: runtimeDependencies }) =>
@@ -45,6 +46,7 @@ export function createTaskFeatureRegistryEntry(
             runtimeDependencies,
           ),
         parseConfig: () => {},
+        selectDependencies: selectTaskDependencies,
       }),
     },
   };
@@ -52,7 +54,7 @@ export function createTaskFeatureRegistryEntry(
 
 function createTaskComposition(
   store: TaskStore,
-  dependencies: FeatureAdapterDependencies,
+  dependencies: ReturnType<typeof selectTaskDependencies>,
 ) {
   const feature = createTaskFeature(store);
   const retentionTask = {
@@ -93,6 +95,18 @@ function createTaskComposition(
       retentionTask,
     ],
     feature,
+  };
+}
+
+function selectTaskDependencies(dependencies: FeatureAdapterDependencies) {
+  return {
+    clock: dependencies.clock,
+    ...(dependencies.configDirectory
+      ? { configDirectory: dependencies.configDirectory }
+      : {}),
+    ...(dependencies.notificationDelivery
+      ? { notificationDelivery: dependencies.notificationDelivery }
+      : {}),
   };
 }
 

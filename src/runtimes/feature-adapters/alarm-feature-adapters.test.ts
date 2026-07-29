@@ -187,7 +187,7 @@ describe("alarm feature adapters", () => {
     const assistant = await createConfiguredTextRuntime({
       configPath,
       featureAdapterRegistry: createDefaultFeatureAdapterRegistry({
-        alarmStore: { fileSystem },
+        alarms: { store: { fileSystem } },
       }),
     });
 

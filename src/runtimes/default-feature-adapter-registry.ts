@@ -11,27 +11,29 @@ import { createTaskFeatureRegistryEntry } from "./feature-adapters/task-feature-
 import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
 
 interface DefaultFeatureAdapterRegistryOptions {
-  alarmStore?: FileAlarmStoreDependencies;
-  personalContextReader?: PersonalContextReaderPort;
-  taskStore?: FileTaskStoreDependencies;
-  weatherWatchStore?: FileWeatherWatchStoreDependencies;
+  alarms?: { store?: FileAlarmStoreDependencies };
+  tasks?: { store?: FileTaskStoreDependencies };
+  weather?: {
+    personalContextReader?: PersonalContextReaderPort;
+    watchStore?: FileWeatherWatchStoreDependencies;
+  };
 }
 
 export function createDefaultFeatureAdapterRegistry(
   options: DefaultFeatureAdapterRegistryOptions = {},
 ): FeatureAdapterRegistry {
   return {
-    alarms: createAlarmFeatureRegistryEntry(options.alarmStore),
+    alarms: createAlarmFeatureRegistryEntry(options.alarms?.store),
     calendar: createCalendarFeatureRegistryEntry(),
     internetSearch: createInternetSearchFeatureRegistryEntry(),
     messaging: createMessagingFeatureRegistryEntry(),
-    tasks: createTaskFeatureRegistryEntry(options.taskStore),
+    tasks: createTaskFeatureRegistryEntry(options.tasks?.store),
     weather: createWeatherFeatureRegistryEntry({
-      ...(options.personalContextReader
-        ? { personalContextReader: options.personalContextReader }
+      ...(options.weather?.personalContextReader
+        ? { personalContextReader: options.weather.personalContextReader }
         : {}),
-      ...(options.weatherWatchStore
-        ? { watchStore: options.weatherWatchStore }
+      ...(options.weather?.watchStore
+        ? { watchStore: options.weather.watchStore }
         : {}),
     }),
   };

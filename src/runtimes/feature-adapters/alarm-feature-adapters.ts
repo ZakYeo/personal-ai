@@ -35,6 +35,7 @@ export function createAlarmFeatureRegistryEntry(
           return createAlarmComposition(alarmStore, runtimeDependencies);
         },
         parseConfig: parseFileAlarmStoreConfig,
+        selectDependencies: selectAlarmDependencies,
       }),
       local: defineFeatureAdapterEntry({
         create: ({ dependencies: runtimeDependencies }) => {
@@ -44,6 +45,7 @@ export function createAlarmFeatureRegistryEntry(
           return createAlarmComposition(alarmStore, runtimeDependencies);
         },
         parseConfig: () => {},
+        selectDependencies: selectAlarmDependencies,
       }),
     },
   };
@@ -51,7 +53,7 @@ export function createAlarmFeatureRegistryEntry(
 
 function createAlarmComposition(
   alarmStore: AlarmStore,
-  dependencies: FeatureAdapterDependencies,
+  dependencies: ReturnType<typeof selectAlarmDependencies>,
 ) {
   const feature = createAlarmFeature(alarmStore);
   const retentionTask = {
@@ -100,6 +102,18 @@ function createAlarmComposition(
       retentionTask,
     ],
     feature,
+  };
+}
+
+function selectAlarmDependencies(dependencies: FeatureAdapterDependencies) {
+  return {
+    clock: dependencies.clock,
+    ...(dependencies.configDirectory
+      ? { configDirectory: dependencies.configDirectory }
+      : {}),
+    ...(dependencies.notificationDelivery
+      ? { notificationDelivery: dependencies.notificationDelivery }
+      : {}),
   };
 }
 

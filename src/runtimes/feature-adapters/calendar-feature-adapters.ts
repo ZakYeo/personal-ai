@@ -4,19 +4,19 @@ import { createMockCalendar } from "../../adapters/mock/mock-calendar.js";
 import { createCalendarFeature } from "../../features/calendar/calendar-feature.js";
 import {
   defineFeatureAdapterEntry,
+  type FeatureAdapterDependencies,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import {
   parseCalendarFeatureConfig,
   parseCalendarGoogleAdapterConfig,
-  type CalendarFeatureConfig,
   type CalendarGoogleAdapterConfig,
 } from "./calendar-feature-adapter-config.js";
 
 export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
   return {
     adapters: {
-      google: defineFeatureAdapterEntry<CalendarGoogleAdapterConfig>({
+      google: defineFeatureAdapterEntry({
         create: (context) => {
           return createCalendarFeature(
             createGoogleCalendarAdapter({
@@ -30,18 +30,24 @@ export function createCalendarFeatureRegistryEntry(): FeatureRegistryEntry {
           );
         },
         parseConfig: parseCalendarGoogleAdapterConfig,
+        selectDependencies: selectProviderDependencies,
         validateStartup: ({ adapterConfig, dependencies }) =>
           validateGoogleCalendarStartup(adapterConfig, dependencies.env),
       }),
-      mock: defineFeatureAdapterEntry<CalendarFeatureConfig>({
+      mock: defineFeatureAdapterEntry({
         create: (context) =>
           createCalendarFeature(createMockCalendar(), {
             upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
           }),
         parseConfig: parseCalendarFeatureConfig,
+        selectDependencies: () => ({}),
       }),
     },
   };
+}
+
+function selectProviderDependencies(dependencies: FeatureAdapterDependencies) {
+  return { env: dependencies.env, fetch: dependencies.fetch };
 }
 
 function validateGoogleCalendarStartup(

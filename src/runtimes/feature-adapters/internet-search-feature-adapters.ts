@@ -4,26 +4,26 @@ import { createOpenAIWebSearch } from "../../adapters/openai/openai-web-search.j
 import { createInternetSearchFeature } from "../../features/internet-search/internet-search-feature.js";
 import {
   defineFeatureAdapterEntry,
+  type FeatureAdapterDependencies,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 import {
   parseInternetSearchFeatureConfig,
   parseInternetSearchOpenAIAdapterConfig,
-  type InternetSearchFeatureConfig,
-  type InternetSearchOpenAIAdapterConfig,
 } from "./internet-search-feature-adapter-config.js";
 
 export function createInternetSearchFeatureRegistryEntry(): FeatureRegistryEntry {
   return {
     adapters: {
-      mock: defineFeatureAdapterEntry<InternetSearchFeatureConfig>({
+      mock: defineFeatureAdapterEntry({
         create: ({ adapterConfig }) =>
           createInternetSearchFeature(createMockInternetSearch(), {
             maxResults: adapterConfig.maxResults,
           }),
         parseConfig: parseInternetSearchFeatureConfig,
+        selectDependencies: () => ({}),
       }),
-      openai: defineFeatureAdapterEntry<InternetSearchOpenAIAdapterConfig>({
+      openai: defineFeatureAdapterEntry({
         create: ({ adapterConfig, dependencies }) =>
           createInternetSearchFeature(
             createOpenAIWebSearch({
@@ -34,6 +34,7 @@ export function createInternetSearchFeatureRegistryEntry(): FeatureRegistryEntry
             { maxResults: adapterConfig.maxResults },
           ),
         parseConfig: parseInternetSearchOpenAIAdapterConfig,
+        selectDependencies: selectProviderDependencies,
         validateStartup: ({ adapterConfig, dependencies }) => {
           resolveOpenAIApiKey(
             adapterConfig.openai,
@@ -50,4 +51,8 @@ export function createInternetSearchFeatureRegistryEntry(): FeatureRegistryEntry
       }),
     },
   };
+}
+
+function selectProviderDependencies(dependencies: FeatureAdapterDependencies) {
+  return { env: dependencies.env, fetch: dependencies.fetch };
 }
