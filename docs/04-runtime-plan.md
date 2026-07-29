@@ -1,5 +1,7 @@
 # Runtime Plan
 
+<!-- cspell:ignore CUDA -->
+
 ## Runtime Principle
 
 The assistant core should not know where it is running.
@@ -676,6 +678,11 @@ The openWakeWord Python sidecar inherits recorder stderr for operator
 diagnostics and reaps the recorder in `finally`, tolerating process-exit races
 while escalating from terminate to
 kill when the bounded wait expires.
+The checked-in local desktop configuration explicitly selects WSLg PulseAudio
+input and output devices and allowlists only `PULSE_SERVER` for those commands.
+The openWakeWord sidecar selects the same source when `PULSE_SERVER` is present,
+falls back to the native SoX default recorder otherwise, and suppresses the
+known unavailable-CUDA warning when its pinned ONNX runtime is CPU-only.
 
 ## Process Lifecycle
 

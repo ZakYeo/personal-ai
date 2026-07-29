@@ -146,6 +146,10 @@ same checkout resolves the same Python dependency versions. The checked-in
 desktop config passes `--threshold 0.25` to the listener for more sensitive
 local wake activation; tune that value if your room or microphone needs a
 different false-wake tradeoff.
+The checked-in local desktop config targets WSLg's explicit PulseAudio source
+and sink and forwards only `PULSE_SERVER` to its audio commands. The
+openWakeWord listener makes the same selection when that variable is present
+and otherwise retains SoX's native default recorder.
 The default desktop command capture uses SoX silence detection after wake
 activation so recording stops shortly after trailing silence while retaining an
 eight-second maximum capture guard.

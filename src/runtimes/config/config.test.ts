@@ -114,6 +114,28 @@ describe("loadConfig", () => {
     }
   });
 
+  it("targets WSLg PulseAudio explicitly in the local desktop voice config", async () => {
+    const config = await loadConfig({
+      configPath: "config/local-desktop-voice-openai.json",
+    });
+    const desktopVoice = config.desktopVoice;
+
+    for (const command of [
+      desktopVoice?.audioInput,
+      desktopVoice?.audioOutput,
+      desktopVoice?.streamingAudioInput,
+      desktopVoice?.streamingAudioOutput,
+    ]) {
+      expect(command?.command).toBe("sox");
+      expect(command?.environmentAllowlist).toEqual(["PULSE_SERVER"]);
+      expect(command?.args).toContain("pulseaudio");
+      expect(command?.args).toContain("default");
+    }
+    expect(desktopVoice?.wakeActivation?.environmentAllowlist).toEqual([
+      "PULSE_SERVER",
+    ]);
+  });
+
   it("keeps Pi durable feature state under the systemd-owned state directory", async () => {
     const input: unknown = JSON.parse(
       await readFile("config/pi-voice-openai.example.json", "utf8"),

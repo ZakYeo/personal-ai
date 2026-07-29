@@ -64,12 +64,16 @@
         "--threshold",
         "0.25"
       ],
+      "environmentAllowlist": ["PULSE_SERVER"],
       "timeoutMs": 86400000
     },
     "streamingAudioInput": {
-      "command": "rec",
+      "command": "sox",
       "args": [
         "-q",
+        "-t",
+        "pulseaudio",
+        "default",
         "-r",
         "24000",
         "-c",
@@ -92,10 +96,11 @@
         "0.8",
         "1%"
       ],
+      "environmentAllowlist": ["PULSE_SERVER"],
       "timeoutMs": 11000
     },
     "streamingAudioOutput": {
-      "command": "play",
+      "command": "sox",
       "args": [
         "-q",
         "-t",
@@ -108,8 +113,12 @@
         "16",
         "-c",
         "1",
-        "-"
+        "-",
+        "-t",
+        "pulseaudio",
+        "default"
       ],
+      "environmentAllowlist": ["PULSE_SERVER"],
       "timeoutMs": 30000
     },
     "openAIRealtimeTranscription": {
@@ -123,9 +132,12 @@
       "timeoutMs": 30000
     },
     "audioInput": {
-      "command": "rec",
+      "command": "sox",
       "args": [
         "-q",
+        "-t",
+        "pulseaudio",
+        "default",
         "-r",
         "16000",
         "-c",
@@ -137,6 +149,7 @@
         "0",
         "8"
       ],
+      "environmentAllowlist": ["PULSE_SERVER"],
       "timeoutMs": 11000
     },
     "speechToText": {
@@ -161,8 +174,9 @@
       "timeoutMs": 30000
     },
     "audioOutput": {
-      "command": "play",
-      "args": ["-q", "{input}"],
+      "command": "sox",
+      "args": ["-q", "{input}", "-t", "pulseaudio", "default"],
+      "environmentAllowlist": ["PULSE_SERVER"],
       "timeoutMs": 10000
     }
   },

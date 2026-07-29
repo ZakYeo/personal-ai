@@ -5,11 +5,34 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shlex
 import subprocess
 import sys
 import time
+import warnings
 from typing import Iterable
+
+
+def select_rec_command(pulse_server: str | None) -> str:
+    input_device = "sox -q -t pulseaudio default" if pulse_server else "rec -q"
+    return f"{input_device} -r 16000 -c 1 -b 16 -e signed-integer -t raw -"
+
+
+def suppress_unavailable_cuda_provider_warning(
+    available_providers: list[str],
+) -> None:
+    if "CUDAExecutionProvider" in available_providers:
+        return
+
+    warnings.filterwarnings(
+        "ignore",
+        message=(
+            r"Specified provider 'CUDAExecutionProvider' is not in available "
+            r"provider names\..*"
+        ),
+        category=UserWarning,
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -20,7 +43,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--frame-ms", default=80, type=int)
     parser.add_argument(
         "--rec-command",
-        default="rec -q -r 16000 -c 1 -b 16 -e signed-integer -t raw -",
+        default=select_rec_command(os.environ.get("PULSE_SERVER")),
     )
     parser.add_argument("--startup-check", action="store_true")
     return parser.parse_args()
@@ -87,7 +110,10 @@ def prediction_score(predictions: dict[str, float], model_key: str) -> float:
 def main() -> int:
     args = parse_args()
 
+    import onnxruntime as ort
     import openwakeword
+
+    suppress_unavailable_cuda_provider_warning(ort.get_available_providers())
     from openwakeword.model import Model
 
     model_key = args.model.replace(" ", "_")

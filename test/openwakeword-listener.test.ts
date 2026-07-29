@@ -1,10 +1,45 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
+// cspell:ignore CUDA cuda
 const execFileAsync = promisify(execFile);
 
 describe("openwakeword-listener.py", () => {
   // cspell:ignore kwargs Popen popen
+  it("selects the explicit PulseAudio source on WSLg and suppresses only the unavailable CUDA provider warning", async () => {
+    const harness = String.raw`
+import importlib.util
+import pathlib
+import warnings
+
+repo_root = pathlib.Path.cwd()
+listener_path = repo_root / "scripts" / "openwakeword-listener.py"
+spec = importlib.util.spec_from_file_location("openwakeword_listener", listener_path)
+listener = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(listener)
+
+assert listener.select_rec_command(None).startswith("rec -q ")
+assert listener.select_rec_command("unix:/mnt/wslg/PulseServer").startswith(
+    "sox -q -t pulseaudio default "
+)
+
+listener.suppress_unavailable_cuda_provider_warning(["CPUExecutionProvider"])
+with warnings.catch_warnings(record=True) as caught:
+    warnings.warn(
+        "Specified provider 'CUDAExecutionProvider' is not in available provider names."
+        "Available providers: 'AzureExecutionProvider, CPUExecutionProvider'",
+        UserWarning,
+    )
+assert caught == []
+`;
+
+    await expect(
+      execFileAsync("python3", ["-B", "-c", harness], {
+        cwd: process.cwd(),
+      }),
+    ).resolves.toMatchObject({ stderr: "" });
+  });
+
   it("drains recorder stderr and reaps a recorder that ignores termination", async () => {
     const harness = String.raw`
 import importlib.util
@@ -210,6 +245,9 @@ class Model:
         return {"hey_jarvis_v0.1": 0.9}
 
 model_module.Model = Model
+onnxruntime = types.ModuleType("onnxruntime")
+onnxruntime.get_available_providers = lambda: ["CPUExecutionProvider"]
+sys.modules["onnxruntime"] = onnxruntime
 sys.modules["openwakeword"] = openwakeword
 sys.modules["openwakeword.model"] = model_module
 
