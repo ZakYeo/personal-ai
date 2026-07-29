@@ -1,10 +1,5 @@
 import {
-  createAssistant as createCoreAssistant,
-  type AssistantDependencies,
-} from "./assistant.js";
-import { createCapabilityRoutingIndex } from "../../ports/capability-catalog.js";
-import type { FeaturePlugin } from "../../ports/feature.js";
-import {
+  createAssistantWithFeatures as createAssistant,
   createAssistantConfig,
   createConversationCompactor,
   createFixedClock,
@@ -17,19 +12,6 @@ const config = createAssistantConfig({
   disabled: { enabled: false },
 });
 const clock = createFixedClock();
-
-function createAssistant(
-  dependencies: Omit<AssistantDependencies, "capabilityRouting"> & {
-    features: FeaturePlugin[];
-  },
-) {
-  const { features, ...assistantDependencies } = dependencies;
-
-  return createCoreAssistant({
-    ...assistantDependencies,
-    capabilityRouting: createCapabilityRoutingIndex(features),
-  });
-}
 
 describe("createAssistant", () => {
   it("answers conversation turns with chat history", async () => {

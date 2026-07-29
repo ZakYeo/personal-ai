@@ -1,11 +1,6 @@
-import {
-  createAssistant as createCoreAssistant,
-  type AssistantDependencies,
-} from "./assistant.js";
-import { createCapabilityRoutingIndex } from "../../ports/capability-catalog.js";
-import type { FeaturePlugin } from "../../ports/feature.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import {
+  createAssistantWithFeatures as createAssistant,
   createAssistantConfig,
   createCommand,
   createFeature,
@@ -19,19 +14,6 @@ const config = createAssistantConfig({
   disabled: { enabled: false },
 });
 const clock = createFixedClock();
-
-function createAssistant(
-  dependencies: Omit<AssistantDependencies, "capabilityRouting"> & {
-    features: FeaturePlugin[];
-  },
-) {
-  const { features, ...assistantDependencies } = dependencies;
-
-  return createCoreAssistant({
-    ...assistantDependencies,
-    capabilityRouting: createCapabilityRoutingIndex(features),
-  });
-}
 
 describe("createAssistant", () => {
   it("routes interpreted commands to an enabled feature", async () => {

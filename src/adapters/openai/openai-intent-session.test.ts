@@ -1,30 +1,15 @@
-import type { AssistantContext } from "../../ports/assistant.js";
 import { interpretOnce } from "../../ports/intent.js";
 import {
   createFetchStub,
-  createProviderCredentialEnv,
   jsonResponse,
   readJsonRequestBody,
 } from "../../test-support/adapter-contract.js";
-import { deterministicTestNow } from "../../test-support/primitives.js";
-import { OpenAIIntentInterpreter } from "./openai-intent-interpreter.js";
 import type { OpenAIIntentCapability } from "./openai-intent-interpreter.js";
-
-const context = {
-  clock: {
-    now: () => deterministicTestNow,
-  },
-  config: {
-    assistant: {
-      name: "Jarvis",
-      timeZone: "Europe/London",
-      wakePhrases: ["hey jarvis"],
-    },
-    features: {
-      calendar: { enabled: true },
-    },
-  },
-} satisfies AssistantContext;
+import {
+  createOpenAIIntentInterpreter as createInterpreter,
+  openAIIntentContext as context,
+  readOpenAIIntentRequestBody as readRequestBody,
+} from "../../test-support/openai-intent.js";
 
 const calendarReadCapability: OpenAIIntentCapability = {
   capability: {
@@ -255,41 +240,3 @@ describe("OpenAIIntentInterpreter", () => {
     expect(serializedInput).not.toContain("private-list-id");
   });
 });
-
-interface CreateInterpreterOptions {
-  capabilityCatalog?: readonly OpenAIIntentCapability[];
-  env?: Record<string, string | undefined>;
-  fetch?: typeof fetch;
-  timeoutMs?: number;
-}
-
-function createInterpreter(options: CreateInterpreterOptions = {}) {
-  return new OpenAIIntentInterpreter({
-    ...(options.capabilityCatalog
-      ? { capabilityCatalog: options.capabilityCatalog }
-      : {}),
-    config: {
-      apiKeyEnv: "OPENAI_API_KEY",
-      baseUrl: "https://api.openai.test/v1",
-      model: "gpt-5.5",
-      timeoutMs: options.timeoutMs ?? 30_000,
-    },
-    env:
-      options.env ??
-      createProviderCredentialEnv("OPENAI_API_KEY", "test-api-key"),
-    fetch: options.fetch ?? vi.fn(),
-  });
-}
-
-interface RequestBody {
-  input: unknown;
-  text: {
-    format: {
-      schema: unknown;
-    };
-  };
-}
-
-function readRequestBody(fetch: typeof globalThis.fetch): RequestBody {
-  return readJsonRequestBody<RequestBody>(fetch);
-}

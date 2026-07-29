@@ -257,3 +257,16 @@ export function createAssistantHarness(
       createInterpreter(overrides.interpretation ?? createCommand()),
   });
 }
+
+export function createAssistantWithFeatures(
+  dependencies: Omit<AssistantDependencies, "capabilityRouting"> & {
+    features: FeaturePlugin[];
+  },
+): ReturnType<typeof createAssistant> {
+  const { features, ...assistantDependencies } = dependencies;
+
+  return createAssistant({
+    ...assistantDependencies,
+    capabilityRouting: createCapabilityRoutingIndex(features),
+  });
+}
