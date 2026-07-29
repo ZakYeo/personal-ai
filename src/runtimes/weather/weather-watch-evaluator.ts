@@ -23,7 +23,10 @@ import {
   validateWeatherForecast,
   weatherForecastIsStale,
 } from "../../ports/weather-policy.js";
-import type { RuntimeBackgroundTaskTimer } from "../background-task.js";
+import {
+  systemRuntimeBackgroundTaskTimer,
+  type RuntimeBackgroundTaskTimer,
+} from "../background-task.js";
 
 interface WeatherWatchEvaluationDependencies {
   clock: ClockPort;
@@ -52,10 +55,6 @@ interface QualifyingForecast {
 }
 
 const maxConcurrentForecastRequests = 4;
-const systemWeatherWatchTimer: RuntimeBackgroundTaskTimer = {
-  wait: (delayMs, shutdownSignal) =>
-    waitForTimerOrShutdown(delayMs, shutdownSignal),
-};
 
 export async function runWeatherWatchEvaluator(
   dependencies: WeatherWatchEvaluatorDependencies,
@@ -63,7 +62,7 @@ export async function runWeatherWatchEvaluator(
   while (!dependencies.shutdownSignal.aborted) {
     await processWeatherWatchEvaluationCycle(dependencies);
     if (dependencies.shutdownSignal.aborted) return;
-    await (dependencies.timer ?? systemWeatherWatchTimer).wait(
+    await (dependencies.timer ?? systemRuntimeBackgroundTaskTimer).wait(
       dependencies.intervalMs,
       dependencies.shutdownSignal,
     );
@@ -276,20 +275,4 @@ function reportFailureBestEffort(
   } catch {
     // Diagnostic sinks cannot change durable watch lifecycle progress.
   }
-}
-
-function waitForTimerOrShutdown(
-  delayMs: number,
-  shutdownSignal: AbortSignal,
-): Promise<void> {
-  if (shutdownSignal.aborted) return Promise.resolve();
-  return new Promise((resolve) => {
-    const finish = () => {
-      clearTimeout(timeout);
-      shutdownSignal.removeEventListener("abort", finish);
-      resolve();
-    };
-    const timeout = setTimeout(finish, delayMs);
-    shutdownSignal.addEventListener("abort", finish, { once: true });
-  });
 }

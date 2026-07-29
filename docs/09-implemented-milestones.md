@@ -105,8 +105,9 @@ Included:
   watches.
 - A neutral feature-owned background task using the exact composed store and
   provider, with durable claim-before-delivery, restart-safe deduplication,
-  shutdown-aware polling, shared output coordination, and at most four
-  concurrent forecast request groups.
+  shutdown-aware polling through the canonical runtime background-task timer,
+  shared output coordination, and at most four concurrent forecast request
+  groups.
 
 Excluded:
 

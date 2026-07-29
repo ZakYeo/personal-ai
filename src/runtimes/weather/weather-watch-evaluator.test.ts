@@ -15,6 +15,7 @@ import {
   processWeatherWatchEvaluationCycle,
   runWeatherWatchEvaluator,
 } from "./weather-watch-evaluator.js";
+import { systemRuntimeBackgroundTaskTimer } from "../background-task.js";
 
 const evaluationNow = new Date("2026-07-28T12:05:00.000Z");
 
@@ -262,6 +263,29 @@ describe("processWeatherWatchEvaluationCycle", () => {
 });
 
 describe("runWeatherWatchEvaluator", () => {
+  it("uses the canonical runtime timer when no test timer is injected", async () => {
+    const shutdown = new AbortController();
+    const wait = vi
+      .spyOn(systemRuntimeBackgroundTaskTimer, "wait")
+      .mockImplementation(() => {
+        shutdown.abort();
+        return Promise.resolve();
+      });
+
+    await runWeatherWatchEvaluator({
+      clock: { now: () => evaluationNow },
+      delivery: { deliver: vi.fn() },
+      intervalMs: 15 * 60_000,
+      maxForecastAgeMs: 360 * 60_000,
+      provider: createWeatherProviderFixture(),
+      reportFailure: () => {},
+      shutdownSignal: shutdown.signal,
+      store: createStore(),
+    });
+
+    expect(wait).toHaveBeenCalledExactlyOnceWith(15 * 60_000, shutdown.signal);
+  });
+
   it("uses bounded waits and exits through the active shutdown signal", async () => {
     const shutdown = new AbortController();
     const waits: number[] = [];

@@ -475,8 +475,9 @@ details older than 30 days while preserving the task itself.
 
 Weather watches use the neutral contribution shape without sharing feature
 state: the selected weather adapter closes over its exact store and provider,
-while the service runtime supplies only live clock, timer, shutdown,
-diagnostics, and notification output. It evaluates bounded precipitation,
+while the service runtime supplies only live clock, the canonical
+abort-aware background-task timer, shutdown, diagnostics, and notification
+output. It evaluates bounded precipitation,
 temperature, and wind conditions, claims a matching one-shot watch durably
 before output, and does not replay a terminal watch after restart. Stores admit
 at most 24 active watches. Each evaluation cycle shares one forecast across
