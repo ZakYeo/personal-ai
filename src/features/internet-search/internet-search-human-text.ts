@@ -1,3 +1,5 @@
+import { containsControlCharacters } from "../../ports/text-safety.js";
+
 export function humanizeInternetSearchText(value: string): string {
   return value
     .replace(/\[([^\]]+)\]\((?:https?:\/\/|www\.)[^)]+\)/giu, "$1")
@@ -6,6 +8,12 @@ export function humanizeInternetSearchText(value: string): string {
     .replace(/\[\d+\]/gu, "")
     .replace(/[*_~`>#]+/gu, "")
     .replace(/\s+([,.!?;:])/gu, "$1")
-    .replace(/\s{2,}/gu, " ")
+    .replace(/\s+/gu, " ")
     .trim();
+}
+
+export function containsUnsafeInternetSearchTextControls(
+  value: string,
+): boolean {
+  return containsControlCharacters(value.replace(/[\t\n\r]/gu, ""));
 }

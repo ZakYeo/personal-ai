@@ -278,6 +278,58 @@ describe("createInternetSearchFeature", () => {
     );
   });
 
+  it("normalizes ordinary provider line breaks in spoken answers", async () => {
+    const answer = "First line.\nSecond line [1]";
+    const citationStart = answer.indexOf("[1]");
+
+    await expectDecodedFeatureExecution(
+      createInternetSearchFeature({
+        search: () =>
+          Promise.resolve({
+            answer,
+            citations: [
+              {
+                endIndex: citationStart + 3,
+                sourceId: "current",
+                startIndex: citationStart,
+              },
+            ],
+            sources: [
+              {
+                id: "current",
+                title: "Current source",
+                url: "https://example.com/current",
+              },
+            ],
+          }),
+      }),
+      "internet.search",
+      { query: "current answer" },
+      {
+        citations: [
+          {
+            title: "Current source",
+            url: "https://example.com/current",
+          },
+        ],
+        data: expect.any(Object) as Record<string, string | number>,
+        expectsFollowUp: true,
+        resultReferences: {
+          items: [
+            {
+              facts: {
+                title: "Current source",
+                url: "https://example.com/current",
+              },
+            },
+          ],
+          kind: "internet_sources",
+        },
+        text: "First line. Second line Source: Current source.",
+      },
+    );
+  });
+
   it("rejects oversized answer projections from every adapter", async () => {
     await expectFeatureRejects(
       createInternetSearchFeature({

@@ -16,7 +16,10 @@ import {
 } from "../../ports/deterministic-feature-rules.js";
 import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
 import { containsControlCharacters } from "../../ports/text-safety.js";
-import { humanizeInternetSearchText } from "./internet-search-human-text.js";
+import {
+  containsUnsafeInternetSearchTextControls,
+  humanizeInternetSearchText,
+} from "./internet-search-human-text.js";
 
 const searchParameters = {
   query: {
@@ -145,7 +148,7 @@ function validateSearchResponse(
 ): void {
   if (
     response.answer.length > internetSearchLimits.answerCharacters ||
-    containsControlCharacters(response.answer) ||
+    containsUnsafeInternetSearchTextControls(response.answer) ||
     response.sources.length > maxResults ||
     response.sources.some(
       (source) =>
@@ -158,7 +161,7 @@ function validateSearchResponse(
         (source.extract?.length ?? 0) >
           internetSearchLimits.extractCharacters ||
         (source.extract !== undefined &&
-          containsControlCharacters(source.extract)),
+          containsUnsafeInternetSearchTextControls(source.extract)),
     )
   ) {
     throw new Error("Internet search returned content outside safe bounds.");
