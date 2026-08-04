@@ -34,7 +34,9 @@ describe.skipIf(!runOpenAIE2E)(
       const { assistant, requestBodies } = await createLiveAssistant();
 
       await expect(
-        assistant.handleText("Set an alarm tomorrow"),
+        assistant.handleText(
+          "Set an alarm tomorrow; I still need to tell you the time.",
+        ),
       ).resolves.toMatchObject({
         expectsFollowUp: true,
         status: "ok",
