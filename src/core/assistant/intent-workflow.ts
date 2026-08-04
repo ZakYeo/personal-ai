@@ -212,12 +212,7 @@ export function createIntentWorkflow(input: {
     response: AssistantOutcome["response"],
   ): AssistantOutcome {
     if (clarificationUsed) {
-      return decorate(
-        rejectToolChain(
-          "intent.clarification",
-          "A tool chain may ask at most one resumable clarification.",
-        ).outcome,
-      );
+      return decorate(clarificationLimitOutcome);
     }
     clarificationUsed = true;
     return input.dependencies.interaction.requestClarification(
@@ -300,6 +295,22 @@ export function createIntentWorkflow(input: {
       : { ...withTrace, diagnostics: uniqueDiagnostics };
   }
 }
+
+const clarificationLimitOutcome: AssistantOutcome = {
+  diagnostics: [
+    {
+      capability: "intent.clarification",
+      category: "validation",
+      message:
+        "An intent workflow may ask at most one resumable clarification.",
+    },
+  ],
+  response: {
+    expectsFollowUp: true,
+    status: "unknown",
+    text: "I still need more information. Please restate the request with the missing details.",
+  },
+};
 
 function createContext(
   dependencies: IntentWorkflowDependencies,

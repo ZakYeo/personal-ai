@@ -497,8 +497,9 @@ describe("assistant bounded tool chains", () => {
 
     await assistant.handleText("start");
     await expect(assistant.handleText("answer")).resolves.toEqual({
-      status: "unsupported",
-      text: "I cannot safely complete that chained request.",
+      expectsFollowUp: true,
+      status: "unknown",
+      text: "I still need more information. Please restate the request with the missing details.",
     });
   });
 
