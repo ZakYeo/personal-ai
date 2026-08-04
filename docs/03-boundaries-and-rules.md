@@ -188,6 +188,9 @@ boundary. Scope checks after a user reply use the latest trusted turn, while
 unresolved-restatement checks retain the original request. A second unresolved
 clarification ends the old workflow with a safe open rephrase response rather
 than entering an unbounded loop.
+Provider instructions distinguish required from optional capability parameters:
+missing required information may produce one clarification, while absent
+optional values are omitted without an extra user turn.
 
 Every confirmation-required capability must deterministically render its exact
 decoded action through an application-owned declaration. Aggregate prompts must

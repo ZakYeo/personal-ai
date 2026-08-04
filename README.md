@@ -57,6 +57,8 @@ Implemented today:
   compound plans and intermediate reads fail closed if a feature asks a
   follow-up. Core remains authoritative if provider continuation state or output
   disagrees with the validated transition.
+- Intent providers ask only for missing required capability information and
+  omit optional values the user did not supply.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Shared OpenAI Responses configuration parsing with provider-local config
   types rather than provider details in application ports.
