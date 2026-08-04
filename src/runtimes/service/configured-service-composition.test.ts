@@ -341,7 +341,8 @@ describe("runConfiguredServiceRuntime", () => {
     });
     const list = await store.addList({ name: "To-do" });
     await store.addTask({
-      label: "Submit the form",
+      label:
+        "Submit the form at https://example.test/2026-07-29T08:00:00Z after 2026-07-29T08:00:00Z",
       listId: list.id,
       reminderAt: scheduledFor,
     });
@@ -375,12 +376,13 @@ describe("runConfiguredServiceRuntime", () => {
     expect(notifications).toEqual([
       {
         id: expect.stringMatching(/^task-reminder:task-/u) as string,
-        text: "Reminder: Submit the form.",
+        text: "Reminder: Submit the form at the linked source after 9am today.",
       },
     ]);
     await expect(store.listTasks()).resolves.toEqual([
       expect.objectContaining({
-        label: "Submit the form",
+        label:
+          "Submit the form at https://example.test/2026-07-29T08:00:00Z after 2026-07-29T08:00:00Z",
         reminder: expect.objectContaining({
           deliveredAt: scheduledFor,
           status: "delivered",

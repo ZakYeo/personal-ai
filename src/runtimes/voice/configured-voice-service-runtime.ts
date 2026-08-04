@@ -29,7 +29,6 @@ import {
 import type { VoiceRuntimeIo } from "./voice-turn.js";
 import { validateOpenWakeWordStartup } from "./openwakeword-startup-check.js";
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
-import { humanizeSpokenText } from "../../ports/human-text.js";
 import { createVoiceAlarmDelivery } from "./voice-alarm-delivery.js";
 import { createVoiceOutputCoordinator } from "./voice-output-coordinator.js";
 import type {
@@ -82,7 +81,6 @@ export function runConfiguredVoiceServiceRuntime(
   const fetch = options.fetch ?? globalThis.fetch;
   const processControl =
     options.processControl ?? createNodeProcessControl(process);
-  const now = options.now ?? (() => new Date());
   const outputCoordinator = createVoiceOutputCoordinator();
 
   return runConfiguredServiceRuntime(
@@ -111,12 +109,6 @@ export function runConfiguredVoiceServiceRuntime(
             }),
           options.io,
           outputCoordinator,
-          (text) =>
-            humanizeSpokenText(text, {
-              assistantTimeZone: config.assistant.timeZone,
-              now: now(),
-              timeZone: config.assistant.timeZone,
-            }),
         );
       },
     },

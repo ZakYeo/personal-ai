@@ -15,13 +15,12 @@ export function createVoiceAlarmDelivery(
   createAdapters: CreateVoiceDeliveryAdapters,
   io: VoiceRuntimeIo = {},
   outputCoordinator: VoiceOutputCoordinator = createVoiceOutputCoordinator(),
-  humanizeText: (text: string) => string = (text) => text,
 ): NotificationDeliveryPort {
   return {
     deliver: (notification, context) =>
       outputCoordinator.run(async () => {
         const adapters = createAdapters(context.shutdownSignal);
-        const text = humanizeText(notification.text);
+        const text = notification.text;
 
         try {
           if (adapters.streamingOutput) {

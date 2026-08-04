@@ -28,6 +28,7 @@ import type {
   RuntimeBackgroundTaskContext,
 } from "../background-task.js";
 import { createDeferredNotificationDelivery } from "../deferred-notification-delivery.js";
+import { createHumanizedNotificationDelivery } from "../humanized-notification-delivery.js";
 
 interface ConfiguredServiceCompositionOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -154,7 +155,15 @@ async function createConfiguredServiceStartup(
   const configSource = await loadServiceConfig(options, deferredDelivery?.port);
   const { config } = configSource;
   if (deferredDelivery && options.createNotificationDelivery) {
-    deferredDelivery.bind(options.createNotificationDelivery({ config }));
+    deferredDelivery.bind(
+      createHumanizedNotificationDelivery(
+        options.createNotificationDelivery({ config }),
+        {
+          now: options.now ?? (() => new Date()),
+          timeZone: config.assistant.timeZone,
+        },
+      ),
+    );
   }
   await validateConfig(config);
 

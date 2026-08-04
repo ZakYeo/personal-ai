@@ -3,7 +3,6 @@ import { createVoiceAlarmDelivery } from "./voice-alarm-delivery.js";
 import { createCapturedWriter, line } from "../../test-support/primitives.js";
 import { createVoiceOutputCoordinator } from "./voice-output-coordinator.js";
 import { speakResponse } from "./voice-response.js";
-import { humanizeSpokenText } from "../../ports/human-text.js";
 
 describe("createVoiceAlarmDelivery", () => {
   it("speaks an alarm through fresh configured output adapters", async () => {
@@ -34,38 +33,6 @@ describe("createVoiceAlarmDelivery", () => {
       text: "Alarm: tea.",
     });
     expect(cleanup).toHaveBeenCalledOnce();
-  });
-
-  it("applies the shared final text policy before notification speech", async () => {
-    const synthesize = vi.fn((text: string) => Promise.resolve({ text }));
-    const delivery = createVoiceAlarmDelivery(
-      () =>
-        createAdaptersFixture({
-          cleanup: () => Promise.resolve(),
-          play: () => Promise.resolve(),
-          synthesize,
-        }),
-      {},
-      createVoiceOutputCoordinator(),
-      (text) =>
-        humanizeSpokenText(text, {
-          assistantTimeZone: "Europe/London",
-          now: new Date("2026-08-04T15:10:00.000Z"),
-          timeZone: "Europe/London",
-        }),
-    );
-
-    await delivery.deliver(
-      {
-        id: "weather-1",
-        text: "Updated at 2026-08-04T15:00:00.000Z. Source: Example (https://example.test).",
-      },
-      {},
-    );
-
-    expect(synthesize).toHaveBeenCalledExactlyOnceWith(
-      "Updated at 4pm today. Source: Example.",
-    );
   });
 
   it("preserves output failure while logging cleanup failure separately", async () => {
