@@ -32,6 +32,7 @@ export type FeatureCapabilityParameters = Record<
 export interface FeatureResult {
   text: string;
   citations?: readonly AssistantCitation[];
+  clarification?: { readonly kind: "resumable" };
   data?: AssistantCommandParameters;
   expectsFollowUp?: boolean;
   resultReferences?: FeatureResultReferenceSet;

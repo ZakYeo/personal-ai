@@ -47,6 +47,7 @@ describe("assistant clarification transitions", () => {
             Promise.resolve(
               request.args.location === "London"
                 ? {
+                    clarification: { kind: "resumable" as const },
                     expectsFollowUp: true,
                     text: "Which London did you mean?",
                   }

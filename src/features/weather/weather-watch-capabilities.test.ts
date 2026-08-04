@@ -211,6 +211,7 @@ describe("weather watch capabilities", () => {
         context,
       ),
     ).resolves.toEqual({
+      clarification: { kind: "resumable" },
       expectsFollowUp: true,
       text: "I found multiple locations for London: London, England (GB), London, Ontario (CA). Which one did you mean?",
     });

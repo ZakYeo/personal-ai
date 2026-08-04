@@ -8,6 +8,7 @@ import type {
 } from "../../ports/assistant-plan.js";
 
 export interface CommandExecutionOutcome {
+  clarificationRequested?: boolean;
   data?: AssistantCommandParameters;
   outcome: AssistantOutcome;
 }

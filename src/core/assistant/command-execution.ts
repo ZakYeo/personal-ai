@@ -41,6 +41,14 @@ interface CommandExecutionInput {
   feature: FeaturePlugin;
   normalizedText: string;
   resultReferences: ResultReferenceSession;
+  requestClarification?: (
+    response: AssistantResponse,
+    capability: string,
+  ) => AssistantOutcome;
+}
+
+interface ValidatedPlanExecutionOptions {
+  requestClarification?: CommandExecutionInput["requestClarification"];
 }
 
 export function executeValidatedPlan(
@@ -48,6 +56,7 @@ export function executeValidatedPlan(
   dependencies: CommandExecutionDependencies,
   resultReferences: ResultReferenceSession,
   signal?: AbortSignal,
+  options: ValidatedPlanExecutionOptions = {},
 ): Promise<AssistantOutcome> {
   const context: AssistantContext = {
     clock: planRequiresConfirmation(plan)
@@ -77,6 +86,9 @@ export function executeValidatedPlan(
       feature: step.route.feature,
       normalizedText: plan.originalText,
       resultReferences,
+      ...(plan.kind === "single" && options.requestClarification
+        ? { requestClarification: options.requestClarification }
+        : {}),
     }),
   );
 }
@@ -145,6 +157,7 @@ async function executeCommand(
   input: CommandExecutionInput,
 ): Promise<CommandExecutionOutcome> {
   const execution = await executeFeatureCommand(input);
+  if (execution.clarificationRequested) return execution;
   if (execution.outcome.response.status !== "ok") return execution;
 
   return {
@@ -182,8 +195,12 @@ async function executeFeatureCommand(
       input.resultReferences.retain(result.resultReferences);
     }
     return {
+      ...(result.clarification ? { clarificationRequested: true } : {}),
       ...(result.data ? { data: Object.freeze({ ...result.data }) } : {}),
-      outcome: { response },
+      outcome:
+        result.clarification && input.requestClarification
+          ? input.requestClarification(response, input.command.capability)
+          : { response },
     };
   } catch (error) {
     return {

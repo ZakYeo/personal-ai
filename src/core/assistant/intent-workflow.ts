@@ -165,20 +165,22 @@ export function createIntentWorkflow(input: {
         decorate,
       );
     }
-    const execution = await executeValidatedPlan(
-      validation.plan,
-      input.dependencies,
-      input.dependencies.resultReferences,
-      context.signal,
+    return decorate(
+      await executeValidatedPlan(
+        validation.plan,
+        input.dependencies,
+        input.dependencies.resultReferences,
+        context.signal,
+        {
+          requestClarification: (response, capability) =>
+            requestClarification(response, {
+              capability,
+              origin: "feature_execution",
+              session: "resume",
+            }),
+        },
+      ),
     );
-    return validation.plan.kind === "single" &&
-      execution.response.expectsFollowUp === true
-      ? requestClarification(execution.response, {
-          capability: validation.plan.steps[0]!.command.capability,
-          origin: "feature_execution",
-          session: "resume",
-        })
-      : decorate(execution);
   }
 
   function validateRead({

@@ -40,6 +40,7 @@ export async function resolveWeatherLocation(
   if (!place) {
     return {
       result: {
+        clarification: { kind: "resumable" },
         expectsFollowUp: true,
         text:
           requestedPlace?.toLowerCase() === "home" || options.personalContext
@@ -62,6 +63,7 @@ export async function resolveWeatherLocation(
   if (candidates.length === 0) {
     return {
       result: {
+        clarification: { kind: "resumable" },
         expectsFollowUp: true,
         text: `I could not find a weather location for "${place}". Which location should I use?`,
       },
@@ -71,6 +73,7 @@ export async function resolveWeatherLocation(
   if (selection.kind === "ambiguous") {
     return {
       result: {
+        clarification: { kind: "resumable" },
         expectsFollowUp: true,
         text: `I found multiple locations for ${place}: ${selection.candidates
           .map(
