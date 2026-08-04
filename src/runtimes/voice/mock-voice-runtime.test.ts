@@ -151,9 +151,7 @@ describe("mock voice runtime", () => {
           "Yes, take a coat: the forecast includes rain or cool conditions.",
         ) as string,
       },
-      spokenText: expect.stringContaining(
-        "from 6am tomorrow to noon tomorrow",
-      ) as string,
+      spokenText: expect.stringContaining("At 10am tomorrow") as string,
       status: "spoken",
     });
   });

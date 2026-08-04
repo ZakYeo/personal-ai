@@ -544,6 +544,11 @@ should also guard against subtler boundary and abstraction drift.
   notification delivery, including injected ports, before the adapter receives
   it. Exact values remain unchanged in structured data and validated citation
   metadata.
+- Weather speech defaults to temperature, general conditions, relative
+  observation freshness, and only materially notable precipitation or wind.
+  Exact precipitation and wind are included only when decoded request flags say
+  they were explicitly requested; fetch and all other exact facts remain in
+  protected structured data.
 - Internet search is terminal-only rather than an intent tool-chain read.
   Later intent interpretation may receive only opaque source ordinals and
   references, never retrieved titles, URLs, extracts, dates, or synthesized

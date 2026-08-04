@@ -20,12 +20,34 @@ describe("createWeatherFeature", () => {
 
     expectCapabilityMetadata(feature, {
       name: "weather.current",
-      parameters: { location: { type: "string" } },
+      parameters: {
+        includePrecipitation: {
+          description:
+            "Include the exact precipitation amount only when explicitly requested.",
+          type: "boolean",
+        },
+        includeWind: {
+          description:
+            "Include the exact wind speed only when explicitly requested.",
+          type: "boolean",
+        },
+        location: { type: "string" },
+      },
       risk: "low",
     });
     expectCapabilityMetadata(feature, {
       name: "weather.coat",
       parameters: {
+        includePrecipitation: {
+          description:
+            "Include the exact precipitation amount only when explicitly requested.",
+          type: "boolean",
+        },
+        includeWind: {
+          description:
+            "Include the exact wind speed only when explicitly requested.",
+          type: "boolean",
+        },
         location: { type: "string" },
       },
       risk: "low",
@@ -37,6 +59,16 @@ describe("createWeatherFeature", () => {
           description:
             "Optional inclusive forecast-window end as an ISO timestamp.",
           type: "string",
+        },
+        includePrecipitation: {
+          description:
+            "Include the exact precipitation amount only when explicitly requested.",
+          type: "boolean",
+        },
+        includeWind: {
+          description:
+            "Include the exact wind speed only when explicitly requested.",
+          type: "boolean",
         },
         location: { type: "string" },
         startAt: {
@@ -69,10 +101,8 @@ describe("createWeatherFeature", () => {
     expect(result.text).toContain(
       "Yes, take a coat: the forecast includes rain or cool conditions.",
     );
-    expect(result.text).toContain(
-      "London's forecast from 2026-07-29T05:00:00.000Z to 2026-07-29T11:00:00.000Z",
-    );
-    expect(result.text).toContain("Fetched at 2026-07-28T12:00:05.000Z");
+    expect(result.text).toContain("London's forecast:");
+    expect(result.text).not.toContain("Fetched at");
     expect(result.data).toMatchObject({
       coatRecommendationAvailable: true,
       coatRecommended: true,
@@ -163,8 +193,9 @@ describe("createWeatherFeature", () => {
     );
 
     expect(result.text).toContain(
-      "In London, it is 21°C and partly cloudy, with 0 mm precipitation",
+      "In London, it is 21°C and partly cloudy right now.",
     );
+    expect(result.text).not.toMatch(/precipitation|wind|Fetched|Observed/iu);
     expect(result.text).toContain("Source: Deterministic weather fixture.");
     expect(result.text).not.toContain("https://");
     expect(result.citations).toEqual([
@@ -194,6 +225,74 @@ describe("createWeatherFeature", () => {
     });
   });
 
+  it("describes only notable rain and wind without exposing exact measurements", async () => {
+    const backingProvider = createWeatherProviderFixture();
+    const provider = {
+      ...backingProvider,
+      getForecast: async (
+        ...args: Parameters<typeof backingProvider.getForecast>
+      ) => ({
+        ...(await backingProvider.getForecast(...args)),
+        current: {
+          ...(await backingProvider.getForecast(...args)).current,
+          precipitation: 0.4,
+          weather: "light rain showers",
+          windSpeed: 35,
+        },
+      }),
+    };
+
+    const result = await executeFeature(
+      createTestWeatherFeature(provider),
+      "weather.current",
+      { location: "London" },
+      context,
+    );
+
+    expect(result.text).toContain("Expect showers. It is windy.");
+    expect(result.text).not.toMatch(/0\.4|35 km\/h/iu);
+  });
+
+  it("includes exact weather measurements only when requested", async () => {
+    const result = await executeFeature(
+      createTestWeatherFeature(),
+      "weather.current",
+      { includePrecipitation: true, includeWind: true, location: "London" },
+      context,
+    );
+
+    expect(result.text).toContain("Precipitation is 0 mm.");
+    expect(result.text).toContain("Wind is 12 km/h.");
+  });
+
+  it("renders older current observations with relative freshness", async () => {
+    const backingProvider = createWeatherProviderFixture();
+    const provider = {
+      ...backingProvider,
+      getForecast: async (
+        ...args: Parameters<typeof backingProvider.getForecast>
+      ) => {
+        const forecast = await backingProvider.getForecast(...args);
+        return {
+          ...forecast,
+          current: {
+            ...forecast.current,
+            observedAt: "2026-07-28T11:00:00.000Z",
+          },
+        };
+      },
+    };
+
+    const result = await executeFeature(
+      createTestWeatherFeature(provider),
+      "weather.current",
+      { location: "London" },
+      context,
+    );
+
+    expect(result.text).toContain("about an hour ago");
+  });
+
   it("returns an exact bounded forecast period and hourly/daily facts", async () => {
     const result = await executeFeature(
       createTestWeatherFeature(),
@@ -206,9 +305,8 @@ describe("createWeatherFeature", () => {
       context,
     );
 
-    expect(result.text).toContain(
-      "London's forecast from 2026-07-28T12:00:00.000Z to 2026-07-29T12:00:00.000Z",
-    );
+    expect(result.text).toContain("London's forecast:");
+    expect(result.text).not.toContain("Fetched at");
     expect(result.data).toMatchObject({
       daily0Date: "2026-07-29",
       daily0Precipitation: 1.2,

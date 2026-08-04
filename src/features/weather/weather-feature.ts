@@ -35,12 +35,26 @@ import {
   weatherWatchDeterministicRules,
 } from "./weather-watch-capabilities.js";
 
+const weatherDetailParameters = {
+  includePrecipitation: {
+    description:
+      "Include the exact precipitation amount only when explicitly requested.",
+    type: "boolean",
+  },
+  includeWind: {
+    description: "Include the exact wind speed only when explicitly requested.",
+    type: "boolean",
+  },
+} as const satisfies FeatureCapabilityParameters;
+
 const currentParameters = {
+  ...weatherDetailParameters,
   location: { type: "string" },
 } as const satisfies FeatureCapabilityParameters;
 type CurrentArgs = FeatureArgsFromParameters<typeof currentParameters>;
 
 const forecastParameters = {
+  ...weatherDetailParameters,
   endAt: {
     description: "Optional inclusive forecast-window end as an ISO timestamp.",
     type: "string",
@@ -60,6 +74,7 @@ interface WeatherFeatureOptions {
 }
 
 const coatParameters = {
+  ...weatherDetailParameters,
   location: { type: "string" },
 } as const satisfies FeatureCapabilityParameters;
 type CoatArgs = FeatureArgsFromParameters<typeof coatParameters>;
@@ -217,8 +232,14 @@ async function executeWeatherRequest(
     };
   }
 
-  if (mode === "current") return currentWeatherResult(forecast);
-  const forecastResult = forecastWeatherResult(forecast);
+  const responseOptions = {
+    includePrecipitation: args.includePrecipitation === true,
+    includeWind: args.includeWind === true,
+    now: context.clock.now(),
+  };
+  if (mode === "current")
+    return currentWeatherResult(forecast, responseOptions);
+  const forecastResult = forecastWeatherResult(forecast, responseOptions);
   if (mode === "forecast") return forecastResult;
   const hourlyForPeriod = forecast.hourly.filter(
     (item) =>

@@ -508,6 +508,11 @@ and Pi OpenAI operator configs select Open-Meteo. The desktop config persists
 watches to `state/weather-watches.json` relative to its config directory, while
 Pi uses `/var/lib/personal-ai/weather-watches.json`. The opt-in
 `npm run test:e2e:open-meteo` smoke exercises a live key-free current forecast.
+Weather response construction is application-owned. Normal speech leads with
+temperature and conditions, adds qualitative rain or wind only when notable,
+and renders observation freshness relative to the injected live clock. Optional
+decoded flags expose exact precipitation or wind when explicitly requested;
+fetch timestamps and every exact fact remain in protected result data.
 Geocoding preserves provider rank and safe matching metadata. Read-only current
 and forecast commands deterministically select the highest-ranked exact match,
 while durable weather-watch creation remains unique-match-only.

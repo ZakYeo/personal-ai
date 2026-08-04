@@ -73,8 +73,8 @@ describe("weather feature adapters", () => {
     expect(response.text).toContain(
       "Yes, take a coat: the forecast includes rain or cool conditions.",
     );
-    expect(response.text).toContain("from 6am tomorrow to noon tomorrow");
-    expect(response.text).toContain("Fetched at 1pm today");
+    expect(response.text).toContain("At 10am tomorrow");
+    expect(response.text).not.toContain("Fetched at");
     expect(readHomeLocation).toHaveBeenCalledOnce();
   });
 

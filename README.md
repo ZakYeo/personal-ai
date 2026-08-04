@@ -72,6 +72,9 @@ Implemented today:
   key-free Open-Meteo adapters, protected location/timezone/unit/freshness
   facts, explicit-home coat guidance, required source attribution, and
   rank-aware place resolution that keeps persistent watches strict.
+- Concise weather speech that reports notable rain or wind naturally, gives
+  relative observation freshness, and keeps exact telemetry that was not requested in
+  protected data.
 - Durable precipitation, temperature, and wind watches with exact confirmation,
   restart-safe claim-before-delivery evaluation, and shared service output.
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events
