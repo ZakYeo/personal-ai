@@ -91,7 +91,9 @@ typed config/constructor; adding a provider must not widen a shared
 provider-specific union or add adapter-ID branches to aggregate composition.
 Streaming speech timeouts bound connection and individual body-read inactivity.
 They are disarmed while the consumer processes a yielded chunk, so total speech
-duration and playback delays are not mistaken for provider stalls.
+duration and playback delays are not mistaken for provider stalls. Best-effort
+reader cancellation has a bounded grace period and cannot hide the primary
+timeout or abort outcome when provider cleanup does not settle.
 Follow-up listening is neutral voice runtime behavior. A voice runtime may
 capture a no-wake reply only when the assistant response explicitly sets
 `expectsFollowUp: true`, and it should return to normal wake listening once a

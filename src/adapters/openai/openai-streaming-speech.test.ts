@@ -147,6 +147,42 @@ describe("OpenAIStreamingSpeech", () => {
     }
   });
 
+  it("does not let a stalled reader cancellation hide the timeout", async () => {
+    const cancel = vi.fn(() => new Promise<void>(() => {}));
+    const adapter = createAdapter({
+      fetch: vi.fn().mockResolvedValue(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            cancel,
+          }),
+        ),
+      ),
+      timeoutMs: 5,
+    });
+    const speech = await adapter.synthesizeStream("Alarm set.");
+    const failure = speech.chunks[Symbol.asyncIterator]()
+      .next()
+      .then(
+        () => ({ kind: "completed" as const }),
+        (error: unknown) => ({ error, kind: "failed" as const }),
+      );
+
+    await expect(
+      Promise.race([
+        failure,
+        new Promise<{ kind: "hung" }>((resolve) =>
+          setTimeout(() => resolve({ kind: "hung" }), 100),
+        ),
+      ]),
+    ).resolves.toMatchObject({
+      error: expect.objectContaining({
+        message: "OpenAI speech request timed out after 5ms.",
+      }) as Error,
+      kind: "failed",
+    });
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
   it("allows a stream to outlive the timeout while chunks keep arriving", async () => {
     vi.useFakeTimers();
     const adapter = createAdapter({

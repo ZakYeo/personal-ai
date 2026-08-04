@@ -200,7 +200,8 @@ provider bodies cannot outlive a turn.
 The timeout is armed while connecting and while awaiting each body chunk, then
 disarmed while the consumer handles that chunk. A regularly progressing stream
 may outlive the configured duration without masking a genuinely stalled request
-or body.
+or body. Reader cancellation remains best effort within a bounded grace period,
+so a non-settling provider cleanup cannot delay the primary failure indefinitely.
 The default desktop OpenAI command capture keeps an eight-second maximum trim
 guard but also uses SoX trailing-silence detection after wake activation. That
 keeps the service from waiting for the full capture window after the user has

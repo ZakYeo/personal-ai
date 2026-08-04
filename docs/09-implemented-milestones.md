@@ -139,7 +139,8 @@ Outcomes:
   validated citations but only the provider title is spoken.
 - Streaming speech timeout accounting now bounds connection and next-chunk
   inactivity without treating long, regularly progressing audio or consumer
-  processing delays as a provider timeout.
+  processing delays as a provider timeout; reader cancellation is also bounded
+  so cleanup cannot hide the primary timeout or abort outcome.
 - The fresh thermonuclear review hardened URL-first sanitization, broadened
   supported ISO/RFC and validated IANA detection, centralized temporal rendering,
   made weather timezone context explicit, unified retained search metadata with

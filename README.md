@@ -306,6 +306,8 @@ Configured OpenAI streaming speech timeouts and service shutdown signals cover
 both the initial request and streamed response body. Timeout accounting measures
 connection or next-chunk inactivity rather than total speech duration, so a
 regularly advancing long response is not aborted while it is still speaking.
+Reader cancellation uses a bounded best-effort grace period so stalled cleanup
+cannot suppress the primary timeout or shutdown outcome.
 Successful smoke runs print a `Voice timing summary` with wake activation,
 command stream setup, command transcription, assistant handling, speech output,
 and total durations. These timings are diagnostic and provider-variable; recent

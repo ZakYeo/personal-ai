@@ -105,15 +105,31 @@ async function* streamToAsyncIterable(
     throw error;
   } finally {
     if (!completed) {
-      try {
-        await reader.cancel(abortReason(abortScope.signal));
-      } catch {
-        // Reader cancellation is best-effort and keeps the primary outcome.
-      }
+      await cancelReaderBestEffort(reader, abortScope);
     }
 
     reader.releaseLock();
     abortScope.dispose();
+  }
+}
+
+const MAX_READER_CANCEL_WAIT_MS = 1_000;
+
+async function cancelReaderBestEffort(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  scope: SpeechAbortScope,
+): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const cleanupGraceMs = Math.min(scope.timeoutMs, MAX_READER_CANCEL_WAIT_MS);
+  try {
+    await Promise.race([
+      reader.cancel(abortReason(scope.signal)).catch(() => {}),
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, cleanupGraceMs);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
   }
 }
 
