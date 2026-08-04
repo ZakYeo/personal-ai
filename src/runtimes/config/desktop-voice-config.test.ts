@@ -98,6 +98,45 @@ describe("desktop voice config parsing", () => {
     ).toThrow("Config desktopVoice.textToSpeech.args must be a string array.");
   });
 
+  it("rejects private TTS text placeholders in process arguments", () => {
+    expect(() =>
+      parseAssistantConfig(
+        createMinimalConfig({
+          desktopVoice: {
+            textToSpeech: {
+              command: "fake-tts",
+              args: ["--text", "{text}", "--output", "{output}"],
+              stdin: "{text}",
+            },
+          },
+        }),
+      ),
+    ).toThrow(
+      "Config desktopVoice.textToSpeech.args must not contain {text}; synthesized text is private stdin data.",
+    );
+  });
+
+  it.each([undefined, "prefix {text}"])(
+    "requires exact private TTS stdin configuration %j",
+    (stdin) => {
+      expect(() =>
+        parseAssistantConfig(
+          createMinimalConfig({
+            desktopVoice: {
+              textToSpeech: {
+                command: "fake-tts",
+                args: ["--output", "{output}"],
+                ...(stdin === undefined ? {} : { stdin }),
+              },
+            },
+          }),
+        ),
+      ).toThrow(
+        "Config desktopVoice.textToSpeech.stdin must be exactly {text}.",
+      );
+    },
+  );
+
   it("rejects duplicate command environment allowlist entries", () => {
     expect(() =>
       parseAssistantConfig(
@@ -205,7 +244,7 @@ describe("desktop voice config resolvers", () => {
           audioInput: { command: "fake-rec" },
           audioOutput: { command: "fake-play" },
           speechToText: { command: "fake-stt" },
-          textToSpeech: { command: "fake-tts" },
+          textToSpeech: { command: "fake-tts", stdin: "{text}" },
         },
         voice: {
           audioOutput: "sox-play",
@@ -285,7 +324,7 @@ describe("desktop voice config resolvers", () => {
               audioInput: { command: "fake-rec" },
               audioOutput: { command: "fake-play" },
               speechToText: { command: "fake-stt" },
-              textToSpeech: { command: "fake-tts" },
+              textToSpeech: { command: "fake-tts", stdin: "{text}" },
             },
           }),
         ),
@@ -294,7 +333,7 @@ describe("desktop voice config resolvers", () => {
       audioInput: { command: "fake-rec" },
       audioOutput: { command: "fake-play" },
       speechToText: { command: "fake-stt" },
-      textToSpeech: { command: "fake-tts" },
+      textToSpeech: { command: "fake-tts", stdin: "{text}" },
     });
   });
 
@@ -306,7 +345,7 @@ describe("desktop voice config resolvers", () => {
             desktopVoice: {
               audioInput: { command: "fake-rec" },
               speechToText: { command: "fake-stt" },
-              textToSpeech: { command: "fake-tts" },
+              textToSpeech: { command: "fake-tts", stdin: "{text}" },
             },
           }),
         ),
@@ -345,7 +384,7 @@ function createDesktopStreamingRuntimeConfig(
         audioOutput: { command: "fake-play" },
         speechToText: { command: "fake-stt" },
         streamingAudioInput: { command: "fake-stream-rec" },
-        textToSpeech: { command: "fake-tts" },
+        textToSpeech: { command: "fake-tts", stdin: "{text}" },
         ...overrides.desktopVoice,
       },
       voice: {

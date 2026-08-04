@@ -166,13 +166,9 @@
     },
     "textToSpeech": {
       "command": "/bin/sh",
-      "args": [
-        "-c",
-        "test -n \"$OPENAI_API_KEY\" || { echo 'OPENAI_API_KEY is not set' >&2; exit 2; }\njq -n --arg input \"$1\" '{model:\"gpt-4o-mini-tts\", voice:\"coral\", input:$input, instructions:\"Speak clearly and concisely.\", response_format:\"wav\"}' | curl --fail --silent --show-error https://api.openai.com/v1/audio/speech --header \"Authorization: Bearer $OPENAI_API_KEY\" --header 'Content-Type: application/json' --data-binary @- --output \"$2\"",
-        "sh",
-        "{text}",
-        "{output}"
-      ],
+      "args": ["scripts/openai-audio-command.sh", "speak", "{output}"],
+      "environmentAllowlist": ["OPENAI_API_KEY"],
+      "stdin": "{text}",
       "timeoutMs": 30000
     },
     "audioOutput": {

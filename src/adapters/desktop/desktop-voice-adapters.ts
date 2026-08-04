@@ -1,4 +1,7 @@
-import type { DesktopCommandConfig } from "./desktop-command-config.js";
+import type {
+  DesktopCommandConfig,
+  DesktopTextToSpeechCommandConfig,
+} from "./desktop-command-config.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -105,7 +108,7 @@ export class CommandWakeActivation implements WakeActivationPort {
 
 export class CommandTextToSpeech implements TextToSpeechPort {
   constructor(
-    private readonly commandConfig: DesktopCommandConfig,
+    private readonly commandConfig: DesktopTextToSpeechCommandConfig,
     private readonly tempFiles: VoiceTempFilePort,
     private readonly processControl?: ProcessControl,
     private readonly signal?: AbortSignal,

@@ -347,10 +347,9 @@ desktopVoice:
   textToSpeech:
     command: your-tts-command
     args:
-      - "--text"
-      - "{text}"
       - "--output"
       - "{output}"
+    stdin: "{text}"
     timeoutMs: 30000
 
 intent:
@@ -431,7 +430,10 @@ configuration-driven. Text-only runtimes may ignore the `voice` and
 voice adapter IDs during composition.
 Desktop voice runtimes must also reject missing desktop command settings for
 selected command-based adapters. Desktop voice command adapters replace
-`{input}`, `{output}`, and `{text}` placeholders in configured argument values.
+`{input}` and `{output}` placeholders in configured argument values. Command
+text-to-speech adapters require `stdin: "{text}"` and reject `{text}` in
+arguments so synthesized assistant text is not exposed through process
+inspection.
 The desktop voice service additionally requires `desktopVoice.wakeAudioInput`
 for short wake-window capture; `desktopVoice.audioInput` remains the command
 utterance capture config.

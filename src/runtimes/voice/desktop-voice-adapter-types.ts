@@ -1,4 +1,7 @@
-import type { DesktopCommandConfig } from "../../adapters/desktop/desktop-command-config.js";
+import type {
+  DesktopCommandConfig,
+  DesktopTextToSpeechCommandConfig,
+} from "../../adapters/desktop/desktop-command-config.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -64,7 +67,7 @@ export interface ResolvedDesktopVoiceAdapterConfig {
   speechToText: DesktopCommandConfig;
   streamingSpeechToText?: ResolvedDesktopStreamingSpeechToTextConfig;
   streamingTextToSpeech?: ResolvedDesktopStreamingTextToSpeechConfig;
-  textToSpeech: DesktopCommandConfig;
+  textToSpeech: DesktopTextToSpeechCommandConfig;
   wakeActivation?: DesktopCommandConfig;
 }
 
@@ -101,7 +104,7 @@ export interface DesktopVoiceSlotTopology {
     StreamingAudioOutputPort
   >;
   textToSpeech: DesktopVoiceSlotDescriptor<
-    DesktopCommandConfig,
+    DesktopTextToSpeechCommandConfig,
     TextToSpeechPort
   >;
   wakeActivation: DesktopVoiceSlotDescriptor<

@@ -32,7 +32,8 @@
     },
     "textToSpeech": {
       "command": "/bin/sh",
-      "args": ["-c", "printf '%s' \"$1\" > \"$2\"", "sh", "{text}", "{output}"],
+      "args": ["-c", "cat > \"$1\"", "sh", "{output}"],
+      "stdin": "{text}",
       "timeoutMs": 30000
     },
     "audioOutput": {

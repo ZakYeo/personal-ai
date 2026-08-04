@@ -6,6 +6,13 @@ export interface DesktopCommandConfig {
   timeoutMs?: number;
 }
 
+export interface DesktopTextToSpeechCommandConfig extends Omit<
+  DesktopCommandConfig,
+  "stdin"
+> {
+  stdin: "{text}";
+}
+
 const safeCommandEnvironmentKeys = [
   "HOME",
   "LANG",

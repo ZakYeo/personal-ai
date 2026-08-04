@@ -99,6 +99,27 @@ describe("desktop voice adapters", () => {
     );
   });
 
+  it("keeps synthesized text out of the spawned command arguments", async () => {
+    const privateText = "private assistant response";
+    const adapter = new CommandTextToSpeech(
+      {
+        ...createShellCommand(
+          'output="$1"; shift; printf \'%s\\n\' "$@" > "$output"; cat > /dev/null',
+          "{output}",
+          "fixed-argument",
+        ),
+        stdin: "{text}",
+      },
+      createTestTempFiles(),
+    );
+
+    const speech = await adapter.synthesize(privateText);
+    const spawnedArguments = await readFile(speech.filePath ?? "", "utf8");
+
+    expect(spawnedArguments).toBe("fixed-argument\n");
+    expect(spawnedArguments).not.toContain(privateText);
+  });
+
   it("plays synthesized audio with a configured command", async () => {
     const directory = await mkdtemp(join(tmpdir(), "personal-ai-play-"));
     const markerPath = join(directory, "played.txt");

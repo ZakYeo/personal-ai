@@ -13,6 +13,7 @@ import {
 import {
   resolveDesktopCommandEnvironment,
   type DesktopCommandConfig,
+  type DesktopTextToSpeechCommandConfig,
 } from "../../adapters/desktop/desktop-command-config.js";
 import type {
   AudioInputPort,
@@ -33,7 +34,7 @@ import {
 export const desktopVoiceCommandAdapterEntries = {
   audioOutput: {
     "sox-play": defineDesktopVoiceAdapter({
-      create: (command: DesktopCommandConfig, context) =>
+      create: (command: DesktopTextToSpeechCommandConfig, context) =>
         new SoxAudioOutput(
           command,
           context.dependencies.processControl,
@@ -99,7 +100,7 @@ export const desktopVoiceCommandAdapterEntries = {
   },
   textToSpeech: {
     command: defineDesktopVoiceAdapter({
-      create: (command: DesktopCommandConfig, context) =>
+      create: (command: DesktopTextToSpeechCommandConfig, context) =>
         new CommandTextToSpeech(
           command,
           context.tempFiles,
@@ -153,7 +154,7 @@ export const desktopVoiceCommandAdapterEntries = {
   >;
   textToSpeech: Record<
     string,
-    DesktopVoiceAdapterEntry<DesktopCommandConfig, TextToSpeechPort>
+    DesktopVoiceAdapterEntry<DesktopTextToSpeechCommandConfig, TextToSpeechPort>
   >;
   wakeActivation: Record<
     string,

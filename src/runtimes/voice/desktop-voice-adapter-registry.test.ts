@@ -140,7 +140,7 @@ function createDesktopVoiceServiceConfig(): ResolvedDesktopVoiceServiceAdapterCo
     audioInput: createVoiceCommand("fake-rec"),
     audioOutput: createVoiceCommand("fake-play"),
     speechToText: createVoiceCommand("fake-stt"),
-    textToSpeech: createVoiceCommand("fake-tts"),
+    textToSpeech: { ...createVoiceCommand("fake-tts"), stdin: "{text}" },
     wakeAudioInput: createVoiceCommand("fake-wake-rec"),
   };
 }

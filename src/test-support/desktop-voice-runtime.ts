@@ -25,11 +25,10 @@ export function createDesktopVoiceConfig(
       speechToText: createDesktopVoiceCommand(
         `printf '%s' ${JSON.stringify(transcript)}`,
       ),
-      textToSpeech: createDesktopVoiceCommand(
-        'printf \'%s\' "$1" > "$2"',
-        "{text}",
-        "{output}",
-      ),
+      textToSpeech: {
+        ...createDesktopVoiceCommand('cat > "$1"', "{output}"),
+        stdin: "{text}",
+      },
       wakeAudioInput: createDesktopVoiceCommand(
         'printf wake-audio > "$1"',
         "{output}",

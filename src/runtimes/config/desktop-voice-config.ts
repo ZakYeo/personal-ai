@@ -1,4 +1,7 @@
-import type { DesktopCommandConfig } from "../../adapters/desktop/desktop-command-config.js";
+import type {
+  DesktopCommandConfig,
+  DesktopTextToSpeechCommandConfig,
+} from "../../adapters/desktop/desktop-command-config.js";
 import { isRecord } from "./config-parse-utils.js";
 import type {
   DesktopVoiceProviderAdapterRegistry,
@@ -18,7 +21,7 @@ export interface ParsedDesktopVoiceConfig {
   speechToText?: DesktopCommandConfig;
   streamingAudioInput?: DesktopCommandConfig;
   streamingAudioOutput?: DesktopCommandConfig;
-  textToSpeech?: DesktopCommandConfig;
+  textToSpeech?: DesktopTextToSpeechCommandConfig;
   wakeActivation?: DesktopCommandConfig;
   wakeAudioInput?: DesktopCommandConfig;
   streamingSpeechToTextProvider?: ResolvedDesktopVoiceProviderAdapter<StreamingSpeechToTextPort>;
@@ -31,7 +34,7 @@ interface ResolvedDesktopVoiceConfig {
   speechToText: DesktopCommandConfig;
   streamingAudioInput?: DesktopCommandConfig;
   streamingAudioOutput?: DesktopCommandConfig;
-  textToSpeech: DesktopCommandConfig;
+  textToSpeech: DesktopTextToSpeechCommandConfig;
   wakeActivation?: DesktopCommandConfig;
   wakeAudioInput?: DesktopCommandConfig;
 }
@@ -80,7 +83,7 @@ export function parseDesktopVoiceConfig(
         "streamingAudioOutput",
         rawDesktopVoice.streamingAudioOutput,
       ),
-      ...parseVoiceCommand("textToSpeech", rawDesktopVoice.textToSpeech),
+      ...parseTextToSpeechCommand(rawDesktopVoice.textToSpeech),
       ...parseVoiceCommand("wakeActivation", rawDesktopVoice.wakeActivation),
       ...parseVoiceCommand("wakeAudioInput", rawDesktopVoice.wakeAudioInput),
       ...(voice?.streamingSpeechToText
@@ -147,10 +150,10 @@ export function requireDesktopVoiceConfig(config: {
   };
 }
 
-function requireDesktopVoiceCommand(
+function requireDesktopVoiceCommand<TKey extends ParsedDesktopVoiceCommandKey>(
   config: { desktopVoice?: ParsedDesktopVoiceConfig },
-  key: ParsedDesktopVoiceCommandKey,
-): DesktopCommandConfig {
+  key: TKey,
+): NonNullable<ParsedDesktopVoiceConfig[TKey]> {
   const command = config.desktopVoice?.[key];
 
   if (!command) {
@@ -160,11 +163,34 @@ function requireDesktopVoiceCommand(
   return command;
 }
 
-export function requireDesktopVoiceCommandConfig(
+export function requireDesktopVoiceCommandConfig<
+  TKey extends ParsedDesktopVoiceCommandKey,
+>(
   config: { desktopVoice?: ParsedDesktopVoiceConfig },
-  key: ParsedDesktopVoiceCommandKey,
-): DesktopCommandConfig {
+  key: TKey,
+): NonNullable<ParsedDesktopVoiceConfig[TKey]> {
   return requireDesktopVoiceCommand(config, key);
+}
+
+function parseTextToSpeechCommand(
+  value: unknown,
+): Partial<Pick<ParsedDesktopVoiceConfig, "textToSpeech">> {
+  const parsed = parseVoiceCommand("textToSpeech", value);
+  const command = parsed.textToSpeech;
+  if (!command) return {};
+
+  if (command.args?.some((argument) => argument.includes("{text}"))) {
+    throw new Error(
+      "Config desktopVoice.textToSpeech.args must not contain {text}; synthesized text is private stdin data.",
+    );
+  }
+  if (command.stdin !== "{text}") {
+    throw new Error(
+      "Config desktopVoice.textToSpeech.stdin must be exactly {text}.",
+    );
+  }
+
+  return { textToSpeech: { ...command, stdin: "{text}" } };
 }
 
 function parseVoiceCommand<TKey extends ParsedDesktopVoiceCommandKey>(
