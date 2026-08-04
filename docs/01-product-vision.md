@@ -58,7 +58,9 @@ The assistant should support natural voice commands such as:
 - Open prompts that ask the user to restate an incomplete request do not lock
   the next turn to an intent session. A reply to a specific clarification may
   answer it or replace it with one fresh request, while confirmations remain
-  strict yes/no interactions.
+  strict yes/no interactions. The application retains only safe clarification
+  context and remains authoritative when provider continuation state conflicts
+  with a validated workflow transition.
 
 ## Near-Term Direction
 

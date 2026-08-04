@@ -156,23 +156,36 @@ remain visible to the exhaustive human-boundary logging policy.
 One specific clarification may be retained process-locally and resumed against
 the exact intent-provider session. No/cancel discards it; an answer resumes it;
 a provider-classified changed-topic reply discards it and starts one fresh
-workflow from the exact trusted reply. Open rephrase prompts request a follow-up
-without retaining provider-session state. A resulting high-risk action replaces
-the clarification with the ordinary frozen confirmation. Calendar-driven alarms
+workflow from the exact trusted reply. Core also treats a resumed command or
+plan with no occurrence of the selected clarification capability as a changed
+workflow, so provider omission of the replacement marker cannot keep a new
+request in the old session. Open rephrase prompts request a follow-up without
+retaining provider-session state. A resulting high-risk action replaces the
+clarification with the ordinary frozen confirmation. Calendar-driven alarms
 snapshot the selected public event facts and calculated instant at confirmation,
 persist no calendar provider ID, and do not follow event edits or deletion.
 All-day events require an explicit local time resolved in the canonical
 assistant IANA timezone.
+
+Clarification continuations expose only typed, safe workflow context: the
+original trusted request, human-safe prompt, application-owned origin, and
+stable capability name when one is selected. Provider diagnostics, response
+payloads, IDs, credentials, and tool internals are excluded. Core owns
+transition legality. If semantic validation turns a provider tool call into a
+clarification, the answer starts a fresh provider request with that safe context
+because the old provider response is waiting for a tool result, not user text.
 
 Provider intent output must pass a semantic guard before entering that
 transaction. A required string parameter equal to the whole normalized request
 is an unresolved restatement, not a usable value. A narrow question about one
 action must not become the broad capability-list command. Both cases become one
 canonical clarification, and provider clarification statuses are normalized to
-the clarification branch's safe status. Scope checks after a user reply use the
-latest trusted turn, while unresolved-restatement checks retain the original
-request. A second unresolved clarification ends the old workflow with a safe
-open rephrase response rather than entering an unbounded loop.
+the clarification branch's safe status. Provider-authored clarifications must
+identify the exact selected enabled capability at the structured-output
+boundary. Scope checks after a user reply use the latest trusted turn, while
+unresolved-restatement checks retain the original request. A second unresolved
+clarification ends the old workflow with a safe open rephrase response rather
+than entering an unbounded loop.
 
 Every confirmation-required capability must deterministically render its exact
 decoded action through an application-owned declaration. Aggregate prompts must

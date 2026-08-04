@@ -106,9 +106,15 @@ The core coordinates assistant behavior:
   clarification. A clarification answer resumes the exact provider session; a
   changed-topic reply may discard it and start one fresh workflow from the
   trusted reply; a resulting confirmation replaces it without reinterpretation.
+  Core owns transition legality and carries only the safe original request,
+  prompt, origin, and selected capability into a continuation. A terminal result
+  for a different capability is treated as replacement even if the provider
+  omitted that transition marker.
 - Treats an open rephrase prompt as a follow-up signal without pending workflow
-  state, and validates directly resolved clarification replies against the
-  latest trusted user turn.
+  state. Semantic validation that replaces an outstanding provider tool call
+  with a clarification restarts provider transport with safe context rather
+  than sending a user reply where a tool result is required. Directly resolved
+  clarification replies are validated against the latest trusted user turn.
 - Produces structured assistant responses.
 
 The core must not know whether input came from a microphone, CLI, test fixture, HTTP request, or Raspberry Pi device.

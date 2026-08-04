@@ -140,10 +140,13 @@ response discards it. Restarting the assistant discards any pending command.
 
 The same single interaction slot may hold one specific clarification. Its answer
 resumes the already-created intent session, while no/cancel discards it. A
-provider-classified changed-topic reply discards the session and begins one
-fresh workflow from the exact trusted reply. Open rephrase prompts set the
-follow-up signal without occupying the interaction slot. If the resumed result
-requires confirmation, the validated confirmation replaces the clarification.
+provider-classified changed-topic reply, or a resumed terminal result that no
+longer contains the selected stable capability, discards the session and begins
+one fresh workflow from the exact trusted reply. Feature validation contributes
+the safe prompt, origin, and capability metadata used for that decision. Open
+rephrase prompts set the follow-up signal without occupying the interaction
+slot. If the resumed result requires confirmation, the validated confirmation
+replaces the clarification.
 Confirmed feature execution receives the immutable exact facts rendered at
 validation so snapshot actions persist precisely what the user saw.
 

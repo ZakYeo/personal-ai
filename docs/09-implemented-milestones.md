@@ -264,6 +264,11 @@ Included:
 - Open rephrase prompts that retain no provider workflow, plus explicit
   changed-topic replacement that starts one fresh workflow from the exact
   trusted reply while confirmation remains strict.
+- Core-owned clarification transitions with typed safe context containing the
+  original request, prompt, origin, and selected capability. Semantic
+  clarifications that interrupt a tool call restart provider transport, while
+  capability-mismatched terminal continuations become fresh replacement
+  workflows even when the provider omits the marker.
 - OpenAI Responses continuation through `previous_response_id`, strict read
   tools, and disabled parallel calls, with provider-managed response-state
   privacy documented for operators. Every intent response requires a non-empty
@@ -324,6 +329,12 @@ Outcomes:
   replies; `IntentWorkflow` no longer carries ceremonial duplicate state;
   benchmark structural validation and spoken ordinal parsing use shared
   primitives; and local alarm stores require an injected clock.
+- The fresh clarification-flexibility thermonuclear review was fully
+  remediated: adapter/core continuation state was consolidated under the core
+  workflow, application and feature clarification prompts gained safe typed
+  continuation context, semantic tool-call clarification gained deterministic
+  restart coverage, and live OpenAI smokes now assert exact fresh-versus-resumed
+  request topology.
 
 Acceptance criteria:
 
@@ -338,7 +349,9 @@ Acceptance criteria:
 - Existing command, compound-plan, conversation, calendar-follow-up, and human
   runtime failure semantics remain compatible, and `npm run check` passes.
 - Deterministic configured-runtime coverage and focused opt-in live OpenAI
-  smokes prove open rephrasing and changed-topic clarification replacement.
+  smokes prove open rephrasing and changed-topic clarification replacement,
+  including the exact absence or presence of `previous_response_id` at each
+  transition.
 
 ## Milestone 11: Calendar Result Follow-Ups
 

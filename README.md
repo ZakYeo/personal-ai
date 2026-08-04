@@ -51,8 +51,10 @@ Implemented today:
   are disabled.
 - Flexible clarification transitions distinguish open rephrase prompts from
   resumable workflow questions, let a changed-topic reply replace an unfinished
-  clarification through a fresh validated workflow, and keep confirmation
-  replies strict.
+  clarification through a fresh validated workflow, carry only typed safe
+  prompt/origin/capability context, and keep confirmation replies strict. Core
+  remains authoritative if provider continuation state or output disagrees with
+  the validated transition.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Shared OpenAI Responses configuration parsing with provider-local config
   types rather than provider details in application ports.
@@ -180,9 +182,13 @@ tool observations, event titles/times, and continuation context are subject to
 the configured OpenAI account's data handling and retention policy. Use the
 deterministic provider when that off-device retention tradeoff is unacceptable.
 Every OpenAI intent response must include a non-empty response ID so any
-application-owned clarification can resume the exact provider session. If that
-reply changes topic, the provider may request replacement, but core discards the
-old session and interprets the exact trusted reply through a fresh workflow.
+application-owned clarification can resume the exact provider session. OpenAI
+clarifications also identify their selected stable capability. If a reply
+changes topic, the provider may request replacement; core also detects a
+different resolved capability, discards the old session, and interprets the
+exact trusted reply through a fresh workflow. Semantic clarification of a
+pending tool call starts a fresh request with safe context instead of violating
+the provider's tool-result continuation state.
 
 The default desktop OpenAI voice service config used by `npm start` selects the
 Google Calendar adapter, OpenAI internet search, the OpenAI response rewriter,
@@ -555,7 +561,8 @@ Common development commands:
   OpenAI plus Google Calendar result-follow-up smoke; requires a configured
   fixture query, expected title/location detail, and Google credentials.
 - `npm run test:e2e:openai:clarifications` - run the focused opt-in live OpenAI
-  open-rephrase and changed-topic clarification smoke.
+  open-rephrase and changed-topic clarification smoke, including exact request
+  topology assertions.
 - `npm run test:e2e:openai:search` - run the focused opt-in live OpenAI intent
   routing and web-search citation smoke; requires `OPENAI_API_KEY`.
 - `npm run test:e2e:open-meteo` - run the focused opt-in live key-free

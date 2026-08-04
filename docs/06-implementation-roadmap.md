@@ -249,7 +249,11 @@ read traces across provider continuation failures, and required a non-empty
 OpenAI response ID for every intent response. Later clarification hardening
 distinguished open rephrase prompts from resumable questions, allowed a
 changed-topic reply to start one fresh workflow, made semantic validation
-turn-aware, and replaced clarification-limit jargon with a safe rephrase.
+turn-aware, and replaced clarification-limit jargon with a safe rephrase. The
+core now owns transition legality, passes typed safe clarification context,
+restarts transport when semantic validation interrupts a pending tool call, and
+uses the selected stable capability to detect changed workflows even when a
+provider omits the replacement marker.
 
 Acceptance criteria:
 
@@ -266,8 +270,9 @@ Acceptance criteria:
 - Existing single commands, compound plans, conversation, follow-ups, and
   runtime failure boundaries remain compatible, and `npm run check` passes.
 - Open rephrases retain no pending workflow, changed-topic replies replace a
-  clarification through a fresh bounded workflow, and confirmations retain
-  their strict existing behavior.
+  clarification through a fresh bounded workflow, provider-session request
+  topology is asserted by live smoke coverage, and confirmations retain their
+  strict existing behavior.
 
 ## Milestone 13: Explicit Personal Profile and Preferences
 

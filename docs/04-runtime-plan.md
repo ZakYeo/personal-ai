@@ -106,8 +106,12 @@ runtimes receive the same safe final response and diagnostic-aware tool-chain
 trace from the neutral assistant core.
 Open rephrase responses request another no-wake voice turn without retaining an
 intent workflow. Specific clarification answers resume the provider session;
-changed-topic replies replace it through one fresh core workflow. Confirmation
-turns remain strict and cannot be replaced implicitly.
+changed-topic replies replace it through one fresh core workflow. Core supplies
+safe typed clarification context and recognizes a different resolved capability
+as replacement even when the provider omits the marker. A semantic guard that
+clarifies an outstanding tool call restarts provider transport because that
+response state can accept only a tool result. Confirmation turns remain strict
+and cannot be replaced implicitly.
 The core workflow transaction preserves completed reads when an intent provider
 fails during continuation and returns an `unexpected` diagnostic through this
 normal outcome path. Intermediate reads are not response-rewriter inputs.
