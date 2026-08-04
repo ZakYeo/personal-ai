@@ -170,6 +170,8 @@ describe("OpenAIIntentInterpreter", () => {
       jsonResponse({
         id: "response-1",
         output_text: JSON.stringify({
+          clarificationCapability:
+            kind === "clarification" ? "test.choose" : null,
           command: null,
           kind,
           plan: null,
