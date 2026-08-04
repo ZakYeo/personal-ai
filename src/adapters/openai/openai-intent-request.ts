@@ -89,6 +89,7 @@ function createIntentInstructions(
       ? [
           "When a capability matches but required information is missing, use kind clarification and ask one concise question for that information.",
           "A user asking whether you can perform an enabled capability without supplying its required information is starting that capability, so clarify for the missing information rather than describing capabilities or inventing a value.",
+          "Never ask for information represented only by optional capability parameters. Omit optional parameters that the user did not supply and return the resolved command.",
         ]
       : []),
     "A question about one named action is not a broad capability-catalog question; reserve the capability-list command for broad questions such as what the assistant can do.",

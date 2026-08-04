@@ -100,6 +100,9 @@ describe("OpenAIIntentInterpreter", () => {
     const body = readRequestBody(fetch);
 
     expect(JSON.stringify(body.input)).toContain("tool chain read");
+    expect(JSON.stringify(body.input)).toContain(
+      "Never ask for information represented only by optional capability parameters",
+    );
 
     expect(body.text.format.schema).toMatchObject({
       $defs: {
