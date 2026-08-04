@@ -21,10 +21,7 @@ export interface ConversationResponderPort {
 }
 
 export interface ConversationCompactorPort {
-  compact(
-    state: ConversationState,
-    context: AssistantContext,
-  ): Promise<ConversationState>;
+  compact(state: ConversationState, context: AssistantContext): Promise<string>;
 }
 
 export interface ConversationHistoryConfig {

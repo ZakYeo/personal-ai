@@ -136,15 +136,14 @@ export function createInterpreter(
 export function createConversationCompactor(): ConversationCompactorPort {
   return {
     compact: (state) =>
-      Promise.resolve({
-        summary: [
+      Promise.resolve(
+        [
           state.summary,
           ...state.recentTurns.map((turn) => `${turn.role}: ${turn.content}`),
         ]
           .filter((line): line is string => Boolean(line))
           .join("\n"),
-        recentTurns: [],
-      }),
+      ),
   };
 }
 

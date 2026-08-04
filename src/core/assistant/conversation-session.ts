@@ -65,12 +65,12 @@ async function compactConversationIfNeeded(
     return { compacted: false, state };
   }
 
-  const compactedState = await dependencies.compactor.compact(state, context);
-  assertConversationSummaryWithinLimit(compactedState.summary);
+  const summary = await dependencies.compactor.compact(state, context);
+  assertConversationSummaryWithinLimit(summary);
 
   return {
     compacted: true,
-    state: compactedState,
+    state: { recentTurns: [], summary },
   };
 }
 

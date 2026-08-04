@@ -31,6 +31,7 @@
 - General conversation support is selected with `conversation.provider`; keep chat history in the assistant instance unless a persistence milestone explicitly changes that boundary.
 - The configured conversation window records every completed safe user/assistant exchange and supplies a frozen, untrusted-context snapshot to both intent and conversation providers; feature execution contexts must not receive the broad transcript.
 - Conversation history compacts after `conversation.history.maxTurnsBeforeCompaction` completed user/assistant turns; the current default is 5.
+- Conversation compactors return only a validated bounded summary; core alone constructs the replacement conversation state and clears compacted turns.
 - Deterministic conversation compaction must remove echoed summaries and keep its stored summary within a fixed character bound so repeated compaction cannot multiply history text.
 - Serialize each assistant instance's conversation response, compaction, and history commit transaction so concurrent callers cannot overwrite turns or reorder history.
 - Conversation providers that can ask a user-facing follow-up should return the diagnostic-safe `AssistantResponse.expectsFollowUp` signal; voice runtimes use that signal to capture the next utterance without another wake word before returning to normal wake listening.

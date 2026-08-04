@@ -92,10 +92,9 @@ class DeterministicConversationCompactor implements ConversationCompactorPort {
       .filter((line): line is string => Boolean(line))
       .join("\n");
 
-    return Promise.resolve({
-      recentTurns: [],
-      summary: combinedSummary.slice(-maximumDeterministicSummaryCharacters),
-    });
+    return Promise.resolve(
+      combinedSummary.slice(-maximumDeterministicSummaryCharacters),
+    );
   }
 }
 

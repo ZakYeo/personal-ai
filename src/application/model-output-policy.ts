@@ -4,12 +4,13 @@ export const modelOutputLimits = Object.freeze({
 });
 
 export function assertConversationSummaryWithinLimit(
-  summary: string | undefined,
-): void {
-  if (
-    summary !== undefined &&
-    summary.length > modelOutputLimits.summaryCharacters
-  ) {
+  summary: unknown,
+): asserts summary is string {
+  if (typeof summary !== "string" || summary.trim().length === 0) {
+    throw new Error("Conversation summary must be a non-empty string.");
+  }
+
+  if (summary.length > modelOutputLimits.summaryCharacters) {
     throw new Error("Conversation summary exceeded the application limit.");
   }
 }

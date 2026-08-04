@@ -64,10 +64,7 @@ export class OpenAIConversationCompactor implements ConversationCompactorPort {
       options: this.options,
     });
 
-    return {
-      recentTurns: [],
-      summary: parseOpenAIConversationSummary(outputText),
-    };
+    return parseOpenAIConversationSummary(outputText);
   }
 }
 

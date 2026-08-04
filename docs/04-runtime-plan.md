@@ -631,8 +631,10 @@ execution contexts remain narrow and do not receive the transcript. Each
 response, compaction, and commit transaction is serialized in
 invocation order so concurrent callers cannot observe stale history or overwrite
 completed turns. After `conversation.history.maxTurnsBeforeCompaction` completed
-user/assistant turns, the configured compactor replaces older turns with a
-summary. The default compaction threshold is 5. OpenAI conversation responses
+user/assistant turns, the configured compactor returns only a bounded summary;
+core installs that summary and clears the compacted turns. Compactors cannot
+replace or inject recent-turn state. The default compaction threshold is 5.
+OpenAI conversation responses
 return strict JSON containing safe response text and `expectsFollowUp`; raw
 provider output stays inside adapter diagnostics.
 Provider instructions reserve the signal for an answer required to complete the

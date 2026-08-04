@@ -328,10 +328,9 @@ describe("OpenAIConversationCompactor", () => {
     );
     const compactor = createCompactor({ fetch });
 
-    await expect(compactor.compact(state, context)).resolves.toEqual({
-      recentTurns: [],
-      summary: "The user asked how Jarvis was doing.",
-    });
+    await expect(compactor.compact(state, context)).resolves.toBe(
+      "The user asked how Jarvis was doing.",
+    );
 
     const body = readRequestBody(fetch);
 

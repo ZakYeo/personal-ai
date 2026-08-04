@@ -189,10 +189,7 @@ describe("createAssistant", () => {
 
   it("compacts conversation history after the configured number of chats", async () => {
     const compact = vi.fn((state: ConversationState) =>
-      Promise.resolve({
-        recentTurns: [],
-        summary: `summary for ${state.recentTurns.length} turns`,
-      }),
+      Promise.resolve(`summary for ${state.recentTurns.length} turns`),
     );
     const respond = vi.fn((input: string, state: ConversationState) =>
       Promise.resolve({
