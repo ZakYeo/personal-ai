@@ -181,6 +181,10 @@ describe("createAssistant", () => {
     };
     expect(histories[1]).toEqual(expectedHistory);
     expect(responderStates[1]).toEqual(expectedHistory);
+    expect(responderStates[1]).toBe(histories[1]);
+    expect(Object.isFrozen(histories[1])).toBe(true);
+    expect(Object.isFrozen(histories[1]?.recentTurns)).toBe(true);
+    expect(Object.isFrozen(histories[1]?.recentTurns[0])).toBe(true);
   });
 
   it("compacts conversation history after the configured number of chats", async () => {

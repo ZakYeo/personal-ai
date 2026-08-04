@@ -23,11 +23,11 @@ describe("createConversationSession", () => {
       responder: { respond },
     });
 
-    const first = await session.respond("first", context);
+    const first = await session.respond("first", session.snapshot(), context);
     await session.commit("first", first, context);
-    const second = await session.respond("second", context);
+    const second = await session.respond("second", session.snapshot(), context);
     await session.commit("second", second, context);
-    await session.respond("third", context);
+    await session.respond("third", session.snapshot(), context);
 
     expect(states).toEqual([
       { recentTurns: [] },

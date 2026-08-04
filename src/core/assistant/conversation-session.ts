@@ -23,16 +23,18 @@ export interface ConversationSession {
     response: AssistantResponse,
     context: AssistantContext,
   ): Promise<void>;
-  respond(input: string, context: AssistantContext): Promise<AssistantResponse>;
+  respond(
+    input: string,
+    state: ConversationState,
+    context: AssistantContext,
+  ): Promise<AssistantResponse>;
   snapshot(): ConversationState;
 }
 
 export function createConversationSession(
   dependencies: ConversationSessionDependencies,
 ): ConversationSession {
-  let state: ConversationState = {
-    recentTurns: [],
-  };
+  let state = freezeConversationState({ recentTurns: [] });
   return {
     async commit(input, response, context) {
       const candidateState = appendConversationTurn(state, input, response);
@@ -41,16 +43,12 @@ export function createConversationSession(
         dependencies,
         context,
       );
-      state = cloneConversationState(compaction.state);
+      state = freezeConversationState(compaction.state);
       if (compaction.compacted) dependencies.onCompacted?.();
     },
-    respond: (input, context) =>
-      dependencies.responder.respond(
-        input,
-        cloneConversationState(state),
-        context,
-      ),
-    snapshot: () => cloneConversationState(state),
+    respond: (input, snapshot, context) =>
+      dependencies.responder.respond(input, snapshot, context),
+    snapshot: () => state,
   };
 }
 
@@ -68,10 +66,7 @@ async function compactConversationIfNeeded(
 
   return {
     compacted: true,
-    state: await dependencies.compactor.compact(
-      cloneConversationState(state),
-      context,
-    ),
+    state: await dependencies.compactor.compact(state, context),
   };
 }
 
@@ -90,13 +85,15 @@ function appendConversationTurn(
   };
 }
 
-function countUserTurns(turns: ConversationTurn[]): number {
+function countUserTurns(turns: readonly ConversationTurn[]): number {
   return turns.filter((turn) => turn.role === "user").length;
 }
 
-function cloneConversationState(state: ConversationState): ConversationState {
-  return {
+function freezeConversationState(state: ConversationState): ConversationState {
+  return Object.freeze({
     ...(state.summary ? { summary: state.summary } : {}),
-    recentTurns: state.recentTurns.map((turn) => ({ ...turn })),
-  };
+    recentTurns: Object.freeze(
+      state.recentTurns.map((turn) => Object.freeze({ ...turn })),
+    ),
+  });
 }

@@ -3,13 +3,13 @@ import type { AssistantContext, AssistantResponse } from "./assistant.js";
 export type ConversationRole = "assistant" | "user";
 
 export interface ConversationTurn {
-  content: string;
-  role: ConversationRole;
+  readonly content: string;
+  readonly role: ConversationRole;
 }
 
 export interface ConversationState {
-  recentTurns: ConversationTurn[];
-  summary?: string;
+  readonly recentTurns: readonly ConversationTurn[];
+  readonly summary?: string;
 }
 
 export interface ConversationResponderPort {

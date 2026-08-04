@@ -54,6 +54,7 @@ export function createIntentWorkflow(input: {
   text: string;
 }): { run(): Promise<AssistantOutcome> } {
   const normalizedText = input.text.trim();
+  const conversationState = input.dependencies.conversation?.snapshot();
   let activeUserText = normalizedText;
   const context = createContext(input.dependencies, input.signal);
   let session: IntentInterpreterSession | undefined;
@@ -76,11 +77,11 @@ export function createIntentWorkflow(input: {
       session = createSemanticallyValidatedIntentSession({
         capabilityCatalog: input.dependencies.capabilityRouting.catalog,
         originalText: normalizedText,
-        session: input.dependencies.conversation
+        session: conversationState
           ? input.dependencies.intentInterpreter.start(
               normalizedText,
               context,
-              input.dependencies.conversation.snapshot(),
+              conversationState,
             )
           : input.dependencies.intentInterpreter.start(normalizedText, context),
       });
@@ -294,7 +295,8 @@ export function createIntentWorkflow(input: {
   }
 
   async function handleConversation(): Promise<AssistantOutcome> {
-    if (!input.dependencies.conversation) {
+    const conversation = input.dependencies.conversation;
+    if (!conversation || !conversationState) {
       return {
         response: {
           status: "unknown",
@@ -304,8 +306,9 @@ export function createIntentWorkflow(input: {
     }
     try {
       return {
-        response: await input.dependencies.conversation.respond(
+        response: await conversation.respond(
           activeUserText,
+          conversationState,
           context,
         ),
       };
