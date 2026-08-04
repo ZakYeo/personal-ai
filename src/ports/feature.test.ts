@@ -169,6 +169,7 @@ describe("defineFeature", () => {
         context,
       ),
     ).resolves.toEqual({
+      kind: "completed",
       text: "echo:hello",
     });
     expect(echo).toHaveBeenCalledTimes(1);
@@ -192,6 +193,7 @@ describe("defineFeature", () => {
         context,
       ),
     ).resolves.toEqual({
+      kind: "completed",
       text: "count:3",
     });
     expect(echo).toHaveBeenCalledTimes(1);
