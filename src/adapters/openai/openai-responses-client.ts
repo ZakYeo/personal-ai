@@ -49,9 +49,9 @@ export function requestOpenAIResponse(
     ...(options.maxResponseBodyBytes === undefined
       ? {}
       : { maxResponseBodyBytes: options.maxResponseBodyBytes }),
-    ...(options.responseBodyTooLargeMessage
-      ? { responseBodyTooLargeMessage: options.responseBodyTooLargeMessage }
-      : {}),
+    responseBodyTooLargeMessage:
+      options.responseBodyTooLargeMessage ??
+      `OpenAI ${options.operation} response body exceeded the configured byte limit.`,
     ...(options.signal ? { signal: options.signal } : {}),
     timeoutMessage: `OpenAI ${options.operation} request timed out after ${options.config.timeoutMs}ms.`,
     timeoutMs: options.config.timeoutMs,

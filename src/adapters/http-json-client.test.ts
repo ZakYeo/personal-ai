@@ -9,6 +9,50 @@ describe("fetchProviderJson", () => {
     vi.useRealTimers();
   });
 
+  it("accepts a response at the default 1 MiB body limit", async () => {
+    const value = "a".repeat(1024 * 1024 - 2);
+
+    await expect(
+      fetchProviderJson({
+        createError: ({ cause, message }) => new Error(message, { cause }),
+        fetch: vi.fn(() => Promise.resolve(Response.json(value))),
+        invalidJsonMessage: "invalid json",
+        nonOkMessage: () => "request failed",
+        request: {},
+        timeoutMessage: "request timed out",
+        timeoutMs: 30_000,
+        url: "https://provider.test",
+      }),
+    ).resolves.toBe(value);
+  });
+
+  it("rejects a response above the default 1 MiB body limit", async () => {
+    await expect(
+      fetchProviderJson({
+        createError: ({ cause, message }) => new Error(message, { cause }),
+        fetch: vi.fn(() =>
+          Promise.resolve(
+            new Response(
+              new ReadableStream<Uint8Array>({
+                start(controller) {
+                  controller.enqueue(new Uint8Array(1024 * 1024 + 1));
+                },
+              }),
+            ),
+          ),
+        ),
+        invalidJsonMessage: "invalid json",
+        nonOkMessage: () => "request failed",
+        request: {},
+        timeoutMessage: "request timed out",
+        timeoutMs: 30_000,
+        url: "https://provider.test",
+      }),
+    ).rejects.toThrow(
+      "Provider response body exceeded the configured byte limit.",
+    );
+  });
+
   it("does not let stalled cancellation hide a declared body limit failure", async () => {
     const cancel = vi.fn(() => new Promise<void>(() => {}));
     const pending = fetchProviderJson({

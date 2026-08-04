@@ -22,6 +22,8 @@ interface FetchProviderJsonOptions {
   url: string;
 }
 
+const defaultMaxResponseBodyBytes = 1024 * 1024;
+
 export async function fetchProviderJson(
   options: FetchProviderJsonOptions,
 ): Promise<unknown> {
@@ -52,7 +54,7 @@ export async function fetchProviderJson(
     const responseBody = await readResponseBody(
       response,
       controller.signal,
-      options.maxResponseBodyBytes,
+      options.maxResponseBodyBytes ?? defaultMaxResponseBodyBytes,
     );
 
     if (!response.ok) {
