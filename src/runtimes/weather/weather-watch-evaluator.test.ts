@@ -53,7 +53,7 @@ describe("processWeatherWatchEvaluationCycle", () => {
     expect(delivered).toEqual([
       {
         id: watch.id,
-        text: "Weather watch weather-watch-1 matched in London: precipitation is forecast at 0.4 mm from 2026-07-29T09:00:00.000Z to 2026-07-29T10:00:00.000Z. Source: Deterministic weather fixture (https://example.test/weather-source). Weather watches are convenience notifications, not guaranteed emergency alerts.",
+        text: "Weather watch weather-watch-1 matched in London: precipitation is forecast at 0.4 mm from 10am tomorrow to 11am tomorrow. Source: Deterministic weather fixture. Weather watches are convenience notifications, not guaranteed emergency alerts.",
       },
     ]);
     await expect(store.list()).resolves.toEqual([

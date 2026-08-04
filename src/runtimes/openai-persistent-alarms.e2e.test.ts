@@ -27,13 +27,13 @@ describe.skipIf(!runOpenAIE2E)("OpenAI persistent alarms live E2E", () => {
     ).resolves.toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "Please confirm: 1. set the tea alarm for 2026-07-13T16:10:00.000Z. Say yes or no.",
+      text: "Please confirm: 1. set the tea alarm for 5:10pm today. Say yes or no.",
     });
     await expect(access(statePath)).rejects.toMatchObject({ code: "ENOENT" });
 
     await expect(firstRuntime.handleText("yes")).resolves.toMatchObject({
       status: "ok",
-      text: "Alarm set for 2026-07-13T16:10:00.000Z (tea).",
+      text: "Alarm set for 5:10pm today (tea).",
     });
     const storedAlarms = await createFileAlarmStore({
       filePath: statePath,
@@ -54,7 +54,7 @@ describe.skipIf(!runOpenAIE2E)("OpenAI persistent alarms live E2E", () => {
       "Hey Jarvis, what alarms do I have?",
     );
 
-    expect(firstList.text).toContain("2026-07-13T16:10:00.000Z (tea)");
+    expect(firstList.text).toContain("5:10pm today");
     expect(restartedList).toEqual(firstList);
   }, 30_000);
 });

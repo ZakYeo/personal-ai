@@ -33,19 +33,21 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
         "In London, it is 21°C and partly cloudy",
       ) as string,
     });
-    expect(current.text).toContain(
-      "Source: Deterministic weather fixture (https://example.test/weather-source).",
-    );
+    expect(current.text).toContain("Source: Deterministic weather fixture.");
+    expect(current.citations).toEqual([
+      {
+        title: "Deterministic weather fixture",
+        url: "https://example.test/weather-source",
+      },
+    ]);
     expect(coat).toMatchObject({
       status: "ok",
       text: expect.stringContaining(
         "Yes, take a coat: the forecast includes rain or cool conditions.",
       ) as string,
     });
-    expect(coat.text).toContain(
-      "from 2026-07-29T05:00:00.000Z to 2026-07-29T11:00:00.000Z",
-    );
-    expect(coat.text).toContain("Fetched at 2026-07-28T12:00:05.000Z");
+    expect(coat.text).toContain("from 6am tomorrow to noon tomorrow");
+    expect(coat.text).toContain("Fetched at 1pm today");
   }, 60_000);
 
   it("resolves bare London to the ranked capital through live Open-Meteo", async () => {
@@ -63,9 +65,13 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
       status: "ok",
       text: expect.stringContaining("In London, England") as string,
     });
-    expect(current.text).toContain(
-      "Source: Weather data by Open-Meteo.com (https://open-meteo.com/).",
-    );
+    expect(current.text).toContain("Source: Weather data by Open-Meteo.com.");
+    expect(current.citations).toEqual([
+      {
+        title: "Weather data by Open-Meteo.com",
+        url: "https://open-meteo.com/",
+      },
+    ]);
     expect(current.expectsFollowUp).not.toBe(true);
   }, 60_000);
 

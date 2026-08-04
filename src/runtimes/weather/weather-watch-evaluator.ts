@@ -1,5 +1,6 @@
 import type { ClockPort } from "../../ports/assistant.js";
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
+import { humanizeSpokenText } from "../../ports/human-text.js";
 import {
   weatherWatchConditionMatches,
   weatherWatchConditionValue,
@@ -182,7 +183,7 @@ async function processForecastGroup(
       await dependencies.delivery.deliver(
         {
           id: claimed.id,
-          text: createNotificationText(claimed, match),
+          text: createNotificationText(claimed, match, now),
         },
         dependencies.shutdownSignal
           ? { shutdownSignal: dependencies.shutdownSignal }
@@ -247,17 +248,25 @@ function findQualifyingForecast(
 function createNotificationText(
   watch: WeatherWatchRecord,
   match: QualifyingForecast,
+  now: Date,
 ): string {
   const value = weatherWatchConditionValue(watch.condition, match.forecast);
-  return `Weather watch ${
-    watch.id
-  } matched in ${watch.location.name}: ${weatherWatchMetricLabel(
-    watch.condition,
-  )} is forecast at ${formatValue(value, watch.condition)} from ${
-    match.window.startAt
-  } to ${match.window.endAt}. Source: ${match.attribution.name} (${
-    match.attribution.url
-  }). Weather watches are convenience notifications, not guaranteed emergency alerts.`;
+  return humanizeSpokenText(
+    `Weather watch ${
+      watch.id
+    } matched in ${watch.location.name}: ${weatherWatchMetricLabel(
+      watch.condition,
+    )} is forecast at ${formatValue(value, watch.condition)} from ${
+      match.window.startAt
+    } to ${match.window.endAt}. Source: ${
+      match.attribution.name
+    }. Weather watches are convenience notifications, not guaranteed emergency alerts.`,
+    {
+      assistantTimeZone: watch.location.timezone,
+      now,
+      timeZone: watch.location.timezone,
+    },
+  );
 }
 
 function formatValue(value: number, condition: WeatherWatchCondition): string {

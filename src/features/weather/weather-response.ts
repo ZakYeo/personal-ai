@@ -3,6 +3,7 @@ import type { WeatherForecast, WeatherUnits } from "../../ports/weather.js";
 export function currentWeatherResult(forecast: WeatherForecast) {
   const { current, location, units } = forecast;
   return {
+    citations: [weatherAttributionCitation(forecast)],
     data: {
       attributionName: forecast.attribution.name,
       attributionUrl: forecast.attribution.url,
@@ -40,6 +41,7 @@ export function forecastWeatherResult(forecast: WeatherForecast) {
     .filter((value): value is string => value !== undefined)
     .join(" ");
   return {
+    citations: [weatherAttributionCitation(forecast)],
     data: {
       attributionName: forecast.attribution.name,
       attributionUrl: forecast.attribution.url,
@@ -94,5 +96,12 @@ function formatTemperatureUnit(unit: WeatherUnits["temperature"]): string {
 }
 
 function formatAttribution(forecast: WeatherForecast): string {
-  return `Source: ${forecast.attribution.name} (${forecast.attribution.url}).`;
+  return `Source: ${forecast.attribution.name}.`;
+}
+
+function weatherAttributionCitation(forecast: WeatherForecast) {
+  return {
+    title: forecast.attribution.name,
+    url: forecast.attribution.url,
+  };
 }

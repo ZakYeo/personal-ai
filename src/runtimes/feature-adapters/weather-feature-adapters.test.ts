@@ -38,6 +38,12 @@ describe("weather feature adapters", () => {
     expect(response.text).toContain("In London, it is 21°C and partly cloudy");
     expect(response.text).toContain("Source: Deterministic weather fixture.");
     expect(response.text).not.toContain("https://");
+    expect(response.citations).toEqual([
+      {
+        title: "Deterministic weather fixture",
+        url: "https://example.test/weather-source",
+      },
+    ]);
   });
 
   it("routes spoken coat advice through only the injected explicit-home reader", async () => {
@@ -146,6 +152,13 @@ describe("weather feature adapters", () => {
 
     expect(response).toMatchObject({ status: "ok" });
     expect(response.text).toContain("Weather data by Open-Meteo.com");
+    expect(response.text).not.toContain("https://");
+    expect(response.citations).toEqual([
+      {
+        title: "Weather data by Open-Meteo.com",
+        url: "https://open-meteo.com/",
+      },
+    ]);
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(requestedUrl(fetch, 0).origin).toBe(
       "https://geocoding-api.open-meteo.com",

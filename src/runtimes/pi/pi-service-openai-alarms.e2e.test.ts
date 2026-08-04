@@ -52,7 +52,7 @@ describe.skipIf(!runOpenAIE2E)("Pi service OpenAI alarms live E2E", () => {
             });
             await expect(assistant.handleText("yes")).resolves.toEqual({
               status: "ok",
-              text: "Alarm set for 2026-07-13T16:10:00.000Z (tea).",
+              text: "Alarm set for 5:10pm today (tea).",
             });
             now = new Date("2026-07-13T16:10:00.000Z");
             await vi.waitFor(

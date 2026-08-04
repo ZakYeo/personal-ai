@@ -165,9 +165,14 @@ describe("createWeatherFeature", () => {
     expect(result.text).toContain(
       "In London, it is 21°C and partly cloudy, with 0 mm precipitation",
     );
-    expect(result.text).toContain(
-      "Source: Deterministic weather fixture (https://example.test/weather-source).",
-    );
+    expect(result.text).toContain("Source: Deterministic weather fixture.");
+    expect(result.text).not.toContain("https://");
+    expect(result.citations).toEqual([
+      {
+        title: "Deterministic weather fixture",
+        url: "https://example.test/weather-source",
+      },
+    ]);
     expect(result.data).toMatchObject({
       attributionName: "Deterministic weather fixture",
       attributionUrl: "https://example.test/weather-source",
