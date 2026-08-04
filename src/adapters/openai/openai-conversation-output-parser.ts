@@ -1,14 +1,19 @@
 import { OpenAIConversationError } from "./openai-conversation-error.js";
 import { isRecord } from "../parsing.js";
-import { parseOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
+import { parseValidatedOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
 import { isOpenAISpokenTextSafe } from "./openai-spoken-style.js";
 
 export function parseOpenAIConversationResponse(value: string): {
   expectsFollowUp: boolean;
   text: string;
 } {
-  const parsed = parseConversationOutput(value);
+  return parseConversationOutput(value, parseConversationResponse);
+}
 
+function parseConversationResponse(parsed: unknown): {
+  expectsFollowUp: boolean;
+  text: string;
+} {
   if (!isRecord(parsed)) {
     throw new OpenAIConversationError(
       "OpenAI conversation response must be an object.",
@@ -39,8 +44,10 @@ export function parseOpenAIConversationResponse(value: string): {
 }
 
 export function parseOpenAIConversationSummary(value: string): string {
-  const parsed = parseConversationOutput(value);
+  return parseConversationOutput(value, parseConversationSummary);
+}
 
+function parseConversationSummary(parsed: unknown): string {
   if (!isRecord(parsed)) {
     throw new OpenAIConversationError(
       "OpenAI conversation compaction response must be an object.",
@@ -56,10 +63,15 @@ export function parseOpenAIConversationSummary(value: string): string {
   return parsed.summary;
 }
 
-function parseConversationOutput(value: string): unknown {
-  return parseOpenAIStructuredOutput(value, {
+function parseConversationOutput<T>(
+  value: string,
+  validate: (parsed: unknown) => T,
+): T {
+  return parseValidatedOpenAIStructuredOutput(value, {
     createError: ({ cause, message, responseBody }) =>
       new OpenAIConversationError(message, undefined, responseBody, { cause }),
     invalidJsonMessage: "OpenAI conversation response was not valid JSON.",
+    invalidOutputMessage: "OpenAI conversation response was invalid.",
+    validate,
   });
 }

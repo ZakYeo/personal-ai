@@ -217,21 +217,24 @@ describe("OpenAIConversationResponder", () => {
   });
 
   it("rejects provider output without a boolean follow-up directive", async () => {
+    const output = JSON.stringify({
+      text: "I am doing well today.",
+    });
     const responder = createResponder({
       fetch: createFetchStub(
         jsonResponse({
-          output_text: JSON.stringify({
-            text: "I am doing well today.",
-          }),
+          output_text: output,
         }),
       ),
     });
 
     await expect(
       responder.respond("How are you?", { recentTurns: [] }, context),
-    ).rejects.toThrow(
-      "OpenAI conversation response expectsFollowUp must be a boolean.",
-    );
+    ).rejects.toMatchObject({
+      message:
+        "OpenAI conversation response expectsFollowUp must be a boolean.",
+      responseBody: output,
+    } satisfies Partial<OpenAIConversationError>);
   });
 
   it.each([

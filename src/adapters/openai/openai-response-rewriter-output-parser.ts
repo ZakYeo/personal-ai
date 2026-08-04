@@ -1,17 +1,21 @@
 import { OpenAIResponseRewriterError } from "./openai-response-rewriter-error.js";
 import { isRecord } from "../parsing.js";
-import { parseOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
+import { parseValidatedOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
 import { isOpenAISpokenTextSafe } from "./openai-spoken-style.js";
 
 export function parseOpenAIResponseRewrite(value: string): { text: string } {
-  const parsed = parseOpenAIStructuredOutput(value, {
+  return parseValidatedOpenAIStructuredOutput(value, {
     createError: ({ cause, message, responseBody }) =>
       new OpenAIResponseRewriterError(message, undefined, responseBody, {
         cause,
       }),
     invalidJsonMessage: "OpenAI response rewrite was not valid JSON.",
+    invalidOutputMessage: "OpenAI response rewrite was invalid.",
+    validate: parseResponseRewrite,
   });
+}
 
+function parseResponseRewrite(parsed: unknown): { text: string } {
   if (!isRecord(parsed)) {
     throw new OpenAIResponseRewriterError(
       "OpenAI response rewrite must be an object.",

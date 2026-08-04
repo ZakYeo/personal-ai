@@ -7,35 +7,24 @@ import type {
 import type { IntentInterpretation } from "../../ports/intent.js";
 import { OpenAIIntentError } from "./openai-intent-error.js";
 import { isRecord } from "../parsing.js";
-import { parseOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
+import { parseValidatedOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
 import { isOpenAISpokenTextSafe } from "./openai-spoken-style.js";
 
 export function parseOpenAIIntentOutput(value: string): IntentInterpretation {
-  const parsed = parseOpenAIStructuredOutput(value, {
+  return parseValidatedOpenAIStructuredOutput(value, {
     createError: ({ cause, message, responseBody }) =>
       new OpenAIIntentError(message, undefined, responseBody, { cause }),
     invalidJsonMessage: "OpenAI intent response was not valid JSON.",
+    invalidOutputMessage: "OpenAI intent response was invalid.",
+    validate: (parsed) => {
+      if (!isRecord(parsed) || !isRecord(parsed.interpretation)) {
+        throw new OpenAIIntentError(
+          "OpenAI intent response must contain an interpretation object.",
+        );
+      }
+      return parseIntentInterpretation(parsed.interpretation);
+    },
   });
-  if (!isRecord(parsed) || !isRecord(parsed.interpretation)) {
-    throw new OpenAIIntentError(
-      "OpenAI intent response must contain an interpretation object.",
-      undefined,
-      value,
-    );
-  }
-  try {
-    return parseIntentInterpretation(parsed.interpretation);
-  } catch (error) {
-    if (
-      error instanceof OpenAIIntentError &&
-      error.responseBody === undefined
-    ) {
-      throw new OpenAIIntentError(error.message, error.status, value, {
-        cause: error,
-      });
-    }
-    throw error;
-  }
 }
 
 function parseIntentInterpretation(value: unknown): IntentInterpretation {

@@ -142,17 +142,19 @@ describe("OpenAIResponseRewriter", () => {
   });
 
   it("rejects malformed structured rewrite output", async () => {
+    const output = JSON.stringify({ text: "" });
     const rewriter = createRewriter({
       fetch: createFetchStub(
         jsonResponse({
-          output_text: JSON.stringify({ text: "" }),
+          output_text: output,
         }),
       ),
     });
 
-    await expect(rewriter.rewrite(request, context)).rejects.toThrow(
-      "OpenAI response rewrite text must be a non-empty string.",
-    );
+    await expect(rewriter.rewrite(request, context)).rejects.toMatchObject({
+      message: "OpenAI response rewrite text must be a non-empty string.",
+      responseBody: output,
+    } satisfies Partial<OpenAIResponseRewriterError>);
   });
 
   it("rejects rewritten spoken text containing a raw URL", async () => {
