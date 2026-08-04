@@ -23,6 +23,7 @@ import {
   writePersistentAlarmRuntimeConfig,
 } from "../../test-support/runtime-composition.js";
 import { line } from "../../test-support/primitives.js";
+import { openAIIntentOutput } from "../../test-support/openai-intent.js";
 import { parseAssistantConfig } from "../config/config.js";
 import { createDefaultFeatureAdapterRegistry } from "../default-feature-adapter-registry.js";
 
@@ -184,15 +185,13 @@ describe("mock voice runtime", () => {
     const fetch = vi.fn().mockResolvedValue(
       jsonResponse({
         id: "intent-response-1",
-        output_text: JSON.stringify({
+        output_text: openAIIntentOutput({
           kind: "command",
-          plan: null,
           command: {
             capability: "alarm.list",
             parameters: [],
             rawText: deterministicScenarios.alarmListEmpty.text,
           },
-          response: null,
         }),
       }),
     );
@@ -220,11 +219,8 @@ describe("mock voice runtime", () => {
     const fetch = vi.fn().mockResolvedValue(
       jsonResponse({
         id: "intent-response-1",
-        output_text: JSON.stringify({
-          command: null,
+        output_text: openAIIntentOutput({
           kind: "conversation",
-          plan: null,
-          response: null,
         }),
       }),
     );

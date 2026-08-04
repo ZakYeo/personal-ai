@@ -7,6 +7,7 @@ import {
 import type { OpenAIIntentCapability } from "./openai-intent-interpreter.js";
 import {
   createOpenAIIntentInterpreter as createInterpreter,
+  openAIIntentOutput,
   openAIIntentContext as context,
   readOpenAIIntentRequestBody as readRequestBody,
 } from "../../test-support/openai-intent.js";
@@ -43,15 +44,13 @@ describe("OpenAIIntentInterpreter", () => {
       .mockResolvedValueOnce(
         jsonResponse({
           id: "resp_terminal",
-          output_text: JSON.stringify({
+          output_text: openAIIntentOutput({
             command: {
               capability: "alarm.create",
               parameters: [{ name: "minutesFromNow", value: 10 }],
               rawText: "remind me before the dentist",
             },
             kind: "command",
-            plan: null,
-            response: null,
           }),
         }),
       );
@@ -116,11 +115,9 @@ describe("OpenAIIntentInterpreter", () => {
       .mockResolvedValueOnce(
         jsonResponse({
           id: "resp_clarification",
-          output_text: JSON.stringify({
+          output_text: openAIIntentOutput({
             clarificationCapability: "alarm.create",
-            command: null,
             kind: "clarification",
-            plan: null,
             response: { status: "ok", text: "What time?" },
           }),
         }),
@@ -128,11 +125,8 @@ describe("OpenAIIntentInterpreter", () => {
       .mockResolvedValueOnce(
         jsonResponse({
           id: "resp_replacement",
-          output_text: JSON.stringify({
-            command: null,
+          output_text: openAIIntentOutput({
             kind: "replacement",
-            plan: null,
-            response: null,
           }),
         }),
       );
@@ -160,7 +154,7 @@ describe("OpenAIIntentInterpreter", () => {
       previous_response_id: "resp_clarification",
     });
     expect(String(continuation.instructions)).toContain(
-      "return kind replacement",
+      "return the kind replacement variant",
     );
     expect(String(continuation.instructions)).toContain(
       "does not answer the prompt and instead makes any independently routable request",
@@ -180,10 +174,8 @@ describe("OpenAIIntentInterpreter", () => {
     const fetch = createFetchStub(
       jsonResponse({
         id: "response-1",
-        output_text: JSON.stringify({
-          command: null,
+        output_text: openAIIntentOutput({
           kind: "unknown",
-          plan: null,
           response: { status: "unknown", text: "Unknown." },
         }),
       }),
@@ -218,10 +210,8 @@ describe("OpenAIIntentInterpreter", () => {
     const fetch = createFetchStub(
       jsonResponse({
         id: "response-1",
-        output_text: JSON.stringify({
-          command: null,
+        output_text: openAIIntentOutput({
           kind: "unknown",
-          plan: null,
           response: { status: "unknown", text: "Unknown." },
         }),
       }),
@@ -258,10 +248,8 @@ describe("OpenAIIntentInterpreter", () => {
     const fetch = createFetchStub(
       jsonResponse({
         id: "response-1",
-        output_text: JSON.stringify({
-          command: null,
+        output_text: openAIIntentOutput({
           kind: "unknown",
-          plan: null,
           response: { status: "unknown", text: "Unknown." },
         }),
       }),

@@ -1,5 +1,6 @@
 import { parseOpenAIIntentSessionResponse } from "./openai-intent-session-response.js";
 import type { OpenAIIntentCapability } from "./openai-intent-request.js";
+import { openAIIntentOutput } from "../../test-support/openai-intent.js";
 
 const capability: OpenAIIntentCapability = {
   capability: {
@@ -22,10 +23,8 @@ describe("parseOpenAIIntentSessionResponse", () => {
         parseOpenAIIntentSessionResponse(
           {
             ...(id === undefined ? {} : { id }),
-            output_text: JSON.stringify({
-              command: null,
+            output_text: openAIIntentOutput({
               kind: "unknown",
-              plan: null,
               response: { status: "unknown", text: "I do not know." },
             }),
           },
@@ -41,11 +40,9 @@ describe("parseOpenAIIntentSessionResponse", () => {
       parseOpenAIIntentSessionResponse(
         {
           id: "response-1",
-          output_text: JSON.stringify({
+          output_text: openAIIntentOutput({
             clarificationCapability: "alarm.create",
-            command: null,
             kind: "clarification",
-            plan: null,
             response: { status: "ok", text: "What time should I use?" },
           }),
         },
@@ -71,18 +68,17 @@ describe("parseOpenAIIntentSessionResponse", () => {
       parseOpenAIIntentSessionResponse(
         {
           id: "response-1",
-          output_text: JSON.stringify({
-            clarificationCapability: null,
-            command: null,
+          output_text: openAIIntentOutput({
             kind: "clarification",
-            plan: null,
             response: { status: "ok", text: "Which one?" },
           }),
         },
         tools,
         "choose one",
       ),
-    ).toThrow("clarification must identify a non-empty capability");
+    ).toThrow(
+      "OpenAI intent clarification response fields must be clarificationCapability, kind, response.",
+    );
   });
 
   it("rejects multiple function calls in one provider response", () => {

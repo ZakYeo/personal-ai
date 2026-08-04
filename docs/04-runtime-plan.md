@@ -121,9 +121,11 @@ disables parallel calls, and continues with `previous_response_id`. This is an
 explicit opt-in privacy tradeoff: provider-managed stored response state and
 safe continuation observations are subject to the operator's OpenAI retention
 and data-control settings. Every parsed intent response requires a non-empty
-response ID before its interpretation is accepted. Runtime boundaries must not
-log or speak provider response IDs, raw observations, or private calendar
-targets.
+response ID before its interpretation is accepted. Terminal structured output
+uses a root object containing one nested tagged-union interpretation so inactive
+command, plan, conversation, clarification, and fallback branches cannot be
+populated together. Runtime boundaries must not log or speak provider response
+IDs, raw observations, or private calendar targets.
 
 The desktop voice service command is:
 
@@ -546,8 +548,9 @@ The opt-in `npm run test:e2e:openai:search` smoke routes varied fact and
 current-information requests through live OpenAI intent interpretation and the
 hosted web-search tool, then requires bounded structured HTTPS citations and
 URL-free human text. The focused `npm run test:e2e:openai:intent` matrix also
-checks varied valid search wording and resumable clarification for requests
-with no search topic. The core-owned, provider-neutral intent-session semantic
+checks casual conversation classification, varied valid search wording, and
+resumable clarification for requests with no search topic. The core-owned,
+provider-neutral intent-session semantic
 guard catches echoed required values and narrow action questions misclassified
 as broad capability-list requests even when the model ignores those routing
 instructions. Both smokes are excluded from the default validation gate.

@@ -189,6 +189,10 @@ different resolved capability, discards the old session, and interprets the
 exact trusted reply through a fresh workflow. Semantic clarification of a
 pending tool call starts a fresh request with safe context instead of violating
 the provider's tool-result continuation state.
+OpenAI terminal intent output uses one nested tagged-union interpretation, so a
+command, plan, conversation, clarification, rephrase, replacement, unknown, or
+unsupported result contains only its active payload rather than unrelated null
+placeholder fields.
 
 The default desktop OpenAI voice service config used by `npm start` selects the
 Google Calendar adapter, OpenAI internet search, the OpenAI response rewriter,
@@ -434,10 +438,10 @@ Run the live OpenAI intent routing E2E test:
 npm run test:e2e:openai
 ```
 
-This command is opt-in, calls the live OpenAI Responses API, covers routing for
-the currently enabled feature capabilities plus confirmed persistent alarm and
-task-reminder flows through configured assistants, uses `gpt-5.4-nano`, and may
-consume API quota.
+This command is opt-in, calls the live OpenAI Responses API, covers casual
+conversation classification and routing for the currently enabled feature
+capabilities plus confirmed persistent alarm and task-reminder flows through
+configured assistants, uses `gpt-5.4-nano`, and may consume API quota.
 Run `npm run test:e2e:openai:alarms` for only the persistent-alarm smoke. These
 tests are not part of `npm run check`; normal validation remains deterministic
 and network-free.

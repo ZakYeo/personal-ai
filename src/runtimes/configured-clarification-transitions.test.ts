@@ -7,7 +7,10 @@ import {
   createConfiguredTextRuntimeHarness,
   createRuntimeConfigWithOpenAIIntentProvider,
 } from "../test-support/runtime-composition.js";
-import { createOpenAIIntentInterpreter } from "../test-support/openai-intent.js";
+import {
+  createOpenAIIntentInterpreter,
+  openAIIntentOutput,
+} from "../test-support/openai-intent.js";
 import { createAssistant as createCoreAssistant } from "../core/assistant/assistant.js";
 import { createCapabilityRoutingIndex } from "../ports/capability-catalog.js";
 import {
@@ -22,9 +25,7 @@ describe("configured clarification transitions", () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(
         intentResponse("rephrase", {
-          command: null,
           kind: "rephrase",
-          plan: null,
           response: { status: "ok", text: "What would you like me to do?" },
         }),
       )
@@ -51,9 +52,7 @@ describe("configured clarification transitions", () => {
       .mockResolvedValueOnce(
         intentResponse("clarification", {
           clarificationCapability: "alarm.create",
-          command: null,
           kind: "clarification",
-          plan: null,
           response: { status: "ok", text: "What time?" },
         }),
       )
@@ -102,8 +101,6 @@ describe("configured clarification transitions", () => {
             rawText: "the weather",
           },
           kind: "command",
-          plan: null,
-          response: null,
         }),
       );
     const assistant = createCoreAssistant({
@@ -205,10 +202,7 @@ describe("configured clarification transitions", () => {
       .mockResolvedValueOnce(choiceResponse("ambiguous", "something"))
       .mockResolvedValueOnce(
         intentResponse("replacement", {
-          command: null,
           kind: "replacement",
-          plan: null,
-          response: null,
         }),
       )
       .mockResolvedValueOnce(
@@ -219,8 +213,6 @@ describe("configured clarification transitions", () => {
             rawText: "Choose a different option",
           },
           kind: "command",
-          plan: null,
-          response: null,
         }),
       );
     const assistant = createChoiceAssistant(fetch);
@@ -258,8 +250,6 @@ function capabilityListResponse(id: string) {
       rawText: "What are your capabilities?",
     },
     kind: "command",
-    plan: null,
-    response: null,
   });
 }
 
@@ -308,14 +298,12 @@ function choiceResponse(id: string, choice: string) {
       rawText: `Choose ${choice}`,
     },
     kind: "command",
-    plan: null,
-    response: null,
   });
 }
 
 function intentResponse(id: string, output: Record<string, unknown>) {
   return jsonResponse({
     id: `intent-${id}`,
-    output_text: JSON.stringify(output),
+    output_text: openAIIntentOutput(output),
   });
 }

@@ -3,6 +3,7 @@ import type { CapabilityCatalogEntry } from "../../ports/capability-catalog.js";
 import type { IntentClarificationContext } from "../../ports/intent.js";
 import type { AssistantResultReference } from "../../ports/result-reference.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
+import { createOpenAIIntentOutputSchema } from "./openai-intent-output-schema.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 
 export type OpenAIIntentCapability = CapabilityCatalogEntry;
@@ -46,7 +47,7 @@ export function createOpenAIIntentRequestBody(
     text: {
       format: {
         name: "intent_interpretation",
-        schema: createIntentInterpretationSchema(capabilityCatalog),
+        schema: createOpenAIIntentOutputSchema(capabilityCatalog),
         strict: true,
         type: "json_schema",
       },
@@ -62,17 +63,16 @@ function createIntentInstructions(
 ): string {
   return [
     `You are the intent interpreter for ${context.config.assistant.name}.`,
-    "Return only JSON matching the supplied schema unless calling one declared read tool.",
+    "Return one interpretation variant matching the supplied schema unless calling one declared read tool.",
     "Call at most one read tool in a response. Never call a terminal-only capability as a tool.",
     "After a tool result, either call one more read tool or return a fully resolved terminal command or plan.",
-    "Use kind clarification with an ok response populated only when a specific workflow is selected and one user answer is required to resolve it.",
-    "When kind is clarification, set clarificationCapability to the exact enabled capability selected for that workflow. For every other kind, set clarificationCapability to null.",
-    "Use kind rephrase when the request is too incomplete to select a specific workflow; ask one concise open question with an ok response.",
+    "Use kind clarification with an ok response and clarificationCapability set to the exact enabled capability only when a specific workflow is selected and one user answer is required to resolve it.",
+    "Use kind rephrase with an ok response when the request is too incomplete to select a specific workflow; ask one concise open question.",
     "Apply that distinction in this order: first attempt to select an exact enabled capability. If one matches, never use kind rephrase; use kind clarification when that capability still needs user information. Use kind rephrase only when no exact capability can be selected at all.",
     "An incomplete modal fragment such as 'can you do', 'could you help', or 'I need' does not select a workflow. Return kind rephrase for it, never kind clarification. This applies only when no capability, domain, or action is named; a request such as 'can you set an alarm for me?' selects alarm creation and must clarify for its missing detail.",
     ...(continuation === "user_reply"
       ? [
-          "The current input is a reply to a clarification. First decide whether it answers the exact application clarification prompt. If it does, continue resolving that existing workflow. If it does not answer the prompt and instead makes any independently routable request or changes topic, return kind replacement with command, plan, and response null. Do not resolve or return the new command inside this response; the application will interpret the exact input afresh.",
+          "The current input is a reply to a clarification. First decide whether it answers the exact application clarification prompt. If it does, continue resolving that existing workflow. If it does not answer the prompt and instead makes any independently routable request or changes topic, return the kind replacement variant. Do not resolve or return the new command inside this response; the application will interpret the exact input afresh.",
           "For an independently routable clarification reply, kind replacement is the only allowed output. This transition rule overrides the routing instructions below even when the reply maps perfectly to an enabled capability. A capabilities question does not answer a prompt asking for a time, place, item, or other missing action detail.",
         ]
       : ["Do not use kind replacement for this response."]),
@@ -85,12 +85,11 @@ function createIntentInstructions(
     "Choose by the requested object or domain, not by a generic verb such as search, check, list, or look up. Web, online, internet, and current public-information requests belong to internet search; personal events, schedules, and calendar requests belong to calendar capabilities.",
     openAISpokenStyleInstruction,
     "Questions about the assistant's enabled capabilities must use the enabled assistant capability that lists them when one is present.",
-    "Use kind command with command populated and response null when a capability matches.",
-    "Use kind plan with plan populated, command and response null, and one to three fully resolved commands when the user requests multiple enabled capabilities in one utterance.",
-    "When kind is command, command must be populated with the exact enabled capability name, a parameters array, and the user's original text; never set command to null.",
-    "Use kind conversation with command and response null for general questions or casual chat.",
-    "Use kind unsupported with command null and response populated for command-like requests that no enabled capability can handle.",
-    "Use kind unknown with command null and response populated only when the user intent is unclear.",
+    "Use kind command with the exact enabled capability name, a parameters array, and the user's original text when one capability matches.",
+    "Use kind plan with one to three fully resolved commands when the user requests multiple enabled capabilities in one utterance.",
+    "Use kind conversation for general questions or casual chat.",
+    "Use kind unsupported with a response for command-like requests that no enabled capability can handle.",
+    "Use kind unknown with a response only when the user intent is unclear.",
     `Current time: ${context.clock.now().toISOString()}.`,
     `Assistant time zone: ${context.config.assistant.timeZone}.`,
     "Resolve relative dates and times into exact capability parameters using that current time and time zone. When a capability requires an instant, return a canonical UTC ISO timestamp with milliseconds, such as 2026-07-29T08:00:00.000Z.",
@@ -156,7 +155,7 @@ export function createOpenAIIntentContinuationRequestBody(
     text: {
       format: {
         name: "intent_interpretation",
-        schema: createIntentInterpretationSchema(capabilityCatalog),
+        schema: createOpenAIIntentOutputSchema(capabilityCatalog),
         strict: true,
         type: "json_schema",
       },
@@ -283,109 +282,6 @@ function formatResultReference(result: AssistantResultReference) {
     value: AssistantResultReference,
   ) => Record<string, string | number>;
   return formatter(result);
-}
-
-function createIntentInterpretationSchema(
-  capabilityCatalog: readonly OpenAIIntentCapability[],
-) {
-  const capabilityNames = capabilityCatalog.map(
-    ({ capability }) => capability.name,
-  );
-
-  const commandSchema = {
-    additionalProperties: false,
-    properties: {
-      capability:
-        capabilityNames.length === 0
-          ? { type: "string" }
-          : { enum: capabilityNames, type: "string" },
-      parameters: {
-        items: {
-          additionalProperties: false,
-          properties: {
-            name: { type: "string" },
-            value: { type: ["string", "number", "boolean", "null"] },
-          },
-          required: ["name", "value"],
-          type: "object",
-        },
-        type: "array",
-      },
-      rawText: { type: "string" },
-    },
-    required: ["capability", "parameters", "rawText"],
-    type: "object",
-  } as const;
-
-  return {
-    additionalProperties: false,
-    properties: {
-      clarificationCapability:
-        capabilityNames.length === 0
-          ? { type: "null" }
-          : {
-              enum: [...capabilityNames, null],
-              type: ["string", "null"],
-            },
-      command: {
-        ...commandSchema,
-        type: ["object", "null"],
-      },
-      kind: {
-        enum: [
-          "command",
-          "plan",
-          "conversation",
-          "clarification",
-          "rephrase",
-          "replacement",
-          "unknown",
-          "unsupported",
-        ],
-        type: "string",
-      },
-      plan: {
-        additionalProperties: false,
-        properties: {
-          commands: {
-            items: commandSchema,
-            maxItems: 3,
-            minItems: 1,
-            type: "array",
-          },
-        },
-        required: ["commands"],
-        type: ["object", "null"],
-      },
-      response: {
-        additionalProperties: false,
-        properties: {
-          status: {
-            enum: [
-              "ok",
-              "unknown",
-              "unsupported",
-              "invalid",
-              "needs_confirmation",
-              "error",
-            ],
-            type: "string",
-          },
-          text: { type: "string" },
-        },
-        required: ["status", "text"],
-        type: ["object", "null"],
-      },
-    },
-    required: [
-      "kind",
-      "clarificationCapability",
-      "command",
-      "plan",
-      "response",
-    ],
-    type: "object",
-  };
 }
 
 export function formatOpenAICapabilities(

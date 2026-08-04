@@ -3,6 +3,7 @@ import { env } from "node:process";
 
 import { createFileTaskStore } from "../adapters/local/file-task-store.js";
 import { writePersistentTaskRuntimeConfig } from "../test-support/runtime-composition.js";
+import { openAIIntentOutput } from "../test-support/openai-intent.js";
 import { createConfiguredTextRuntime } from "./configured-text-runtime.js";
 
 const now = new Date("2026-07-28T08:00:00.000Z");
@@ -373,15 +374,13 @@ function intentResponse(
     new Response(
       JSON.stringify({
         id,
-        output_text: JSON.stringify({
+        output_text: openAIIntentOutput({
           command: {
             capability,
             parameters,
             rawText: "provider-routed task request",
           },
           kind: "command",
-          plan: null,
-          response: null,
         }),
       }),
       { status: 200 },
@@ -400,8 +399,7 @@ function intentPlanResponse(
     new Response(
       JSON.stringify({
         id,
-        output_text: JSON.stringify({
-          command: null,
+        output_text: openAIIntentOutput({
           kind: "plan",
           plan: {
             commands: commands.map((command) => ({
@@ -409,7 +407,6 @@ function intentPlanResponse(
               rawText: "provider-routed task plan",
             })),
           },
-          response: null,
         }),
       }),
       { status: 200 },

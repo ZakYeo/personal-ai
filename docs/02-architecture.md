@@ -180,7 +180,9 @@ Deterministic and local adapters include:
 
 Implemented real-provider adapters include:
 
-- OpenAI intent interpreter adapter using the Responses API.
+- OpenAI intent interpreter adapter using the Responses API with one strict
+  root-object schema containing a nested tagged union for mutually exclusive
+  terminal interpretations.
 - OpenAI conversation responder and compactor adapters using the Responses API.
 - OpenAI response rewriting, realtime transcription, and streaming speech
   adapters.

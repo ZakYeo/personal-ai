@@ -11,6 +11,7 @@ import {
 import type { OpenAIIntentError } from "./openai-intent-interpreter.js";
 import {
   createOpenAIIntentInterpreter as createInterpreter,
+  openAIIntentOutput,
   openAIIntentContext as context,
 } from "../../test-support/openai-intent.js";
 
@@ -84,15 +85,13 @@ describe("OpenAIIntentInterpreter", () => {
       fetch: createFetchStub(
         jsonResponse({
           id: "response-1",
-          output_text: JSON.stringify({
+          output_text: openAIIntentOutput({
             kind: "command",
-            plan: null,
             command: {
               capability: "alarm.create",
               parameters: [{ name: "nested", value: { unsafe: true } }],
               rawText: "Hey Jarvis, set an alarm",
             },
-            response: null,
           }),
         }),
       ),
@@ -110,9 +109,8 @@ describe("OpenAIIntentInterpreter", () => {
       fetch: createFetchStub(
         jsonResponse({
           id: "response-1",
-          output_text: JSON.stringify({
+          output_text: openAIIntentOutput({
             kind: "command",
-            plan: null,
             command: {
               capability: "alarm.create",
               parameters: [
@@ -121,7 +119,6 @@ describe("OpenAIIntentInterpreter", () => {
               ],
               rawText: "Hey Jarvis, set an alarm",
             },
-            response: null,
           }),
         }),
       ),

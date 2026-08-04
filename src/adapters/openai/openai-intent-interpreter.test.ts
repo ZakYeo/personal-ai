@@ -36,14 +36,14 @@ describe("OpenAIIntentInterpreter", () => {
       jsonResponse({
         id: "response-1",
         output_text: JSON.stringify({
-          kind: "command",
-          plan: null,
-          command: {
-            capability: "calendar.search_events",
-            parameters: [{ name: "query", value: "upcoming wedding" }],
-            rawText: "Hey Jarvis, check my calendar for the upcoming wedding",
+          interpretation: {
+            kind: "command",
+            command: {
+              capability: "calendar.search_events",
+              parameters: [{ name: "query", value: "upcoming wedding" }],
+              rawText: "Hey Jarvis, check my calendar for the upcoming wedding",
+            },
           },
-          response: null,
         }),
       }),
     );
@@ -102,14 +102,9 @@ describe("OpenAIIntentInterpreter", () => {
     expect(JSON.stringify(body.input)).toContain("tool chain read");
 
     expect(body.text.format.schema).toMatchObject({
-      additionalProperties: false,
-      properties: {
-        clarificationCapability: {
-          enum: ["calendar.search_events", null],
-          type: ["string", "null"],
-        },
+      $defs: {
         command: {
-          type: ["object", "null"],
+          additionalProperties: false,
           properties: {
             capability: {
               enum: ["calendar.search_events"],
@@ -124,37 +119,60 @@ describe("OpenAIIntentInterpreter", () => {
           },
           required: ["capability", "parameters", "rawText"],
         },
-        kind: {
-          enum: [
-            "command",
-            "plan",
-            "conversation",
-            "clarification",
-            "rephrase",
-            "replacement",
-            "unknown",
-            "unsupported",
-          ],
-        },
         plan: {
-          type: ["object", "null"],
+          additionalProperties: false,
           properties: {
             commands: { type: "array", minItems: 1, maxItems: 3 },
           },
+          required: ["commands"],
         },
         response: {
-          type: ["object", "null"],
+          additionalProperties: false,
           required: ["status", "text"],
         },
       },
-      required: [
-        "kind",
-        "clarificationCapability",
-        "command",
-        "plan",
-        "response",
-      ],
+      additionalProperties: false,
+      properties: {
+        interpretation: { anyOf: expect.any(Array) as unknown },
+      },
+      required: ["interpretation"],
     });
+    const variants = (
+      body.text.format.schema as {
+        properties: { interpretation: { anyOf: unknown[] } };
+      }
+    ).properties.interpretation.anyOf;
+    expect(variants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          additionalProperties: false,
+          properties: {
+            command: { $ref: "#/$defs/command" },
+            kind: { enum: ["command"], type: "string" },
+          },
+          required: ["kind", "command"],
+        }),
+        expect.objectContaining({
+          additionalProperties: false,
+          properties: {
+            kind: { enum: ["conversation"], type: "string" },
+          },
+          required: ["kind"],
+        }),
+        expect.objectContaining({
+          additionalProperties: false,
+          properties: {
+            clarificationCapability: {
+              enum: ["calendar.search_events"],
+              type: "string",
+            },
+            kind: { enum: ["clarification"], type: "string" },
+            response: { $ref: "#/$defs/response" },
+          },
+          required: ["kind", "clarificationCapability", "response"],
+        }),
+      ]),
+    );
     expect(body.text.format.schema).not.toHaveProperty("anyOf");
     expect(JSON.stringify(body.input)).toContain("calendar.search_events");
     expect(JSON.stringify(body.input)).toContain("query: string (optional)");
@@ -162,7 +180,7 @@ describe("OpenAIIntentInterpreter", () => {
       "Questions about the assistant's enabled capabilities must use the enabled assistant capability that lists them when one is present.",
     );
     expect(JSON.stringify(body.input)).toContain(
-      "When kind is command, command must be populated",
+      "Use kind command with the exact enabled capability name",
     );
     expect(JSON.stringify(body.input)).toContain(
       `Current time: ${deterministicTestNow.toISOString()}.`,
@@ -180,10 +198,7 @@ describe("OpenAIIntentInterpreter", () => {
       jsonResponse({
         id: "response-1",
         output_text: JSON.stringify({
-          kind: "conversation",
-          command: null,
-          plan: null,
-          response: null,
+          interpretation: { kind: "conversation" },
         }),
       }),
     );
@@ -201,13 +216,12 @@ describe("OpenAIIntentInterpreter", () => {
       jsonResponse({
         id: "response-1",
         output_text: JSON.stringify({
-          clarificationCapability: null,
-          command: null,
-          kind: "rephrase",
-          plan: null,
-          response: {
-            status: "ok",
-            text: "What would you like me to do?",
+          interpretation: {
+            kind: "rephrase",
+            response: {
+              status: "ok",
+              text: "What would you like me to do?",
+            },
           },
         }),
       }),
@@ -222,27 +236,28 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     expect(JSON.stringify(readRequestBody(fetch).input)).toContain(
-      "Use kind rephrase when the request is too incomplete to select a specific workflow",
+      "Use kind rephrase with an ok response when the request is too incomplete to select a specific workflow",
     );
   });
 
   it.each(["unknown", "unsupported"] as const)(
-    "fails closed by ignoring an inactive command on a %s response",
+    "rejects an inactive command on a %s response",
     async (kind) => {
       const fetch = createFetchStub(
         jsonResponse({
           id: "response-1",
           output_text: JSON.stringify({
-            command: {
-              capability: "internet.search",
-              parameters: [{ name: "query", value: "can you search" }],
-              rawText: "Can you search the web for me?",
-            },
-            kind,
-            plan: null,
-            response: {
-              status: kind,
-              text: "What would you like me to search for?",
+            interpretation: {
+              command: {
+                capability: "internet.search",
+                parameters: [{ name: "query", value: "can you search" }],
+                rawText: "Can you search the web for me?",
+              },
+              kind,
+              response: {
+                status: kind,
+                text: "What would you like me to search for?",
+              },
             },
           }),
         }),
@@ -254,13 +269,9 @@ describe("OpenAIIntentInterpreter", () => {
 
       await expect(
         interpretOnce(interpreter, "Can you search the web for me?", context),
-      ).resolves.toEqual({
-        kind,
-        response: {
-          status: kind,
-          text: "What would you like me to search for?",
-        },
-      });
+      ).rejects.toThrow(
+        `OpenAI intent ${kind} response fields must be kind, response.`,
+      );
     },
   );
 
@@ -269,13 +280,13 @@ describe("OpenAIIntentInterpreter", () => {
       jsonResponse({
         id: "response-1",
         output_text: JSON.stringify({
-          clarificationCapability: "internet.search",
-          command: null,
-          kind: "clarification",
-          plan: null,
-          response: {
-            status: "ok",
-            text: "What would you like me to search for?",
+          interpretation: {
+            clarificationCapability: "internet.search",
+            kind: "clarification",
+            response: {
+              status: "ok",
+              text: "What would you like me to search for?",
+            },
           },
         }),
       }),

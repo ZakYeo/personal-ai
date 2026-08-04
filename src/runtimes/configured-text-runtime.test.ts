@@ -21,6 +21,7 @@ import { parseAssistantConfig } from "./config/config.js";
 import { defineFeatureAdapterEntry } from "./feature-adapter-registry.js";
 import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
 import { createInMemoryAlarmStore } from "../adapters/local/in-memory-alarm-store.js";
+import { openAIIntentOutput } from "../test-support/openai-intent.js";
 
 describe("createConfiguredTextRuntime", () => {
   it("smoke-executes a calendar and alarm plan after one exact confirmation", async () => {
@@ -163,15 +164,13 @@ describe("createConfiguredTextRuntime", () => {
       new Response(
         JSON.stringify({
           id: "intent-response-1",
-          output_text: JSON.stringify({
+          output_text: openAIIntentOutput({
             kind: "command",
-            plan: null,
             command: {
               capability: "assistant.capabilities.list",
               parameters: [],
               rawText: deterministicScenarios.capabilityList.text,
             },
-            response: null,
           }),
         }),
         { status: 200 },
@@ -198,7 +197,7 @@ describe("createConfiguredTextRuntime", () => {
       text: {
         format: {
           schema: {
-            properties: {
+            $defs: {
               command: {
                 properties: { capability: { enum: string[] } };
               };
@@ -209,7 +208,7 @@ describe("createConfiguredTextRuntime", () => {
       tools: Array<{ description: string }>;
     }>(fetch);
     expect(
-      body.text.format.schema.properties.command.properties.capability.enum,
+      body.text.format.schema.$defs.command.properties.capability.enum,
     ).toContain("assistant.capabilities.list");
     expect(body.tools.map(({ description }) => description)).not.toEqual(
       expect.arrayContaining([
@@ -225,11 +224,8 @@ describe("createConfiguredTextRuntime", () => {
         new Response(
           JSON.stringify({
             id: "intent-response-1",
-            output_text: JSON.stringify({
-              command: null,
+            output_text: openAIIntentOutput({
               kind: "conversation",
-              plan: null,
-              response: null,
             }),
           }),
           { status: 200 },
@@ -259,11 +255,8 @@ describe("createConfiguredTextRuntime", () => {
         new Response(
           JSON.stringify({
             id: "intent-response-1",
-            output_text: JSON.stringify({
-              command: null,
+            output_text: openAIIntentOutput({
               kind: "conversation",
-              plan: null,
-              response: null,
             }),
           }),
           { status: 200 },
@@ -305,11 +298,8 @@ describe("createConfiguredTextRuntime", () => {
         new Response(
           JSON.stringify({
             id: "intent-response-1",
-            output_text: JSON.stringify({
-              command: null,
+            output_text: openAIIntentOutput({
               kind: "conversation",
-              plan: null,
-              response: null,
             }),
           }),
           { status: 200 },

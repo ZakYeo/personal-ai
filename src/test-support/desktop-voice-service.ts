@@ -20,6 +20,7 @@ import {
 import { deterministicScenarios } from "./deterministic-scenarios.js";
 import { createCapturedWriter } from "./primitives.js";
 import { createServiceSignalController } from "./service-runtime.js";
+import { openAIIntentOutput } from "./openai-intent.js";
 
 export const casualConversationSmokeScenarios = [
   {
@@ -72,11 +73,8 @@ export async function runCasualConversationStreamingSmoke(input: {
     .mockResolvedValueOnce(
       jsonResponse({
         id: "intent-response-1",
-        output_text: JSON.stringify({
-          command: null,
+        output_text: openAIIntentOutput({
           kind: "conversation",
-          plan: null,
-          response: null,
         }),
       }),
     )
@@ -134,11 +132,8 @@ export function createFollowUpRealtimeSmoke(): {
       .mockResolvedValueOnce(
         jsonResponse({
           id: "intent-response-1",
-          output_text: JSON.stringify({
-            command: null,
+          output_text: openAIIntentOutput({
             kind: "conversation",
-            plan: null,
-            response: null,
           }),
         }),
       )
@@ -154,15 +149,13 @@ export function createFollowUpRealtimeSmoke(): {
       .mockResolvedValueOnce(
         jsonResponse({
           id: "intent-response-2",
-          output_text: JSON.stringify({
+          output_text: openAIIntentOutput({
             command: {
               capability: "assistant.capabilities.list",
               parameters: [],
               rawText: followUpUtterance,
             },
             kind: "command",
-            plan: null,
-            response: null,
           }),
         }),
       )

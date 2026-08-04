@@ -11,13 +11,19 @@ import { parseOpenAIStructuredOutput } from "./openai-structured-output-parser.j
 import { isOpenAISpokenTextSafe } from "./openai-spoken-style.js";
 
 export function parseOpenAIIntentOutput(value: string): IntentInterpretation {
-  return parseIntentInterpretation(
-    parseOpenAIStructuredOutput(value, {
-      createError: ({ cause, message, responseBody }) =>
-        new OpenAIIntentError(message, undefined, responseBody, { cause }),
-      invalidJsonMessage: "OpenAI intent response was not valid JSON.",
-    }),
-  );
+  const parsed = parseOpenAIStructuredOutput(value, {
+    createError: ({ cause, message, responseBody }) =>
+      new OpenAIIntentError(message, undefined, responseBody, { cause }),
+    invalidJsonMessage: "OpenAI intent response was not valid JSON.",
+  });
+  if (!isRecord(parsed) || !isRecord(parsed.interpretation)) {
+    throw new OpenAIIntentError(
+      "OpenAI intent response must contain an interpretation object.",
+      undefined,
+      value,
+    );
+  }
+  return parseIntentInterpretation(parsed.interpretation);
 }
 
 function parseIntentInterpretation(value: unknown): IntentInterpretation {
@@ -25,27 +31,8 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
     throw new OpenAIIntentError("OpenAI intent response must be an object.");
   }
 
-  if (
-    value.kind !== "clarification" &&
-    value.clarificationCapability !== undefined &&
-    value.clarificationCapability !== null
-  ) {
-    throw new OpenAIIntentError(
-      "OpenAI intent response must reserve clarificationCapability for clarifications.",
-    );
-  }
-
   if (value.kind === "command") {
-    if (value.response !== null) {
-      throw new OpenAIIntentError(
-        "OpenAI intent command response must set response to null.",
-      );
-    }
-    if (value.plan !== null) {
-      throw new OpenAIIntentError(
-        "OpenAI intent command response must set plan to null.",
-      );
-    }
+    assertVariantFields(value, ["kind", "command"]);
 
     return {
       command: parseCommand(value.command),
@@ -54,11 +41,7 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   if (value.kind === "plan") {
-    if (value.command !== null || value.response !== null) {
-      throw new OpenAIIntentError(
-        "OpenAI intent plan response must set command and response to null.",
-      );
-    }
+    assertVariantFields(value, ["kind", "plan"]);
 
     return {
       kind: "plan",
@@ -67,15 +50,7 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   if (value.kind === "conversation") {
-    if (
-      value.command !== null ||
-      value.plan !== null ||
-      value.response !== null
-    ) {
-      throw new OpenAIIntentError(
-        "OpenAI intent conversation response must set command, plan, and response to null.",
-      );
-    }
+    assertVariantFields(value, ["kind"]);
 
     return {
       kind: "conversation",
@@ -83,6 +58,7 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   if (value.kind === "clarification") {
+    assertVariantFields(value, ["kind", "clarificationCapability", "response"]);
     if (
       typeof value.clarificationCapability !== "string" ||
       value.clarificationCapability.length === 0
@@ -103,6 +79,7 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   if (value.kind === "rephrase") {
+    assertVariantFields(value, ["kind", "response"]);
     return {
       kind: "rephrase",
       response: parseAssistantResponse(value.response),
@@ -110,19 +87,12 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   if (value.kind === "replacement") {
-    if (
-      value.command !== null ||
-      value.plan !== null ||
-      value.response !== null
-    ) {
-      throw new OpenAIIntentError(
-        "OpenAI intent replacement must set command, plan, and response to null.",
-      );
-    }
+    assertVariantFields(value, ["kind"]);
     return { kind: "replacement" };
   }
 
   if (value.kind === "unknown" || value.kind === "unsupported") {
+    assertVariantFields(value, ["kind", "response"]);
     return {
       kind: value.kind,
       response: parseAssistantResponse(value.response),
@@ -132,6 +102,22 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   throw new OpenAIIntentError(
     "OpenAI intent response kind must be command, plan, conversation, clarification, rephrase, replacement, unknown, or unsupported.",
   );
+}
+
+function assertVariantFields(
+  value: Record<string, unknown>,
+  expectedFields: readonly string[],
+): void {
+  const actualFields = Object.keys(value).sort();
+  const expected = [...expectedFields].sort();
+  if (
+    actualFields.length !== expected.length ||
+    actualFields.some((field, index) => field !== expected[index])
+  ) {
+    throw new OpenAIIntentError(
+      `OpenAI intent ${String(value.kind)} response fields must be ${expected.join(", ")}.`,
+    );
+  }
 }
 
 function parsePlan(value: unknown): { commands: AssistantCommand[] } {

@@ -437,8 +437,10 @@ Outcomes:
   confirmation, pending-plan, execution, and outcome pipeline.
 - Confirmation fails closed when a capability's risk, metadata, or configuration
   requires confirmation but no deterministic renderer is declared.
-- Provider schema parsing rejects mixed command, plan, conversation, and fallback
-  branches instead of silently accepting ambiguous output.
+- Provider structured output represents command, plan, conversation,
+  clarification, rephrase, replacement, unknown, and unsupported terminal
+  interpretations as one nested tagged union, preventing inactive branches from
+  being populated together.
 - Deterministic compound interpretation rejects the entire request when any
   requested clause is unresolved and counts unresolved clauses toward the bound.
 - Confirmed plan execution uses its validation-time clock so relative alarm
@@ -787,8 +789,9 @@ Implemented structure:
   Responses config type and one labeled runtime parser; application ports stay
   provider-neutral.
 - The OpenAI adapter calls the Responses API through injected `fetch`, requests
-  structured JSON intent output, validates the returned command or response
-  shape, and preserves provider failures as diagnostics.
+  one nested tagged-union JSON interpretation, validates only the active
+  command, plan, clarification, conversation, or fallback shape, and preserves
+  provider failures as diagnostics.
 - Intent, conversation, and rewriting use one labeled Responses transport
   client while retaining operation-specific error classes and diagnostics.
 - Tests mock HTTP and environment dependencies; the checked-in default config

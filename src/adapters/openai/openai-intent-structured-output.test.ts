@@ -5,6 +5,7 @@ import {
 } from "../../test-support/adapter-contract.js";
 import {
   createOpenAIIntentInterpreter as createInterpreter,
+  openAIIntentOutput,
   openAIIntentContext as context,
 } from "../../test-support/openai-intent.js";
 
@@ -13,8 +14,7 @@ describe("OpenAIIntentInterpreter", () => {
     const fetch = createFetchStub(
       jsonResponse({
         id: "response-1",
-        output_text: JSON.stringify({
-          command: null,
+        output_text: openAIIntentOutput({
           kind: "plan",
           plan: {
             commands: [
@@ -30,7 +30,6 @@ describe("OpenAIIntentInterpreter", () => {
               },
             ],
           },
-          response: null,
         }),
       }),
     );
@@ -67,11 +66,9 @@ describe("OpenAIIntentInterpreter", () => {
       fetch: createFetchStub(
         jsonResponse({
           id: "response-1",
-          output_text: JSON.stringify({
-            command: null,
+          output_text: openAIIntentOutput({
             kind: "plan",
             plan: { commands: [command, command, command, command] },
-            response: null,
           }),
         }),
       ),
@@ -89,7 +86,7 @@ describe("OpenAIIntentInterpreter", () => {
       fetch: createFetchStub(
         jsonResponse({
           id: "response-1",
-          output_text: JSON.stringify({
+          output_text: openAIIntentOutput({
             command: {
               capability: "alarm.list",
               parameters: [],
@@ -97,7 +94,6 @@ describe("OpenAIIntentInterpreter", () => {
             },
             kind: "command",
             plan: { commands: [] },
-            response: null,
           }),
         }),
       ),
@@ -105,17 +101,17 @@ describe("OpenAIIntentInterpreter", () => {
 
     await expect(
       interpretOnce(interpreter, "list alarms", context),
-    ).rejects.toThrow("OpenAI intent command response must set plan to null.");
+    ).rejects.toThrow(
+      "OpenAI intent command response fields must be command, kind.",
+    );
   });
 
   it("rejects conversation output with fallback response text", async () => {
     const fetch = createFetchStub(
       jsonResponse({
         id: "response-1",
-        output_text: JSON.stringify({
+        output_text: openAIIntentOutput({
           kind: "conversation",
-          command: null,
-          plan: null,
           response: {
             status: "ok",
             text: "I am doing well.",
@@ -128,7 +124,7 @@ describe("OpenAIIntentInterpreter", () => {
     await expect(
       interpretOnce(interpreter, "Hey Jarvis, how are you today?", context),
     ).rejects.toThrow(
-      "OpenAI intent conversation response must set command, plan, and response to null.",
+      "OpenAI intent conversation response fields must be kind.",
     );
   });
 
@@ -136,10 +132,8 @@ describe("OpenAIIntentInterpreter", () => {
     const fetch = createFetchStub(
       jsonResponse({
         id: "response-1",
-        output_text: JSON.stringify({
+        output_text: openAIIntentOutput({
           kind: "unsupported",
-          command: null,
-          plan: null,
           response: {
             status: "unsupported",
             text: "I cannot do that.",
@@ -169,12 +163,11 @@ describe("OpenAIIntentInterpreter", () => {
     const fetch = createFetchStub(
       jsonResponse({
         id: "response-1",
-        output_text: JSON.stringify({
-          clarificationCapability:
-            kind === "clarification" ? "test.choose" : null,
-          command: null,
+        output_text: openAIIntentOutput({
+          ...(kind === "clarification"
+            ? { clarificationCapability: "test.choose" }
+            : {}),
           kind,
-          plan: null,
           response: { status: "unknown", text },
         }),
       }),
@@ -196,15 +189,13 @@ describe("OpenAIIntentInterpreter", () => {
           {
             content: [
               {
-                text: JSON.stringify({
+                text: openAIIntentOutput({
                   kind: "command",
-                  plan: null,
                   command: {
                     capability: "alarm.list",
                     parameters: [],
                     rawText: "Hey Jarvis, list my alarms",
                   },
-                  response: null,
                 }),
               },
             ],

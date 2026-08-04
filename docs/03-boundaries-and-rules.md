@@ -416,6 +416,11 @@ construction even where their request transports differ.
 OpenAI structured-output operations share the JSON decoding boundary and inject
 operation-specific errors; intent, conversation, and rewriting retain their own
 field-by-field schema validation.
+OpenAI intent terminal output has one root object whose nested interpretation is
+a tagged union. Each variant carries only its active command, plan,
+clarification, fallback response, or no-payload classification fields. The
+schema and parser must not model branch exclusivity through independent nullable
+placeholder fields that can admit contradictory combinations.
 
 Tests should prefer focused harness and one-change fixture helpers over broad
 inline object spreads. When a test changes one adapter ID, provider ID, missing

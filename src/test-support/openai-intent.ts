@@ -64,3 +64,7 @@ export function readOpenAIIntentRequestBody(
 ): OpenAIIntentRequestBody {
   return readJsonRequestBody<OpenAIIntentRequestBody>(fetch);
 }
+
+export function openAIIntentOutput(interpretation: unknown): string {
+  return JSON.stringify({ interpretation });
+}
