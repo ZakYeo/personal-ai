@@ -1,10 +1,10 @@
-import type { DeterministicFeatureRule } from "../../ports/deterministic-feature-rules.js";
+import type { DeterministicFeatureRule } from "../../application/deterministic-feature-rules.js";
 import {
   defineCapability,
   type FeatureArgsFromParameters,
   type FeatureCapabilityParameters,
   type FeatureExecutionContext,
-} from "../../ports/feature.js";
+} from "../../application/feature.js";
 import type { WeatherWatchStore } from "../../ports/weather-watch-store.js";
 import { decodeWeatherWatchCondition } from "../../application/weather-watch-condition-policy.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";

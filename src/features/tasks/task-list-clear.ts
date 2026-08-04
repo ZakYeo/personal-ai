@@ -3,7 +3,7 @@ import {
   type FeatureArgsFromParameters,
   type FeatureCapabilityParameters,
   type FeatureResult,
-} from "../../ports/feature.js";
+} from "../../application/feature.js";
 import { normalizeTaskListName } from "../../application/task-policy.js";
 import type { TaskStore } from "../../ports/task-store.js";
 import { selectTaskList } from "./task-selection.js";

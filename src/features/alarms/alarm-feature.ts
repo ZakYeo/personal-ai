@@ -1,7 +1,7 @@
 import type { AssistantContext } from "../../ports/assistant.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
-import { defineCapability, defineFeature } from "../../ports/feature.js";
-import { defineDeterministicFeatureRules } from "../../ports/deterministic-feature-rules.js";
+import { defineCapability, defineFeature } from "../../application/feature.js";
+import { defineDeterministicFeatureRules } from "../../application/deterministic-feature-rules.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
 import {
   alarmCreateParameters,

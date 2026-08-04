@@ -13,7 +13,7 @@ import {
 } from "../test-support/openai-intent.js";
 import { DeterministicIntentInterpreter } from "../adapters/mock/deterministic-intent-interpreter.js";
 import { createAssistant as createCoreAssistant } from "../core/assistant/assistant.js";
-import { createCapabilityRoutingIndex } from "../ports/capability-catalog.js";
+import { createCapabilityRoutingIndex } from "../application/capability-catalog.js";
 import {
   createAssistantConfig,
   createFeature,

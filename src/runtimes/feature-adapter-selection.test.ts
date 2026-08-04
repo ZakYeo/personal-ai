@@ -1,5 +1,5 @@
 import type { FeaturePlugin } from "../ports/feature.js";
-import { defineCapability, defineFeature } from "../ports/feature.js";
+import { defineCapability, defineFeature } from "../application/feature.js";
 import {
   disabledCalendarConfig,
   enabledDeterministicConfig,

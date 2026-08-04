@@ -5,7 +5,7 @@ import {
   type FeatureCapabilityParameters,
   type FeatureExecutionContext,
   type FeatureResult,
-} from "../../ports/feature.js";
+} from "../../application/feature.js";
 import type { AssistantContext } from "../../ports/assistant.js";
 import {
   normalizeTaskLabel,
@@ -14,7 +14,7 @@ import {
 } from "../../application/task-policy.js";
 import type { TaskRecord, TaskStore } from "../../ports/task-store.js";
 import { isCanonicalIsoTimestamp } from "../../application/temporal-policy.js";
-import { defineDeterministicFeatureRules } from "../../ports/deterministic-feature-rules.js";
+import { defineDeterministicFeatureRules } from "../../application/deterministic-feature-rules.js";
 import {
   availableListsResult,
   createdTaskResult,

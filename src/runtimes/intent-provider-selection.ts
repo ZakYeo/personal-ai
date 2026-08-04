@@ -6,7 +6,7 @@ import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interp
 import type { OpenAIResponsesConfig } from "../adapters/openai/openai-responses-config.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { CapabilityCatalog } from "../ports/capability-catalog.js";
-import { getDeterministicFeatureRules } from "../ports/deterministic-feature-rules.js";
+import { getDeterministicFeatureRules } from "../application/deterministic-feature-rules.js";
 import type { IntentInterpreterPort } from "../ports/intent.js";
 import type {
   IntentProviderDependencies,

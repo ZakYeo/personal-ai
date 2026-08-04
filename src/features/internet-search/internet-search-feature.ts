@@ -3,7 +3,7 @@ import type {
   FeatureCapabilityParameters,
   FeatureExecutionContext,
 } from "../../ports/feature.js";
-import { defineCapability, defineFeature } from "../../ports/feature.js";
+import { defineCapability, defineFeature } from "../../application/feature.js";
 import type {
   InternetSearchResponse,
   InternetSearchPort,
@@ -16,7 +16,7 @@ import {
 import {
   defineDeterministicFeatureRules,
   type DeterministicFeatureRule,
-} from "../../ports/deterministic-feature-rules.js";
+} from "../../application/deterministic-feature-rules.js";
 import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
 import { containsControlCharacters } from "../../application/text-safety.js";
 import {

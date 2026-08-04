@@ -2,7 +2,7 @@ import { createCapabilityInfoFeature } from "../features/assistant/capability-in
 import {
   createCapabilityRoutingIndex,
   type CapabilityRoutingIndex,
-} from "../ports/capability-catalog.js";
+} from "../application/capability-catalog.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import type { FeatureAdapterRuntimeContext } from "./feature-adapter-registry.js";

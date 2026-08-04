@@ -1,4 +1,4 @@
-import { createCapabilityRoutingIndex } from "../../ports/capability-catalog.js";
+import { createCapabilityRoutingIndex } from "../../application/capability-catalog.js";
 import type {
   IntentInterpretation,
   IntentInterpreterPort,

@@ -3,7 +3,7 @@ import {
   executeFeature,
   expectCapabilityMetadata,
 } from "../../test-support/feature-contract.js";
-import { getDeterministicFeatureRules } from "../../ports/deterministic-feature-rules.js";
+import { getDeterministicFeatureRules } from "../../application/deterministic-feature-rules.js";
 import { createWeatherProviderFixture } from "../../test-support/weather.js";
 import { createWeatherWatchStoreFixture } from "../../test-support/weather-watch-store.js";
 import { createWeatherFeature } from "./weather-feature.js";

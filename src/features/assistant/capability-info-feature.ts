@@ -8,8 +8,8 @@ import type {
 import {
   defineDeterministicFeatureRules,
   type DeterministicFeatureRule,
-} from "../../ports/deterministic-feature-rules.js";
-import { defineCapability, defineFeature } from "../../ports/feature.js";
+} from "../../application/deterministic-feature-rules.js";
+import { defineCapability, defineFeature } from "../../application/feature.js";
 
 const capabilityDescribeParameters = {
   name: { type: "string", required: true },

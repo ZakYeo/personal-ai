@@ -2,7 +2,7 @@ import type {
   CapabilityCatalog,
   FeatureCapability,
 } from "./capability-catalog.js";
-import { createCapabilityRoutingIndex } from "./capability-catalog.js";
+import { createCapabilityRoutingIndex } from "../application/capability-catalog.js";
 
 describe("createCapabilityRoutingIndex", () => {
   it("deeply freezes compiled capability and feature metadata", () => {

@@ -2,7 +2,7 @@ import {
   defineCapability,
   type FeatureExecutionContext,
   type FeatureResult,
-} from "../../ports/feature.js";
+} from "../../application/feature.js";
 import type {
   TaskListRecord,
   TaskRecord,

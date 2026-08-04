@@ -9,7 +9,7 @@ import {
   expectFeatureRejects,
   featureContractNow,
 } from "./feature-contract.js";
-import { defineCapability, defineFeature } from "../ports/feature.js";
+import { defineCapability, defineFeature } from "../application/feature.js";
 
 describe("feature contract test support", () => {
   it("creates feature contexts with a fixed clock and default config", () => {

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { defineCapability, defineFeature } from "./feature.js";
+import { defineCapability, defineFeature } from "../application/feature.js";
 import type {
   FeatureExecutionContext,
   FeatureExecutionRequest,
   FeaturePlugin,
 } from "./feature.js";
-import { defineDeterministicFeatureRules } from "./deterministic-feature-rules.js";
+import { defineDeterministicFeatureRules } from "../application/deterministic-feature-rules.js";
 
 const context: FeatureExecutionContext = {
   capabilityCatalog: [],

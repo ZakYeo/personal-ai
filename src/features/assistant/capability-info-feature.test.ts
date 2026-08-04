@@ -5,7 +5,7 @@ import {
 } from "./capability-info-feature.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
 import { createScheduledAlarmRecord } from "../../test-support/primitives.js";
-import { createCapabilityCatalog } from "../../ports/capability-catalog.js";
+import { createCapabilityCatalog } from "../../application/capability-catalog.js";
 import {
   createFeatureContext,
   expectCapabilityMetadata,

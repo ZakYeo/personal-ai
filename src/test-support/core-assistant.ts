@@ -26,8 +26,8 @@ import {
   defineCapability,
   defineFeature,
   normalizeFeatureResult,
-} from "../ports/feature.js";
-import { createCapabilityRoutingIndex } from "../ports/capability-catalog.js";
+} from "../application/feature.js";
+import { createCapabilityRoutingIndex } from "../application/capability-catalog.js";
 import type {
   IntentInterpretation,
   IntentInterpreterPort,

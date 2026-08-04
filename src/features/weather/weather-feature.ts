@@ -1,14 +1,14 @@
 import {
   defineDeterministicFeatureRules,
   type DeterministicFeatureRule,
-} from "../../ports/deterministic-feature-rules.js";
+} from "../../application/deterministic-feature-rules.js";
 import {
   defineCapability,
   defineFeature,
   type FeatureArgsFromParameters,
   type FeatureCapabilityParameters,
   type FeatureExecutionContext,
-} from "../../ports/feature.js";
+} from "../../application/feature.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";
 import {
   metricWeatherUnits,

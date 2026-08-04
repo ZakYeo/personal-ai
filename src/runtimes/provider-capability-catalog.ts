@@ -1,1 +1,1 @@
-export { createCapabilityCatalog as createProviderCapabilityCatalog } from "../ports/capability-catalog.js";
+export { createCapabilityCatalog as createProviderCapabilityCatalog } from "../application/capability-catalog.js";

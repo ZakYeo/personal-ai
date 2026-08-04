@@ -11,8 +11,8 @@ import type {
 import {
   defineDeterministicFeatureRules,
   type DeterministicFeatureRule,
-} from "../../ports/deterministic-feature-rules.js";
-import { defineCapability, defineFeature } from "../../ports/feature.js";
+} from "../../application/deterministic-feature-rules.js";
+import { defineCapability, defineFeature } from "../../application/feature.js";
 import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
 
 const calendarSearchEventsParameters = {

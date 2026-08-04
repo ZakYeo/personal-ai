@@ -10,41 +10,11 @@ export interface DeterministicFeatureRule<TCapability extends string = string> {
   match: DeterministicCapabilityRule;
 }
 
-type FeatureCapabilityName<TFeature extends FeaturePlugin> =
+export type FeatureCapabilityName<TFeature extends FeaturePlugin> =
   TFeature extends FeaturePlugin<infer TRequest extends FeatureExecutionRequest>
     ? TRequest["capability"]
     : never;
 
-interface FeaturePluginWithDeterministicRules extends FeaturePlugin {
-  deterministicIntentRules: DeterministicFeatureRule[];
-}
-
-export function defineDeterministicFeatureRules<TFeature extends FeaturePlugin>(
-  feature: TFeature,
-  deterministicIntentRules: readonly DeterministicFeatureRule<
-    FeatureCapabilityName<TFeature>
-  >[],
-): TFeature & FeaturePluginWithDeterministicRules {
-  return Object.assign(feature, {
-    deterministicIntentRules: [...deterministicIntentRules],
-  });
-}
-
-export function getDeterministicFeatureRules(
-  feature: FeaturePlugin,
-): DeterministicFeatureRule[] {
-  if (hasDeterministicFeatureRules(feature)) {
-    return feature.deterministicIntentRules;
-  }
-
-  return [];
-}
-
-function hasDeterministicFeatureRules(
-  feature: FeaturePlugin,
-): feature is FeaturePluginWithDeterministicRules {
-  return (
-    "deterministicIntentRules" in feature &&
-    Array.isArray(feature.deterministicIntentRules)
-  );
+export interface FeaturePluginWithDeterministicRules extends FeaturePlugin {
+  readonly deterministicIntentRules: readonly DeterministicFeatureRule[];
 }

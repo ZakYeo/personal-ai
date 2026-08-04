@@ -1,5 +1,5 @@
 import type { FeaturePlugin } from "../ports/feature.js";
-import { createCapabilityRoutingIndex } from "../ports/capability-catalog.js";
+import { createCapabilityRoutingIndex } from "../application/capability-catalog.js";
 import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
 
 describe("createProviderCapabilityCatalog", () => {

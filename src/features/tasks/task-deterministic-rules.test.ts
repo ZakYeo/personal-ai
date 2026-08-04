@@ -1,4 +1,4 @@
-import { getDeterministicFeatureRules } from "../../ports/deterministic-feature-rules.js";
+import { getDeterministicFeatureRules } from "../../application/deterministic-feature-rules.js";
 import { createTestTaskStore } from "../../test-support/task-store.js";
 import { createTaskFeature } from "./task-feature.js";
 

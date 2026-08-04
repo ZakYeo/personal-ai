@@ -5,7 +5,7 @@ import {
   type FeatureCapabilityParameters,
   type FeatureExecutionContext,
   type FeatureResult,
-} from "../../ports/feature.js";
+} from "../../application/feature.js";
 import {
   normalizeTaskLabel,
   normalizeTaskListName,
