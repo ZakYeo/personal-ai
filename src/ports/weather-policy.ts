@@ -1,4 +1,4 @@
-import { zonedParts } from "./local-date-time.js";
+import { zonedParts } from "../application/local-date-time.js";
 import type {
   DailyWeatherForecast,
   HourlyWeatherForecast,

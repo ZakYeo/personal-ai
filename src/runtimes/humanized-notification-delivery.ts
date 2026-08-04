@@ -1,4 +1,4 @@
-import { humanizeSpokenText } from "../ports/human-text.js";
+import { humanizeSpokenText } from "../application/human-text.js";
 import type { NotificationDeliveryPort } from "../ports/notification-delivery.js";
 
 interface HumanizedNotificationDeliveryContext {

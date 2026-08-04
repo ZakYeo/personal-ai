@@ -13,7 +13,7 @@ import {
   type DeterministicFeatureRule,
 } from "../../ports/deterministic-feature-rules.js";
 import { defineCapability, defineFeature } from "../../ports/feature.js";
-import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
+import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
 
 const calendarSearchEventsParameters = {
   endDate: { type: "string" },

@@ -20,7 +20,7 @@ import type { PersonalContextReaderPort } from "../../ports/personal-context.js"
 import {
   resolveLocalDateTime,
   zonedParts,
-} from "../../ports/local-date-time.js";
+} from "../../application/local-date-time.js";
 import {
   currentWeatherResult,
   forecastWeatherResult,

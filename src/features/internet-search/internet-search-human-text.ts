@@ -1,4 +1,4 @@
-import { containsControlCharacters } from "../../ports/text-safety.js";
+import { containsControlCharacters } from "../../application/text-safety.js";
 
 export function containsUnsafeInternetSearchTextControls(
   value: string,

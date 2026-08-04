@@ -15,12 +15,12 @@ import {
   defineDeterministicFeatureRules,
   type DeterministicFeatureRule,
 } from "../../ports/deterministic-feature-rules.js";
-import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
-import { containsControlCharacters } from "../../ports/text-safety.js";
+import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
+import { containsControlCharacters } from "../../application/text-safety.js";
 import {
   humanizeSpokenText,
   sanitizeHumanTextMarkup,
-} from "../../ports/human-text.js";
+} from "../../application/human-text.js";
 import { containsUnsafeInternetSearchTextControls } from "./internet-search-human-text.js";
 
 const searchParameters = {

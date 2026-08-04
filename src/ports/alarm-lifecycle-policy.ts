@@ -4,7 +4,7 @@ import type {
   AlarmStatus,
 } from "./alarm-store.js";
 
-export { isCanonicalIsoTimestamp } from "./temporal-policy.js";
+export { isCanonicalIsoTimestamp } from "../application/temporal-policy.js";
 
 export function resolveAlarmRecurrence(
   frequency: unknown,

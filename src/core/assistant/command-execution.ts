@@ -16,7 +16,7 @@ import type {
 } from "../../ports/feature.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import type { ResultReferenceSelectionRequest } from "../../ports/result-reference.js";
-import { humanizeSpokenText } from "../../ports/human-text.js";
+import { humanizeSpokenText } from "../../application/human-text.js";
 import { createAppError } from "./app-error.js";
 import { outcomeFromError } from "./assistant-outcome.js";
 import { planRequiresConfirmation } from "./plan-confirmation.js";

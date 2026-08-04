@@ -2,7 +2,7 @@ import type { AssistantCommandParameters } from "../../ports/assistant.js";
 import {
   classifySpokenFact,
   renderSpokenFact,
-} from "../../ports/human-text.js";
+} from "../../application/human-text.js";
 import type { ProtectedResponseFact } from "../../ports/response-rewriter.js";
 
 interface FactReplacement extends ProtectedResponseFact {

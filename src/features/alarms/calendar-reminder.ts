@@ -9,7 +9,7 @@ import type {
   FeatureExecutionContext,
   FeatureResult,
 } from "../../ports/feature.js";
-import { resolveLocalDateTime } from "../../ports/local-date-time.js";
+import { resolveLocalDateTime } from "../../application/local-date-time.js";
 import type { AlarmCalendarReminderArgs } from "./alarm-feature-contract.js";
 
 interface CalendarReminderSnapshotFields {

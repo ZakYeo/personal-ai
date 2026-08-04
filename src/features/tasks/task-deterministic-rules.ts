@@ -1,5 +1,5 @@
 import type { DeterministicFeatureRule } from "../../ports/deterministic-feature-rules.js";
-import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
+import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
 
 export const taskDeterministicRules = [
   {

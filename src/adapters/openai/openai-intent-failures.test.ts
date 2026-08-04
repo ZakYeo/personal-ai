@@ -1,4 +1,4 @@
-import { interpretOnce } from "../../ports/intent.js";
+import { interpretOnce } from "../../application/intent.js";
 import {
   createAbortingFetchStub,
   createFetchStub,

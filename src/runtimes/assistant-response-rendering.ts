@@ -2,7 +2,7 @@ import type {
   AssistantCitation,
   AssistantResponse,
 } from "../ports/assistant.js";
-import { containsControlCharacters } from "../ports/text-safety.js";
+import { containsControlCharacters } from "../application/text-safety.js";
 
 interface AssistantResponseRenderingOptions {
   hyperlinks?: boolean;

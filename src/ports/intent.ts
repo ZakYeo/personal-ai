@@ -55,15 +55,6 @@ export interface IntentInterpreterPort {
   ): IntentInterpreterSession;
 }
 
-export function interpretOnce(
-  interpreter: IntentInterpreterPort,
-  text: string,
-  context: AssistantContext,
-  history?: ConversationState,
-): Promise<IntentInterpretation> {
-  return interpreter.start(text, context, history).next();
-}
-
 export interface IntentInterpreterSession {
   next(input?: IntentSessionContinuation): Promise<IntentInterpretation>;
 }

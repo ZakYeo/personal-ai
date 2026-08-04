@@ -8,7 +8,7 @@ import type { FeaturePlugin } from "../../ports/feature.js";
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
-import { humanizeSpokenText } from "../../ports/human-text.js";
+import { humanizeSpokenText } from "../../application/human-text.js";
 import {
   createConversationSession,
   type ConversationSessionDependencies,

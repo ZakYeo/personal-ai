@@ -1,7 +1,7 @@
 import {
   zonedParts,
   type LocalDateTimeParts,
-} from "../../ports/local-date-time.js";
+} from "../../application/local-date-time.js";
 import {
   type WeatherForecast,
   type WeatherForecastRequest,

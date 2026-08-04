@@ -1,4 +1,4 @@
-import { assistantResponseExpectsFollowUp } from "../../ports/assistant.js";
+import { assistantResponseExpectsFollowUp } from "../../application/assistant-response.js";
 import {
   runDetectedVoiceCommand,
   type VoiceCommandDependencies,

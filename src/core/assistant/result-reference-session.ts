@@ -8,7 +8,7 @@ import type {
   ResultReferenceTarget,
   TaskResultReferenceFacts,
 } from "../../ports/result-reference.js";
-import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
+import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
 
 export interface ResultReferenceSession {
   completeTurn(): void;

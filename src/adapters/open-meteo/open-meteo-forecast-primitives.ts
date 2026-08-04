@@ -1,7 +1,7 @@
 import {
   resolveLocalDateTime,
   zonedParts,
-} from "../../ports/local-date-time.js";
+} from "../../application/local-date-time.js";
 import { isRecord } from "../parsing.js";
 import { OpenMeteoWeatherError } from "./open-meteo-error.js";
 

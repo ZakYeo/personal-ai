@@ -3,7 +3,7 @@ import {
   normalizeCommandText,
 } from "./deterministic-intent-interpreter.js";
 import type { AssistantContext } from "../../ports/assistant.js";
-import { interpretOnce } from "../../ports/intent.js";
+import { interpretOnce } from "../../application/intent.js";
 
 const context: AssistantContext = {
   clock: {

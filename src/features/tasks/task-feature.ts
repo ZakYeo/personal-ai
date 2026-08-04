@@ -13,7 +13,7 @@ import {
   normalizeTaskNote,
 } from "../../ports/task-policy.js";
 import type { TaskRecord, TaskStore } from "../../ports/task-store.js";
-import { isCanonicalIsoTimestamp } from "../../ports/temporal-policy.js";
+import { isCanonicalIsoTimestamp } from "../../application/temporal-policy.js";
 import { defineDeterministicFeatureRules } from "../../ports/deterministic-feature-rules.js";
 import {
   availableListsResult,

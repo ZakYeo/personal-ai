@@ -2,7 +2,7 @@ import type { TaskListRecord, TaskRecord, TaskReminder } from "./task-store.js";
 import {
   isCanonicalIsoDate,
   isCanonicalIsoTimestamp,
-} from "./temporal-policy.js";
+} from "../application/temporal-policy.js";
 
 const maxListNameLength = 100;
 const maxTaskLabelLength = 200;
