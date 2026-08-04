@@ -222,6 +222,12 @@ adapters without making features import or invoke one another:
   the selected key-free non-commercial adapter. Durable weather watches are
   owned by the weather adapter, which contributes a neutral background task
   closing over the same watch store and provider instance.
+- Core applies one application-owned human-text policy after model rewriting
+  and at tool-observation and runtime-output boundaries. OpenAI prompts request
+  natural spoken dates, times, timezones, and source titles first; the shared
+  deterministic policy then removes visible link targets and renders canonical
+  instants in a validated subject timezone or the configured assistant timezone.
+  Exact values stay in feature data, protected facts, citations, and diagnostics.
 - Lists and tasks use their own revision-checked store. Reminder delivery closes
   over that exact store and remains separate from alarm state even when both use
   the neutral notification and output-coordination boundaries.

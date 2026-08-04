@@ -129,6 +129,11 @@ Outcomes:
   Provider output with mismatched request facts, invalid units, stale or
   unordered forecast points, out-of-period dates, or non-finite measurements
   fails safely.
+- Cross-feature spoken-response hardening now asks configured models for natural
+  local time and source phrasing, classifies opaque temporal facts for grammar,
+  and applies a deterministic final policy across assistant, tool-read, CLI,
+  notification, and TTS boundaries. Weather source URLs are retained as
+  validated citations but only the provider title is spoken.
 - Local timestamps are accepted only when they round-trip to exactly one instant
   in the returned IANA timezone. Nonexistent daylight-saving times and ambiguous
   repeated local times are rejected instead of silently normalized.

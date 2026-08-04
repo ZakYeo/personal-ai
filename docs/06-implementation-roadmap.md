@@ -471,6 +471,9 @@ Acceptance criteria:
 - Human-facing weather output includes the attribution required by the
   [Open-Meteo free API terms](https://open-meteo.com/en/terms), and tests pin the
   selected non-commercial endpoint and usage policy.
+- Weather speech uses contextual local observation, forecast, freshness, and
+  watch-window times. It speaks the provider title while retaining the exact URL
+  only as validated citation metadata for hidden hyperlinks.
 - `npm run check` passes.
 
 ## Milestone 16: Personal Lists, Tasks, and Reminders

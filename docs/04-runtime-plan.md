@@ -543,6 +543,12 @@ hyperlink-capable CLI output attaches URLs with a one-pass non-overlapping hidde
 title-link renderer. OpenAI intent fallback, clarification, conversation, and
 response-rewriter output parsers independently enforce the shared spoken-text
 policy after prompting.
+The shared policy also covers non-search responses, tool observations, compound
+step responses, confirmations, deterministic provider fallbacks, and background
+notification speech. Prompts receive the current time, assistant timezone, and
+non-sensitive grammatical forms for opaque temporal tokens. Final application
+rendering keeps exact facts protected while preventing raw URLs, ISO timestamps,
+or IANA identifiers from reaching CLI or TTS output.
 
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without

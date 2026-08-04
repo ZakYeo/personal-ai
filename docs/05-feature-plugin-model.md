@@ -23,6 +23,14 @@ recipient, destination, message body, alarm label, and due time. Providers may
 not author or rewrite confirmation text. The same renderer is used for a single
 command and for each risky step in an aggregate plan prompt.
 
+Feature result data remains the exact machine-readable source of truth even
+when the corresponding human text uses a contextual date, local time, or
+natural timezone label. Core classifies opaque temporal fact tokens for model
+grammar without exposing their values, restores them deterministically after
+rewriting, and applies the shared URL/time safety policy to direct answers and
+intermediate read observations. URLs intended for display belong in validated
+citation metadata rather than spoken text.
+
 ## Feature Contract
 
 The implementation should define a feature contract similar to:

@@ -525,6 +525,12 @@ should also guard against subtler boundary and abstraction drift.
 - OpenAI intent fallback and clarification text, conversation text, and response
   rewrites must pass the shared spoken-text validator after provider parsing.
   Spoken safety cannot rely on prompt compliance alone.
+- All human-facing assistant and notification text uses the shared spoken-text
+  policy. Model prompts are the primary natural-language mechanism, but final
+  output deterministically removes raw URLs and Markdown link targets, renders
+  canonical instants as contextual local speech, and replaces spoken IANA
+  identifiers with natural timezone labels. Exact values remain unchanged in
+  structured data and validated citation metadata.
 - Internet search is terminal-only rather than an intent tool-chain read.
   Later intent interpretation may receive only opaque source ordinals and
   references, never retrieved titles, URLs, extracts, dates, or synthesized
@@ -573,6 +579,10 @@ should also guard against subtler boundary and abstraction drift.
   round-trip exactly through the returned IANA timezone; nonexistent or
   offset-ambiguous local times fail safely rather than inheriting alarm
   recurrence normalization.
+- Weather attribution is spoken as the natural provider title. Its validated
+  URL is retained only in citation metadata for hyperlink-capable boundaries;
+  weather-watch notifications use the same title-only and contextual-time
+  policy before reaching notification delivery.
 - Planned daily briefings aggregate only a fixed configured set of narrow read
   ports. Partial source failures remain isolated and diagnostic-safe; retrieved
   content cannot add sections, tools, or actions.

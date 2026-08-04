@@ -87,6 +87,9 @@ units, period, and freshness facts. Explicit weather watches persist local state
 claim delivery before output, and are convenience notifications rather than
 guaranteed emergency alerts. A home default is available only through the
 narrow explicit-profile reader; weather never infers it.
+Human-facing weather answers render provider timestamps as contextual local
+speech and name Open-Meteo without reading its URL aloud. Exact timestamps and
+links remain structured facts and citation metadata for application use.
 Personal tasks remain separate from alarms. A reminder is an optional lifecycle
 on a task, is confirmed with its exact instant before persistence, and is
 claimed before output. Speaking the reminder never silently completes the task.
