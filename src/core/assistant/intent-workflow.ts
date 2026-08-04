@@ -52,6 +52,7 @@ export function createIntentWorkflow(input: {
   text: string;
 }): { run(): Promise<AssistantOutcome> } {
   const normalizedText = input.text.trim();
+  let activeUserText = normalizedText;
   const context = createContext(input.dependencies, input.signal);
   let session: IntentInterpreterSession | undefined;
   const toolChain = createToolChainState();
@@ -94,7 +95,7 @@ export function createIntentWorkflow(input: {
             executeWorkflowRead({
               context,
               dependencies: input.dependencies,
-              normalizedText,
+              normalizedText: activeUserText,
               resultReferences: input.dependencies.resultReferences,
               step,
             }),
@@ -145,7 +146,7 @@ export function createIntentWorkflow(input: {
       config: input.dependencies.config,
       context: trustedContext(),
       kind: current.kind === "plan" ? "compound" : "single",
-      originalText: normalizedText,
+      originalText: activeUserText,
     });
     if (!validation.ok) {
       return "clarification" in validation
@@ -178,7 +179,7 @@ export function createIntentWorkflow(input: {
       config: input.dependencies.config,
       context: trustedContext(),
       kind: "single" as const,
-      originalText: normalizedText,
+      originalText: activeUserText,
     });
     if (!validation.ok) {
       return {
@@ -223,6 +224,7 @@ export function createIntentWorkflow(input: {
       decorate({ response: { ...response, expectsFollowUp: true } }),
       async (reply) => {
         try {
+          activeUserText = reply.trim();
           const interpretation = await requireSession().next({
             kind: "user_reply",
             text: reply,
@@ -255,7 +257,7 @@ export function createIntentWorkflow(input: {
     try {
       return {
         response: await input.dependencies.conversation.respond(
-          normalizedText,
+          activeUserText,
           context,
         ),
       };
@@ -277,7 +279,7 @@ export function createIntentWorkflow(input: {
     return createTrustedCommandContext(
       context,
       input.dependencies.resultReferences,
-      normalizedText,
+      activeUserText,
     );
   }
 

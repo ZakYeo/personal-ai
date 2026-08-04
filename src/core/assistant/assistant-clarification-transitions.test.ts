@@ -4,6 +4,7 @@ import type {
   IntentInterpreterPort,
   IntentSessionContinuation,
 } from "../../ports/intent.js";
+import type { ResponseRewriteRequest } from "../../ports/response-rewriter.js";
 import {
   createAssistantConfig,
   createFixedClock,
@@ -124,6 +125,54 @@ describe("assistant clarification transitions", () => {
     expect(starts).toEqual(["Set an alarm", "What are your capabilities?"]);
     expect(continuations).toEqual([
       { kind: "user_reply", text: "What are your capabilities?" },
+    ]);
+  });
+
+  it("validates a directly resolved reply against the latest user turn", async () => {
+    const rewrites: ResponseRewriteRequest[] = [];
+    const steps: IntentInterpretation[] = [
+      {
+        kind: "clarification",
+        response: { status: "ok", text: "What would you like me to do?" },
+      },
+      {
+        command: {
+          capability: "assistant.capabilities.list",
+          parameters: {},
+          rawText: "What are your capabilities?",
+        },
+        kind: "command",
+      },
+    ];
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([
+        createRawFeature({
+          capabilities: [{ name: "assistant.capabilities.list", risk: "low" }],
+          execute: () => Promise.resolve({ text: "I can help." }),
+          id: "assistant",
+        }),
+      ]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({ assistant: { enabled: true } }),
+      intentInterpreter: {
+        start: () => ({ next: () => Promise.resolve(steps.shift()!) }),
+      },
+      responseRewriter: {
+        rewrite: (request) => {
+          rewrites.push(request);
+          return Promise.resolve({ text: request.response.text });
+        },
+      },
+    });
+
+    await assistant.handleText("Can you do");
+    await expect(
+      assistant.handleText("What are your capabilities?"),
+    ).resolves.toEqual({ status: "ok", text: "I can help." });
+    expect(rewrites).toEqual([
+      expect.objectContaining({
+        originalText: "What are your capabilities?",
+      }),
     ]);
   });
 });

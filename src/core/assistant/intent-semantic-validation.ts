@@ -22,8 +22,13 @@ interface SemanticValidationOptions {
 export function createSemanticallyValidatedIntentSession(
   options: SemanticValidationOptions,
 ): IntentInterpreterSession {
+  let activeUserText = options.originalText;
+
   return {
     next: async (input) => {
+      if (input?.kind === "user_reply") {
+        activeUserText = input.text.trim();
+      }
       const interpretation = await options.session.next(input);
       if (
         interpretation.kind === "replacement" &&
@@ -35,7 +40,7 @@ export function createSemanticallyValidatedIntentSession(
       }
       return validateIntentSemantics(
         interpretation,
-        options.originalText,
+        { activeUserText, originalText: options.originalText },
         options.capabilityCatalog,
       );
     },
@@ -44,7 +49,7 @@ export function createSemanticallyValidatedIntentSession(
 
 function validateIntentSemantics(
   interpretation: IntentInterpretation,
-  originalText: string,
+  text: { activeUserText: string; originalText: string },
   capabilityCatalog: CapabilityCatalog,
 ): IntentInterpretation {
   if (
@@ -60,10 +65,10 @@ function validateIntentSemantics(
   const commands = commandsFromInterpretation(interpretation);
   return commands.some(
     (command) =>
-      isNarrowCapabilityListRequest(command, originalText) ||
+      isNarrowCapabilityListRequest(command, text.activeUserText) ||
       echoesRequestInRequiredParameter(
         command,
-        originalText,
+        text.originalText,
         capabilityCatalog,
       ),
   )
