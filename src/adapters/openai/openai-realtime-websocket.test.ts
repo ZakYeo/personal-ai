@@ -10,7 +10,10 @@ const { MockWebSocket, mockWebSocketInstances } = vi.hoisted(() => {
 
     constructor(
       readonly url: string,
-      readonly options: { headers: Record<string, string> },
+      readonly options: {
+        headers: Record<string, string>;
+        maxPayload: number;
+      },
     ) {
       mockInstances.push(this);
     }
@@ -35,8 +38,9 @@ const { MockWebSocket, mockWebSocketInstances } = vi.hoisted(() => {
       );
     }
 
-    send(message: string): void {
+    send(message: string, complete?: (error?: Error) => void): void {
       this.sentMessages.push(message);
+      complete?.();
     }
   }
 
@@ -57,7 +61,7 @@ describe("OpenAI realtime websocket factory", () => {
     mockWebSocketInstances.length = 0;
   });
 
-  it("creates authenticated realtime sockets with the ws client", () => {
+  it("creates authenticated realtime sockets with the ws client", async () => {
     const socket = createOpenAIRealtimeWebSocketFactory({
       apiKey: "test-api-key",
       url: "wss://api.openai.test/v1/realtime?intent=transcription",
@@ -68,7 +72,7 @@ describe("OpenAI realtime websocket factory", () => {
       messages.push(event);
     };
     socket.addEventListener("message", onMessage);
-    socket.send("hello");
+    await socket.send("hello");
     mockWebSocketInstances[0]?.emit("message", Buffer.from("response"));
     socket.removeEventListener("message", onMessage);
     mockWebSocketInstances[0]?.emit("message", Buffer.from("ignored"));
@@ -81,6 +85,7 @@ describe("OpenAI realtime websocket factory", () => {
           headers: {
             Authorization: "Bearer test-api-key",
           },
+          maxPayload: 256 * 1_024,
         },
         sentMessages: ["hello"],
         url: "wss://api.openai.test/v1/realtime?intent=transcription",

@@ -1,6 +1,7 @@
 import WebSocket, { type RawData } from "ws";
 
 import type { RealtimeSocketFactory } from "./openai-realtime-transcription-session.js";
+import { maximumRealtimeEventBytes } from "./openai-realtime-limits.js";
 
 type SocketListener = (event?: unknown) => void;
 
@@ -12,6 +13,7 @@ export const createOpenAIRealtimeWebSocketFactory: RealtimeSocketFactory = ({
     headers: {
       Authorization: `Bearer ${apiKey}`,
     },
+    maxPayload: maximumRealtimeEventBytes,
   });
   const listenerWrappers = new Map<
     string,
@@ -54,7 +56,15 @@ export const createOpenAIRealtimeWebSocketFactory: RealtimeSocketFactory = ({
       }
     },
     send: (message) => {
-      socket.send(message);
+      return new Promise((resolve, reject) => {
+        socket.send(message, (error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve();
+          }
+        });
+      });
     },
   };
 

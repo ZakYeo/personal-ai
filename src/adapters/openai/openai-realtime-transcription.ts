@@ -52,11 +52,13 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
 
     try {
       await session.waitForOpen();
-      socket.send(createTranscriptionSessionUpdateMessage(this.options.config));
+      await socket.send(
+        createTranscriptionSessionUpdateMessage(this.options.config),
+      );
 
       await streamAudioToSocket(socket, audio.chunks, session.transcript);
 
-      socket.send(createAudioCommitMessage());
+      await socket.send(createAudioCommitMessage());
 
       const transcript = await session.transcript;
 

@@ -151,6 +151,7 @@ export class TestRealtimeSocket implements RealtimeSocket {
   constructor(
     private readonly options: {
       autoOpen?: boolean;
+      beforeSend?: (message: Record<string, unknown>) => Promise<void>;
       closeError?: Error;
       errorOnSessionUpdate?: boolean;
       transcript?: string;
@@ -181,9 +182,10 @@ export class TestRealtimeSocket implements RealtimeSocket {
     );
   }
 
-  send(message: string): void {
+  async send(message: string): Promise<void> {
     const parsed = JSON.parse(message) as Record<string, unknown>;
     this.sentMessages.push(parsed);
+    await this.options.beforeSend?.(parsed);
 
     if (parsed.type === "session.update" && this.options.errorOnSessionUpdate) {
       queueMicrotask(() => {
@@ -218,6 +220,8 @@ export class TestRealtimeSocket implements RealtimeSocket {
         });
       });
     }
+
+    await Promise.resolve();
   }
 
   emitOpen(): void {

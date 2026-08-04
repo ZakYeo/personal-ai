@@ -1,4 +1,5 @@
 import { isRecord } from "../parsing.js";
+import { maximumRealtimeEventBytes } from "./openai-realtime-limits.js";
 
 type ParsedRealtimeEvent =
   | {
@@ -53,6 +54,14 @@ export function parseRealtimeTranscriptionEvent(
 function parseRealtimeEvent(messageEvent: unknown): Record<string, unknown> {
   if (!isRecord(messageEvent) || typeof messageEvent.data !== "string") {
     throw new Error("Realtime transcription event must include string data.");
+  }
+
+  if (
+    Buffer.byteLength(messageEvent.data, "utf8") > maximumRealtimeEventBytes
+  ) {
+    throw new Error(
+      `Realtime transcription event exceeded ${maximumRealtimeEventBytes} bytes.`,
+    );
   }
 
   const parsed = JSON.parse(messageEvent.data) as unknown;

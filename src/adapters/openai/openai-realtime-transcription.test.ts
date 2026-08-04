@@ -1,5 +1,11 @@
 import { OpenAIRealtimeTranscription } from "./openai-realtime-transcription.js";
 import { TestRealtimeSocket } from "../../test-support/adapter-contract.js";
+import {
+  maximumRealtimeAudioBytes,
+  maximumRealtimeAudioChunkBytes,
+  maximumRealtimeEventBytes,
+  maximumRealtimeTranscriptCharacters,
+} from "./openai-realtime-limits.js";
 
 describe("OpenAIRealtimeTranscription", () => {
   it("streams audio chunks and emits transcript deltas", async () => {
@@ -192,6 +198,139 @@ describe("OpenAIRealtimeTranscription", () => {
     expect(socket.closed).toBe(true);
   });
 
+  it("rejects oversized realtime message payloads", async () => {
+    const socket = new TestRealtimeSocket();
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+    const transcriptPromise = adapter.transcribeStream({
+      chunks: chunksFromText("audio"),
+    });
+
+    socket.emitOpen();
+    await socket.waitForSentType("input_audio_buffer.commit");
+    socket.emitRawMessage({
+      data: JSON.stringify({
+        padding: "x".repeat(maximumRealtimeEventBytes),
+        type: "ignored",
+      }),
+    });
+
+    await expect(transcriptPromise).rejects.toMatchObject({
+      message: "Realtime transcription message was invalid.",
+    });
+  });
+
+  it("rejects cumulative transcript deltas beyond the text ceiling", async () => {
+    const socket = new TestRealtimeSocket();
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+    const transcriptPromise = adapter.transcribeStream({
+      chunks: chunksFromText("audio"),
+    });
+
+    socket.emitOpen();
+    await socket.waitForSentType("input_audio_buffer.commit");
+    socket.emitMessage({
+      delta: "a".repeat(maximumRealtimeTranscriptCharacters),
+      type: "conversation.item.input_audio_transcription.delta",
+    });
+    socket.emitMessage({
+      delta: "b",
+      type: "conversation.item.input_audio_transcription.delta",
+    });
+
+    await expect(transcriptPromise).rejects.toThrow(
+      `Realtime transcription exceeded ${maximumRealtimeTranscriptCharacters} characters.`,
+    );
+  });
+
+  it("rejects an oversized completed transcript", async () => {
+    const socket = new TestRealtimeSocket();
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+    const transcriptPromise = adapter.transcribeStream({
+      chunks: chunksFromText("audio"),
+    });
+
+    socket.emitOpen();
+    await socket.waitForSentType("input_audio_buffer.commit");
+    socket.emitMessage({
+      transcript: "a".repeat(maximumRealtimeTranscriptCharacters + 1),
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+
+    await expect(transcriptPromise).rejects.toThrow(
+      `Realtime transcription exceeded ${maximumRealtimeTranscriptCharacters} characters.`,
+    );
+  });
+
+  it("rejects an oversized audio chunk before sending it", async () => {
+    const socket = new TestRealtimeSocket({ autoOpen: true });
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+
+    await expect(
+      adapter.transcribeStream({
+        chunks: oneAudioChunk(maximumRealtimeAudioChunkBytes + 1),
+      }),
+    ).rejects.toThrow(
+      `Realtime audio chunk exceeded ${maximumRealtimeAudioChunkBytes} bytes.`,
+    );
+    expect(
+      socket.sentMessages.filter(
+        (message) => message.type === "input_audio_buffer.append",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("rejects cumulative audio beyond the stream ceiling", async () => {
+    const socket = new TestRealtimeSocket({ autoOpen: true });
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+
+    await expect(
+      adapter.transcribeStream({
+        chunks: repeatedAudioChunks(
+          maximumRealtimeAudioChunkBytes,
+          maximumRealtimeAudioBytes / maximumRealtimeAudioChunkBytes + 1,
+        ),
+      }),
+    ).rejects.toThrow(
+      `Realtime audio exceeded ${maximumRealtimeAudioBytes} bytes.`,
+    );
+  });
+
+  it("waits for socket send backpressure before reading more audio", async () => {
+    let releaseSend: () => void = () => {};
+    const sendReleased = new Promise<void>((resolve) => {
+      releaseSend = resolve;
+    });
+    let chunksRead = 0;
+    const socket = new TestRealtimeSocket({
+      autoOpen: true,
+      beforeSend: async (message) => {
+        if (message.type === "input_audio_buffer.append") {
+          await sendReleased;
+        }
+      },
+      transcript: "done",
+    });
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+    const transcription = adapter.transcribeStream({
+      chunks: (async function* () {
+        await Promise.resolve();
+
+        for (let index = 0; index < 3; index += 1) {
+          chunksRead += 1;
+          yield Buffer.from(`audio-${index}`, "utf8");
+        }
+      })(),
+    });
+
+    await socket.waitForSentType("input_audio_buffer.append");
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+    expect(chunksRead).toBe(1);
+
+    releaseSend();
+    await expect(transcription).resolves.toEqual({ text: "done" });
+    expect(chunksRead).toBe(3);
+  });
+
   it("rejects and closes the socket when the completed transcript never arrives", async () => {
     const socket = new TestRealtimeSocket();
     const adapter = createRealtimeTranscriptionAdapter({
@@ -340,6 +479,38 @@ describe("OpenAIRealtimeTranscription", () => {
     });
   });
 
+  it("bounds non-settling audio iterator cleanup", async () => {
+    const socket = new TestRealtimeSocket();
+    const inputError = new Error("audio input failed");
+    const chunks: AsyncIterable<Uint8Array> = {
+      [Symbol.asyncIterator]: () => ({
+        next: () => Promise.reject(inputError),
+        return: () => new Promise(() => {}),
+      }),
+    };
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+    const transcription = adapter.transcribeStream({ chunks });
+
+    socket.emitOpen();
+
+    await expect(
+      Promise.race([
+        transcription,
+        new Promise((_, reject) => {
+          setTimeout(
+            () => reject(new Error("audio cleanup did not settle")),
+            1_500,
+          );
+        }),
+      ]),
+    ).rejects.toMatchObject({
+      cause: expect.objectContaining({
+        message: "Realtime audio iterator cleanup timed out after 1000ms.",
+      }) as Error,
+      message: "audio input failed",
+    });
+  });
+
   it("waits for audio iterator cleanup before rejecting the turn", async () => {
     const socket = new TestRealtimeSocket();
     const inputError = new Error("audio input failed");
@@ -414,6 +585,22 @@ function createRealtimeTranscriptionAdapter(options: {
 async function* chunksFromText(text: string): AsyncIterable<Uint8Array> {
   await Promise.resolve();
   yield Buffer.from(text, "utf8");
+}
+
+async function* oneAudioChunk(bytes: number): AsyncIterable<Uint8Array> {
+  await Promise.resolve();
+  yield Buffer.alloc(bytes);
+}
+
+async function* repeatedAudioChunks(
+  bytes: number,
+  count: number,
+): AsyncIterable<Uint8Array> {
+  await Promise.resolve();
+
+  for (let index = 0; index < count; index += 1) {
+    yield Buffer.alloc(bytes);
+  }
 }
 
 function createControlledAudioStream(): {

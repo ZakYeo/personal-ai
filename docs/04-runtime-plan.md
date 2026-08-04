@@ -189,6 +189,11 @@ close, all listeners are removed at settlement, and the socket is closed. Audio
 iterator and socket-close cleanup are best effort: their failures are retained
 as secondary causes without replacing the primary provider, transport, or input
 failure.
+The websocket client caps provider message payloads. Realtime transcription
+also caps each audio chunk, total streamed audio, and cumulative transcript
+text, and awaits each socket send so a slow transport applies flow control to
+audio capture. Audio iterator cleanup has a one-second deadline so a broken
+producer cannot hide the primary timeout, shutdown, or provider failure.
 Desktop streaming STT and TTS provider entries resolve and capture their own
 typed configuration. The neutral slot topology returns the selected adapter ID
 and constructor without naming OpenAI config types, so another provider is a

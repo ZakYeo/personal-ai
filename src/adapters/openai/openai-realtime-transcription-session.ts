@@ -4,6 +4,7 @@ import type {
 } from "../../ports/voice.js";
 import { createOpenAIVoiceProviderError } from "./openai-voice-provider-error.js";
 import { parseRealtimeTranscriptionEvent } from "./openai-realtime-transcription-events.js";
+import { maximumRealtimeTranscriptCharacters } from "./openai-realtime-limits.js";
 
 type RealtimeSocketListener = (event?: unknown) => void;
 
@@ -11,7 +12,7 @@ export interface RealtimeSocket {
   addEventListener(type: string, listener: RealtimeSocketListener): void;
   close(): void;
   removeEventListener(type: string, listener: RealtimeSocketListener): void;
-  send(message: string): void;
+  send(message: string): Promise<void>;
 }
 
 export interface RealtimeSocketFactoryRequest {
@@ -84,6 +85,14 @@ export class OpenAIRealtimeTranscriptionSession {
         if (
           event.type === "conversation.item.input_audio_transcription.delta"
         ) {
+          if (
+            text.length + event.delta.length >
+            maximumRealtimeTranscriptCharacters
+          ) {
+            this.fail(createRealtimeTranscriptLimitError());
+            return;
+          }
+
           text += event.delta;
           events.onTranscriptDelta?.(event.delta);
           return;
@@ -92,7 +101,14 @@ export class OpenAIRealtimeTranscriptionSession {
         if (
           event.type === "conversation.item.input_audio_transcription.completed"
         ) {
-          resolveTranscript({ text: event.transcript ?? text });
+          const completedText = event.transcript ?? text;
+
+          if (completedText.length > maximumRealtimeTranscriptCharacters) {
+            this.fail(createRealtimeTranscriptLimitError());
+            return;
+          }
+
+          resolveTranscript({ text: completedText });
         }
       } catch (error) {
         this.fail(
@@ -188,6 +204,12 @@ function createRealtimeSocketClosedError(event: unknown): Error {
 
 function createRealtimeTimeoutError(timeoutMs: number): Error {
   return new Error(`Realtime transcription timed out after ${timeoutMs}ms.`);
+}
+
+function createRealtimeTranscriptLimitError(): Error {
+  return new Error(
+    `Realtime transcription exceeded ${maximumRealtimeTranscriptCharacters} characters.`,
+  );
 }
 
 function createRealtimeAbortError(signal: AbortSignal | undefined): Error {
