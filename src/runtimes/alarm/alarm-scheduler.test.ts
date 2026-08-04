@@ -123,6 +123,46 @@ describe("processAlarmSchedulerCycle", () => {
     ]);
   });
 
+  it("persists a delivery outcome after a compatible concurrent revision change", async () => {
+    const store = createInMemoryAlarmStore({
+      now: () => new Date("2026-07-14T09:00:00.000Z"),
+    });
+    const alarm = await store.add({
+      label: "tea",
+      scheduledFor: "2026-07-14T09:10:00.000Z",
+    });
+
+    await processAlarmSchedulerCycle({
+      clock: { now: () => new Date("2026-07-14T09:10:00.000Z") },
+      config: { missedGraceMs, repeatAfterMs },
+      delivery: {
+        deliver: async () => {
+          const claimed = (await store.list())[0];
+          expect(claimed).toMatchObject({
+            deliveryAttempts: 1,
+            status: "ringing",
+          });
+          await store.update({
+            changes: { status: "ringing" },
+            expectedRevision: claimed!.revision,
+            id: alarm.id,
+            updatedAt: "2026-07-14T09:10:00.000Z",
+          });
+        },
+      },
+      reportDeliveryFailure: () => {},
+      store,
+    });
+
+    await expect(store.list()).resolves.toEqual([
+      expect.objectContaining({
+        deliveryAttempts: 1,
+        status: "ringing",
+        successfulDeliveries: 1,
+      }),
+    ]);
+  });
+
   it("consumes an interrupted final claim without replaying delivery", async () => {
     const fixture = await createFixture("2026-07-14T09:10:00.000Z");
     const firstClaim = await fixture.store.update({

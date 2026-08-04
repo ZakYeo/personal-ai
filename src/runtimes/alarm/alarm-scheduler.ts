@@ -164,20 +164,81 @@ async function claimAndDeliver(
   const successfulDeliveries =
     claimed.successfulDeliveries + (delivered ? 1 : 0);
   const terminal = attempt >= 2;
-  await dependencies.store.update({
-    changes: {
-      ...(terminal ? { nextDeliveryAt: null } : {}),
-      status: terminal ? terminalStatus(successfulDeliveries) : "ringing",
-      successfulDeliveries,
-    },
-    expectedRevision: claimed.revision,
-    id: claimed.id,
-    updatedAt: dependencies.clock.now().toISOString(),
-  });
+  await persistDeliveryOutcome(
+    dependencies,
+    claimed,
+    successfulDeliveries,
+    terminal,
+  );
 
   if (deliveryFailure) {
     reportDeliveryFailureBestEffort(dependencies, deliveryFailure);
   }
+}
+
+async function persistDeliveryOutcome(
+  dependencies: AlarmSchedulerDependencies,
+  claimed: AlarmRecord,
+  successfulDeliveries: number,
+  terminal: boolean,
+): Promise<void> {
+  const status = terminal ? terminalStatus(successfulDeliveries) : "ringing";
+  let current = claimed;
+
+  for (let revisionAttempt = 0; revisionAttempt < 3; revisionAttempt += 1) {
+    const persisted = await dependencies.store.update({
+      changes: {
+        ...(terminal ? { nextDeliveryAt: null } : {}),
+        status,
+        successfulDeliveries,
+      },
+      expectedRevision: current.revision,
+      id: claimed.id,
+      updatedAt: dependencies.clock.now().toISOString(),
+    });
+    if (persisted) {
+      return;
+    }
+
+    const latest = (await dependencies.store.list()).find(
+      (alarm) => alarm.id === claimed.id,
+    );
+    if (!latest) {
+      throw new Error("Claimed alarm disappeared before delivery completed.");
+    }
+    if (hasPersistedDeliveryOutcome(latest, successfulDeliveries, status)) {
+      return;
+    }
+    if (!isCompatibleDeliveryClaim(latest, claimed)) {
+      return;
+    }
+    current = latest;
+  }
+
+  throw new Error("Alarm delivery outcome could not be persisted.");
+}
+
+function hasPersistedDeliveryOutcome(
+  alarm: AlarmRecord,
+  successfulDeliveries: number,
+  status: AlarmStatus,
+): boolean {
+  return (
+    alarm.successfulDeliveries === successfulDeliveries &&
+    alarm.status === status
+  );
+}
+
+function isCompatibleDeliveryClaim(
+  current: AlarmRecord,
+  claimed: AlarmRecord,
+): boolean {
+  return (
+    current.status === "ringing" &&
+    current.deliveryAttempts === claimed.deliveryAttempts &&
+    current.successfulDeliveries === claimed.successfulDeliveries &&
+    current.nextDeliveryAt === claimed.nextDeliveryAt
+  );
 }
 
 function reportDeliveryFailureBestEffort(
