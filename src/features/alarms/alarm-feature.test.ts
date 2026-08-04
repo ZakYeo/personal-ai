@@ -391,8 +391,11 @@ describe("createAlarmFeature", () => {
         alarm0RecurrenceTimeZone: "Europe/London",
         alarm0ScheduledFor: "2026-06-26T09:10:00.000Z",
         alarm0Status: "scheduled",
+        alarmCount: 1,
+        visibleAlarmCount: 1,
       },
       text: "The morning tea alarm (alarm-1) is scheduled for 2026-06-26T09:10:00.000Z and repeats weekly in Europe/London.",
+      toolObservationData: { alarmCount: 1, visibleAlarmCount: 1 },
     });
   });
 
@@ -437,7 +440,10 @@ describe("createAlarmFeature", () => {
         alarm0Label: "ping me",
         alarm0ScheduledFor: "2026-06-26T09:10:00.000Z",
         alarm0Status: "scheduled",
+        alarmCount: 1,
+        visibleAlarmCount: 1,
       },
+      toolObservationData: { alarmCount: 1, visibleAlarmCount: 1 },
     });
   });
 
@@ -448,9 +454,38 @@ describe("createAlarmFeature", () => {
       {},
       {
         text: "There are no alarms set.",
+        toolObservationData: { alarmCount: 0, visibleAlarmCount: 0 },
       },
       context,
     );
+  });
+
+  it("bounds alarm list projections while reporting total and visible counts", async () => {
+    const store = createTestAlarmStore();
+    for (let index = 0; index < 11; index++) {
+      await store.add({
+        label: `alarm ${index + 1}`,
+        scheduledFor: `2026-06-26T${String(10 + index).padStart(2, "0")}:00:00.000Z`,
+      });
+    }
+
+    const result = await executeFeature(
+      createAlarmFeature(store),
+      "alarm.list",
+      {},
+      context,
+    );
+
+    expect(result.data).toMatchObject({
+      alarmCount: 11,
+      visibleAlarmCount: 10,
+    });
+    expect(result.data).not.toHaveProperty("alarm10Id");
+    expect(result.text).toContain("There are 1 more alarms.");
+    expect(result.toolObservationData).toEqual({
+      alarmCount: 11,
+      visibleAlarmCount: 10,
+    });
   });
 
   it("acknowledges the single ringing alarm and clears its repeat", async () => {

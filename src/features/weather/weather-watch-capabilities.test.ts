@@ -5,7 +5,10 @@ import {
 } from "../../test-support/feature-contract.js";
 import { getDeterministicFeatureRules } from "../../application/deterministic-feature-rules.js";
 import { createWeatherProviderFixture } from "../../test-support/weather.js";
-import { createWeatherWatchStoreFixture } from "../../test-support/weather-watch-store.js";
+import {
+  createNewWeatherWatch,
+  createWeatherWatchStoreFixture,
+} from "../../test-support/weather-watch-store.js";
 import { createWeatherFeature } from "./weather-feature.js";
 
 const now = new Date("2026-07-28T12:00:00.000Z");
@@ -282,6 +285,38 @@ describe("weather watch capabilities", () => {
       ),
     ).resolves.toEqual({
       text: "I could not find an active weather watch with ID weather-watch-missing.",
+    });
+  });
+
+  it("bounds weather-watch list projections while reporting total and visible counts", async () => {
+    let nextId = 0;
+    const store = createWeatherWatchStoreFixture({
+      createId: () => `weather-watch-${++nextId}`,
+      now: () => now,
+    });
+    for (let index = 0; index < 11; index++) {
+      await store.add(createNewWeatherWatch());
+    }
+    const feature = createWeatherFeature(createWeatherProviderFixture(), {
+      watchStore: store,
+    });
+
+    const result = await executeFeature(
+      feature,
+      "weather.watch.list",
+      {},
+      context,
+    );
+
+    expect(result.data).toMatchObject({
+      visibleWatchCount: 10,
+      watchCount: 11,
+    });
+    expect(result.data).not.toHaveProperty("watch10Id");
+    expect(result.text).toContain("plus 1 more");
+    expect(result.toolObservationData).toEqual({
+      visibleWatchCount: 10,
+      watchCount: 11,
     });
   });
 });

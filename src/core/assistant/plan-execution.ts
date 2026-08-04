@@ -3,6 +3,7 @@ import type {
   AssistantOutcome,
 } from "../../ports/assistant.js";
 import type { FeatureSpokenTextContext } from "../../ports/feature.js";
+import type { AssistantResultReference } from "../../ports/result-reference.js";
 import type {
   ValidatedAssistantPlan,
   ValidatedAssistantPlanStep,
@@ -14,6 +15,8 @@ export type CommandExecutionOutcome =
       kind: "completed";
       outcome: AssistantOutcome;
       spokenText?: FeatureSpokenTextContext;
+      toolObservationData?: AssistantCommandParameters;
+      toolObservationReferences?: readonly AssistantResultReference[];
     }
   | {
       kind: "resumable_clarification";

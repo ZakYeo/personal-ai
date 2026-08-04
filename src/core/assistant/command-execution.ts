@@ -15,7 +15,10 @@ import type {
   FeatureSpokenTextContext,
 } from "../../ports/feature.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
-import type { ResultReferenceSelectionRequest } from "../../ports/result-reference.js";
+import type {
+  AssistantResultReference,
+  ResultReferenceSelectionRequest,
+} from "../../ports/result-reference.js";
 import { humanizeSpokenText } from "../../application/human-text.js";
 import { createAppError } from "./app-error.js";
 import { outcomeFromError } from "./assistant-outcome.js";
@@ -228,14 +231,26 @@ async function executeFeatureCommand(
       status: "ok",
       text: result.text,
     };
+    let toolObservationReferences:
+      | readonly AssistantResultReference[]
+      | undefined;
     if (result.resultReferences) {
       input.resultReferences.retain(result.resultReferences);
+      toolObservationReferences = input.resultReferences.publicReferences();
     }
     return {
       ...(result.data ? { data: Object.freeze({ ...result.data }) } : {}),
       kind: "completed",
       outcome: { response },
       ...(result.spokenText ? { spokenText: result.spokenText } : {}),
+      ...(result.toolObservationData
+        ? {
+            toolObservationData: Object.freeze({
+              ...result.toolObservationData,
+            }),
+          }
+        : {}),
+      ...(toolObservationReferences ? { toolObservationReferences } : {}),
     };
   } catch (error) {
     return {

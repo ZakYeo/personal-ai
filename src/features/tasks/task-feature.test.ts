@@ -110,6 +110,11 @@ describe("createTaskFeature list capabilities", () => {
           kind: "task_items",
         },
         text: "Your Shopping list has Coffee and Oat milk.",
+        toolObservationData: {
+          listName: "Shopping",
+          taskCount: 2,
+          visibleTaskCount: 2,
+        },
       },
     );
   });
@@ -133,6 +138,7 @@ describe("createTaskFeature list capabilities", () => {
         },
         resultReferences: { items: [], kind: "task_items" },
         text: "You have Shopping and To-do lists.",
+        toolObservationData: { listCount: 2, visibleListCount: 2 },
       },
     );
   });
@@ -181,6 +187,11 @@ describe("createTaskFeature list capabilities", () => {
         data: { listId: list.id, listName: "Shopping", taskCount: 0 },
         resultReferences: { items: [], kind: "task_items" },
         text: "Your Shopping list is empty.",
+        toolObservationData: {
+          listName: "Shopping",
+          taskCount: 0,
+          visibleTaskCount: 0,
+        },
       },
     );
   });

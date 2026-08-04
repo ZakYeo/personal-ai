@@ -33,6 +33,7 @@ interface CompletedFeatureResult {
   expectsFollowUp?: boolean;
   resultReferences?: FeatureResultReferenceSet;
   spokenText?: FeatureSpokenTextContext;
+  toolObservationData?: AssistantCommandParameters;
 }
 
 export interface FeatureSpokenTextContext {
@@ -49,6 +50,7 @@ interface ResumableFeatureClarification {
   readonly resultReferences?: never;
   readonly spokenText?: never;
   readonly text: string;
+  readonly toolObservationData?: never;
 }
 
 export type FeatureResult =

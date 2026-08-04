@@ -7,8 +7,8 @@ import type {
   IntentInterpretation,
   IntentInterpreterSession,
 } from "../../ports/intent.js";
-import type { AssistantResultReference } from "../../ports/result-reference.js";
 import type { CommandExecutionOutcome } from "./plan-execution.js";
+import { assertToolObservationWithinLimit } from "../../application/tool-observation-policy.js";
 
 type ToolCallInterpretation = Extract<
   IntentInterpretation,
@@ -37,7 +37,6 @@ export async function resolveToolCalls(input: {
     step: ValidatedAssistantPlanStep,
   ): Promise<CommandExecutionOutcome>;
   initial: ToolCallInterpretation;
-  publicReferences(): readonly AssistantResultReference[];
   session: IntentInterpreterSession;
   state: ToolChainState;
   validateRead(
@@ -97,23 +96,47 @@ export async function resolveToolCalls(input: {
         outcome: execution.outcome,
       });
     }
+    const resultReferences = execution.toolObservationReferences ?? [];
+    const observation = Object.freeze({
+      capability: validation.step.command.capability,
+      ...(execution.toolObservationData
+        ? { data: execution.toolObservationData }
+        : {}),
+      ...(resultReferences.length > 0 ? { resultReferences } : {}),
+      text: execution.outcome.response.text,
+    });
+    try {
+      assertToolObservationWithinLimit(observation);
+    } catch {
+      input.state.calls.push({
+        capability: validation.step.command.capability,
+        status: "succeeded",
+      });
+      input.state.readCalls++;
+      return {
+        kind: "outcome",
+        outcome: withToolChainOutcome(
+          rejectToolChain(
+            validation.step.command.capability,
+            "A tool observation exceeded its application limit.",
+          ).outcome,
+          input.state,
+        ),
+      };
+    }
     input.state.calls.push({
       capability: validation.step.command.capability,
-      ...(execution.data ? { data: execution.data } : {}),
+      ...(execution.toolObservationData
+        ? { data: execution.toolObservationData }
+        : {}),
       status: "succeeded",
     });
     input.state.readCalls++;
 
-    const resultReferences = input.publicReferences();
     interpretation = await input.session.next({
       callId: call.id,
       kind: "tool_result",
-      observation: Object.freeze({
-        capability: validation.step.command.capability,
-        ...(execution.data ? { data: execution.data } : {}),
-        ...(resultReferences.length > 0 ? { resultReferences } : {}),
-        text: execution.outcome.response.text,
-      }),
+      observation,
     });
   }
 

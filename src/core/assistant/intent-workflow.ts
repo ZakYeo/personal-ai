@@ -106,8 +106,6 @@ export function createIntentWorkflow(input: {
               step,
             }),
           initial: current,
-          publicReferences: () =>
-            input.dependencies.resultReferences.publicReferences(),
           session: requireSession(),
           state: toolChain,
           validateRead,

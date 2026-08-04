@@ -10,6 +10,7 @@ export function availableListsResult(
     return {
       resultReferences: emptyTaskReferences(),
       text: "You do not have any personal lists.",
+      toolObservationData: { listCount: 0 },
     };
   }
   const shown = lists.slice(0, maxDisplayedItems);
@@ -31,6 +32,10 @@ export function availableListsResult(
     text: `You have ${joinHuman(
       shown.map((list) => list.name),
     )} lists${remainingSuffix(lists.length, shown.length)}.`,
+    toolObservationData: {
+      listCount: lists.length,
+      visibleListCount: shown.length,
+    },
   };
 }
 
@@ -77,6 +82,11 @@ export function taskListResult(
       data: { listId: list.id, listName: list.name, taskCount: 0 },
       resultReferences: emptyTaskReferences(),
       text: `Your ${list.name} list is empty.`,
+      toolObservationData: {
+        listName: list.name,
+        taskCount: 0,
+        visibleTaskCount: 0,
+      },
     };
   }
   const shown = tasks.slice(0, maxDisplayedItems);
@@ -101,6 +111,11 @@ export function taskListResult(
     text: `Your ${list.name} list has ${joinHuman(
       shown.map((task) => task.label),
     )}${remainingSuffix(tasks.length, shown.length)}.`,
+    toolObservationData: {
+      listName: list.name,
+      taskCount: tasks.length,
+      visibleTaskCount: shown.length,
+    },
   };
 }
 

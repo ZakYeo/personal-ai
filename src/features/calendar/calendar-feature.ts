@@ -141,12 +141,14 @@ async function searchEvents(
       return {
         resultReferences: createResultReferences([]),
         text: "I could not find any upcoming calendar events.",
+        toolObservationData: { eventCount: 0 },
       };
     }
 
     return {
       resultReferences: createResultReferences([]),
       text: `I could not find a calendar event matching "${query}".`,
+      toolObservationData: { eventCount: 0 },
     };
   }
 
@@ -157,18 +159,21 @@ async function searchEvents(
       text: `You have ${events.length} upcoming calendar ${eventLabel}: ${formatEventList(events)}.`,
       data: createUpcomingEventFacts(events),
       resultReferences: createResultReferences(events),
+      toolObservationData: { eventCount: events.length },
     };
   }
 
+  const eventFacts = {
+    date: event.startDate,
+    ...(event.startAt ? { startAt: event.startAt } : {}),
+    time: event.startTime ?? "all day",
+    title: event.title,
+  };
   return {
     text: `${event.title} is ${formatEventStart(event)}.`,
-    data: {
-      date: event.startDate,
-      ...(event.startAt ? { startAt: event.startAt } : {}),
-      time: event.startTime ?? "all day",
-      title: event.title,
-    },
+    data: eventFacts,
     resultReferences: createResultReferences([event]),
+    toolObservationData: eventFacts,
   };
 }
 
@@ -204,26 +209,30 @@ async function answerCalendarFollowUp(
   }
 
   if (args.detail === "location") {
+    const eventFacts = {
+      date: event.startDate,
+      location: event.location ?? "not provided",
+      title: event.title,
+    };
     return {
-      data: {
-        date: event.startDate,
-        location: event.location ?? "not provided",
-        title: event.title,
-      },
+      data: eventFacts,
       text: event.location
         ? `${event.title} is at ${event.location}.`
         : `${event.title} does not include a location.`,
+      toolObservationData: eventFacts,
     };
   }
 
+  const eventFacts = {
+    date: event.startDate,
+    ...(event.startAt ? { startAt: event.startAt } : {}),
+    time: event.startTime ?? "all day",
+    title: event.title,
+  };
   return {
-    data: {
-      date: event.startDate,
-      ...(event.startAt ? { startAt: event.startAt } : {}),
-      time: event.startTime ?? "all day",
-      title: event.title,
-    },
+    data: eventFacts,
     text: `${event.title} is ${formatEventStart(event)}.`,
+    toolObservationData: eventFacts,
   };
 }
 

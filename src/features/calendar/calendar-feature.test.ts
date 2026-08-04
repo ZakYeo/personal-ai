@@ -91,6 +91,11 @@ describe("createCalendarFeature", () => {
           title: "Dentist",
         },
         text: "Dentist is at 12 High Street.",
+        toolObservationData: {
+          date: "2026-07-17",
+          location: "12 High Street",
+          title: "Dentist",
+        },
       },
       followUpContext,
     );
@@ -144,6 +149,11 @@ describe("createCalendarFeature", () => {
             title: "Upcoming wedding",
           },
         ]),
+        toolObservationData: {
+          date: "2026-09-12",
+          time: "all day",
+          title: "Upcoming wedding",
+        },
       },
       context,
     );
@@ -163,6 +173,7 @@ describe("createCalendarFeature", () => {
           event0Title: "Upcoming wedding",
         },
         resultReferences: calendarResultReferences(),
+        toolObservationData: { eventCount: 1 },
       },
       context,
     );
@@ -214,6 +225,7 @@ describe("createCalendarFeature", () => {
             title: "Zak - Onsite Interview - Agentic Engineer",
           },
         ]),
+        toolObservationData: { eventCount: 2 },
       },
       context,
     );
@@ -227,6 +239,7 @@ describe("createCalendarFeature", () => {
       {
         resultReferences: calendarResultReferences([]),
         text: "I could not find any upcoming calendar events.",
+        toolObservationData: { eventCount: 0 },
       },
       context,
     );
@@ -240,6 +253,7 @@ describe("createCalendarFeature", () => {
       {
         resultReferences: calendarResultReferences([]),
         text: 'I could not find a calendar event matching "dentist".',
+        toolObservationData: { eventCount: 0 },
       },
       context,
     );
@@ -262,6 +276,7 @@ describe("createCalendarFeature", () => {
           event0Title: "Upcoming wedding",
         },
         resultReferences: calendarResultReferences(),
+        toolObservationData: { eventCount: 1 },
       },
       context,
     );
@@ -280,6 +295,7 @@ describe("createCalendarFeature", () => {
       {
         resultReferences: calendarResultReferences([]),
         text: "I could not find any upcoming calendar events.",
+        toolObservationData: { eventCount: 0 },
       },
       context,
     );
@@ -319,6 +335,12 @@ describe("createCalendarFeature", () => {
             title: "Zak - Onsite Interview - Agentic Engineer",
           },
         ]),
+        toolObservationData: {
+          date: "2026-07-06",
+          startAt: "2026-07-06T08:30:00.000Z",
+          time: "09:30",
+          title: "Zak - Onsite Interview - Agentic Engineer",
+        },
       },
       createFeatureContext({
         assistant: {

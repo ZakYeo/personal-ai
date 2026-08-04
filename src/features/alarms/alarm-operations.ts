@@ -67,21 +67,44 @@ function parseRecurrence(
 export async function listAlarms(store: AlarmStore): Promise<FeatureResult> {
   const alarms = await store.list();
   if (alarms.length === 0) {
-    return { text: "There are no alarms set." };
+    return {
+      text: "There are no alarms set.",
+      toolObservationData: { alarmCount: 0, visibleAlarmCount: 0 },
+    };
   }
 
-  const projections = alarms.map(projectAlarmStatus);
+  const projections = alarms
+    .slice(0, maximumListedAlarms)
+    .map(projectAlarmStatus);
   return {
-    data: Object.fromEntries(
-      projections.flatMap(({ facts }, index) =>
-        Object.entries(facts).map(([name, value]) => [
-          `alarm${index}${name}`,
-          value,
-        ]),
+    data: {
+      alarmCount: alarms.length,
+      ...Object.fromEntries(
+        projections.flatMap(({ facts }, index) =>
+          Object.entries(facts).map(([name, value]) => [
+            `alarm${index}${name}`,
+            value,
+          ]),
+        ),
       ),
-    ),
-    text: projections.map(({ text }) => text).join(" "),
+      visibleAlarmCount: projections.length,
+    },
+    text: `${projections.map(({ text }) => text).join(" ")}${remainingAlarmSuffix(
+      alarms.length,
+      projections.length,
+    )}`,
+    toolObservationData: {
+      alarmCount: alarms.length,
+      visibleAlarmCount: projections.length,
+    },
   };
+}
+
+const maximumListedAlarms = 10;
+
+function remainingAlarmSuffix(total: number, visible: number): string {
+  const remaining = total - visible;
+  return remaining > 0 ? ` There are ${remaining} more alarms.` : "";
 }
 
 export function acknowledgeAlarm(

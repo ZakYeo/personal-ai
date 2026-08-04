@@ -126,6 +126,63 @@ describe("resolveToolCalls", () => {
     });
     expect(sessionNext).not.toHaveBeenCalled();
   });
+
+  it("forwards only the feature's explicit provider-safe data projection", async () => {
+    const sessionNext = vi.fn(() =>
+      Promise.resolve({
+        kind: "unknown" as const,
+        response: { status: "unknown" as const, text: "Done." },
+      }),
+    );
+    const executeRead = vi.fn(() =>
+      Promise.resolve({
+        data: { privatePayload: "must stay internal" },
+        kind: "completed" as const,
+        outcome: { response: { status: "ok" as const, text: "One event." } },
+        toolObservationData: { count: 1 },
+      }),
+    );
+
+    await runToolChain([toolCall("read-1")], { executeRead, sessionNext });
+
+    expect(sessionNext).toHaveBeenCalledWith({
+      callId: "read-1",
+      kind: "tool_result",
+      observation: {
+        capability: "calendar.search_events",
+        data: { count: 1 },
+        text: "One event.",
+      },
+    });
+  });
+
+  it("fails closed before provider continuation when an observation exceeds its bound", async () => {
+    const sessionNext = vi.fn();
+    const executeRead = vi.fn(() =>
+      Promise.resolve({
+        kind: "completed" as const,
+        outcome: { response: { status: "ok" as const, text: "Read." } },
+        toolObservationData: { payload: "x".repeat(513) },
+      }),
+    );
+
+    await expect(
+      runToolChain([toolCall("read-1")], { executeRead, sessionNext }),
+    ).resolves.toMatchObject({
+      kind: "outcome",
+      outcome: {
+        diagnostics: [
+          {
+            capability: "calendar.search_events",
+            category: "unsupported",
+            message: "A tool observation exceeded its application limit.",
+          },
+        ],
+        response: { status: "unsupported" },
+      },
+    });
+    expect(sessionNext).not.toHaveBeenCalled();
+  });
 });
 
 function runToolChain(
@@ -147,7 +204,6 @@ function runToolChain(
   return resolveToolCalls({
     executeRead: overrides.executeRead ?? (() => successfulRead),
     initial,
-    publicReferences: () => [],
     session: { next: sessionNext },
     state: createToolChainState(),
     validateRead: overrides.validateRead ?? (() => ({ ok: true, step })),

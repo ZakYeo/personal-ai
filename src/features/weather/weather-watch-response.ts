@@ -23,22 +23,28 @@ export function listWeatherWatchesResult(
   watches: readonly WeatherWatchRecord[],
 ) {
   if (watches.length === 0) {
-    return { text: "You have no weather watches." };
+    return {
+      text: "You have no weather watches.",
+      toolObservationData: { visibleWatchCount: 0, watchCount: 0 },
+    };
   }
+  const shown = watches.slice(0, maximumListedWeatherWatches);
   return {
     data: {
       watchCount: watches.length,
       ...Object.fromEntries(
-        watches.flatMap((watch, index) =>
+        shown.flatMap((watch, index) =>
           Object.entries(weatherWatchData(watch)).map(([key, value]) => [
             `watch${index}${capitalize(key)}`,
             value,
           ]),
         ),
       ),
+      visibleWatchCount: shown.length,
     },
-    ...sharedWeatherWatchSpokenText(watches),
+    ...sharedWeatherWatchSpokenText(shown),
     text: `Your weather watches are ${watches
+      .slice(0, maximumListedWeatherWatches)
       .map(
         (watch) =>
           `${watch.id}: ${watch.status} ${formatWeatherWatchCondition(
@@ -47,8 +53,22 @@ export function listWeatherWatchesResult(
             watch.period.endAt
           }`,
       )
-      .join(", ")}. ${weatherWatchReliabilityNotice}`,
+      .join(", ")}${remainingWeatherWatchSuffix(
+      watches.length,
+      shown.length,
+    )}. ${weatherWatchReliabilityNotice}`,
+    toolObservationData: {
+      visibleWatchCount: shown.length,
+      watchCount: watches.length,
+    },
   };
+}
+
+const maximumListedWeatherWatches = 10;
+
+function remainingWeatherWatchSuffix(total: number, visible: number): string {
+  const remaining = total - visible;
+  return remaining > 0 ? `, plus ${remaining} more` : "";
 }
 
 function weatherWatchSpokenText(timeZone: string) {

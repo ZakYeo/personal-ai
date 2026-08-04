@@ -144,7 +144,11 @@ describe("assistant bounded tool chains", () => {
             },
           ],
           execute: () =>
-            Promise.resolve({ data: { count: 1 }, text: "One event." }),
+            Promise.resolve({
+              data: { count: 1 },
+              text: "One event.",
+              toolObservationData: { count: 1 },
+            }),
         }),
       ]),
       clock: createFixedClock(),
@@ -318,6 +322,7 @@ describe("assistant bounded tool chains", () => {
                 kind: "calendar_events",
               },
               text: "I found Dentist at 11am.",
+              toolObservationData: { count: 1 },
             });
           },
         }),

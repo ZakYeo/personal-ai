@@ -172,7 +172,11 @@ opaque public references. Private targets, diagnostics, credentials, raw
 payloads, and adapter details never become tool observations. Validation or
 execution failure stops the workflow and is not returned for model-directed
 retry. Parallel calls, write tools, hidden retries, and arbitrary loops remain
-forbidden.
+forbidden. Feature result data used for exact human-response fact protection is
+not implicitly provider-visible. A read capability must declare a separate,
+minimal tool-observation data projection, and core enforces per-string, field,
+text, and total serialized limits before continuing the provider session.
+List reads cap displayed records and report total and visible counts.
 
 Intermediate reads are provider observations rather than final human answers,
 so they must bypass response rewriting. The core intent-workflow transaction
