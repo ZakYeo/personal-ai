@@ -35,6 +35,9 @@ export function createServiceRuntimeHarness(
             return Promise.resolve();
           }),
         runTurn,
+        ...(options.shutdownGraceMs === undefined
+          ? {}
+          : { shutdownGraceMs: options.shutdownGraceMs }),
         ...(options.shutdownHooks
           ? { shutdownHooks: options.shutdownHooks }
           : {}),

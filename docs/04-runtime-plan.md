@@ -805,7 +805,12 @@ normal stops and fatal turn or retry failures alike. Signal handlers are still
 removed best-effort in the outer `finally`; one removal failure is logged
 without skipping later handlers or replacing the service result. Partial signal
 registration rollback follows the same policy while preserving the original
-registration error. Pre-start failures do not invoke post-start hooks.
+registration error. Pre-start failures do not invoke post-start hooks. The
+service runtime also supervises every feature-contributed background task. A
+task that throws or returns before shutdown requests fatal shutdown, and the
+service reports failure after cleanup. During shutdown, task joins and each
+shutdown hook have a bounded grace period; a non-settling cleanup is logged as
+a secondary diagnostic and cannot prevent the remaining lifecycle cleanup.
 
 The Raspberry Pi service command builds on this service boundary. It validates
 the required voice and desktop command config during startup, runs configured

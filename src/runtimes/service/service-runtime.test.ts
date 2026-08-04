@@ -168,6 +168,33 @@ describe("runServiceRuntime", () => {
     expect(shutdownHook).toHaveBeenCalledExactlyOnceWith({});
   });
 
+  it("bounds shutdown hooks and preserves the service result", async () => {
+    const signals = createServiceSignalController();
+    const harness = createServiceRuntimeHarness({
+      processSignals: signals,
+      runTurn: (context) => {
+        context.requestShutdown("test complete");
+        return Promise.resolve();
+      },
+      shutdownGraceMs: 10,
+      shutdownHooks: [() => new Promise(() => {})],
+    });
+
+    await expect(
+      Promise.race([
+        harness.run(),
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("service did not settle")), 200);
+        }),
+      ]),
+    ).resolves.toEqual({ status: "stopped", turnsCompleted: 1 });
+    expect(harness.stderr.writes).toContain(
+      line("Runtime failure: Shutdown hook did not finish within 10ms."),
+    );
+    expect(signals.listenerCount("SIGINT")).toBe(0);
+    expect(signals.listenerCount("SIGTERM")).toBe(0);
+  });
+
   it("handles injected shutdown signals and runs shutdown hooks", async () => {
     const signals = createServiceSignalController();
     const shutdownHook = vi.fn().mockResolvedValue(undefined);

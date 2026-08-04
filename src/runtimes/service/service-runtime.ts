@@ -4,6 +4,15 @@ import {
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
+import type {
+  RuntimeBackgroundTask,
+  RuntimeBackgroundTaskContext,
+} from "../background-task.js";
+import { waitForCleanupWithinDeadline } from "../bounded-cleanup.js";
+import {
+  startServiceBackgroundTaskSupervisor,
+  type ServiceBackgroundTaskSupervisor,
+} from "./service-background-task-supervisor.js";
 
 export type ServiceSignal = "SIGINT" | "SIGTERM";
 
@@ -37,14 +46,21 @@ export interface ServiceTurnFailureContext {
 }
 
 export interface ServiceRuntimeOptions {
+  backgroundTasks?: readonly RuntimeBackgroundTask[];
+  backgroundTaskTimer?: RuntimeBackgroundTaskContext["timer"];
   configPath?: string;
   createAssistant: () => Promise<Assistant>;
   io?: ServiceRuntimeIo;
   now?: () => Date;
   processSignals?: ServiceProcessSignals;
   retryAfterFailure?: (context: ServiceTurnFailureContext) => Promise<void>;
+  runBackgroundTask?: (
+    task: RuntimeBackgroundTask,
+    context: RuntimeBackgroundTaskContext,
+  ) => Promise<void>;
   sleep?: (ms: number) => Promise<void>;
   runTurn(context: ServiceTurnContext): Promise<void>;
+  shutdownGraceMs?: number;
   shutdownHooks?: Array<(context: ServiceShutdownContext) => Promise<void>>;
 }
 
@@ -70,6 +86,7 @@ export async function runServiceRuntime(
   const state = createServiceState();
   let unregisterSignals: Array<() => void> = [];
   let started = false;
+  let backgroundTaskSupervisor: ServiceBackgroundTaskSupervisor | undefined;
   let turnsCompleted = 0;
 
   try {
@@ -83,6 +100,25 @@ export async function runServiceRuntime(
 
     const assistant = await options.createAssistant();
     started = true;
+    backgroundTaskSupervisor = startServiceBackgroundTaskSupervisor({
+      context: {
+        clock: { now: options.now ?? (() => new Date()) },
+        reportFailure: (error) => {
+          logRuntimeFailureBestEffort(error, options.io ?? {});
+        },
+        shutdownSignal: state.shutdownSignal,
+        ...(options.backgroundTaskTimer
+          ? { timer: options.backgroundTaskTimer }
+          : {}),
+      },
+      reportFailure: (error) => {
+        logRuntimeFailureBestEffort(error, options.io ?? {});
+      },
+      requestShutdown: (reason) => state.requestShutdown(reason),
+      runTask:
+        options.runBackgroundTask ?? ((task, context) => task.run(context)),
+      tasks: options.backgroundTasks ?? [],
+    });
     let turnFailures = 0;
 
     while (!state.shutdownRequested) {
@@ -117,10 +153,16 @@ export async function runServiceRuntime(
       }
     }
 
-    return {
-      status: "stopped",
-      turnsCompleted,
-    };
+    return backgroundTaskSupervisor.failed
+      ? {
+          response: safeRuntimeFallbackResponse,
+          status: "failed",
+          turnsCompleted,
+        }
+      : {
+          status: "stopped",
+          turnsCompleted,
+        };
   } catch (error) {
     logRuntimeFailure(error, options.io ?? {});
 
@@ -139,10 +181,21 @@ export async function runServiceRuntime(
     };
   } finally {
     if (started) {
+      state.requestShutdown();
+      const shutdownGraceMs = options.shutdownGraceMs ?? 1_000;
+      const taskCleanupError =
+        await backgroundTaskSupervisor?.joinWithin(shutdownGraceMs);
+      if (taskCleanupError) {
+        logRuntimeFailureBestEffort(taskCleanupError, options.io ?? {});
+      }
+
       await runShutdownHooks(
         options.shutdownHooks ?? [],
         state.shutdownContext,
-        options.io ? { io: options.io } : {},
+        {
+          deadlineMs: shutdownGraceMs,
+          ...(options.io ? { io: options.io } : {}),
+        },
       );
     }
 
@@ -223,6 +276,17 @@ function unregisterSignalsBestEffort(
   }
 }
 
+function logRuntimeFailureBestEffort(
+  error: unknown,
+  io: ServiceRuntimeIo,
+): void {
+  try {
+    logRuntimeFailure(error, io);
+  } catch {
+    // Cleanup diagnostics must not replace the primary service result.
+  }
+}
+
 async function retryAfterTurnFailure(
   options: ServiceRuntimeOptions,
   context: ServiceTurnFailureContext,
@@ -290,13 +354,17 @@ function sleepWithTimeout(ms: number): Promise<void> {
 async function runShutdownHooks(
   shutdownHooks: Array<(context: ServiceShutdownContext) => Promise<void>>,
   context: ServiceShutdownContext,
-  options: { io?: ServiceRuntimeIo },
+  options: { deadlineMs: number; io?: ServiceRuntimeIo },
 ): Promise<void> {
   for (const shutdownHook of shutdownHooks) {
-    try {
-      await shutdownHook(context);
-    } catch (error) {
-      logRuntimeFailure(error, options.io ?? {});
+    const error = await waitForCleanupWithinDeadline(
+      Promise.resolve().then(() => shutdownHook(context)),
+      options.deadlineMs,
+      `Shutdown hook did not finish within ${options.deadlineMs}ms.`,
+    );
+
+    if (error) {
+      logRuntimeFailureBestEffort(error, options.io ?? {});
     }
   }
 }

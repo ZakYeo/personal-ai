@@ -47,6 +47,7 @@ interface ConfiguredServiceCompositionOptions extends Pick<
     task: RuntimeBackgroundTask,
     context: RuntimeBackgroundTaskContext,
   ) => Promise<void>;
+  shutdownGraceMs?: number;
   shutdownHooks?: Array<(context: ServiceShutdownContext) => Promise<void>>;
   desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
 }
@@ -84,9 +85,11 @@ export async function runConfiguredServiceRuntime(
     };
   }
 
-  let backgroundTaskGroup: Promise<void> | undefined;
-  let backgroundTaskFailed = false;
-  const result = await runServiceRuntime({
+  return runServiceRuntime({
+    backgroundTasks: startup.backgroundTasks,
+    ...(options.backgroundTaskTimer
+      ? { backgroundTaskTimer: options.backgroundTaskTimer }
+      : {}),
     ...(options.configPath ? { configPath: options.configPath } : {}),
     createAssistant: () => Promise.resolve(startup.assistant),
     ...(options.io ? { io: options.io } : {}),
@@ -97,48 +100,19 @@ export async function runConfiguredServiceRuntime(
     ...(options.retryAfterFailure
       ? { retryAfterFailure: options.retryAfterFailure }
       : {}),
-    runTurn: (context) => {
-      if (!backgroundTaskGroup && startup.backgroundTasks.length > 0) {
-        backgroundTaskGroup = Promise.all(
-          startup.backgroundTasks.map(async (task) => {
-            try {
-              await (options.runBackgroundTask ?? runBackgroundTask)(task, {
-                clock: { now: options.now ?? (() => new Date()) },
-                reportFailure: (error) => {
-                  logRuntimeFailure(error, options.io ?? {});
-                },
-                shutdownSignal: context.shutdownSignal,
-                ...(options.backgroundTaskTimer
-                  ? { timer: options.backgroundTaskTimer }
-                  : {}),
-              });
-            } catch (error) {
-              backgroundTaskFailed = true;
-              logRuntimeFailureBestEffort(error, options.io ?? {});
-              context.requestShutdown(task.failureReason);
-            }
-          }),
-        ).then(() => {});
-      }
-
-      return callbacks.runTurn({
+    ...(options.runBackgroundTask
+      ? { runBackgroundTask: options.runBackgroundTask }
+      : {}),
+    runTurn: (context) =>
+      callbacks.runTurn({
         ...context,
         config: startup.config,
-      });
-    },
+      }),
+    ...(options.shutdownGraceMs === undefined
+      ? {}
+      : { shutdownGraceMs: options.shutdownGraceMs }),
     ...(options.shutdownHooks ? { shutdownHooks: options.shutdownHooks } : {}),
   });
-
-  await backgroundTaskGroup;
-  if (backgroundTaskFailed) {
-    return {
-      response: safeRuntimeFallbackResponse,
-      status: "failed",
-      turnsCompleted: result.turnsCompleted,
-    };
-  }
-
-  return result;
 }
 
 async function createConfiguredServiceStartup(
@@ -177,24 +151,6 @@ async function createConfiguredServiceStartup(
   );
 
   return { ...composition, config };
-}
-
-function runBackgroundTask(
-  task: RuntimeBackgroundTask,
-  context: RuntimeBackgroundTaskContext,
-): Promise<void> {
-  return task.run(context);
-}
-
-function logRuntimeFailureBestEffort(
-  error: unknown,
-  io: ServiceRuntimeIo,
-): void {
-  try {
-    logRuntimeFailure(error, io);
-  } catch {
-    // Shutdown and the fatal service result must survive logging failure.
-  }
 }
 
 function loadServiceConfig(

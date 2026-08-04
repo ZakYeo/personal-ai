@@ -187,7 +187,14 @@ describe("runConfiguredServiceRuntime", () => {
           context: RuntimeBackgroundTaskContext,
         ) => Promise<void>
       >()
-      .mockResolvedValue(undefined);
+      .mockImplementation(
+        (_task, context) =>
+          new Promise<void>((resolve) => {
+            context.shutdownSignal.addEventListener("abort", () => resolve(), {
+              once: true,
+            });
+          }),
+      );
     const delivery: NotificationDeliveryPort = {
       deliver: () => Promise.resolve(),
     };
@@ -216,6 +223,100 @@ describe("runConfiguredServiceRuntime", () => {
       expect(context.clock).toHaveProperty("now");
       expect(context.shutdownSignal).toBeInstanceOf(AbortSignal);
     }
+  });
+
+  it("treats unexpected background task completion as fatal", async () => {
+    const shutdownHook = vi.fn().mockResolvedValue(undefined);
+    const stderr: string[] = [];
+
+    await expect(
+      runConfiguredServiceRuntime(
+        {
+          config: enabledDeterministicConfig,
+          createNotificationDelivery: () => ({
+            deliver: () => Promise.resolve(),
+          }),
+          io: {
+            stderr: {
+              write: (chunk) => {
+                stderr.push(chunk);
+              },
+            },
+          },
+          runBackgroundTask: () => Promise.resolve(),
+          shutdownHooks: [shutdownHook],
+        },
+        {
+          validateConfig: () => {},
+          runTurn: (context) =>
+            new Promise<void>((resolve) => {
+              context.shutdownSignal.addEventListener(
+                "abort",
+                () => resolve(),
+                {
+                  once: true,
+                },
+              );
+            }),
+        },
+      ),
+    ).resolves.toEqual({
+      response: safeRuntimeFallbackResponse,
+      status: "failed",
+      turnsCompleted: 1,
+    });
+
+    expect(shutdownHook).toHaveBeenCalledExactlyOnceWith({
+      reason: "alarm scheduler failed",
+    });
+    expect(stderr).toContain(
+      'Runtime failure: Background task "alarms.delivery" stopped unexpectedly.\n',
+    );
+  });
+
+  it("bounds background task joins before running shutdown hooks", async () => {
+    const shutdownHook = vi.fn().mockResolvedValue(undefined);
+    const stderr: string[] = [];
+    const runtime = runConfiguredServiceRuntime(
+      {
+        config: enabledDeterministicConfig,
+        createNotificationDelivery: () => ({
+          deliver: () => Promise.resolve(),
+        }),
+        io: {
+          stderr: {
+            write: (chunk) => {
+              stderr.push(chunk);
+            },
+          },
+        },
+        runBackgroundTask: () => new Promise(() => {}),
+        shutdownGraceMs: 10,
+        shutdownHooks: [shutdownHook],
+      },
+      {
+        validateConfig: () => {},
+        runTurn: (context) => {
+          context.requestShutdown("test complete");
+          return Promise.resolve();
+        },
+      },
+    );
+
+    await expect(
+      Promise.race([
+        runtime,
+        new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("service did not settle")), 200);
+        }),
+      ]),
+    ).resolves.toEqual({ status: "stopped", turnsCompleted: 1 });
+    expect(shutdownHook).toHaveBeenCalledExactlyOnceWith({
+      reason: "test complete",
+    });
+    expect(stderr).toContain(
+      "Runtime failure: Background tasks did not stop within 10ms.\n",
+    );
   });
 
   it("returns a fatal result after scheduler failure and service cleanup", async () => {
