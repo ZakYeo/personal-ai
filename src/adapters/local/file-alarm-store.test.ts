@@ -482,6 +482,31 @@ describe("createFileAlarmStore", () => {
     ]);
   });
 
+  it("rejects an over-capacity add without replacing readable prior state", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-alarms-"));
+    const filePath = join(directory, "alarms.json");
+    const original = {
+      alarms: Array.from({ length: 1_000 }, (_, index) =>
+        persistedAlarm({ id: `alarm-${index + 1}` }),
+      ),
+      version: 3,
+    };
+    await writeFile(filePath, JSON.stringify(original));
+    const store = createFileAlarmStore({
+      createId: () => "alarm-1001",
+      filePath,
+    });
+
+    await expect(
+      store.add({
+        label: "one too many",
+        scheduledFor: "2026-07-13T17:00:00.000Z",
+      }),
+    ).rejects.toThrow("Alarm state cannot contain more than 1000 alarms.");
+    await expect(readJson(filePath)).resolves.toEqual(original);
+    await expect(store.list()).resolves.toHaveLength(1_000);
+  });
+
   it("writes through a same-directory atomic replacement and preserves its failure", async () => {
     const replacements: Array<{
       contents: string;

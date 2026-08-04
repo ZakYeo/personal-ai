@@ -703,6 +703,9 @@ should also guard against subtler boundary and abstraction drift.
 - Local durable JSON readers enforce a fixed byte ceiling while reading, before
   parsing external state, so an oversized file cannot be loaded into memory in
   full.
+- Versioned state parsers reject collection capacities before mapping records.
+  Alarm state has one 1,000-record capacity enforced by its parser and both
+  store implementations.
 - Treat duplication reports as design prompts. A small clone may be acceptable,
   but repeated control-flow or policy duplication should trigger a search for
   the canonical owner before more branches are added.

@@ -69,6 +69,26 @@ describe("createInMemoryAlarmStore", () => {
     ]);
   });
 
+  it("rejects alarms above the store capacity", async () => {
+    const store = createInMemoryAlarmStore({
+      now: () => new Date("2026-06-26T09:00:00.000Z"),
+    });
+    for (let index = 0; index < 1_000; index += 1) {
+      await store.add({
+        label: `alarm ${index + 1}`,
+        scheduledFor: "2026-06-26T09:10:00.000Z",
+      });
+    }
+
+    await expect(
+      store.add({
+        label: "one too many",
+        scheduledFor: "2026-06-26T09:10:00.000Z",
+      }),
+    ).rejects.toThrow("Alarm state cannot contain more than 1000 alarms.");
+    await expect(store.list()).resolves.toHaveLength(1_000);
+  });
+
   it("applies lifecycle updates only at the expected revision", async () => {
     const store = createInMemoryAlarmStore({
       now: () => new Date("2026-06-26T09:00:00.000Z"),

@@ -4,6 +4,7 @@ import {
   cloneAlarmRecord,
   createScheduledAlarm,
 } from "./alarm-record.js";
+import { assertAlarmAddCapacity } from "./alarm-store-state.js";
 
 interface InMemoryAlarmStoreOptions {
   createId?: () => string;
@@ -18,13 +19,15 @@ export function createInMemoryAlarmStore(
   const { now } = options;
 
   return {
-    add: (alarm) => {
-      const storedAlarm = createScheduledAlarm(alarm, createId(), now());
+    add: (alarm) =>
+      Promise.resolve().then(() => {
+        assertAlarmAddCapacity(alarms);
+        const storedAlarm = createScheduledAlarm(alarm, createId(), now());
 
-      alarms.push(storedAlarm);
+        alarms.push(storedAlarm);
 
-      return Promise.resolve(cloneAlarmRecord(storedAlarm));
-    },
+        return cloneAlarmRecord(storedAlarm);
+      }),
     list: () => Promise.resolve(alarms.map(cloneAlarmRecord)),
     removeTerminalBefore: (cutoff) => {
       const retained = alarms.filter(

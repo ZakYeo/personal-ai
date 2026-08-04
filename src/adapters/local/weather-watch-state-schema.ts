@@ -32,6 +32,11 @@ export function parseWeatherWatchState(
     throw new Error("Weather watch state has an unsupported version.");
   }
   if (!Array.isArray(value.watches)) throw invalidState();
+  if (value.watches.length > maxStoredWatches) {
+    throw new Error(
+      `Weather watch state cannot contain more than ${maxStoredWatches} watches.`,
+    );
+  }
   const state: WeatherWatchStateDocument = {
     version: 1,
     watches: value.watches.map(parseWatch),

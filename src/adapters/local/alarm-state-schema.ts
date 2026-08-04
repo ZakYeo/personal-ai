@@ -8,6 +8,7 @@ import {
 import type { AlarmRecord, AlarmStatus } from "../../ports/alarm-store.js";
 import { isRecord } from "../parsing.js";
 import { assertValidAlarmRecord } from "./alarm-record.js";
+import { assertAlarmStateCapacity } from "./alarm-store-state.js";
 
 export interface AlarmStateDocument {
   alarms: AlarmRecord[];
@@ -22,6 +23,7 @@ export function parseAlarmState(value: unknown): AlarmStateDocument {
   ) {
     throw invalidAlarmState();
   }
+  assertAlarmStateCapacity(value.alarms);
 
   const alarms: AlarmRecord[] =
     value.version === 1

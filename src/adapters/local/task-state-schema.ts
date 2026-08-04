@@ -26,6 +26,14 @@ export function parseTaskState(value: unknown): TaskStateDocument {
   if (!Array.isArray(value.lists) || !Array.isArray(value.tasks)) {
     throw invalidTaskState();
   }
+  if (value.lists.length > maxTaskLists) {
+    throw new Error(
+      `Task state cannot contain more than ${maxTaskLists} lists.`,
+    );
+  }
+  if (value.tasks.length > maxTasks) {
+    throw new Error(`Task state cannot contain more than ${maxTasks} tasks.`);
+  }
   const version = value.version;
   const state: TaskStateDocument = {
     lists: value.lists.map(parseTaskList),

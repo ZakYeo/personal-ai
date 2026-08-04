@@ -9,6 +9,7 @@ import {
   cloneAlarmRecord,
   createScheduledAlarm,
 } from "./alarm-record.js";
+import { assertAlarmAddCapacity } from "./alarm-store-state.js";
 import {
   parseAlarmState,
   type AlarmStateDocument,
@@ -114,6 +115,7 @@ function createStoredAlarm(
   now: Date,
   existing: readonly AlarmRecord[],
 ): AlarmRecord {
+  assertAlarmAddCapacity(existing);
   if (id.length === 0 || existing.some((record) => record.id === id)) {
     throw new Error("Alarm store generated an invalid or duplicate ID.");
   }

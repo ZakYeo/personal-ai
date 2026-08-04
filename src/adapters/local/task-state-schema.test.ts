@@ -151,6 +151,23 @@ describe("task state schema", () => {
     ).toThrow("references a missing task list");
   });
 
+  it("rejects oversized collections before parsing individual records", () => {
+    expect(() =>
+      parseTaskState({
+        lists: Array(101).fill(null),
+        tasks: [],
+        version: 2,
+      }),
+    ).toThrow("Task state cannot contain more than 100 lists.");
+    expect(() =>
+      parseTaskState({
+        lists: [],
+        tasks: Array(1_001).fill(null),
+        version: 2,
+      }),
+    ).toThrow("Task state cannot contain more than 1000 tasks.");
+  });
+
   it("rejects unsupported versions and non-record external data", () => {
     expect(() => parseTaskState({ version: 3, lists: [], tasks: [] })).toThrow(
       "has an unsupported version",
