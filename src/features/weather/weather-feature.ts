@@ -207,10 +207,7 @@ async function executeWeatherRequest(
     mode === "current"
       ? createCurrentWeatherPeriod(context.clock.now())
       : mode === "coat"
-        ? createTomorrowMorningPeriod(
-            context.clock.now(),
-            context.config.assistant.timeZone,
-          )
+        ? createTomorrowMorningPeriod(context.clock.now(), location.timezone)
         : createForecastWeatherPeriod(args, context.clock.now());
   const forecast = await provider.getForecast(
     { location, period, units: metricWeatherUnits },
