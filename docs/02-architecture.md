@@ -268,7 +268,8 @@ step's output into another step's arguments or run a provider-directed tool
 loop. Implemented calendar result references remain opaque and
 assistant-session-owned: one latest set capped at ten events, replaced by a new
 calendar result and cleared after three subsequent completed assistant turns or
-conversation compaction. Intent providers receive only ordinals, opaque
+a later conversation compaction. A result set created by the compacting turn is
+preserved. Intent providers receive only ordinals, opaque
 references, and safe displayed facts; feature execution resolves private
 provider IDs through the assistant-owned session.
 

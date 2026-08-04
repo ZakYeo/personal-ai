@@ -11,7 +11,6 @@ import type {
 import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
 
 export interface ResultReferenceSession {
-  clear(): void;
   completeTurn(): void;
   invalidateForCompaction(): void;
   publicReferences(): readonly AssistantResultReference[];
@@ -34,7 +33,6 @@ export function createResultReferenceSession(): ResultReferenceSession {
   };
 
   return {
-    clear,
     completeTurn() {
       if (entries.length === 0) return;
       if (retainedSinceLastCompletion) {

@@ -107,7 +107,8 @@ finish the current interaction.
 Calendar result references are assistant-owned session state, not conversation
 memory or feature-owned state. Only the latest displayed set is retained, it is
 capped at ten opaque references, and it clears after three subsequent completed
-turns or conversation compaction. Intent providers receive only those opaque
+turns or a later conversation compaction. Compaction does not erase references
+first displayed by that same turn. Intent providers receive only those opaque
 references and safe displayed facts. Provider event IDs remain behind the
 feature execution resolver and must not enter prompts or user-facing responses.
 The broader process-local conversation window records safe completed exchanges

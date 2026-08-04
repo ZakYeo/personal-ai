@@ -134,15 +134,6 @@ describe("result reference session", () => {
     expect(JSON.stringify(session.publicReferences())).not.toContain("private");
   });
 
-  it("clears immediately when conversation history compacts", () => {
-    const session = createResultReferenceSession();
-    session.retain(resultSet("event"));
-
-    session.clear();
-
-    expect(session.publicReferences()).toEqual([]);
-  });
-
   it.each([
     {
       expectedKind: "calendar_event",

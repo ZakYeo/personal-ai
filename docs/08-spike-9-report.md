@@ -84,8 +84,9 @@ to the conversation provider.
 The reference store should belong to the assistant session and retain only the
 latest displayed result set, capped at ten event references. A new calendar
 result replaces the prior set. References expire after three subsequent
-completed assistant turns or at conversation compaction, whichever comes first,
-and contain only the fields needed for supported follow-ups. Calendar adapters
+completed assistant turns or a later conversation compaction; references first
+displayed by the compacting turn survive. They contain only the fields needed
+for supported follow-ups. Calendar adapters
 remain read-only. Ambiguous, expired, or missing references should produce a
 clarification rather than guessing.
 

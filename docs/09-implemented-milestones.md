@@ -392,7 +392,8 @@ Included:
 
 - One process-local latest result set capped at ten opaque event references.
 - Replacement on each new calendar result and expiry after three subsequent
-  completed assistant turns or conversation compaction.
+  completed assistant turns or a later conversation compaction; references
+  first displayed by the compacting turn survive.
 - Deterministic ordinal, location, summary, and next-event follow-up routing.
 - Core-owned selection rejects conflicting or provider-guessed references,
   retains the latest explicit focus, and supports “the second one” followed by
@@ -419,7 +420,7 @@ Acceptance criteria:
 - Follow-ups resolve only against unexpired results from the same assistant
   instance.
 - Tests prove the ten-event cap, newest-set replacement, three-turn expiry, and
-  immediate clearing during conversation compaction.
+  generation-aware clearing during conversation compaction.
 - Ambiguous, missing, or expired references ask for clarification and never
   guess an event.
 - Provider IDs and raw event payloads do not enter user-facing responses or
