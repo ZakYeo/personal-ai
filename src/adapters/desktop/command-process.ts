@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import type { ProcessControl } from "../../ports/process-control.js";
+import { BoundedByteTail } from "./bounded-byte-tail.js";
 
 export interface RunCommandRequest {
   args?: string[];
@@ -14,66 +15,82 @@ export interface RunCommandRequest {
 
 export interface RunCommandResult {
   stderr: string;
+  stderrTruncated: boolean;
   stdout: string;
+  stdoutTruncated: boolean;
 }
 
-export class CommandExecutionError extends Error {
+abstract class CommandDiagnosticError extends Error {
+  readonly stderr: string;
+  readonly stderrTruncated: boolean;
+  readonly stdout: string;
+  readonly stdoutTruncated: boolean;
+
+  constructor(
+    message: string,
+    output: RunCommandResult,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.stderr = output.stderr;
+    this.stderrTruncated = output.stderrTruncated;
+    this.stdout = output.stdout;
+    this.stdoutTruncated = output.stdoutTruncated;
+  }
+}
+
+export class CommandExecutionError extends CommandDiagnosticError {
   constructor(
     message: string,
     readonly code: number | null,
-    readonly stderr: string,
-    readonly stdout: string,
+    output: RunCommandResult,
   ) {
-    super(message);
+    super(message, output);
     this.name = "CommandExecutionError";
   }
 }
 
-export class CommandTimeoutError extends Error {
+export class CommandTimeoutError extends CommandDiagnosticError {
   constructor(
     message: string,
     readonly timeoutMs: number,
-    readonly stderr: string,
-    readonly stdout: string,
+    output: RunCommandResult,
     cause?: unknown,
   ) {
-    super(message, cause === undefined ? undefined : { cause });
+    super(message, output, cause === undefined ? undefined : { cause });
     this.name = "CommandTimeoutError";
   }
 }
 
-export class CommandAbortError extends Error {
+export class CommandAbortError extends CommandDiagnosticError {
   constructor(
     message: string,
     readonly reason: unknown,
-    readonly stderr: string,
-    readonly stdout: string,
+    output: RunCommandResult,
   ) {
-    super(message, { cause: reason });
+    super(message, output, { cause: reason });
     this.name = "CommandAbortError";
   }
 }
 
-export class CommandInputError extends Error {
+export class CommandInputError extends CommandDiagnosticError {
   constructor(
     message: string,
     readonly cause: unknown,
-    readonly stderr: string,
-    readonly stdout: string,
+    output: RunCommandResult,
   ) {
-    super(message, { cause });
+    super(message, output, { cause });
     this.name = "CommandInputError";
   }
 }
 
-export class CommandSpawnError extends Error {
+export class CommandSpawnError extends CommandDiagnosticError {
   constructor(
     message: string,
     readonly cause: unknown,
-    readonly stderr: string,
-    readonly stdout: string,
+    output: RunCommandResult,
   ) {
-    super(message);
+    super(message, output);
     this.name = "CommandSpawnError";
   }
 }
@@ -95,20 +112,20 @@ export function isCommandDiagnosticError(
   );
 }
 
-class CommandTerminationError extends Error {
+class CommandTerminationError extends CommandDiagnosticError {
   constructor(
     message: string,
     readonly cause: unknown,
-    readonly stderr: string,
-    readonly stdout: string,
+    output: RunCommandResult,
   ) {
-    super(message, { cause });
+    super(message, output, { cause });
     this.name = "CommandTerminationError";
   }
 }
 
 const defaultTimeoutMs = 30_000;
 const defaultTerminationGraceMs = 1_000;
+const maximumCommandDiagnosticBytes = 64 * 1_024;
 
 const nodeProcessControl: ProcessControl = {
   kill: (pid, signal) => process.kill(pid, signal),
@@ -136,8 +153,12 @@ class CommandProcess {
   private readonly close: Promise<{ code: number | null; error?: unknown }>;
   private readonly completion: Promise<RunCommandResult>;
   private readonly processControl: ProcessControl;
-  private readonly stderrChunks: Buffer[] = [];
-  private readonly stdoutChunks: Buffer[] = [];
+  private readonly stderrTail = new BoundedByteTail(
+    maximumCommandDiagnosticBytes,
+  );
+  private readonly stdoutTail = new BoundedByteTail(
+    maximumCommandDiagnosticBytes,
+  );
   private closed = false;
 
   constructor(
@@ -167,14 +188,18 @@ class CommandProcess {
   }
 
   output(): RunCommandResult {
+    const stderr = this.stderrTail.output();
+    const stdout = this.stdoutTail.output();
     return {
-      stderr: Buffer.concat(this.stderrChunks).toString("utf8"),
-      stdout: Buffer.concat(this.stdoutChunks).toString("utf8"),
+      stderr: stderr.text,
+      stderrTruncated: stderr.truncated,
+      stdout: stdout.text,
+      stdoutTruncated: stdout.truncated,
     };
   }
 
   captureStdoutChunk(chunk: Buffer): void {
-    this.stdoutChunks.push(chunk);
+    this.stdoutTail.append(chunk);
   }
 
   stdout(): NodeJS.ReadableStream {
@@ -224,8 +249,7 @@ class CommandProcess {
     throw new CommandTerminationError(
       `Command "${this.request.command}" did not exit after termination signals.`,
       new AggregateError(errors, "Command termination failed."),
-      output.stderr,
-      output.stdout,
+      output,
     );
   }
 
@@ -248,8 +272,7 @@ class CommandProcess {
             [inputError, cleanupError],
             "Command input and cleanup both failed.",
           ),
-      output.stderr,
-      output.stdout,
+      output,
     );
   }
 
@@ -276,13 +299,13 @@ class CommandProcess {
   private captureOutput(options: CommandProcessOptions): void {
     if (options.captureStdout) {
       this.child.stdout?.on("data", (chunk: Buffer) => {
-        this.stdoutChunks.push(chunk);
+        this.stdoutTail.append(chunk);
         options.onStdoutData?.(chunk);
       });
     }
 
     this.child.stderr?.on("data", (chunk: Buffer) => {
-      this.stderrChunks.push(chunk);
+      this.stderrTail.append(chunk);
     });
   }
 
@@ -369,8 +392,7 @@ class CommandProcess {
               new CommandTimeoutError(
                 `Command "${this.request.command}" timed out after ${timeoutMs}ms.`,
                 timeoutMs,
-                output.stderr,
-                output.stdout,
+                output,
                 cleanupError,
               ),
             ),
@@ -387,8 +409,7 @@ class CommandProcess {
             const error = new CommandAbortError(
               toError(reason).message,
               reason,
-              output.stderr,
-              output.stdout,
+              output,
             );
 
             reject(
@@ -416,8 +437,7 @@ class CommandProcess {
               new CommandSpawnError(
                 `Command "${this.request.command}" failed to start.`,
                 error,
-                output.stderr,
-                output.stdout,
+                output,
               ),
             );
             return;
@@ -428,8 +448,7 @@ class CommandProcess {
               new CommandExecutionError(
                 `Command "${this.request.command}" exited with code ${code ?? "null"}.`,
                 code,
-                output.stderr,
-                output.stdout,
+                output,
               ),
             );
             return;

@@ -16,16 +16,27 @@ export async function runCommandUntilStdoutLine<TLine>(
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  let pendingStdout = "";
+  let pendingStdout: Buffer<ArrayBufferLike> = Buffer.alloc(0);
 
   try {
     for await (const chunk of commandProcess.readStdout()) {
-      pendingStdout += Buffer.from(chunk).toString("utf8");
+      const bytes = Buffer.from(chunk);
+      let offset = 0;
 
-      let newlineIndex = pendingStdout.indexOf("\n");
-      while (newlineIndex >= 0) {
-        const line = pendingStdout.slice(0, newlineIndex).trim();
-        pendingStdout = pendingStdout.slice(newlineIndex + 1);
+      while (offset < bytes.length) {
+        const newlineIndex = bytes.indexOf(0x0a, offset);
+        const end = newlineIndex < 0 ? bytes.length : newlineIndex;
+        pendingStdout = appendProtocolLineBytes(
+          pendingStdout,
+          bytes.subarray(offset, end),
+          request.command,
+          commandProcess.output(),
+        );
+
+        if (newlineIndex < 0) break;
+
+        const line = pendingStdout.toString("utf8").trim();
+        pendingStdout = Buffer.alloc(0);
 
         if (line.length > 0) {
           const selected = selectLine(line);
@@ -36,12 +47,11 @@ export async function runCommandUntilStdoutLine<TLine>(
             return { ...commandProcess.output(), line: selected };
           }
         }
-
-        newlineIndex = pendingStdout.indexOf("\n");
+        offset = newlineIndex + 1;
       }
     }
 
-    const finalLine = pendingStdout.trim();
+    const finalLine = pendingStdout.toString("utf8").trim();
     if (finalLine.length > 0) {
       const selected = selectLine(finalLine);
 
@@ -57,8 +67,7 @@ export async function runCommandUntilStdoutLine<TLine>(
     throw new CommandExecutionError(
       `Command "${request.command}" exited without wake activation output.`,
       0,
-      output.stderr,
-      output.stdout,
+      output,
     );
   } catch (error) {
     const primaryError = toError(error);
@@ -71,4 +80,25 @@ export async function runCommandUntilStdoutLine<TLine>(
 
     throw primaryError;
   }
+}
+
+const maximumProtocolLineBytes = 64 * 1_024;
+
+function appendProtocolLineBytes(
+  pending: Buffer<ArrayBufferLike>,
+  chunk: Buffer<ArrayBufferLike>,
+  command: string,
+  output: RunCommandResult,
+): Buffer<ArrayBufferLike> {
+  if (pending.length + chunk.length > maximumProtocolLineBytes) {
+    throw new CommandExecutionError(
+      `Command "${command}" produced a stdout protocol line above ${maximumProtocolLineBytes} bytes.`,
+      null,
+      output,
+    );
+  }
+
+  return pending.length === 0
+    ? Buffer.from(chunk)
+    : Buffer.concat([pending, chunk], pending.length + chunk.length);
 }

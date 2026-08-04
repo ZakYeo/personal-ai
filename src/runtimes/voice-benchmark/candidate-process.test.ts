@@ -17,10 +17,12 @@ describe("voice benchmark candidate processes", () => {
       {
         runCommand: (request) => {
           requests.push(request);
-          return Promise.resolve({
-            stderr: "internal timing details",
-            stdout: JSON.stringify(createSttOutput()),
-          });
+          return Promise.resolve(
+            commandResult(
+              JSON.stringify(createSttOutput()),
+              "internal timing details",
+            ),
+          );
         },
       },
     );
@@ -56,10 +58,9 @@ describe("voice benchmark candidate processes", () => {
       {
         runCommand: (request) => {
           requests.push(request);
-          return Promise.resolve({
-            stderr: "",
-            stdout: JSON.stringify(createTtsOutput()),
-          });
+          return Promise.resolve(
+            commandResult(JSON.stringify(createTtsOutput())),
+          );
         },
       },
     );
@@ -78,16 +79,17 @@ describe("voice benchmark candidate processes", () => {
 
     await expect(
       executeSttCandidateProcess(profile, "input.wav", {
-        runCommand: () => Promise.resolve({ stderr: "", stdout: "not-json" }),
+        runCommand: () => Promise.resolve(commandResult("not-json")),
       }),
     ).rejects.toThrow(/JSON/iu);
     await expect(
       executeSttCandidateProcess(profile, "input.wav", {
         runCommand: () =>
-          Promise.resolve({
-            stderr: "",
-            stdout: JSON.stringify({ ...createSttOutput(), peakRssBytes: -1 }),
-          }),
+          Promise.resolve(
+            commandResult(
+              JSON.stringify({ ...createSttOutput(), peakRssBytes: -1 }),
+            ),
+          ),
       }),
     ).rejects.toThrow(/peakRssBytes/iu);
   });
@@ -104,10 +106,7 @@ describe("voice benchmark candidate processes", () => {
         "input.wav",
         {
           runCommand: () =>
-            Promise.resolve({
-              stderr: "",
-              stdout: JSON.stringify(createSttOutput()),
-            }),
+            Promise.resolve(commandResult(JSON.stringify(createSttOutput()))),
         },
       );
 
@@ -117,6 +116,15 @@ describe("voice benchmark candidate processes", () => {
     );
   });
 });
+
+function commandResult(stdout: string, stderr = "") {
+  return {
+    stderr,
+    stderrTruncated: false,
+    stdout,
+    stdoutTruncated: false,
+  };
+}
 
 function createSttOutput() {
   return {

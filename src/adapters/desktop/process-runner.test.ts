@@ -56,7 +56,28 @@ describe("runCommand", () => {
       ),
     ).resolves.toEqual({
       stderr: "diagnostic",
+      stderrTruncated: false,
       stdout: "transcript",
+      stdoutTruncated: false,
+    });
+  });
+
+  it("retains bounded stdout and stderr tails with truncation metadata", async () => {
+    const retained = "b".repeat(64 * 1_024);
+
+    await expect(
+      runCommand({
+        args: [
+          "-e",
+          'print STDOUT "a" x 6000, "b" x (64 * 1024); print STDERR "c" x 6000, "b" x (64 * 1024)',
+        ],
+        command: "/usr/bin/perl",
+      }),
+    ).resolves.toEqual({
+      stderr: retained,
+      stderrTruncated: true,
+      stdout: retained,
+      stdoutTruncated: true,
     });
   });
 
@@ -68,6 +89,24 @@ describe("runCommand", () => {
     ).rejects.toMatchObject({
       code: 7,
       stderr: "provider failed",
+    } satisfies Partial<CommandExecutionError>);
+  });
+
+  it("bounds diagnostics retained on command failure", async () => {
+    await expect(
+      runCommand({
+        args: [
+          "-e",
+          'print STDOUT "a" x (64 * 1024 + 1); print STDERR "b" x (64 * 1024 + 1); exit 7',
+        ],
+        command: "/usr/bin/perl",
+      }),
+    ).rejects.toMatchObject({
+      code: 7,
+      stderr: "b".repeat(64 * 1_024),
+      stderrTruncated: true,
+      stdout: "a".repeat(64 * 1_024),
+      stdoutTruncated: true,
     } satisfies Partial<CommandExecutionError>);
   });
 
@@ -294,6 +333,25 @@ describe("runCommandUntilStdoutLine", () => {
         message: expect.stringContaining("did not exit") as string,
       }),
     );
+  });
+
+  it("rejects an unterminated protocol line above 64 KiB", async () => {
+    await expect(
+      runCommandUntilStdoutLine(
+        {
+          args: ["-e", 'print "a" x (64 * 1024 + 1)'],
+          command: "/usr/bin/perl",
+        },
+        () => {
+          throw new Error("Oversized protocol line reached the selector.");
+        },
+      ),
+    ).rejects.toMatchObject({
+      message: expect.stringContaining(
+        "produced a stdout protocol line above 65536 bytes",
+      ) as string,
+      stdoutTruncated: true,
+    } satisfies Partial<CommandExecutionError>);
   });
 });
 
