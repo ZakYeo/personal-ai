@@ -1,3 +1,5 @@
+import { cancelReaderBestEffort } from "./bounded-reader-cancellation.js";
+
 interface ProviderJsonErrorOptions {
   cause?: unknown;
   message: string;
@@ -124,7 +126,7 @@ async function readResponseBody(
     Number.isFinite(declaredLength) &&
     declaredLength > maxBytes
   ) {
-    await cancelReader(response.body.getReader());
+    await cancelReaderBestEffort(response.body.getReader());
     throw new ResponseBodyTooLargeError();
   }
 
@@ -140,13 +142,15 @@ async function readResponseBody(
         throw new Error("Provider body reader returned no data.");
       bytesRead += next.value.byteLength;
       if (maxBytes !== undefined && bytesRead > maxBytes) {
-        await cancelReader(reader);
+        await cancelReaderBestEffort(reader);
         throw new ResponseBodyTooLargeError();
       }
       body += decoder.decode(next.value, { stream: true });
     }
   } catch (error) {
-    if (signal.aborted) await cancelReader(reader);
+    if (signal.aborted) {
+      await cancelReaderBestEffort(reader, { reason: signal.reason });
+    }
     throw error;
   } finally {
     reader.releaseLock();
@@ -186,16 +190,6 @@ function readWithAbort(
 interface ByteStreamReadResult {
   done: boolean;
   value: Uint8Array | undefined;
-}
-
-async function cancelReader(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-): Promise<void> {
-  try {
-    await reader.cancel();
-  } catch {
-    // Cleanup failure remains secondary to the primary bound or cancellation.
-  }
 }
 
 function createAbortError(reason: unknown): Error {

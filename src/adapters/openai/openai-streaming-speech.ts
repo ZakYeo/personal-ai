@@ -2,6 +2,7 @@ import type {
   StreamingTextToSpeechPort,
   SynthesizedSpeechStream,
 } from "../../ports/voice.js";
+import { cancelReaderBestEffort } from "../bounded-reader-cancellation.js";
 import { createOpenAIUrl, resolveOpenAIApiKey } from "./openai-client.js";
 import { createOpenAIVoiceProviderError } from "./openai-voice-provider-error.js";
 import type { OpenAIStreamingSpeechConfig } from "./openai-streaming-voice-config.js";
@@ -105,31 +106,14 @@ async function* streamToAsyncIterable(
     throw error;
   } finally {
     if (!completed) {
-      await cancelReaderBestEffort(reader, abortScope);
+      await cancelReaderBestEffort(reader, {
+        reason: abortReason(abortScope.signal),
+        waitMs: abortScope.timeoutMs,
+      });
     }
 
     reader.releaseLock();
     abortScope.dispose();
-  }
-}
-
-const MAX_READER_CANCEL_WAIT_MS = 1_000;
-
-async function cancelReaderBestEffort(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-  scope: SpeechAbortScope,
-): Promise<void> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const cleanupGraceMs = Math.min(scope.timeoutMs, MAX_READER_CANCEL_WAIT_MS);
-  try {
-    await Promise.race([
-      reader.cancel(abortReason(scope.signal)).catch(() => {}),
-      new Promise<void>((resolve) => {
-        timer = setTimeout(resolve, cleanupGraceMs);
-      }),
-    ]);
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
   }
 }
 
