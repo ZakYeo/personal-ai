@@ -155,7 +155,11 @@ describe("createAssistant", () => {
       expect.objectContaining({
         protectedFacts: [
           { names: ["title"], token: "__ASSISTANT_PROTECTED_FACT_0__" },
-          { names: ["date"], token: "__ASSISTANT_PROTECTED_FACT_1__" },
+          {
+            names: ["date"],
+            spokenForm: "date",
+            token: "__ASSISTANT_PROTECTED_FACT_1__",
+          },
         ],
         response: {
           status: "ok",

@@ -17,7 +17,11 @@ describe("protectResponseFacts", () => {
       "__ASSISTANT_PROTECTED_FACT_1__ is on __ASSISTANT_PROTECTED_FACT_0__.",
     );
     expect(protectedResponse.facts).toEqual([
-      { names: ["date"], token: "__ASSISTANT_PROTECTED_FACT_0__" },
+      {
+        names: ["date"],
+        spokenForm: "date",
+        token: "__ASSISTANT_PROTECTED_FACT_0__",
+      },
       { names: ["title"], token: "__ASSISTANT_PROTECTED_FACT_1__" },
     ]);
     expect(
@@ -143,6 +147,13 @@ describe("protectResponseFacts", () => {
     expect(
       protectedResponse.restore("Observed at __ASSISTANT_PROTECTED_FACT_0__."),
     ).toBe("Observed at 4pm today.");
+    expect(protectedResponse.facts).toEqual([
+      {
+        names: ["observedAt"],
+        spokenForm: "date_time",
+        token: "__ASSISTANT_PROTECTED_FACT_0__",
+      },
+    ]);
   });
 
   it("does not force URL facts to remain in spoken text", () => {

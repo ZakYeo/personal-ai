@@ -151,6 +151,13 @@ describe("OpenAIConversationResponder", () => {
     expect(systemPrompt).toContain("Avoid bullets");
     expect(systemPrompt).toContain("Do not mention internal capability names");
     expect(systemPrompt).toContain("alarm.list");
+    expect(systemPrompt).toContain(
+      "natural, conversational dates and local times",
+    );
+    expect(systemPrompt).toContain(
+      `Current time: ${deterministicTestNow.toISOString()}`,
+    );
+    expect(systemPrompt).toContain("Assistant time zone: Europe/London");
   });
 
   it("rejects missing API keys before calling the provider", async () => {
@@ -242,6 +249,8 @@ describe("OpenAIConversationResponder", () => {
     "See www.example.com for details.",
     "Read [the source](https://example.com).",
     "The answer is supported by [1].",
+    "Observed at 2026-08-04T15:00:00.000Z.",
+    "Scheduled in Europe/London.",
   ])("rejects conversation text unsuitable for speech: %s", async (text) => {
     const responder = createResponder({
       fetch: createFetchStub(

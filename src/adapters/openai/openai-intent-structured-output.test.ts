@@ -159,6 +159,8 @@ describe("OpenAIIntentInterpreter", () => {
     ["unknown", "See www.example.com for details."],
     ["unsupported", "Read [the source](https://example.com)."],
     ["clarification", "Choose the source marked [1]."],
+    ["unknown", "Observed at 2026-08-04T15:00:00.000Z."],
+    ["unsupported", "Scheduled in Europe/London."],
   ])("rejects %s response text unsuitable for speech", async (kind, text) => {
     const fetch = createFetchStub(
       jsonResponse({

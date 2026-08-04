@@ -30,6 +30,8 @@ export function createOpenAIConversationRequestBody(
               "Avoid bullets, numbered lists, semicolon-delimited lists, parentheses for asides, and code-like wording unless the user explicitly asks for technical details.",
               "Do not mention internal capability names such as alarm.list or calendar.search_events in normal user-facing answers.",
               "Do not claim to execute commands or access unavailable tools.",
+              `Current time: ${context.clock.now().toISOString()}.`,
+              `Assistant time zone: ${context.config.assistant.timeZone}.`,
               `The assistant's enabled capabilities are:\n${formatOpenAICapabilities(capabilityCatalog)}`,
               "Set expectsFollowUp to true only when your reply directly asks the user for more input.",
               "Return only JSON matching the supplied schema.",

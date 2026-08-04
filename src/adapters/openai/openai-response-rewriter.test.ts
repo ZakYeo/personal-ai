@@ -38,6 +38,7 @@ const request = {
   protectedFacts: [
     {
       names: ["date"],
+      spokenForm: "date",
       token: "__ASSISTANT_PROTECTED_FACT_0__",
     },
   ],
@@ -86,6 +87,19 @@ describe("OpenAIResponseRewriter", () => {
     expect(JSON.stringify(body.input)).toContain(
       "approved exact or relative-date renderings",
     );
+    expect(JSON.stringify(body.input)).toContain(
+      "natural, conversational dates and local times",
+    );
+    expect(JSON.stringify(body.input)).toContain(
+      "Assistant time zone: Europe/London",
+    );
+    const messages = body.input as Array<{
+      content: Array<{ text: string }>;
+      role: string;
+    }>;
+    expect(JSON.parse(messages[1]!.content[0]!.text)).toMatchObject({
+      protectedFacts: [{ spokenForm: "date" }],
+    });
     expect(JSON.stringify(body.input)).toContain(
       "Never include raw URLs, Markdown links, citation brackets, or internal identifiers in spoken text",
     );
@@ -157,12 +171,16 @@ describe("OpenAIResponseRewriter", () => {
     } satisfies Partial<OpenAIResponseRewriterError>);
   });
 
-  it("rejects rewritten spoken text containing a raw URL", async () => {
+  it.each([
+    "Read https://example.com/private aloud.",
+    "Observed at 2026-08-04T15:00:00.000Z.",
+    "Scheduled in Europe/London.",
+  ])("rejects unsafe rewritten spoken text: %s", async (text) => {
     const rewriter = createRewriter({
       fetch: createFetchStub(
         jsonResponse({
           output_text: JSON.stringify({
-            text: "Read https://example.com/private aloud.",
+            text,
           }),
         }),
       ),

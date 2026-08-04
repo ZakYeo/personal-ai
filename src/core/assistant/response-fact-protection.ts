@@ -38,16 +38,22 @@ export function protectResponseFacts(
     }
 
     protectedText = replaced.text;
+    const spokenForm = classifySpokenForm(value);
     replacements.push({
       names,
       occurrences: replaced.occurrences,
       rendering: renderFact(value, now, timeZone, assistantTimeZone),
+      ...(spokenForm ? { spokenForm } : {}),
       token,
     });
   }
 
   return {
-    facts: replacements.map(({ names, token }) => ({ names, token })),
+    facts: replacements.map(({ names, spokenForm, token }) => ({
+      names,
+      ...(spokenForm ? { spokenForm } : {}),
+      token,
+    })),
     restore: (rewrittenText) => restoreFacts(rewrittenText, replacements),
     text: protectedText,
   };
@@ -312,6 +318,18 @@ function isHttpUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function classifySpokenForm(
+  value: string,
+): ProtectedResponseFact["spokenForm"] {
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(value)) {
+    return "date_time";
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/u.test(value)) return "date";
+  if (/^(?:[01]\d|2[0-3]):[0-5]\d$/u.test(value)) return "time";
+  if (value === "UTC" || value.includes("/")) return "time_zone";
+  return undefined;
 }
 
 const monthNames = [

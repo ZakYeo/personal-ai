@@ -14,6 +14,7 @@ export interface ResponseRewriteRequest {
 
 export interface ProtectedResponseFact {
   names: readonly string[];
+  spokenForm?: "date" | "date_time" | "time" | "time_zone";
   token: string;
 }
 
