@@ -3,7 +3,7 @@ import type {
   WeatherLocationCandidate,
 } from "../../ports/weather.js";
 
-export type WeatherLocationSelection =
+type WeatherLocationSelection =
   | { kind: "selected"; location: WeatherLocation }
   | {
       candidates: readonly WeatherLocationCandidate[];
