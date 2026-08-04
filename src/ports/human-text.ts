@@ -1,10 +1,15 @@
 import { zonedParts } from "./local-date-time.js";
 
-interface SpokenTextContext {
+export type SpokenDateStyle = "calendar" | "contextual";
+
+export interface SpokenTextContext {
   assistantTimeZone: string;
+  dateStyle?: SpokenDateStyle;
   now: Date;
   timeZone: string;
 }
+
+export type SpokenFactForm = "date" | "date_time" | "time" | "time_zone";
 
 const isoInstantSource = String.raw`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})`;
 const rfcInstantSource = String.raw`(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s+\d{2}:\d{2}(?::\d{2})?\s+(?:GMT|UTC|[+-]\d{4})`;
@@ -76,7 +81,11 @@ export function renderSpokenFact(
   if (instant !== value) return instant;
 
   const date = parseIsoDate(value);
-  if (date) return renderContextualDate(date, context.now, context.timeZone);
+  if (date) {
+    return context.dateStyle === "calendar"
+      ? renderCalendarDate(date, context.now)
+      : renderContextualDate(date, context.now, context.timeZone);
+  }
 
   const time = renderLocalTime(value);
   if (time) return time;
@@ -84,6 +93,16 @@ export function renderSpokenFact(
   if (isCanonicalTimeZone(value)) return formatTimeZoneLabel(value);
 
   return value;
+}
+
+export function classifySpokenFact(value: string): SpokenFactForm | undefined {
+  if (isSupportedInstant(value) && Number.isFinite(new Date(value).getTime())) {
+    return "date_time";
+  }
+  if (parseIsoDate(value)) return "date";
+  if (renderLocalTime(value)) return "time";
+  if (isCanonicalTimeZone(value)) return "time_zone";
+  return undefined;
 }
 
 function renderInstant(value: string, context: SpokenTextContext): string {
@@ -145,6 +164,40 @@ function renderContextualDate(
   return date.year === current.year
     ? `on ${date.day} ${month}`
     : `on ${date.day} ${month} ${date.year}`;
+}
+
+function renderCalendarDate(
+  date: { day: number; month: number; year: number },
+  now: Date,
+): string {
+  const dateDay = Date.UTC(date.year, date.month - 1, date.day);
+  const currentDay = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
+  const dayDifference = (dateDay - currentDay) / 86_400_000;
+
+  if (dayDifference === -1) return "yesterday";
+  if (dayDifference === 0) return "today";
+  if (dayDifference === 1) return "tomorrow";
+
+  if (dayDifference >= 2) {
+    const daysUntilNextMonday = (8 - now.getUTCDay()) % 7 || 7;
+    const weekday = weekdayNames[new Date(dateDay).getUTCDay()];
+    const ordinalDay = formatOrdinal(date.day);
+    if (weekday && dayDifference < daysUntilNextMonday) {
+      return `this ${weekday} the ${ordinalDay}`;
+    }
+    if (weekday && dayDifference < daysUntilNextMonday + 7) {
+      return `next ${weekday} the ${ordinalDay}`;
+    }
+  }
+
+  const month = monthNames[date.month - 1];
+  return date.year === now.getUTCFullYear()
+    ? `${date.day} ${month}`
+    : `${date.day} ${month} ${date.year}`;
 }
 
 function renderLocalTime(value: string): string | undefined {

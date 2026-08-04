@@ -1,5 +1,9 @@
 import type { AssistantCommandParameters } from "../../ports/assistant.js";
-import { renderSpokenFact } from "../../ports/human-text.js";
+import {
+  classifySpokenFact,
+  renderSpokenFact,
+  type SpokenDateStyle,
+} from "../../ports/human-text.js";
 import type { ProtectedResponseFact } from "../../ports/response-rewriter.js";
 
 interface FactReplacement extends ProtectedResponseFact {
@@ -19,6 +23,7 @@ export function protectResponseFacts(
   now: Date,
   timeZone = "UTC",
   assistantTimeZone = timeZone,
+  dateStyle: SpokenDateStyle = "calendar",
 ): ProtectedResponse {
   const groupedFacts = groupFactsByValue(facts);
   const replacements: FactReplacement[] = [];
@@ -38,11 +43,16 @@ export function protectResponseFacts(
     }
 
     protectedText = replaced.text;
-    const spokenForm = classifySpokenForm(value);
+    const spokenForm = classifySpokenFact(value);
     replacements.push({
       names,
       occurrences: replaced.occurrences,
-      rendering: renderFact(value, now, timeZone, assistantTimeZone),
+      rendering: renderSpokenFact(value, {
+        assistantTimeZone,
+        dateStyle,
+        now,
+        timeZone,
+      }),
       ...(spokenForm ? { spokenForm } : {}),
       token,
     });
@@ -174,139 +184,6 @@ function createFactToken(index: number, sourceText: string): string {
   return token;
 }
 
-function renderFact(
-  value: string,
-  now: Date,
-  timeZone: string,
-  assistantTimeZone: string,
-): string {
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(value)) {
-    return renderSpokenFact(value, { assistantTimeZone, now, timeZone });
-  }
-
-  if (value === "UTC" || value.includes("/")) {
-    const rendered = renderSpokenFact(value, {
-      assistantTimeZone,
-      now,
-      timeZone,
-    });
-    if (rendered !== value) return rendered;
-  }
-
-  const date = parseIsoDate(value);
-
-  if (!date) {
-    return renderLocalTime(value) ?? value;
-  }
-
-  const dateDay = Date.UTC(date.year, date.month - 1, date.day);
-  const currentDay = Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate(),
-  );
-  const dayDifference = (dateDay - currentDay) / 86_400_000;
-
-  if (dayDifference === -1) {
-    return "yesterday";
-  }
-
-  if (dayDifference === 0) {
-    return "today";
-  }
-
-  if (dayDifference === 1) {
-    return "tomorrow";
-  }
-
-  if (dayDifference >= 2) {
-    const currentWeekday = now.getUTCDay();
-    const daysUntilNextMonday = (8 - currentWeekday) % 7 || 7;
-    const weekday = weekdayNames[new Date(dateDay).getUTCDay()];
-    const ordinalDay = formatOrdinal(date.day);
-
-    if (weekday && dayDifference < daysUntilNextMonday) {
-      return `this ${weekday} the ${ordinalDay}`;
-    }
-
-    if (weekday && dayDifference < daysUntilNextMonday + 7) {
-      return `next ${weekday} the ${ordinalDay}`;
-    }
-  }
-
-  const month = monthNames[date.month - 1] ?? value;
-
-  return date.year === now.getUTCFullYear()
-    ? `${date.day} ${month}`
-    : `${date.day} ${month} ${date.year}`;
-}
-
-function renderLocalTime(value: string): string | undefined {
-  const match = /^(?<hour>[01]\d|2[0-3]):(?<minute>[0-5]\d)$/u.exec(value);
-
-  if (!match?.groups) {
-    return undefined;
-  }
-
-  const hour = Number(match.groups.hour);
-  const minute = Number(match.groups.minute);
-
-  if (hour === 0 && minute === 0) {
-    return "midnight";
-  }
-
-  if (hour === 12 && minute === 0) {
-    return "noon";
-  }
-
-  const spokenHour = hour % 12 || 12;
-  const spokenMinute =
-    minute === 0 ? "" : `:${String(minute).padStart(2, "0")}`;
-  const period = hour < 12 ? "am" : "pm";
-
-  return `${spokenHour}${spokenMinute}${period}`;
-}
-
-function formatOrdinal(value: number): string {
-  const finalTwoDigits = value % 100;
-
-  if (finalTwoDigits >= 11 && finalTwoDigits <= 13) {
-    return `${value}th`;
-  }
-
-  const suffix =
-    value % 10 === 1
-      ? "st"
-      : value % 10 === 2
-        ? "nd"
-        : value % 10 === 3
-          ? "rd"
-          : "th";
-
-  return `${value}${suffix}`;
-}
-
-function parseIsoDate(
-  value: string,
-): { day: number; month: number; year: number } | undefined {
-  const match = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})$/u.exec(value);
-
-  if (!match?.groups) {
-    return undefined;
-  }
-
-  const year = Number(match.groups.year);
-  const month = Number(match.groups.month);
-  const day = Number(match.groups.day);
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-
-  return parsed.getUTCFullYear() === year &&
-    parsed.getUTCMonth() === month - 1 &&
-    parsed.getUTCDate() === day
-    ? { day, month, year }
-    : undefined;
-}
-
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }
@@ -319,40 +196,3 @@ function isHttpUrl(value: string): boolean {
     return false;
   }
 }
-
-function classifySpokenForm(
-  value: string,
-): ProtectedResponseFact["spokenForm"] {
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(value)) {
-    return "date_time";
-  }
-  if (/^\d{4}-\d{2}-\d{2}$/u.test(value)) return "date";
-  if (/^(?:[01]\d|2[0-3]):[0-5]\d$/u.test(value)) return "time";
-  if (value === "UTC" || value.includes("/")) return "time_zone";
-  return undefined;
-}
-
-const monthNames = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-] as const;
-
-const weekdayNames = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-] as const;

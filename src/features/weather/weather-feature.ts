@@ -209,6 +209,10 @@ async function executeWeatherRequest(
         location: forecast.location.name,
         timezone: forecast.location.timezone,
       },
+      spokenText: {
+        dateStyle: "contextual" as const,
+        timeZone: forecast.location.timezone,
+      },
       text: `The available weather data for ${forecast.location.name} is stale, so I will not present it as current.`,
     };
   }

@@ -12,6 +12,7 @@ import type {
   FeatureCapabilityParameter,
 } from "./capability-catalog.js";
 import type { FeatureResultReferenceSet } from "./result-reference.js";
+import type { SpokenDateStyle } from "./human-text.js";
 
 export type { ConfirmationDeclaration } from "./assistant.js";
 export type {
@@ -35,6 +36,12 @@ interface CompletedFeatureResult {
   data?: AssistantCommandParameters;
   expectsFollowUp?: boolean;
   resultReferences?: FeatureResultReferenceSet;
+  spokenText?: FeatureSpokenTextContext;
+}
+
+export interface FeatureSpokenTextContext {
+  dateStyle: SpokenDateStyle;
+  timeZone: string;
 }
 
 interface ResumableFeatureClarification {
@@ -44,6 +51,7 @@ interface ResumableFeatureClarification {
   readonly kind: "resumable_clarification";
   readonly parameter: string;
   readonly resultReferences?: never;
+  readonly spokenText?: never;
   readonly text: string;
 }
 

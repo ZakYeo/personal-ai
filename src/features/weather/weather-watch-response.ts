@@ -10,6 +10,7 @@ const weatherWatchReliabilityNotice =
 export function createdWeatherWatchResult(watch: WeatherWatchRecord) {
   return {
     data: weatherWatchData(watch),
+    spokenText: weatherWatchSpokenText(watch.location.timezone),
     text: `Created weather watch ${watch.id} for ${formatWeatherWatchCondition(
       watch.condition,
     )} in ${watch.location.name} from ${watch.period.startAt} to ${
@@ -36,6 +37,7 @@ export function listWeatherWatchesResult(
         ),
       ),
     },
+    ...sharedWeatherWatchSpokenText(watches),
     text: `Your weather watches are ${watches
       .map(
         (watch) =>
@@ -47,6 +49,20 @@ export function listWeatherWatchesResult(
       )
       .join(", ")}. ${weatherWatchReliabilityNotice}`,
   };
+}
+
+function weatherWatchSpokenText(timeZone: string) {
+  return { dateStyle: "contextual" as const, timeZone };
+}
+
+function sharedWeatherWatchSpokenText(
+  watches: readonly WeatherWatchRecord[],
+): { spokenText: ReturnType<typeof weatherWatchSpokenText> } | undefined {
+  const timeZones = new Set(watches.map((watch) => watch.location.timezone));
+  const timeZone = timeZones.size === 1 ? [...timeZones][0] : undefined;
+  return timeZone
+    ? { spokenText: weatherWatchSpokenText(timeZone) }
+    : undefined;
 }
 
 export function formatWeatherWatchCondition(

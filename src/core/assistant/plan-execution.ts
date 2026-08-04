@@ -2,6 +2,7 @@ import type {
   AssistantCommandParameters,
   AssistantOutcome,
 } from "../../ports/assistant.js";
+import type { FeatureSpokenTextContext } from "../../ports/feature.js";
 import type {
   ValidatedAssistantPlan,
   ValidatedAssistantPlanStep,
@@ -12,6 +13,7 @@ export type CommandExecutionOutcome =
       data?: AssistantCommandParameters;
       kind: "completed";
       outcome: AssistantOutcome;
+      spokenText?: FeatureSpokenTextContext;
     }
   | {
       kind: "resumable_clarification";

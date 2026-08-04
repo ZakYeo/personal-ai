@@ -321,6 +321,10 @@ describe("createWeatherFeature", () => {
         location: "London",
         timezone: "Europe/London",
       },
+      spokenText: {
+        dateStyle: "contextual",
+        timeZone: "Europe/London",
+      },
       text: "The available weather data for London is stale, so I will not present it as current.",
     });
   });

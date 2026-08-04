@@ -180,10 +180,15 @@ describe("createAssistant", () => {
           execute: () =>
             Promise.resolve({
               data: {
+                date: "2026-08-05",
                 observedAt: "2026-08-05T00:00:00.000Z",
                 timezone: "Asia/Tokyo",
               },
-              text: "Observed at 2026-08-05T00:00:00.000Z.",
+              spokenText: {
+                dateStyle: "contextual",
+                timeZone: "Asia/Tokyo",
+              },
+              text: "The forecast for 2026-08-05 was observed at 2026-08-05T00:00:00.000Z.",
             }),
         }),
       ],
@@ -195,7 +200,7 @@ describe("createAssistant", () => {
 
     await expect(assistant.handleText("weather now")).resolves.toEqual({
       status: "ok",
-      text: "Observed at 9am today, Tokyo time.",
+      text: "The forecast for today was observed at 9am today, Tokyo time.",
     });
   });
 

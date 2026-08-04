@@ -156,6 +156,38 @@ describe("protectResponseFacts", () => {
     ]);
   });
 
+  it("uses the explicit subject timezone for contextual date-only facts", () => {
+    const protectedResponse = protectResponseFacts(
+      "The forecast is for 2026-08-05.",
+      { date: "2026-08-05" },
+      new Date("2026-08-04T23:30:00.000Z"),
+      "Asia/Tokyo",
+      "Europe/London",
+      "contextual",
+    );
+
+    expect(
+      protectedResponse.restore(
+        "The forecast is for __ASSISTANT_PROTECTED_FACT_0__.",
+      ),
+    ).toBe("The forecast is for today.");
+  });
+
+  it.each(["AC/DC", "8/4", "not/a-zone"])(
+    "does not classify slash-containing non-timezone fact %s as a timezone",
+    (label) => {
+      const protectedResponse = protectResponseFacts(
+        `The label is ${label}.`,
+        { label },
+        deterministicTestNow,
+      );
+
+      expect(protectedResponse.facts).toEqual([
+        { names: ["label"], token: "__ASSISTANT_PROTECTED_FACT_0__" },
+      ]);
+    },
+  );
+
   it("does not force URL facts to remain in spoken text", () => {
     const protectedResponse = protectResponseFacts(
       "Source: Example (https://example.test/source).",

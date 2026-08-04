@@ -12,6 +12,7 @@ import type {
   FeatureArguments,
   FeatureExecutionContext,
   FeaturePlugin,
+  FeatureSpokenTextContext,
 } from "../../ports/feature.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import type { ResultReferenceSelectionRequest } from "../../ports/result-reference.js";
@@ -134,6 +135,7 @@ export async function executeWorkflowRead(input: {
         execution.outcome.response,
         execution.data ?? {},
         input.context,
+        execution.spokenText,
       ).restore(),
     },
   };
@@ -186,6 +188,7 @@ async function executeCommand(
       dependencies: input.dependencies,
       facts: execution.data ?? {},
       response: execution.outcome.response,
+      ...(execution.spokenText ? { spokenText: execution.spokenText } : {}),
       text: input.normalizedText,
     }),
   };
@@ -232,6 +235,7 @@ async function executeFeatureCommand(
       ...(result.data ? { data: Object.freeze({ ...result.data }) } : {}),
       kind: "completed",
       outcome: { response },
+      ...(result.spokenText ? { spokenText: result.spokenText } : {}),
     };
   } catch (error) {
     return {
@@ -255,12 +259,14 @@ async function rewriteCommandResponse(input: {
   dependencies: CommandExecutionDependencies;
   facts: AssistantCommand["parameters"];
   response: AssistantResponse;
+  spokenText?: FeatureSpokenTextContext;
   text: string;
 }): Promise<AssistantOutcome> {
   const prepared = prepareCommandResponse(
     input.response,
     input.facts,
     input.context,
+    input.spokenText,
   );
   const rewriter = input.dependencies.responseRewriter;
   if (!rewriter) return { response: prepared.restore() };
@@ -304,9 +310,10 @@ function prepareCommandResponse(
   response: AssistantResponse,
   facts: AssistantCommand["parameters"],
   context: AssistantContext,
+  spokenText?: FeatureSpokenTextContext,
 ) {
   const assistantTimeZone = context.config.assistant.timeZone;
-  const timeZone = selectResponseTimeZone(facts, assistantTimeZone);
+  const timeZone = spokenText?.timeZone ?? assistantTimeZone;
   const now = context.clock.now();
   const protectedResponse = protectResponseFacts(
     response.text,
@@ -314,6 +321,7 @@ function prepareCommandResponse(
     now,
     timeZone,
     assistantTimeZone,
+    spokenText?.dateStyle ?? "calendar",
   );
   return {
     facts: protectedResponse.facts,
@@ -327,26 +335,4 @@ function prepareCommandResponse(
     }),
     text: protectedResponse.text,
   };
-}
-
-function selectResponseTimeZone(
-  facts: AssistantCommand["parameters"],
-  fallback: string,
-): string {
-  const timeZones = new Set(
-    Object.entries(facts).flatMap(([name, value]) =>
-      /timezone$/iu.test(name) && typeof value === "string" ? [value] : [],
-    ),
-  );
-  if (timeZones.size !== 1) return fallback;
-  const [timeZone] = timeZones;
-  if (!timeZone) return fallback;
-  try {
-    return new Intl.DateTimeFormat("en", { timeZone }).resolvedOptions()
-      .timeZone === timeZone
-      ? timeZone
-      : fallback;
-  } catch {
-    return fallback;
-  }
 }

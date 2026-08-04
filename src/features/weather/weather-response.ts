@@ -23,6 +23,7 @@ export function currentWeatherResult(forecast: WeatherForecast) {
       windSpeed: current.windSpeed,
       windSpeedUnit: units.windSpeed,
     },
+    spokenText: weatherSpokenText(location.timezone),
     text: `In ${location.name}, it is ${current.temperature}${formatTemperatureUnit(units.temperature)} and ${current.weather}, with ${current.precipitation} ${units.precipitation} precipitation and wind at ${current.windSpeed} ${units.windSpeed}. Observed at ${current.observedAt}; fetched at ${forecast.fetchedAt}. ${formatAttribution(forecast)}`,
   };
 }
@@ -58,8 +59,13 @@ export function forecastWeatherResult(forecast: WeatherForecast) {
       timezone: forecast.location.timezone,
       windSpeedUnit: forecast.units.windSpeed,
     },
+    spokenText: weatherSpokenText(forecast.location.timezone),
     text: `${forecast.location.name}'s forecast from ${forecast.period.startAt} to ${forecast.period.endAt}: ${summary || "No forecast intervals are available."} Fetched at ${forecast.fetchedAt}. ${formatAttribution(forecast)}`,
   };
+}
+
+function weatherSpokenText(timeZone: string) {
+  return { dateStyle: "contextual" as const, timeZone };
 }
 
 function flattenHourly(forecast: WeatherForecast) {
