@@ -11,15 +11,64 @@ import {
   createOpenAIIntentInterpreter,
   openAIIntentOutput,
 } from "../test-support/openai-intent.js";
+import { DeterministicIntentInterpreter } from "../adapters/mock/deterministic-intent-interpreter.js";
 import { createAssistant as createCoreAssistant } from "../core/assistant/assistant.js";
 import { createCapabilityRoutingIndex } from "../ports/capability-catalog.js";
 import {
   createAssistantConfig,
+  createFeature,
   createFixedClock,
   createRawFeature,
 } from "../test-support/core-assistant.js";
 
 describe("configured clarification transitions", () => {
+  it("resumes a feature clarification with the deterministic intent adapter", async () => {
+    const feature = createFeature({
+      id: "weather",
+      capability: {
+        name: "weather.current",
+        parameters: { location: { required: true, type: "string" } },
+        risk: "low",
+      },
+      execute: (request) =>
+        Promise.resolve(
+          request.args.location === "london"
+            ? {
+                kind: "resumable_clarification" as const,
+                parameter: "location",
+                text: "Which London did you mean?",
+              }
+            : { text: `Weather for ${request.args.location}.` },
+        ),
+    });
+    const assistant = createCoreAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([feature]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({ weather: { enabled: true } }),
+      intentInterpreter: new DeterministicIntentInterpreter([
+        {
+          capability: "weather.current",
+          match: (text) => {
+            const match = /^weather in (.+)$/u.exec(text);
+            return match?.[1] ? { location: match[1] } : undefined;
+          },
+        },
+      ]),
+    });
+
+    await expect(assistant.handleText("Weather in London")).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: "Which London did you mean?",
+    });
+    await expect(
+      assistant.handleText("London, United Kingdom"),
+    ).resolves.toEqual({
+      status: "ok",
+      text: "Weather for London, United Kingdom.",
+    });
+  });
+
   it("starts fresh after an OpenAI rephrase prompt", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
