@@ -116,6 +116,11 @@ export function createIntentWorkflow(input: {
     if (current.kind === "clarification") {
       return requestClarification(current.response);
     }
+    if (current.kind === "rephrase") {
+      return decorate({
+        response: { ...current.response, expectsFollowUp: true },
+      });
+    }
     if (current.kind === "unknown" || current.kind === "unsupported") {
       return decorate({ response: current.response });
     }

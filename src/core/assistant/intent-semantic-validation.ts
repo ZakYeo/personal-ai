@@ -37,7 +37,10 @@ function validateIntentSemantics(
   originalText: string,
   capabilityCatalog: CapabilityCatalog,
 ): IntentInterpretation {
-  if (interpretation.kind === "clarification") {
+  if (
+    interpretation.kind === "clarification" ||
+    interpretation.kind === "rephrase"
+  ) {
     return {
       ...interpretation,
       response: { ...interpretation.response, status: "ok" },
@@ -69,6 +72,7 @@ function commandsFromInterpretation(
     case "tool_call":
       return [interpretation.call.command];
     case "clarification":
+    case "rephrase":
     case "conversation":
     case "unknown":
     case "unsupported":

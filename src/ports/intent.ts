@@ -15,6 +15,10 @@ export type IntentInterpretation =
       response: AssistantResponse;
     }
   | {
+      kind: "rephrase";
+      response: AssistantResponse;
+    }
+  | {
       kind: "plan";
       plan: ProposedAssistantPlan;
     }
