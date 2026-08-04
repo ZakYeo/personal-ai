@@ -23,7 +23,19 @@ export function parseOpenAIIntentOutput(value: string): IntentInterpretation {
       value,
     );
   }
-  return parseIntentInterpretation(parsed.interpretation);
+  try {
+    return parseIntentInterpretation(parsed.interpretation);
+  } catch (error) {
+    if (
+      error instanceof OpenAIIntentError &&
+      error.responseBody === undefined
+    ) {
+      throw new OpenAIIntentError(error.message, error.status, value, {
+        cause: error,
+      });
+    }
+    throw error;
+  }
 }
 
 function parseIntentInterpretation(value: unknown): IntentInterpretation {

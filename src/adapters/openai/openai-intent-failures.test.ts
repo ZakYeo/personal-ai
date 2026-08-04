@@ -81,27 +81,29 @@ describe("OpenAIIntentInterpreter", () => {
   });
 
   it("rejects provider output that does not match intent shape", async () => {
+    const output = openAIIntentOutput({
+      kind: "command",
+      command: {
+        capability: "alarm.create",
+        parameters: [{ name: "nested", value: { unsafe: true } }],
+        rawText: "Hey Jarvis, set an alarm",
+      },
+    });
     const interpreter = createInterpreter({
       fetch: createFetchStub(
         jsonResponse({
           id: "response-1",
-          output_text: openAIIntentOutput({
-            kind: "command",
-            command: {
-              capability: "alarm.create",
-              parameters: [{ name: "nested", value: { unsafe: true } }],
-              rawText: "Hey Jarvis, set an alarm",
-            },
-          }),
+          output_text: output,
         }),
       ),
     });
 
     await expect(
       interpretOnce(interpreter, "Hey Jarvis, set an alarm", context),
-    ).rejects.toThrow(
-      "OpenAI intent response parameters must be scalar values.",
-    );
+    ).rejects.toMatchObject({
+      message: "OpenAI intent response parameters must be scalar values.",
+      responseBody: output,
+    } satisfies Partial<OpenAIIntentError>);
   });
 
   it("rejects duplicate command parameter names", async () => {
