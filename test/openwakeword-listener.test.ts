@@ -69,7 +69,7 @@ class FakeProcess:
 
     def wait(self, timeout=None):
         events.append(("wait", timeout))
-        if timeout is not None:
+        if events.count(("wait", 1.0)) == 1:
             raise subprocess.TimeoutExpired("rec", timeout)
         return 0
 
@@ -85,7 +85,7 @@ listener.subprocess.Popen = fake_popen
 frames = listener.audio_frames("fake-rec", 80)
 assert next(frames) == b"\1\0"
 frames.close()
-assert events == ["terminate", ("wait", 1.0), "kill", ("wait", None)]
+assert events == ["terminate", ("wait", 1.0), "kill", ("wait", 1.0)]
 `;
 
     await expect(
@@ -176,7 +176,7 @@ class FakeProcess:
 
     def wait(self, timeout=None):
         events.append(("wait", timeout))
-        if timeout is not None:
+        if events.count(("wait", 1.0)) == 1:
             raise subprocess.TimeoutExpired("rec", timeout)
         return 0
 
@@ -191,7 +191,64 @@ listener.subprocess.Popen = fake_popen
 frames = listener.audio_frames("fake-rec", 80)
 assert next(frames) == b"\1\0"
 frames.close()
-assert events == ["terminate", ("wait", 1.0), "kill", ("wait", None)]
+assert events == ["terminate", ("wait", 1.0), "kill", ("wait", 1.0)]
+`;
+
+    await expect(
+      execFileAsync("python3", ["-B", "-c", harness], {
+        cwd: process.cwd(),
+      }),
+    ).resolves.toMatchObject({ stderr: "" });
+  });
+
+  it("bounds the post-kill reap and preserves a primary recorder failure", async () => {
+    const harness = String.raw`
+import contextlib
+import importlib.util
+import io
+import pathlib
+import subprocess
+
+repo_root = pathlib.Path.cwd()
+listener_path = repo_root / "scripts" / "openwakeword-listener.py"
+spec = importlib.util.spec_from_file_location("openwakeword_listener", listener_path)
+listener = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(listener)
+
+events = []
+
+class FakeStdout:
+    def read(self, _size):
+        raise ValueError("primary recorder read failure")
+
+class FakeProcess:
+    stdout = FakeStdout()
+
+    def poll(self):
+        return None
+
+    def terminate(self):
+        events.append("terminate")
+
+    def wait(self, timeout=None):
+        events.append(("wait", timeout))
+        raise subprocess.TimeoutExpired("rec", timeout)
+
+    def kill(self):
+        events.append("kill")
+
+listener.subprocess.Popen = lambda *args, **kwargs: FakeProcess()
+stderr = io.StringIO()
+try:
+    with contextlib.redirect_stderr(stderr):
+        next(listener.audio_frames("fake-rec", 80))
+except ValueError as error:
+    assert str(error) == "primary recorder read failure"
+else:
+    raise AssertionError("the primary recorder failure must be preserved")
+
+assert events == ["terminate", ("wait", 1.0), "kill", ("wait", 1.0)]
+assert "did not exit after SIGKILL" in stderr.getvalue()
 `;
 
     await expect(

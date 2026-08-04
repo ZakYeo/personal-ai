@@ -68,19 +68,44 @@ def audio_frames(rec_command: str, frame_ms: int) -> Iterable[bytes]:
 
             yield frame
     finally:
-        if process.poll() is None:
-            try:
-                process.terminate()
-            except ProcessLookupError:
-                pass
-            try:
-                process.wait(timeout=1.0)
-            except subprocess.TimeoutExpired:
-                try:
-                    process.kill()
-                except ProcessLookupError:
-                    pass
-                process.wait()
+        primary_error = sys.exc_info()[1]
+        try:
+            stop_recorder(process)
+        except Exception as cleanup_error:
+            if primary_error is not None and not isinstance(
+                primary_error, GeneratorExit
+            ):
+                print(
+                    f"Recorder cleanup failed: {cleanup_error}",
+                    file=sys.stderr,
+                    flush=True,
+                )
+            else:
+                raise
+
+
+def stop_recorder(process: subprocess.Popen[bytes]) -> None:
+    if process.poll() is not None:
+        return
+
+    try:
+        process.terminate()
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=1.0)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+
+    try:
+        process.kill()
+    except ProcessLookupError:
+        pass
+    try:
+        process.wait(timeout=1.0)
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError("Recorder process did not exit after SIGKILL") from error
 
 
 def pcm16_samples(frame: bytes):
