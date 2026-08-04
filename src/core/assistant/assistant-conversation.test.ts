@@ -85,7 +85,7 @@ describe("createAssistant", () => {
 
     await expect(assistant.handleText("what changed?")).resolves.toEqual({
       status: "ok",
-      text: "Updated at 10am today. See",
+      text: "Updated at 10am today. See the linked source.",
     });
   });
 

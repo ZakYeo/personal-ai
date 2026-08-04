@@ -63,7 +63,7 @@ describe("alarm feature adapters", () => {
     ).resolves.toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "Please confirm: 1. set the take medicine alarm for 10:10am today, repeating daily in europe/london. Say yes or no.",
+      text: "Please confirm: 1. set the take medicine alarm for 10:10am today, repeating daily in london time. Say yes or no.",
     });
     await assistant.handleText("yes");
 
