@@ -18,7 +18,7 @@ interface OpenAIIntentOutputVariantContract {
   readonly instruction: string;
 }
 
-export const openAIIntentOutputContract = {
+const openAIIntentOutputContract = {
   command: {
     availability: "always",
     fields: ["kind", "command"],
