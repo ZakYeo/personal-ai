@@ -700,6 +700,9 @@ should also guard against subtler boundary and abstraction drift.
   attempt when logging itself fails.
 - New file-backed alarm state directories and files use restrictive `0700` and
   `0600` modes so private labels are not exposed by the host's default umask.
+- Local durable JSON readers enforce a fixed byte ceiling while reading, before
+  parsing external state, so an oversized file cannot be loaded into memory in
+  full.
 - Treat duplication reports as design prompts. A small clone may be acceptable,
   but repeated control-flow or policy duplication should trigger a search for
   the canonical owner before more branches are added.

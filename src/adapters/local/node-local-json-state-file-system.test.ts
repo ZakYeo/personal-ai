@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, stat } from "node:fs/promises";
+import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -22,5 +22,15 @@ describe("createNodeLocalJsonStateFileSystem", () => {
     );
     expect((await stat(dirname(filePath))).mode & 0o777).toBe(0o700);
     expect((await stat(filePath)).mode & 0o777).toBe(0o600);
+  });
+
+  it("rejects a state file above the requested byte limit", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "personal-ai-state-fs-"));
+    const filePath = join(directory, "state.json");
+    await writeFile(filePath, "123456", "utf8");
+
+    await expect(
+      createNodeLocalJsonStateFileSystem().readFile(filePath, { maxBytes: 5 }),
+    ).rejects.toThrow("Local JSON state file exceeds 5 bytes.");
   });
 });

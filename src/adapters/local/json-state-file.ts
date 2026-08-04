@@ -8,7 +8,7 @@ export interface LocalJsonStateFileSystem {
     path: string,
     options: { mode: number; recursive: true },
   ): Promise<unknown>;
-  readFile(path: string): Promise<string>;
+  readFile(path: string, options: { maxBytes: number }): Promise<string>;
   replaceFile(options: {
     contents: string;
     targetPath: string;
@@ -20,10 +20,13 @@ interface ReadLocalJsonStateOptions<TState> {
   filePath: string;
   fileSystem: LocalJsonStateFileSystem;
   invalidJsonMessage: string;
+  maxBytes?: number;
   missingState(): TState;
   parse(input: unknown): TState;
   readFailureMessage: string;
 }
+
+const maxLocalJsonStateFileBytes = 4 * 1024 * 1024;
 
 interface WriteLocalJsonStateOptions<TState> {
   filePath: string;
@@ -37,7 +40,9 @@ export async function readLocalJsonState<TState>(
 ): Promise<TState> {
   let contents: string;
   try {
-    contents = await options.fileSystem.readFile(options.filePath);
+    contents = await options.fileSystem.readFile(options.filePath, {
+      maxBytes: options.maxBytes ?? maxLocalJsonStateFileBytes,
+    });
   } catch (cause) {
     if (isRecord(cause) && cause.code === "ENOENT") {
       return options.missingState();
