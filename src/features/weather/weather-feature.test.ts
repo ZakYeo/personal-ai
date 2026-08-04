@@ -103,6 +103,7 @@ describe("createWeatherFeature", () => {
       ),
     ).resolves.toEqual({
       kind: "resumable_clarification",
+      parameter: "location",
       text: "I do not have an explicitly stored home location. Which location should I check?",
     });
   });
@@ -148,6 +149,7 @@ describe("createWeatherFeature", () => {
       ),
     ).resolves.toEqual({
       kind: "resumable_clarification",
+      parameter: "location",
       text: "Which location should I check?",
     });
   });
@@ -291,6 +293,7 @@ describe("createWeatherFeature", () => {
       ),
     ).resolves.toEqual({
       kind: "resumable_clarification",
+      parameter: "location",
       text: 'I could not find a weather location for "Nowhere". Which location should I use?',
     });
 

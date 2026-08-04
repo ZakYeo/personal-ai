@@ -19,16 +19,57 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
   constructor(private readonly rules: DeterministicIntentRule[] = []) {}
 
   start(text: string, context: AssistantContext) {
+    let started = false;
     return {
-      next: (input?: IntentSessionContinuation) => {
-        if (input !== undefined) {
-          return Promise.reject(
-            new Error("Deterministic intent sessions cannot be continued."),
+      next: async (input?: IntentSessionContinuation) => {
+        if (!started) {
+          if (input !== undefined) {
+            throw new Error(
+              "A deterministic intent session must interpret its initial request before continuation.",
+            );
+          }
+          started = true;
+          return this.interpretInitial(text, context);
+        }
+
+        if (input?.kind !== "user_reply") {
+          throw new Error(
+            "Deterministic intent sessions only support user clarification replies.",
           );
         }
-        return this.interpretInitial(text, context);
+        return this.interpretClarificationReply(input, context);
       },
     };
+  }
+
+  private async interpretClarificationReply(
+    input: Extract<IntentSessionContinuation, { kind: "user_reply" }>,
+    context: AssistantContext,
+  ): Promise<IntentInterpretation> {
+    const directInterpretation = await this.interpretInitial(
+      input.text,
+      context,
+    );
+    if (directInterpretation.kind !== "unknown") {
+      return directInterpretation;
+    }
+
+    const { capability, parameter, session } = input.clarification;
+    if (
+      session === "resume" &&
+      capability &&
+      parameter &&
+      this.rules.some((rule) => rule.capability === capability)
+    ) {
+      return {
+        command: createCommand(capability, input.text, {
+          [parameter]: input.text.trim(),
+        }),
+        kind: "command",
+      };
+    }
+
+    return directInterpretation;
   }
 
   private interpretInitial(

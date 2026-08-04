@@ -42,6 +42,7 @@ interface ResumableFeatureClarification {
   readonly data?: never;
   readonly expectsFollowUp?: never;
   readonly kind: "resumable_clarification";
+  readonly parameter: string;
   readonly resultReferences?: never;
   readonly text: string;
 }

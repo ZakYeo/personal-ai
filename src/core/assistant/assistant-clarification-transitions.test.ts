@@ -1,4 +1,5 @@
 import { createCapabilityRoutingIndex } from "../../ports/capability-catalog.js";
+import { DeterministicIntentInterpreter } from "../../adapters/mock/deterministic-intent-interpreter.js";
 import type {
   IntentInterpretation,
   IntentInterpreterPort,
@@ -14,6 +15,53 @@ import {
 import { createAssistant } from "./assistant.js";
 
 describe("assistant clarification transitions", () => {
+  it("resumes a feature clarification with the deterministic intent adapter", async () => {
+    const feature = createFeature({
+      id: "weather",
+      capability: {
+        name: "weather.current",
+        parameters: { location: { required: true, type: "string" } },
+        risk: "low",
+      },
+      execute: (request) =>
+        Promise.resolve(
+          request.args.location === "london"
+            ? {
+                kind: "resumable_clarification" as const,
+                parameter: "location",
+                text: "Which London did you mean?",
+              }
+            : { text: `Weather for ${request.args.location}.` },
+        ),
+    });
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([feature]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({ weather: { enabled: true } }),
+      intentInterpreter: new DeterministicIntentInterpreter([
+        {
+          capability: "weather.current",
+          match: (text) => {
+            const match = /^weather in (.+)$/u.exec(text);
+            return match?.[1] ? { location: match[1] } : undefined;
+          },
+        },
+      ]),
+    });
+
+    await expect(assistant.handleText("Weather in London")).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: "Which London did you mean?",
+    });
+    await expect(
+      assistant.handleText("London, United Kingdom"),
+    ).resolves.toEqual({
+      status: "ok",
+      text: "Weather for London, United Kingdom.",
+    });
+  });
+
   it("keeps a confirmed command in its intent session through feature clarification", async () => {
     const continuations: IntentSessionContinuation[] = [];
     const starts = vi.fn();
@@ -43,6 +91,7 @@ describe("assistant clarification transitions", () => {
         request.args.location === "London"
           ? {
               kind: "resumable_clarification" as const,
+              parameter: "location",
               text: "Which London did you mean?",
             }
           : { text: "Weather watch created for London, England." },
@@ -91,6 +140,7 @@ describe("assistant clarification transitions", () => {
           capability: "weather.watch.create",
           origin: "feature_execution",
           originalText: "Watch the weather in London",
+          parameter: "location",
           prompt: "Which London did you mean?",
           session: "resume",
         },
@@ -136,6 +186,7 @@ describe("assistant clarification transitions", () => {
               request.args.location === "London"
                 ? {
                     kind: "resumable_clarification" as const,
+                    parameter: "location",
                     text: "Which London did you mean?",
                   }
                 : { text: "It is 21°C in London, England." },
@@ -165,6 +216,7 @@ describe("assistant clarification transitions", () => {
           capability: "weather.current",
           origin: "feature_execution",
           originalText: "What is the weather in London?",
+          parameter: "location",
           prompt: "Which London did you mean?",
           session: "resume",
         },

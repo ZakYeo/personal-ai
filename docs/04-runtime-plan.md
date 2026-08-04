@@ -511,10 +511,15 @@ Pi uses `/var/lib/personal-ai/weather-watches.json`. The opt-in
 Geocoding preserves provider rank and safe matching metadata. Read-only current
 and forecast commands deterministically select the highest-ranked exact match,
 while durable weather-watch creation remains unique-match-only.
-When one executed feature result carries the typed resumable clarification
-signal, core registers the prompt as the assistant's one pending interaction and
-continues the exact intent session on the next reply. `expectsFollowUp` alone
-remains a human/voice capture hint, not the owner of continuation state.
+When one executed feature result carries the discriminated resumable
+clarification signal and requested parameter, core registers the prompt as the
+assistant's one pending interaction and continues the exact intent session on
+the next reply. Confirmed commands retain that workflow-owned continuation
+callback. Deterministic intent sessions bind an otherwise unroutable reply to
+the declared parameter while still recognizing independently routable changed
+topics. Compound plans and intermediate reads fail closed on this result.
+`expectsFollowUp` alone remains a human/voice capture hint, not the owner of
+continuation state.
 The opt-in `npm run test:e2e:openai:weather` smoke exercises live OpenAI routing
 through ranked, key-free Open-Meteo geocoding and weather retrieval. Text and
 voice profile commands use

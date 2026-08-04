@@ -106,8 +106,10 @@ The core coordinates assistant behavior:
   clarification. A clarification answer resumes the exact provider session; a
   changed-topic reply may discard it and start one fresh workflow from the
   trusted reply; a resulting confirmation replaces it without reinterpretation.
-  Core owns transition legality and carries only the safe original request,
-  prompt, origin, and selected capability into a continuation. A terminal result
+  Confirmed execution stays inside the originating intent-workflow closure, so
+  a later feature clarification still resumes the same provider session. Core
+  owns transition legality and carries only the safe original request, prompt,
+  origin, selected capability, and requested parameter into a continuation. A terminal result
   for a different capability is treated as replacement even if the provider
   omitted that transition marker.
 - Treats an open rephrase prompt as a follow-up signal without pending workflow

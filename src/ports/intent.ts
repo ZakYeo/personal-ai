@@ -75,6 +75,7 @@ export interface IntentClarificationContext {
     | "feature_validation"
     | "feature_execution";
   readonly originalText: string;
+  readonly parameter?: string;
   readonly prompt: string;
   readonly session: IntentClarificationMetadata["session"];
 }

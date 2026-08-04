@@ -43,7 +43,7 @@ interface CommandExecutionInput {
   resultReferences: ResultReferenceSession;
   requestClarification?: (
     response: AssistantResponse,
-    capability: string,
+    metadata: { capability: string; parameter: string },
   ) => AssistantOutcome;
 }
 
@@ -194,10 +194,10 @@ async function executeFeatureCommand(
       return {
         kind: "resumable_clarification",
         outcome: input.requestClarification
-          ? input.requestClarification(
-              clarificationResponse,
-              input.command.capability,
-            )
+          ? input.requestClarification(clarificationResponse, {
+              capability: input.command.capability,
+              parameter: result.parameter,
+            })
           : { response: clarificationResponse },
       };
     }

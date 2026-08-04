@@ -168,8 +168,10 @@ All-day events require an explicit local time resolved in the canonical
 assistant IANA timezone.
 
 Clarification continuations expose only typed, safe workflow context: the
-original trusted request, human-safe prompt, application-owned origin, and
-stable capability name when one is selected. Provider diagnostics, response
+original trusted request, human-safe prompt, application-owned origin, stable
+capability name, and requested parameter when one is selected. Confirmed
+execution retains its originating workflow callback so a feature clarification
+does not lose the exact provider session. Provider diagnostics, response
 payloads, IDs, credentials, and tool internals are excluded. Core owns
 transition legality. If semantic validation turns a provider tool call into a
 clarification, the answer starts a fresh provider request with that safe context

@@ -41,6 +41,7 @@ export async function resolveWeatherLocation(
     return {
       result: {
         kind: "resumable_clarification",
+        parameter: "location",
         text:
           requestedPlace?.toLowerCase() === "home" || options.personalContext
             ? "I do not have an explicitly stored home location. Which location should I check?"
@@ -74,6 +75,7 @@ export async function resolveWeatherLocation(
     return {
       result: {
         kind: "resumable_clarification",
+        parameter: "location",
         text: `I found multiple locations for ${place}: ${selection.candidates
           .map(
             (candidate) =>
@@ -89,6 +91,7 @@ export async function resolveWeatherLocation(
 function unavailableLocationResult(place: string): FeatureResult {
   return {
     kind: "resumable_clarification",
+    parameter: "location",
     text: `I could not find a weather location for "${place}". Which location should I use?`,
   };
 }

@@ -141,6 +141,7 @@ describe("OpenAIIntentInterpreter", () => {
           capability: "alarm.create",
           origin: "intent_interpreter",
           originalText: "Set an alarm",
+          parameter: "scheduledFor",
           prompt: "What time?",
           session: "resume",
         },
@@ -161,6 +162,9 @@ describe("OpenAIIntentInterpreter", () => {
     );
     expect(String(continuation.instructions)).toContain(
       "kind replacement is the only allowed output",
+    );
+    expect(String(continuation.instructions)).toContain(
+      '"parameter":"scheduledFor"',
     );
   });
   it("provides only safe opaque calendar references to the provider", async () => {

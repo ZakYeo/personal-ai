@@ -39,6 +39,76 @@ describe("DeterministicIntentInterpreter", () => {
       kind: "command",
     });
   });
+
+  it("resumes a feature clarification by binding the trusted reply parameter", async () => {
+    const interpreter = new DeterministicIntentInterpreter([
+      {
+        capability: "weather.current",
+        match: (text) =>
+          text.startsWith("weather in ")
+            ? { location: text.slice("weather in ".length) }
+            : undefined,
+      },
+    ]);
+    const session = interpreter.start("Weather in London", context);
+    await session.next();
+
+    await expect(
+      session.next({
+        clarification: {
+          capability: "weather.current",
+          origin: "feature_execution",
+          originalText: "Weather in London",
+          parameter: "location",
+          prompt: "Which London did you mean?",
+          session: "resume",
+        },
+        kind: "user_reply",
+        text: "London, United Kingdom",
+      }),
+    ).resolves.toEqual({
+      command: {
+        capability: "weather.current",
+        parameters: { location: "London, United Kingdom" },
+        rawText: "London, United Kingdom",
+      },
+      kind: "command",
+    });
+  });
+
+  it("preserves changed-topic detection during deterministic clarification", async () => {
+    const interpreter = new DeterministicIntentInterpreter([
+      {
+        capability: "weather.current",
+        match: (text) =>
+          text.startsWith("weather in ") ? { location: "London" } : undefined,
+      },
+      {
+        capability: "alarm.list",
+        match: (text) => (text === "list my alarms" ? {} : undefined),
+      },
+    ]);
+    const session = interpreter.start("Weather in London", context);
+    await session.next();
+
+    await expect(
+      session.next({
+        clarification: {
+          capability: "weather.current",
+          origin: "feature_execution",
+          originalText: "Weather in London",
+          parameter: "location",
+          prompt: "Which London did you mean?",
+          session: "resume",
+        },
+        kind: "user_reply",
+        text: "List my alarms",
+      }),
+    ).resolves.toMatchObject({
+      command: { capability: "alarm.list" },
+      kind: "command",
+    });
+  });
   it("normalizes case, spacing, punctuation, and the default wake phrase", () => {
     expect(normalizeCommandText("  Hey Jarvis,   LIST my alarms! ")).toBe(
       "list my alarms",

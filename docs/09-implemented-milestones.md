@@ -321,6 +321,10 @@ Outcomes:
   execution use the latest trusted reply, original-request restatement guards
   remain intact, and a second unresolved clarification ends with a safe open
   rephrase instead of tool-chain jargon.
+- Feature clarification is a discriminated execution result carrying the
+  requested parameter. Confirmed commands retain their originating workflow
+  session, deterministic routing can bind concise clarification replies, and
+  compound plans or intermediate reads fail closed on follow-up requests.
 - The fresh thermonuclear maintainability review findings were all addressed:
   intent sessions became the sole interpreter contract; invalid post-read
   terminal states, identifiers, validation failures, and execution failures

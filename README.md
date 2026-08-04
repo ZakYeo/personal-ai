@@ -52,9 +52,11 @@ Implemented today:
 - Flexible clarification transitions distinguish open rephrase prompts from
   resumable workflow questions, let a changed-topic reply replace an unfinished
   clarification through a fresh validated workflow, carry only typed safe
-  prompt/origin/capability context, and keep confirmation replies strict. Core
-  remains authoritative if provider continuation state or output disagrees with
-  the validated transition.
+  prompt/origin/capability/parameter context, and keep confirmation replies
+  strict. Confirmed execution retains its originating intent session, while
+  compound plans and intermediate reads fail closed if a feature asks a
+  follow-up. Core remains authoritative if provider continuation state or output
+  disagrees with the validated transition.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Shared OpenAI Responses configuration parsing with provider-local config
   types rather than provider details in application ports.

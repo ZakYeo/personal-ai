@@ -339,6 +339,7 @@ describe("assistant compound plans", () => {
       execute: () =>
         Promise.resolve({
           kind: "resumable_clarification" as const,
+          parameter: "item",
           text: "Which first item did you mean?",
         }),
     });

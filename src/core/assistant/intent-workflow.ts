@@ -179,9 +179,9 @@ export function createIntentWorkflow(input: {
         input.dependencies.resultReferences,
         context.signal,
         {
-          requestClarification: (response, capability) =>
+          requestClarification: (response, metadata) =>
             requestClarification(response, {
-              capability,
+              ...metadata,
               origin: "feature_execution",
               session: "resume",
             }),
@@ -235,6 +235,7 @@ export function createIntentWorkflow(input: {
       | {
           capability: string;
           origin: "feature_execution" | "feature_validation";
+          parameter?: string;
           session: "resume";
         },
   ): AssistantOutcome {

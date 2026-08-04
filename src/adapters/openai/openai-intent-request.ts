@@ -182,6 +182,9 @@ function formatClarificationContext(
         : {}),
       origin: clarification.origin,
       originalRequest: clarification.originalText,
+      ...(clarification.parameter
+        ? { parameter: clarification.parameter }
+        : {}),
       prompt: clarification.prompt,
     }),
     "</application_clarification>",
