@@ -516,7 +516,7 @@ should also guard against subtler boundary and abstraction drift.
   behind. Malformed, overlapping, unsafe, or unresolved citations still fail
   closed.
 - Search responses keep exact URLs in validated citation and result-reference
-  metadata. One application-owned search human-text policy sanitizes answers,
+  metadata. The application-owned human-text policy sanitizes answers,
   titles, and extracts before speech or result-reference retention. Human text
   and speech contain no raw URLs, Markdown links, bracketed citation markers,
   terminal controls, or duplicated source lists. Hyperlink-capable text
@@ -528,9 +528,13 @@ should also guard against subtler boundary and abstraction drift.
 - All human-facing assistant and notification text uses the shared spoken-text
   policy. Model prompts are the primary natural-language mechanism, but final
   output deterministically removes raw URLs and Markdown link targets, renders
-  canonical instants as contextual local speech, and replaces spoken IANA
-  identifiers with natural timezone labels. Exact values remain unchanged in
-  structured data and validated citation metadata.
+  supported ISO/RFC instants as contextual local speech, and replaces validated
+  spoken IANA identifiers with natural timezone labels. Feature results declare
+  subject-local timezone and date-style context explicitly; core does not infer
+  that policy from fact names. Neutral service composition decorates every
+  notification delivery, including injected ports, before the adapter receives
+  it. Exact values remain unchanged in structured data and validated citation
+  metadata.
 - Internet search is terminal-only rather than an intent tool-chain read.
   Later intent interpretation may receive only opaque source ordinals and
   references, never retrieved titles, URLs, extracts, dates, or synthesized

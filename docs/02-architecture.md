@@ -214,7 +214,7 @@ adapters without making features import or invoke one another:
   retaining provider result IDs. The adapter validates every returned
   annotation and projects excess valid sources into the configured result
   limit without retaining claims supported only by excluded citations. One
-  feature-owned human-text policy sanitizes answers, titles, and extracts before
+  application-owned human-text policy sanitizes answers, titles, and extracts before
   speech or result-reference retention. The feature exposes those natural
   source titles plus separate validated link metadata; retrieved text remains
   untrusted external data.
@@ -225,8 +225,12 @@ adapters without making features import or invoke one another:
 - Core applies one application-owned human-text policy after model rewriting
   and at tool-observation and runtime-output boundaries. OpenAI prompts request
   natural spoken dates, times, timezones, and source titles first; the shared
-  deterministic policy then removes visible link targets and renders canonical
-  instants in a validated subject timezone or the configured assistant timezone.
+  deterministic policy then removes visible link targets and renders ISO/RFC
+  instants in an explicitly declared subject timezone or the configured assistant
+  timezone. Feature results declare subject-local rendering context rather than
+  relying on fact-name inference; protected calendar dates retain their explicit
+  UTC-day rendering mode. Neutral service composition applies the same policy to
+  every notification delivery before a configured or injected adapter receives it.
   Exact values stay in feature data, protected facts, citations, and diagnostics.
 - Lists and tasks use their own revision-checked store. Reminder delivery closes
   over that exact store and remains separate from alarm state even when both use

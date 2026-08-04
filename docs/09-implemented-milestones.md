@@ -134,6 +134,11 @@ Outcomes:
   and applies a deterministic final policy across assistant, tool-read, CLI,
   notification, and TTS boundaries. Weather source URLs are retained as
   validated citations but only the provider title is spoken.
+- The fresh thermonuclear review hardened URL-first sanitization, broadened
+  supported ISO/RFC and validated IANA detection, centralized temporal rendering,
+  made weather timezone context explicit, unified retained search metadata with
+  speech, and moved mandatory notification enforcement into neutral service
+  composition.
 - Local timestamps are accepted only when they round-trip to exactly one instant
   in the returned IANA timezone. Nonexistent daylight-saving times and ambiguous
   repeated local times are rejected instead of silently normalized.

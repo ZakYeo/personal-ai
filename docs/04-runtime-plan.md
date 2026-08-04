@@ -537,7 +537,7 @@ excluded sources are discarded. Response bodies are read through a bounded
 streaming reader, and the active voice-service shutdown signal cancels both the
 request and body consumption. Text, desktop voice, and Pi service composition
 all use the same feature registry entry. Search answers carry exact URLs only as
-structured citation/reference metadata. One feature-owned policy sanitizes
+structured citation/reference metadata. The shared application-owned policy sanitizes
 answers, source titles, and extracts before speech or retention, while
 hyperlink-capable CLI output attaches URLs with a one-pass non-overlapping hidden
 title-link renderer. OpenAI intent fallback, clarification, conversation, and
@@ -547,8 +547,12 @@ The shared policy also covers non-search responses, tool observations, compound
 step responses, confirmations, deterministic provider fallbacks, and background
 notification speech. Prompts receive the current time, assistant timezone, and
 non-sensitive grammatical forms for opaque temporal tokens. Final application
-rendering keeps exact facts protected while preventing raw URLs, ISO timestamps,
-or IANA identifiers from reaching CLI or TTS output.
+rendering keeps exact facts protected while preventing raw URLs, supported
+ISO/RFC timestamps, or validated IANA identifiers from reaching CLI or TTS
+output. Subject-local feature results declare their timezone and contextual date
+style explicitly; the calendar UTC-day style remains a separate typed mode.
+Neutral service composition applies the policy to every notification delivery,
+so configured and injected adapters receive already-safe text.
 
 The opt-in `npm run test:e2e:openai:alarms` smoke uses live OpenAI intent
 routing to verify that alarm creation reaches the confirmation boundary without
