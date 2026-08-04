@@ -13,6 +13,79 @@ import {
 import { createAssistant } from "./assistant.js";
 
 describe("assistant clarification transitions", () => {
+  it("resumes feature execution follow-ups through the exact intent session", async () => {
+    const continuations: IntentSessionContinuation[] = [];
+    let firstInterpretation = true;
+    const intentInterpreter: IntentInterpreterPort = {
+      start: () => ({
+        next: (continuation) => {
+          if (continuation) continuations.push(continuation);
+          const location = firstInterpretation ? "London" : "London, UK";
+          firstInterpretation = false;
+          return Promise.resolve({
+            command: {
+              capability: "weather.current",
+              parameters: { location },
+              rawText: location,
+            },
+            kind: "command" as const,
+          });
+        },
+      }),
+    };
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([
+        createRawFeature({
+          capabilities: [
+            {
+              name: "weather.current",
+              parameters: { location: { required: true, type: "string" } },
+              risk: "low",
+            },
+          ],
+          execute: (request) =>
+            Promise.resolve(
+              request.args.location === "London"
+                ? {
+                    expectsFollowUp: true,
+                    text: "Which London did you mean?",
+                  }
+                : { text: "It is 21°C in London, England." },
+            ),
+          id: "weather",
+        }),
+      ]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({ weather: { enabled: true } }),
+      intentInterpreter,
+    });
+
+    await expect(
+      assistant.handleText("What is the weather in London?"),
+    ).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: "Which London did you mean?",
+    });
+    await expect(assistant.handleText("London, UK")).resolves.toEqual({
+      status: "ok",
+      text: "It is 21°C in London, England.",
+    });
+    expect(continuations).toEqual([
+      {
+        clarification: {
+          capability: "weather.current",
+          origin: "feature_execution",
+          originalText: "What is the weather in London?",
+          prompt: "Which London did you mean?",
+          session: "resume",
+        },
+        kind: "user_reply",
+        text: "London, UK",
+      },
+    ]);
+  });
+
   it("treats an open rephrase prompt as a fresh next request", async () => {
     const starts: string[] = [];
     const rephrase = {

@@ -70,7 +70,10 @@ export interface IntentClarificationMetadata {
 
 export interface IntentClarificationContext {
   readonly capability?: string;
-  readonly origin: IntentClarificationMetadata["origin"] | "feature_validation";
+  readonly origin:
+    | IntentClarificationMetadata["origin"]
+    | "feature_validation"
+    | "feature_execution";
   readonly originalText: string;
   readonly prompt: string;
   readonly session: IntentClarificationMetadata["session"];

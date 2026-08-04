@@ -554,6 +554,11 @@ should also guard against subtler boundary and abstraction drift.
   country, feature code, and population outside the forecast location value.
   Low-risk weather reads may use the best ranked exact candidate; persistent
   watch creation requires one unique or explicitly country-qualified candidate.
+- A follow-up requested by one executed feature command becomes the assistant's
+  process-local resumable clarification. Core resumes the exact intent session
+  with typed feature-execution context, while cancellation and changed-topic
+  replacement retain the shared interaction transition policy. Compound plans
+  do not register an ambiguous feature-execution continuation.
 - The Open-Meteo adapter uses only the free non-commercial forecast and
   geocoding endpoints without an API key. It preserves required attribution,
   bounds forecast requests to at most 16 local calendar dates, and fails startup

@@ -165,14 +165,20 @@ export function createIntentWorkflow(input: {
         decorate,
       );
     }
-    return decorate(
-      await executeValidatedPlan(
-        validation.plan,
-        input.dependencies,
-        input.dependencies.resultReferences,
-        context.signal,
-      ),
+    const execution = await executeValidatedPlan(
+      validation.plan,
+      input.dependencies,
+      input.dependencies.resultReferences,
+      context.signal,
     );
+    return validation.plan.kind === "single" &&
+      execution.response.expectsFollowUp === true
+      ? requestClarification(execution.response, {
+          capability: validation.plan.steps[0]!.command.capability,
+          origin: "feature_execution",
+          session: "resume",
+        })
+      : decorate(execution);
   }
 
   function validateRead({
@@ -219,7 +225,7 @@ export function createIntentWorkflow(input: {
       | IntentClarificationMetadata
       | {
           capability: string;
-          origin: "feature_validation";
+          origin: "feature_execution" | "feature_validation";
           session: "resume";
         },
   ): AssistantOutcome {
