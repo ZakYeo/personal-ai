@@ -117,6 +117,7 @@ describe("OpenAIIntentInterpreter", () => {
         jsonResponse({
           id: "resp_clarification",
           output_text: JSON.stringify({
+            clarificationCapability: "alarm.create",
             command: null,
             kind: "clarification",
             plan: null,
@@ -143,6 +144,7 @@ describe("OpenAIIntentInterpreter", () => {
     await expect(
       session.next({
         clarification: {
+          capability: "alarm.create",
           origin: "intent_interpreter",
           originalText: "Set an alarm",
           prompt: "What time?",
@@ -159,6 +161,12 @@ describe("OpenAIIntentInterpreter", () => {
     });
     expect(String(continuation.instructions)).toContain(
       "return kind replacement",
+    );
+    expect(String(continuation.instructions)).toContain(
+      "does not answer the prompt and instead makes any independently routable request",
+    );
+    expect(String(continuation.instructions)).toContain(
+      "kind replacement is the only allowed output",
     );
   });
   it("provides only safe opaque calendar references to the provider", async () => {

@@ -9,7 +9,7 @@ describe.skipIf(!runOpenAIE2E)(
   "OpenAI clarification transitions live E2E",
   () => {
     it("rephrases an incomplete request before handling the next request afresh", async () => {
-      const assistant = await createLiveAssistant();
+      const { assistant, requestBodies } = await createLiveAssistant();
 
       await expect(assistant.handleText("Can you do")).resolves.toMatchObject({
         expectsFollowUp: true,
@@ -23,13 +23,18 @@ describe.skipIf(!runOpenAIE2E)(
         status: "ok",
         text: expect.stringContaining("I can") as string,
       });
+
+      expect(requestBodies).toHaveLength(2);
+      expect(readRequestBody(requestBodies, 1)).not.toHaveProperty(
+        "previous_response_id",
+      );
     }, 60_000);
 
     it("replaces a targeted clarification with a different request", async () => {
-      const assistant = await createLiveAssistant();
+      const { assistant, requestBodies } = await createLiveAssistant();
 
       await expect(
-        assistant.handleText("Can you set an alarm for me?"),
+        assistant.handleText("Set an alarm tomorrow"),
       ).resolves.toMatchObject({
         expectsFollowUp: true,
         status: "ok",
@@ -42,12 +47,25 @@ describe.skipIf(!runOpenAIE2E)(
         status: "ok",
         text: expect.stringContaining("I can") as string,
       });
+
+      expect(requestBodies).toHaveLength(3);
+      expect(readRequestBody(requestBodies, 1)).toHaveProperty(
+        "previous_response_id",
+      );
+      expect(readRequestBody(requestBodies, 2)).not.toHaveProperty(
+        "previous_response_id",
+      );
     }, 60_000);
   },
 );
 
 function createLiveAssistant() {
-  return createConfiguredTextRuntime({
+  const requestBodies: string[] = [];
+  const recordingFetch: typeof globalThis.fetch = (input, init) => {
+    if (typeof init?.body === "string") requestBodies.push(init.body);
+    return globalThis.fetch(input, init);
+  };
+  const assistant = createConfiguredTextRuntime({
     config: parseAssistantConfig({
       assistant: {
         name: "Jarvis",
@@ -65,6 +83,17 @@ function createLiveAssistant() {
       responseRewriter: { provider: "disabled" },
     }),
     env: { OPENAI_API_KEY: env.OPENAI_API_KEY },
-    fetch: globalThis.fetch,
+    fetch: recordingFetch,
   });
+  return assistant.then((configuredAssistant) => ({
+    assistant: configuredAssistant,
+    requestBodies,
+  }));
+}
+
+function readRequestBody(
+  requestBodies: readonly string[],
+  index: number,
+): unknown {
+  return JSON.parse(requestBodies[index]!);
 }

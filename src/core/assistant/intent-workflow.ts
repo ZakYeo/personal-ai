@@ -241,7 +241,8 @@ export function createIntentWorkflow(input: {
             kind: "user_reply",
             text: reply,
           });
-          return interpretation.kind === "replacement"
+          return interpretation.kind === "replacement" ||
+            changesClarifiedCapability(interpretation, metadata.capability)
             ? { kind: "replacement" }
             : {
                 kind: "completed",
@@ -255,6 +256,22 @@ export function createIntentWorkflow(input: {
         }
       },
     );
+  }
+
+  function changesClarifiedCapability(
+    interpretation: IntentInterpretation,
+    clarifiedCapability: string | undefined,
+  ): boolean {
+    if (!clarifiedCapability) return false;
+    if (interpretation.kind === "command") {
+      return interpretation.command.capability !== clarifiedCapability;
+    }
+    if (interpretation.kind === "plan") {
+      return interpretation.plan.commands.every(
+        (command) => command.capability !== clarifiedCapability,
+      );
+    }
+    return false;
   }
 
   async function handleConversation(): Promise<AssistantOutcome> {

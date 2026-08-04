@@ -42,6 +42,7 @@ describe("parseOpenAIIntentSessionResponse", () => {
         {
           id: "response-1",
           output_text: JSON.stringify({
+            clarificationCapability: "alarm.create",
             command: null,
             kind: "clarification",
             plan: null,
@@ -54,6 +55,7 @@ describe("parseOpenAIIntentSessionResponse", () => {
     ).toEqual({
       interpretation: {
         clarification: {
+          capability: "alarm.create",
           origin: "intent_interpreter",
           session: "resume",
         },
@@ -62,6 +64,25 @@ describe("parseOpenAIIntentSessionResponse", () => {
       },
       responseId: "response-1",
     });
+  });
+
+  it("rejects a clarification without a selected capability", () => {
+    expect(() =>
+      parseOpenAIIntentSessionResponse(
+        {
+          id: "response-1",
+          output_text: JSON.stringify({
+            clarificationCapability: null,
+            command: null,
+            kind: "clarification",
+            plan: null,
+            response: { status: "ok", text: "Which one?" },
+          }),
+        },
+        tools,
+        "choose one",
+      ),
+    ).toThrow("clarification must identify a non-empty capability");
   });
 
   it("rejects multiple function calls in one provider response", () => {

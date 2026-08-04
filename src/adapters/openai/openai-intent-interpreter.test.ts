@@ -104,6 +104,10 @@ describe("OpenAIIntentInterpreter", () => {
     expect(body.text.format.schema).toMatchObject({
       additionalProperties: false,
       properties: {
+        clarificationCapability: {
+          enum: ["calendar.search_events", null],
+          type: ["string", "null"],
+        },
         command: {
           type: ["object", "null"],
           properties: {
@@ -143,7 +147,13 @@ describe("OpenAIIntentInterpreter", () => {
           required: ["status", "text"],
         },
       },
-      required: ["kind", "command", "plan", "response"],
+      required: [
+        "kind",
+        "clarificationCapability",
+        "command",
+        "plan",
+        "response",
+      ],
     });
     expect(body.text.format.schema).not.toHaveProperty("anyOf");
     expect(JSON.stringify(body.input)).toContain("calendar.search_events");
@@ -191,6 +201,7 @@ describe("OpenAIIntentInterpreter", () => {
       jsonResponse({
         id: "response-1",
         output_text: JSON.stringify({
+          clarificationCapability: null,
           command: null,
           kind: "rephrase",
           plan: null,
@@ -258,6 +269,7 @@ describe("OpenAIIntentInterpreter", () => {
       jsonResponse({
         id: "response-1",
         output_text: JSON.stringify({
+          clarificationCapability: "internet.search",
           command: null,
           kind: "clarification",
           plan: null,
@@ -289,6 +301,10 @@ describe("OpenAIIntentInterpreter", () => {
     expect(input).toContain(
       "A question about one named action is not a broad capability-catalog question",
     );
+    expect(input).toContain(
+      "An incomplete modal fragment such as 'can you do'",
+    );
+    expect(input).toContain("If one matches, never use kind rephrase");
     expect(input).toContain(
       "Choose by the requested object or domain, not by a generic verb",
     );

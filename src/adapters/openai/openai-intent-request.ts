@@ -66,10 +66,14 @@ function createIntentInstructions(
     "Call at most one read tool in a response. Never call a terminal-only capability as a tool.",
     "After a tool result, either call one more read tool or return a fully resolved terminal command or plan.",
     "Use kind clarification with an ok response populated only when a specific workflow is selected and one user answer is required to resolve it.",
+    "When kind is clarification, set clarificationCapability to the exact enabled capability selected for that workflow. For every other kind, set clarificationCapability to null.",
     "Use kind rephrase when the request is too incomplete to select a specific workflow; ask one concise open question with an ok response.",
+    "Apply that distinction in this order: first attempt to select an exact enabled capability. If one matches, never use kind rephrase; use kind clarification when that capability still needs user information. Use kind rephrase only when no exact capability can be selected at all.",
+    "An incomplete modal fragment such as 'can you do', 'could you help', or 'I need' does not select a workflow. Return kind rephrase for it, never kind clarification. This applies only when no capability, domain, or action is named; a request such as 'can you set an alarm for me?' selects alarm creation and must clarify for its missing detail.",
     ...(continuation === "user_reply"
       ? [
-          "The current input is a reply to a clarification. If it answers the clarification, continue resolving the existing workflow. If it instead makes a new request or changes topic, return kind replacement with command, plan, and response null so the application can interpret that exact input afresh.",
+          "The current input is a reply to a clarification. First decide whether it answers the exact application clarification prompt. If it does, continue resolving that existing workflow. If it does not answer the prompt and instead makes any independently routable request or changes topic, return kind replacement with command, plan, and response null. Do not resolve or return the new command inside this response; the application will interpret the exact input afresh.",
+          "For an independently routable clarification reply, kind replacement is the only allowed output. This transition rule overrides the routing instructions below even when the reply maps perfectly to an enabled capability. A capabilities question does not answer a prompt asking for a time, place, item, or other missing action detail.",
         ]
       : ["Do not use kind replacement for this response."]),
     ...(clarification ? [formatClarificationContext(clarification)] : []),
@@ -316,6 +320,13 @@ function createIntentInterpretationSchema(
   return {
     additionalProperties: false,
     properties: {
+      clarificationCapability:
+        capabilityNames.length === 0
+          ? { type: "null" }
+          : {
+              enum: [...capabilityNames, null],
+              type: ["string", "null"],
+            },
       command: {
         ...commandSchema,
         type: ["object", "null"],
@@ -366,7 +377,13 @@ function createIntentInterpretationSchema(
         type: ["object", "null"],
       },
     },
-    required: ["kind", "command", "plan", "response"],
+    required: [
+      "kind",
+      "clarificationCapability",
+      "command",
+      "plan",
+      "response",
+    ],
     type: "object",
   };
 }

@@ -25,6 +25,16 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
     throw new OpenAIIntentError("OpenAI intent response must be an object.");
   }
 
+  if (
+    value.kind !== "clarification" &&
+    value.clarificationCapability !== undefined &&
+    value.clarificationCapability !== null
+  ) {
+    throw new OpenAIIntentError(
+      "OpenAI intent response must reserve clarificationCapability for clarifications.",
+    );
+  }
+
   if (value.kind === "command") {
     if (value.response !== null) {
       throw new OpenAIIntentError(
@@ -73,8 +83,17 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   if (value.kind === "clarification") {
+    if (
+      typeof value.clarificationCapability !== "string" ||
+      value.clarificationCapability.length === 0
+    ) {
+      throw new OpenAIIntentError(
+        "OpenAI intent clarification must identify a non-empty capability.",
+      );
+    }
     return {
       clarification: {
+        capability: value.clarificationCapability,
         origin: "intent_interpreter",
         session: "resume",
       },

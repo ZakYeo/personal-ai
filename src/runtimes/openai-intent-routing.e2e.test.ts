@@ -134,6 +134,11 @@ describe.skipIf(!runOpenAIE2E)("OpenAI intent routing live E2E", () => {
       const interpreter = createInterpreter();
 
       await expect(interpretOnce(interpreter, text, context)).resolves.toEqual({
+        clarification: {
+          capability: "internet.search",
+          origin: "intent_interpreter",
+          session: "resume",
+        },
         kind: "clarification",
         response: {
           status: "ok",

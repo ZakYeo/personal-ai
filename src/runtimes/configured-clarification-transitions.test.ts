@@ -50,20 +50,14 @@ describe("configured clarification transitions", () => {
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(
         intentResponse("clarification", {
+          clarificationCapability: "alarm.create",
           command: null,
           kind: "clarification",
           plan: null,
           response: { status: "ok", text: "What time?" },
         }),
       )
-      .mockResolvedValueOnce(
-        intentResponse("replacement", {
-          command: null,
-          kind: "replacement",
-          plan: null,
-          response: null,
-        }),
-      )
+      .mockResolvedValueOnce(capabilityListResponse("direct-new-topic"))
       .mockResolvedValueOnce(capabilityListResponse("capabilities"));
     const assistant = await createAssistant(fetch);
 
