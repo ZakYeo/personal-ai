@@ -7,12 +7,39 @@ export function isCanonicalIsoTimestamp(value: unknown): value is string {
 }
 
 export function isCanonicalIsoDate(value: unknown): value is string {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) {
-    return false;
+  return parseCanonicalIsoDate(value) !== undefined;
+}
+
+export function parseCanonicalIsoDate(
+  value: unknown,
+): { day: number; month: number; year: number } | undefined {
+  if (typeof value !== "string") return;
+  const match = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})$/u.exec(value);
+  if (!match?.groups) return;
+  const year = Number(match.groups.year);
+  const month = Number(match.groups.month);
+  const day = Number(match.groups.day);
+  const timestamp = new Date(Date.UTC(year, month - 1, day));
+  return timestamp.getUTCFullYear() === year &&
+    timestamp.getUTCMonth() === month - 1 &&
+    timestamp.getUTCDate() === day
+    ? { day, month, year }
+    : undefined;
+}
+
+export function resolveTimeZoneIdentifier(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.length === 0) return;
+  try {
+    return new Intl.DateTimeFormat("en", {
+      timeZone: value,
+    }).resolvedOptions().timeZone;
+  } catch {
+    return;
   }
-  const timestamp = new Date(`${value}T00:00:00.000Z`);
+}
+
+export function isCanonicalTimeZoneIdentifier(value: unknown): value is string {
   return (
-    !Number.isNaN(timestamp.getTime()) &&
-    timestamp.toISOString().slice(0, 10) === value
+    typeof value === "string" && resolveTimeZoneIdentifier(value) === value
   );
 }

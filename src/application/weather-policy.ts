@@ -1,4 +1,9 @@
 import { zonedParts } from "./local-date-time.js";
+import {
+  isCanonicalIsoDate,
+  isCanonicalIsoTimestamp,
+  isCanonicalTimeZoneIdentifier,
+} from "./temporal-policy.js";
 import type {
   DailyWeatherForecast,
   HourlyWeatherForecast,
@@ -76,7 +81,7 @@ export function isValidWeatherLocation(location: WeatherLocation): boolean {
     Number.isFinite(location.longitude) &&
     location.longitude >= -180 &&
     location.longitude <= 180 &&
-    isCanonicalTimeZone(location.timezone)
+    isCanonicalTimeZoneIdentifier(location.timezone)
   );
 }
 
@@ -130,24 +135,11 @@ export function weatherForecastIsStale(
 }
 
 export function isCanonicalWeatherTimestamp(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
+  return isCanonicalIsoTimestamp(value);
 }
 
 export function isCanonicalWeatherDate(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  const match = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})$/u.exec(value);
-  if (!match?.groups) return false;
-  const year = Number(match.groups.year);
-  const month = Number(match.groups.month);
-  const day = Number(match.groups.day);
-  const rendered = new Date(Date.UTC(year, month - 1, day));
-  return (
-    rendered.getUTCFullYear() === year &&
-    rendered.getUTCMonth() === month - 1 &&
-    rendered.getUTCDate() === day
-  );
+  return isCanonicalIsoDate(value);
 }
 
 function hasValidHourlyFacts(
@@ -268,18 +260,6 @@ function isHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
     return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function isCanonicalTimeZone(value: string): boolean {
-  try {
-    return (
-      new Intl.DateTimeFormat("en", {
-        timeZone: value,
-      }).resolvedOptions().timeZone === value
-    );
   } catch {
     return false;
   }

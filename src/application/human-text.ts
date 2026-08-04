@@ -1,4 +1,8 @@
 import { zonedParts } from "./local-date-time.js";
+import {
+  parseCanonicalIsoDate,
+  resolveTimeZoneIdentifier,
+} from "./temporal-policy.js";
 
 type SpokenDateStyle = "calendar" | "contextual";
 
@@ -31,7 +35,7 @@ export function humanizeSpokenText(
     .replace(isoInstantPattern, (instant) => renderInstant(instant, context))
     .replace(rfcInstantPattern, (instant) => renderInstant(instant, context))
     .replace(ianaTimeZoneCandidatePattern, (candidate) =>
-      isCanonicalTimeZone(candidate)
+      resolveTimeZoneIdentifier(candidate) !== undefined
         ? formatTimeZoneLabel(candidate)
         : candidate,
     )
@@ -88,7 +92,7 @@ export function renderSpokenFact(
   const instant = renderInstant(value, context);
   if (instant !== value) return instant;
 
-  const date = parseIsoDate(value);
+  const date = parseCanonicalIsoDate(value);
   if (date) {
     return context.dateStyle === "calendar"
       ? renderCalendarDate(date, context.now)
@@ -98,7 +102,9 @@ export function renderSpokenFact(
   const time = renderLocalTime(value);
   if (time) return time;
 
-  if (isCanonicalTimeZone(value)) return formatTimeZoneLabel(value);
+  if (resolveTimeZoneIdentifier(value) !== undefined) {
+    return formatTimeZoneLabel(value);
+  }
 
   return value;
 }
@@ -107,9 +113,9 @@ export function classifySpokenFact(value: string): SpokenFactForm | undefined {
   if (isSupportedInstant(value) && Number.isFinite(new Date(value).getTime())) {
     return "date_time";
   }
-  if (parseIsoDate(value)) return "date";
+  if (parseCanonicalIsoDate(value)) return "date";
   if (renderLocalTime(value)) return "time";
-  if (isCanonicalTimeZone(value)) return "time_zone";
+  if (resolveTimeZoneIdentifier(value) !== undefined) return "time_zone";
   return undefined;
 }
 
@@ -138,8 +144,8 @@ function isSupportedInstant(value: string): boolean {
 
 function containsIanaTimeZone(value: string): boolean {
   ianaTimeZoneCandidatePattern.lastIndex = 0;
-  return [...value.matchAll(ianaTimeZoneCandidatePattern)].some((match) =>
-    isCanonicalTimeZone(match[0]),
+  return [...value.matchAll(ianaTimeZoneCandidatePattern)].some(
+    (match) => resolveTimeZoneIdentifier(match[0]) !== undefined,
   );
 }
 
@@ -222,31 +228,6 @@ function formatTime(hour: number, minute: number): string {
   const spokenMinute =
     minute === 0 ? "" : `:${String(minute).padStart(2, "0")}`;
   return `${spokenHour}${spokenMinute}${hour < 12 ? "am" : "pm"}`;
-}
-
-function parseIsoDate(
-  value: string,
-): { day: number; month: number; year: number } | undefined {
-  const match = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})$/u.exec(value);
-  if (!match?.groups) return;
-  const year = Number(match.groups.year);
-  const month = Number(match.groups.month);
-  const day = Number(match.groups.day);
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  return parsed.getUTCFullYear() === year &&
-    parsed.getUTCMonth() === month - 1 &&
-    parsed.getUTCDate() === day
-    ? { day, month, year }
-    : undefined;
-}
-
-function isCanonicalTimeZone(value: string): boolean {
-  try {
-    new Intl.DateTimeFormat("en", { timeZone: value });
-    return value === "UTC" || value.includes("/");
-  } catch {
-    return false;
-  }
 }
 
 function formatTimeZoneLabel(value: string): string {

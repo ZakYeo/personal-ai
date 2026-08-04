@@ -3,6 +3,10 @@ import type {
   AlarmRecurrence,
   AlarmStatus,
 } from "../ports/alarm-store.js";
+import {
+  isCanonicalTimeZoneIdentifier,
+  resolveTimeZoneIdentifier,
+} from "./temporal-policy.js";
 
 export { isCanonicalIsoTimestamp } from "./temporal-policy.js";
 
@@ -20,16 +24,11 @@ export function resolveAlarmRecurrence(
     throw new Error("Alarm recurrence requires a valid IANA timezone.");
   }
 
-  try {
-    return {
-      frequency,
-      timeZone: new Intl.DateTimeFormat("en", {
-        timeZone,
-      }).resolvedOptions().timeZone,
-    };
-  } catch {
+  const resolvedTimeZone = resolveTimeZoneIdentifier(timeZone);
+  if (resolvedTimeZone === undefined) {
     throw new Error("Alarm recurrence requires a valid IANA timezone.");
   }
+  return { frequency, timeZone: resolvedTimeZone };
 }
 
 export function isCanonicalAlarmRecurrence(
@@ -44,15 +43,10 @@ export function isCanonicalAlarmRecurrence(
     return false;
   }
 
-  try {
-    const recurrence = resolveAlarmRecurrence(value.frequency, value.timeZone);
-    return (
-      recurrence.frequency === value.frequency &&
-      recurrence.timeZone === value.timeZone
-    );
-  } catch {
-    return false;
-  }
+  return (
+    (value.frequency === "daily" || value.frequency === "weekly") &&
+    isCanonicalTimeZoneIdentifier(value.timeZone)
+  );
 }
 
 export function isAlarmStatus(value: unknown): value is AlarmStatus {
