@@ -7,6 +7,7 @@ import type {
   OpenAIRealtimeTranscriptionConfig,
   OpenAIStreamingSpeechConfig,
 } from "../../adapters/openai/openai-streaming-voice-config.js";
+import { defaultOpenAIStreamingSpeechMaxAudioBytes } from "../../adapters/openai/openai-streaming-voice-config.js";
 
 export function parseDesktopOpenAIRealtimeTranscriptionConfig(
   value: unknown,
@@ -73,6 +74,11 @@ export function parseDesktopOpenAIStreamingSpeechConfig(
       value.instructions,
       "Config desktopVoice.openAIStreamingSpeech.instructions must be a non-empty string.",
       "Speak clearly and concisely.",
+    ),
+    maxAudioBytes: parseOptionalPositiveInteger(
+      value.maxAudioBytes,
+      "Config desktopVoice.openAIStreamingSpeech.maxAudioBytes must be a positive integer.",
+      defaultOpenAIStreamingSpeechMaxAudioBytes,
     ),
     model: parseRequiredString(
       value.model,

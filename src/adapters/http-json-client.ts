@@ -1,4 +1,8 @@
-import { cancelReaderBestEffort } from "./bounded-reader-cancellation.js";
+import {
+  defaultMaxProviderResponseBodyBytes,
+  readBoundedResponseText,
+  ResponseBodyTooLargeError,
+} from "./bounded-response-body.js";
 
 interface ProviderJsonErrorOptions {
   cause?: unknown;
@@ -21,8 +25,6 @@ interface FetchProviderJsonOptions {
   timeoutMs: number;
   url: string;
 }
-
-const defaultMaxResponseBodyBytes = 1024 * 1024;
 
 export async function fetchProviderJson(
   options: FetchProviderJsonOptions,
@@ -51,10 +53,10 @@ export async function fetchProviderJson(
       ...options.request,
       signal: controller.signal,
     });
-    const responseBody = await readResponseBody(
+    const responseBody = await readBoundedResponseText(
       response,
       controller.signal,
-      options.maxResponseBodyBytes ?? defaultMaxResponseBodyBytes,
+      options.maxResponseBodyBytes ?? defaultMaxProviderResponseBodyBytes,
     );
 
     if (!response.ok) {
@@ -112,92 +114,4 @@ export function trimTrailingSlash(value: string): string {
 
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === "AbortError";
-}
-
-class ResponseBodyTooLargeError extends Error {}
-
-async function readResponseBody(
-  response: Response,
-  signal: AbortSignal,
-  maxBytes: number | undefined,
-): Promise<string> {
-  if (!response.body) return "";
-  const declaredLength = Number(response.headers.get("content-length"));
-  if (
-    maxBytes !== undefined &&
-    Number.isFinite(declaredLength) &&
-    declaredLength > maxBytes
-  ) {
-    await cancelReaderBestEffort(response.body.getReader());
-    throw new ResponseBodyTooLargeError();
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let bytesRead = 0;
-  let body = "";
-  try {
-    while (true) {
-      const next = await readWithAbort(reader, signal);
-      if (next.done) return body + decoder.decode();
-      if (!next.value)
-        throw new Error("Provider body reader returned no data.");
-      bytesRead += next.value.byteLength;
-      if (maxBytes !== undefined && bytesRead > maxBytes) {
-        await cancelReaderBestEffort(reader);
-        throw new ResponseBodyTooLargeError();
-      }
-      body += decoder.decode(next.value, { stream: true });
-    }
-  } catch (error) {
-    if (signal.aborted) {
-      await cancelReaderBestEffort(reader, { reason: signal.reason });
-    }
-    throw error;
-  } finally {
-    reader.releaseLock();
-  }
-}
-
-function readWithAbort(
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-  signal: AbortSignal,
-): Promise<ByteStreamReadResult> {
-  if (signal.aborted) {
-    return Promise.reject(createAbortError(signal.reason));
-  }
-  return new Promise((resolve, reject) => {
-    const abort = () => {
-      void reader.cancel(signal.reason).catch(() => {});
-      reject(createAbortError(signal.reason));
-    };
-    signal.addEventListener("abort", abort, { once: true });
-    void reader.read().then(
-      (result) => {
-        signal.removeEventListener("abort", abort);
-        resolve(result);
-      },
-      (error: unknown) => {
-        signal.removeEventListener("abort", abort);
-        reject(
-          error instanceof Error
-            ? error
-            : new Error("Provider body read failed.", { cause: error }),
-        );
-      },
-    );
-  });
-}
-
-interface ByteStreamReadResult {
-  done: boolean;
-  value: Uint8Array | undefined;
-}
-
-function createAbortError(reason: unknown): Error {
-  const error = new Error(
-    reason instanceof Error ? reason.message : "The operation was aborted.",
-  );
-  error.name = "AbortError";
-  return error;
 }

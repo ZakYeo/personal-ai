@@ -201,7 +201,9 @@ registry-only extension.
 OpenAI streaming speech has a configured request/body timeout, receives the
 active service shutdown signal, and keeps that abort scope alive until audio
 iteration finishes. Early consumers cancel the response reader so stalled
-provider bodies cannot outlive a turn.
+provider bodies cannot outlive a turn. Non-success response text is bounded,
+and successful audio is limited by `maxAudioBytes`, which defaults to 16 MiB,
+so an active stream cannot grow forever by continuously producing chunks.
 The timeout is armed while connecting and while awaiting each body chunk, then
 disarmed while the consumer handles that chunk. A regularly progressing stream
 may outlive the configured duration without masking a genuinely stalled request

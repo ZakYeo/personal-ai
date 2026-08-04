@@ -1,5 +1,6 @@
 import { parseAssistantConfig, type LoadedRuntimeConfig } from "./config.js";
 import { requireDesktopVoiceConfig } from "./desktop-voice-config.js";
+import { parseDesktopOpenAIStreamingSpeechConfig } from "./desktop-voice-openai-config.js";
 import { requireVoiceConfig } from "./voice-config.js";
 import { resolveDesktopVoiceAdapterConfig } from "../voice/desktop-voice-adapter-registry.js";
 
@@ -65,6 +66,12 @@ describe("desktop voice config parsing", () => {
     expect(
       typeof config.desktopVoice?.streamingTextToSpeechProvider?.create,
     ).toBe("function");
+    expect(
+      parseDesktopOpenAIStreamingSpeechConfig({
+        model: "gpt-4o-mini-tts",
+        voice: "coral",
+      }),
+    ).toMatchObject({ maxAudioBytes: 16 * 1024 * 1024 });
   });
 
   it("rejects invalid desktop voice command config", () => {
@@ -298,6 +305,30 @@ describe("desktop voice config resolvers", () => {
       }),
     ).toThrow(
       "Config desktopVoice.openAIStreamingSpeech.timeoutMs must be a positive integer.",
+    );
+  });
+
+  it("rejects invalid selected OpenAI streaming speech audio limits at the config boundary", () => {
+    expect(() =>
+      createDesktopStreamingRuntimeConfig({
+        desktopVoice: {
+          openAIRealtimeTranscription: {
+            model: "gpt-realtime-whisper",
+          },
+          openAIStreamingSpeech: {
+            maxAudioBytes: 0,
+            model: "gpt-4o-mini-tts",
+            voice: "coral",
+          },
+          streamingAudioOutput: { command: "fake-stream-play" },
+        },
+        voice: {
+          streamingAudioOutput: "sox-play-stream",
+          streamingTextToSpeech: "openai-streaming",
+        },
+      }),
+    ).toThrow(
+      "Config desktopVoice.openAIStreamingSpeech.maxAudioBytes must be a positive integer.",
     );
   });
 

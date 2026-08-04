@@ -3,9 +3,16 @@ import type {
   SynthesizedSpeechStream,
 } from "../../ports/voice.js";
 import { cancelReaderBestEffort } from "../bounded-reader-cancellation.js";
+import {
+  readBoundedResponseText,
+  rejectOversizedDeclaredResponseBody,
+  ResponseBodyTooLargeError,
+} from "../bounded-response-body.js";
 import { createOpenAIUrl, resolveOpenAIApiKey } from "./openai-client.js";
 import { createOpenAIVoiceProviderError } from "./openai-voice-provider-error.js";
 import type { OpenAIStreamingSpeechConfig } from "./openai-streaming-voice-config.js";
+
+const maximumSpeechErrorResponseBodyBytes = 64 * 1024;
 
 interface OpenAIStreamingSpeechOptions {
   config: OpenAIStreamingSpeechConfig;
@@ -48,8 +55,25 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
 
       if (!response.ok) {
         abortScope.armTimeout();
-        const responseBody = await response.text();
-        abortScope.disarmTimeout();
+        let responseBody: string;
+        try {
+          responseBody = await readBoundedResponseText(
+            response,
+            abortScope.signal,
+            maximumSpeechErrorResponseBodyBytes,
+          );
+        } catch (error) {
+          if (error instanceof ResponseBodyTooLargeError) {
+            throw createOpenAIVoiceProviderError({
+              cause: error,
+              message: `OpenAI speech error response exceeded the ${maximumSpeechErrorResponseBodyBytes}-byte limit.`,
+              status: response.status,
+            });
+          }
+          throw error;
+        } finally {
+          abortScope.disarmTimeout();
+        }
         throw createOpenAIVoiceProviderError({
           message: `OpenAI speech request failed with status ${response.status}.`,
           responseBody,
@@ -63,8 +87,24 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
         );
       }
 
+      try {
+        await rejectOversizedDeclaredResponseBody(
+          response,
+          this.options.config.maxAudioBytes,
+        );
+      } catch (error) {
+        if (error instanceof ResponseBodyTooLargeError) {
+          throw createAudioSizeError(this.options.config.maxAudioBytes, error);
+        }
+        throw error;
+      }
+
       return {
-        chunks: streamToAsyncIterable(response.body, abortScope),
+        chunks: streamToAsyncIterable(
+          response.body,
+          abortScope,
+          this.options.config.maxAudioBytes,
+        ),
         text,
       };
     } catch (error) {
@@ -83,9 +123,11 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
 async function* streamToAsyncIterable(
   stream: ReadableStream<Uint8Array>,
   abortScope: SpeechAbortScope,
+  maxAudioBytes: number,
 ): AsyncIterable<Uint8Array> {
   const reader = stream.getReader();
   let completed = false;
+  let audioBytes = 0;
 
   try {
     while (true) {
@@ -94,6 +136,11 @@ async function* streamToAsyncIterable(
       if (result.done) {
         completed = true;
         return;
+      }
+
+      audioBytes += result.value.byteLength;
+      if (audioBytes > maxAudioBytes) {
+        throw createAudioSizeError(maxAudioBytes);
       }
 
       yield result.value;
@@ -115,6 +162,13 @@ async function* streamToAsyncIterable(
     reader.releaseLock();
     abortScope.dispose();
   }
+}
+
+function createAudioSizeError(maxAudioBytes: number, cause?: unknown): Error {
+  return createOpenAIVoiceProviderError({
+    ...(cause === undefined ? {} : { cause }),
+    message: `OpenAI speech audio exceeded the ${maxAudioBytes}-byte limit.`,
+  });
 }
 
 interface SpeechAbortScope {

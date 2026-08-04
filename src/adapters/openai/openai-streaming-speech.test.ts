@@ -1,4 +1,5 @@
 import { OpenAIStreamingSpeech } from "./openai-streaming-speech.js";
+import { defaultOpenAIStreamingSpeechMaxAudioBytes } from "./openai-streaming-voice-config.js";
 import { createAbortingFetchStub } from "../../test-support/adapter-contract.js";
 
 describe("OpenAIStreamingSpeech", () => {
@@ -13,6 +14,7 @@ describe("OpenAIStreamingSpeech", () => {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "https://api.openai.test/v1",
         instructions: "Speak clearly.",
+        maxAudioBytes: defaultOpenAIStreamingSpeechMaxAudioBytes,
         model: "gpt-4o-mini-tts",
         responseFormat: "pcm",
         timeoutMs: 30_000,
@@ -40,6 +42,7 @@ describe("OpenAIStreamingSpeech", () => {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "https://api.openai.test/v1",
         instructions: "Speak clearly.",
+        maxAudioBytes: defaultOpenAIStreamingSpeechMaxAudioBytes,
         model: "gpt-4o-mini-tts",
         responseFormat: "pcm",
         timeoutMs: 30_000,
@@ -60,6 +63,7 @@ describe("OpenAIStreamingSpeech", () => {
         apiKeyEnv: "OPENAI_API_KEY",
         baseUrl: "https://api.openai.test/v1",
         instructions: "Speak clearly.",
+        maxAudioBytes: defaultOpenAIStreamingSpeechMaxAudioBytes,
         model: "gpt-4o-mini-tts",
         responseFormat: "pcm",
         timeoutMs: 30_000,
@@ -78,6 +82,66 @@ describe("OpenAIStreamingSpeech", () => {
       responseBody: '{"error":"quota exceeded"}',
       status: 429,
     });
+  });
+
+  it("rejects oversized non-OK response bodies before buffering them", async () => {
+    const adapter = createAdapter({
+      fetch: vi.fn().mockResolvedValue(
+        new Response("provider failure", {
+          headers: { "content-length": "65537" },
+          status: 500,
+        }),
+      ),
+    });
+
+    await expect(adapter.synthesizeStream("Alarm set.")).rejects.toMatchObject({
+      message: "OpenAI speech error response exceeded the 65536-byte limit.",
+      status: 500,
+    });
+  });
+
+  it("rejects audio whose declared size exceeds the configured limit", async () => {
+    const cancel = vi.fn();
+    const adapter = createAdapter({
+      fetch: vi.fn().mockResolvedValue(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            cancel,
+          }),
+          { headers: { "content-length": "6" } },
+        ),
+      ),
+      maxAudioBytes: 5,
+    });
+
+    await expect(adapter.synthesizeStream("Alarm set.")).rejects.toMatchObject({
+      message: "OpenAI speech audio exceeded the 5-byte limit.",
+    });
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a continuously active audio stream at the total byte limit", async () => {
+    const cancel = vi.fn();
+    const adapter = createAdapter({
+      fetch: vi.fn().mockResolvedValue(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            cancel,
+            pull(controller) {
+              controller.enqueue(Buffer.from("abc", "utf8"));
+            },
+          }),
+        ),
+      ),
+      maxAudioBytes: 5,
+      timeoutMs: 30_000,
+    });
+    const speech = await adapter.synthesizeStream("Alarm set.");
+
+    await expect(readChunksAsText(speech.chunks)).rejects.toMatchObject({
+      message: "OpenAI speech audio exceeded the 5-byte limit.",
+    });
+    expect(cancel).toHaveBeenCalledOnce();
   });
 
   it("aborts speech requests after the configured timeout", async () => {
@@ -264,6 +328,7 @@ describe("OpenAIStreamingSpeech", () => {
 
 function createAdapter(options: {
   fetch: typeof fetch;
+  maxAudioBytes?: number;
   shutdownSignal?: AbortSignal;
   timeoutMs?: number;
 }): OpenAIStreamingSpeech {
@@ -272,6 +337,8 @@ function createAdapter(options: {
       apiKeyEnv: "OPENAI_API_KEY",
       baseUrl: "https://api.openai.test/v1",
       instructions: "Speak clearly.",
+      maxAudioBytes:
+        options.maxAudioBytes ?? defaultOpenAIStreamingSpeechMaxAudioBytes,
       model: "gpt-4o-mini-tts",
       responseFormat: "pcm",
       timeoutMs: options.timeoutMs ?? 30_000,
