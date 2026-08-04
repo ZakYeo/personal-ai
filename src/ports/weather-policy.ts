@@ -4,6 +4,7 @@ import type {
   HourlyWeatherForecast,
   WeatherForecast,
   WeatherLocation,
+  WeatherLocationCandidate,
   WeatherPeriod,
   WeatherUnits,
 } from "./weather.js";
@@ -27,6 +28,34 @@ export function validateWeatherLocations(
     locations.some((location) => !isValidWeatherLocation(location))
   ) {
     throw new Error("Weather location results were malformed or ambiguous.");
+  }
+}
+
+export function validateWeatherLocationCandidates(
+  candidates: readonly WeatherLocationCandidate[],
+): void {
+  const ranks = new Set<number>();
+  if (
+    candidates.length > maxLocationResults ||
+    candidates.some((candidate) => {
+      const validRank =
+        Number.isInteger(candidate.providerRank) && candidate.providerRank > 0;
+      if (ranks.has(candidate.providerRank)) return true;
+      ranks.add(candidate.providerRank);
+      return (
+        !isValidWeatherLocation(candidate.location) ||
+        !isBoundedText(candidate.searchName, 200) ||
+        !isBoundedText(candidate.countryName, 200) ||
+        !validRank ||
+        (candidate.featureCode !== undefined &&
+          !isBoundedText(candidate.featureCode, 32)) ||
+        (candidate.population !== undefined &&
+          (!Number.isSafeInteger(candidate.population) ||
+            candidate.population < 0))
+      );
+    })
+  ) {
+    throw new Error("Weather location candidates were malformed.");
   }
 }
 

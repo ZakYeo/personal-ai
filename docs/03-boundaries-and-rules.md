@@ -550,6 +550,10 @@ should also guard against subtler boundary and abstraction drift.
   weather-watch metric's unit, allowed operators, threshold range, forecast
   value extraction, and matching behavior; persistence only decodes its external
   shape and human-facing wording remains feature owned.
+- Geocoding candidates keep the provider's bounded rank, canonical search name,
+  country, feature code, and population outside the forecast location value.
+  Low-risk weather reads may use the best ranked exact candidate; persistent
+  watch creation requires one unique or explicitly country-qualified candidate.
 - The Open-Meteo adapter uses only the free non-commercial forecast and
   geocoding endpoints without an API key. It preserves required attribution,
   bounds forecast requests to at most 16 local calendar dates, and fails startup

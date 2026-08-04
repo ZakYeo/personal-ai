@@ -1,20 +1,27 @@
-import type { WeatherLocation } from "../../ports/weather.js";
+import type { WeatherLocationCandidate } from "../../ports/weather.js";
 import { assertValidWeatherLocation } from "../../ports/weather-policy.js";
 import { isRecord } from "../parsing.js";
 import { OpenMeteoWeatherError } from "./open-meteo-error.js";
 
 const maxLocations = 5;
 
-export function parseOpenMeteoLocations(value: unknown): WeatherLocation[] {
+export function parseOpenMeteoLocations(
+  value: unknown,
+): WeatherLocationCandidate[] {
   if (!isRecord(value)) throw malformedGeocoding();
   if (value.results === undefined) return [];
   if (!Array.isArray(value.results) || value.results.length > maxLocations) {
     throw malformedGeocoding();
   }
-  return value.results.map(parseLocation);
+  return value.results.map((location, index) =>
+    parseLocation(location, index + 1),
+  );
 }
 
-function parseLocation(value: unknown): WeatherLocation {
+function parseLocation(
+  value: unknown,
+  providerRank: number,
+): WeatherLocationCandidate {
   if (
     !isRecord(value) ||
     !isNonEmptyString(value.name) ||
@@ -22,7 +29,14 @@ function parseLocation(value: unknown): WeatherLocation {
     typeof value.latitude !== "number" ||
     typeof value.longitude !== "number" ||
     typeof value.timezone !== "string" ||
-    (value.admin1 !== undefined && !isNonEmptyString(value.admin1))
+    (value.admin1 !== undefined && !isNonEmptyString(value.admin1)) ||
+    (value.country !== undefined && !isNonEmptyString(value.country)) ||
+    (value.feature_code !== undefined &&
+      !isNonEmptyString(value.feature_code)) ||
+    (value.population !== undefined &&
+      (typeof value.population !== "number" ||
+        !Number.isSafeInteger(value.population) ||
+        value.population < 0))
   ) {
     throw malformedGeocoding();
   }
@@ -41,7 +55,21 @@ function parseLocation(value: unknown): WeatherLocation {
   };
   try {
     assertValidWeatherLocation(location);
-    return location;
+    return {
+      countryName:
+        typeof value.country === "string"
+          ? value.country.trim()
+          : value.country_code,
+      ...(typeof value.feature_code === "string"
+        ? { featureCode: value.feature_code.trim() }
+        : {}),
+      location,
+      ...(typeof value.population === "number"
+        ? { population: value.population }
+        : {}),
+      providerRank,
+      searchName: value.name.trim(),
+    };
   } catch {
     throw malformedGeocoding();
   }

@@ -7,7 +7,8 @@ import type {
   WeatherLocation,
   WeatherProviderPort,
 } from "../../ports/weather.js";
-import { validateWeatherLocations } from "../../ports/weather-policy.js";
+import { validateWeatherLocationCandidates } from "../../ports/weather-policy.js";
+import { selectWeatherLocation } from "./weather-location-selection.js";
 
 type WeatherLocationResolution =
   | { location: WeatherLocation }
@@ -19,13 +20,16 @@ export async function resolveWeatherLocation(
   provider: WeatherProviderPort,
   location: string | undefined,
   context: FeatureExecutionContext,
-  personalContext?: PersonalContextReaderPort,
+  options: {
+    personalContext?: PersonalContextReaderPort;
+    selection: "ranked" | "unique";
+  },
 ): Promise<WeatherLocationResolution> {
   const requestedPlace = location?.trim();
   const requestsHome =
     requestedPlace === undefined || requestedPlace.toLowerCase() === "home";
   const explicitHome = requestsHome
-    ? await personalContext?.readHomeLocation()
+    ? await options.personalContext?.readHomeLocation()
     : undefined;
   const place =
     explicitHome?.provenance === "user-authored"
@@ -38,7 +42,7 @@ export async function resolveWeatherLocation(
       result: {
         expectsFollowUp: true,
         text:
-          requestedPlace?.toLowerCase() === "home" || personalContext
+          requestedPlace?.toLowerCase() === "home" || options.personalContext
             ? "I do not have an explicitly stored home location. Which location should I check?"
             : "Which location should I check?",
       },
@@ -50,12 +54,12 @@ export async function resolveWeatherLocation(
     );
   }
 
-  const locations = await provider.findLocations(
+  const candidates = await provider.findLocations(
     { place },
     context.signal ? { signal: context.signal } : {},
   );
-  validateWeatherLocations(locations);
-  if (locations.length === 0) {
+  validateWeatherLocationCandidates(candidates);
+  if (candidates.length === 0) {
     return {
       result: {
         expectsFollowUp: true,
@@ -63,15 +67,19 @@ export async function resolveWeatherLocation(
       },
     };
   }
-  if (locations.length > 1) {
+  const selection = selectWeatherLocation(place, candidates, options.selection);
+  if (selection.kind === "ambiguous") {
     return {
       result: {
         expectsFollowUp: true,
-        text: `I found multiple locations for ${place}: ${locations
-          .map((candidate) => `${candidate.name} (${candidate.countryCode})`)
+        text: `I found multiple locations for ${place}: ${selection.candidates
+          .map(
+            (candidate) =>
+              `${candidate.location.name} (${candidate.location.countryCode})`,
+          )
           .join(", ")}. Which one did you mean?`,
       },
     };
   }
-  return { location: locations[0]! };
+  return { location: selection.location };
 }

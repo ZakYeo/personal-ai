@@ -229,18 +229,32 @@ describe("createWeatherFeature", () => {
     ambiguousProvider.findLocations = () =>
       Promise.resolve([
         {
-          countryCode: "GB",
-          latitude: 51.5,
-          longitude: -0.1,
-          name: "London, England",
-          timezone: "Europe/London",
+          countryName: "United Kingdom",
+          featureCode: "PPLC",
+          location: {
+            countryCode: "GB",
+            latitude: 51.5,
+            longitude: -0.1,
+            name: "London, England",
+            timezone: "Europe/London",
+          },
+          population: 8_961_989,
+          providerRank: 1,
+          searchName: "London",
         },
         {
-          countryCode: "CA",
-          latitude: 42.98,
-          longitude: -81.25,
-          name: "London, Ontario",
-          timezone: "America/Toronto",
+          countryName: "Canada",
+          featureCode: "PPLA2",
+          location: {
+            countryCode: "CA",
+            latitude: 42.98,
+            longitude: -81.25,
+            name: "London, Ontario",
+            timezone: "America/Toronto",
+          },
+          population: 422_324,
+          providerRank: 2,
+          searchName: "London",
         },
       ]);
 
@@ -251,9 +265,21 @@ describe("createWeatherFeature", () => {
         { location: "London" },
         context,
       ),
-    ).resolves.toEqual({
-      expectsFollowUp: true,
-      text: "I found multiple locations for London: London, England (GB), London, Ontario (CA). Which one did you mean?",
+    ).resolves.toMatchObject({
+      data: { location: "London, England" },
+      text: expect.stringContaining("In London, England") as string,
+    });
+
+    await expect(
+      executeFeature(
+        createTestWeatherFeature(ambiguousProvider),
+        "weather.current",
+        { location: "London, Canada" },
+        context,
+      ),
+    ).resolves.toMatchObject({
+      data: { location: "London, Ontario" },
+      text: expect.stringContaining("In London, Ontario") as string,
     });
 
     await expect(

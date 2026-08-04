@@ -18,7 +18,18 @@ export function createMockWeatherProvider(): WeatherProviderPort {
     findLocations: (query, options) => {
       throwIfAborted(options);
       return Promise.resolve(
-        query.place.trim().toLowerCase() === "london" ? [{ ...london }] : [],
+        query.place.trim().toLowerCase() === "london"
+          ? [
+              {
+                countryName: "United Kingdom",
+                featureCode: "PPLC",
+                location: { ...london },
+                population: 8_961_989,
+                providerRank: 1,
+                searchName: "London",
+              },
+            ]
+          : [],
       );
     },
     getForecast: (request, options) => {

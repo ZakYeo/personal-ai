@@ -66,7 +66,8 @@ Implemented today:
   process-local source follow-ups.
 - Provider-neutral current and forecast weather with deterministic and
   key-free Open-Meteo adapters, protected location/timezone/unit/freshness
-  facts, explicit-home coat guidance, and required source attribution.
+  facts, explicit-home coat guidance, required source attribution, and
+  rank-aware place resolution that keeps persistent watches strict.
 - Durable precipitation, temperature, and wind watches with exact confirmation,
   restart-safe claim-before-delivery evaluation, and shared service output.
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events

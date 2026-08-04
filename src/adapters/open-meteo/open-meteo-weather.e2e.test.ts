@@ -24,8 +24,8 @@ describe.skipIf(!runOpenMeteoE2E)("Open-Meteo live read E2E", () => {
     const locations = await provider.findLocations({ place: "London" }, {});
     const location = locations.find(
       (candidate) =>
-        candidate.countryCode === "GB" &&
-        candidate.timezone === "Europe/London",
+        candidate.location.countryCode === "GB" &&
+        candidate.location.timezone === "Europe/London",
     );
     expect(location).toBeDefined();
     if (!location) throw new Error("Live geocoding did not return London.");
@@ -34,7 +34,7 @@ describe.skipIf(!runOpenMeteoE2E)("Open-Meteo live read E2E", () => {
 
     const forecast = await provider.getForecast(
       {
-        location,
+        location: location.location,
         period: {
           endAt: end.toISOString(),
           startAt: start.toISOString(),
@@ -48,7 +48,7 @@ describe.skipIf(!runOpenMeteoE2E)("Open-Meteo live read E2E", () => {
       name: "Weather data by Open-Meteo.com",
       url: "https://open-meteo.com/",
     });
-    expect(forecast.location).toEqual(location);
+    expect(forecast.location).toEqual(location.location);
     expect(forecast.current.observedAt).toMatch(/Z$/u);
     expect(Number.isFinite(forecast.current.temperature)).toBe(true);
   }, 60_000);

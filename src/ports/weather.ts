@@ -16,6 +16,15 @@ export interface WeatherLocation {
   timezone: string;
 }
 
+export interface WeatherLocationCandidate {
+  countryName: string;
+  featureCode?: string;
+  location: WeatherLocation;
+  population?: number;
+  providerRank: number;
+  searchName: string;
+}
+
 export interface WeatherPeriod {
   endAt: string;
   startAt: string;
@@ -80,7 +89,7 @@ export interface WeatherProviderPort {
   findLocations(
     query: WeatherLocationQuery,
     options: WeatherRequestOptions,
-  ): Promise<WeatherLocation[]>;
+  ): Promise<WeatherLocationCandidate[]>;
   getForecast(
     request: WeatherForecastRequest,
     options: WeatherRequestOptions,

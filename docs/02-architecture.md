@@ -187,7 +187,9 @@ Implemented real-provider adapters include:
 - OpenAI response rewriting, realtime transcription, and streaming speech
   adapters.
 - OpenAI hosted web-search adapter with bounded citation validation.
-- Key-free Open-Meteo geocoding and forecast adapter for non-commercial use.
+- Key-free Open-Meteo geocoding and forecast adapter for non-commercial use;
+  provider-neutral candidates retain ranking and safe place metadata separately
+  from the selected forecast location.
 - Read-only Google Calendar search with access-token and refresh-token OAuth.
 - Command-based desktop voice adapters and a Python openWakeWord sidecar behind
   TypeScript-owned adapter and runtime boundaries.

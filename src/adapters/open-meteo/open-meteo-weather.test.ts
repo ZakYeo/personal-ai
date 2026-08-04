@@ -34,11 +34,18 @@ describe("createOpenMeteoWeatherProvider", () => {
       provider.findLocations({ place: " London " }, {}),
     ).resolves.toEqual([
       {
-        countryCode: "GB",
-        latitude: 51.50853,
-        longitude: -0.12574,
-        name: "London, England",
-        timezone: "Europe/London",
+        countryName: "United Kingdom",
+        featureCode: "PPLC",
+        location: {
+          countryCode: "GB",
+          latitude: 51.50853,
+          longitude: -0.12574,
+          name: "London, England",
+          timezone: "Europe/London",
+        },
+        population: 8_961_989,
+        providerRank: 1,
+        searchName: "London",
       },
     ]);
 

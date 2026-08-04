@@ -167,6 +167,7 @@ async function createWeatherWatch(
     provider,
     args.location,
     context,
+    { selection: "unique" },
   );
   if ("result" in resolution) return resolution.result;
   const watch = await store.add({

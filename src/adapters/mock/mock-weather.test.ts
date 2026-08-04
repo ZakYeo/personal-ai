@@ -7,11 +7,18 @@ describe("createMockWeatherProvider", () => {
     const locations = await provider.findLocations({ place: "London" }, {});
     expect(locations).toEqual([
       {
-        countryCode: "GB",
-        latitude: 51.5074,
-        longitude: -0.1278,
-        name: "London",
-        timezone: "Europe/London",
+        countryName: "United Kingdom",
+        featureCode: "PPLC",
+        location: {
+          countryCode: "GB",
+          latitude: 51.5074,
+          longitude: -0.1278,
+          name: "London",
+          timezone: "Europe/London",
+        },
+        population: 8_961_989,
+        providerRank: 1,
+        searchName: "London",
       },
     ]);
 
@@ -26,7 +33,7 @@ describe("createMockWeatherProvider", () => {
     };
 
     const forecast = await provider.getForecast(
-      { location: locations[0]!, period, units },
+      { location: locations[0]!.location, period, units },
       {},
     );
 
@@ -41,7 +48,7 @@ describe("createMockWeatherProvider", () => {
           temperature: 17,
         },
       ],
-      location: locations[0],
+      location: locations[0]!.location,
       period,
       units,
     });

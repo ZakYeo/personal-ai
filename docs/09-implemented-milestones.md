@@ -94,6 +94,9 @@ Included:
   and opt-in Open-Meteo adapters selected through the per-feature registry.
 - Key-free Open-Meteo geocoding and non-commercial forecast composition with
   endpoint, timeout, response-size, attribution, and external-data validation.
+- Provider-neutral ranked geocoding candidates with country-qualified matching:
+  low-risk reads choose the best exact result while persistent watches require
+  one unique result.
 - Explicit locations plus one narrow optional reader for an explicitly stored
   profile home location; missing or unusable locations produce clarification.
 - Protected observation and forecast facts covering timestamps, timezone,

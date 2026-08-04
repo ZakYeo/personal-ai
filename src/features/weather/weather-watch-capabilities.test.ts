@@ -178,18 +178,28 @@ describe("weather watch capabilities", () => {
     provider.findLocations = () =>
       Promise.resolve([
         {
-          countryCode: "GB",
-          latitude: 51.5,
-          longitude: -0.1,
-          name: "London, England",
-          timezone: "Europe/London",
+          countryName: "United Kingdom",
+          location: {
+            countryCode: "GB",
+            latitude: 51.5,
+            longitude: -0.1,
+            name: "London, England",
+            timezone: "Europe/London",
+          },
+          providerRank: 1,
+          searchName: "London",
         },
         {
-          countryCode: "CA",
-          latitude: 42.98,
-          longitude: -81.25,
-          name: "London, Ontario",
-          timezone: "America/Toronto",
+          countryName: "Canada",
+          location: {
+            countryCode: "CA",
+            latitude: 42.98,
+            longitude: -81.25,
+            name: "London, Ontario",
+            timezone: "America/Toronto",
+          },
+          providerRank: 2,
+          searchName: "London",
         },
       ]);
 

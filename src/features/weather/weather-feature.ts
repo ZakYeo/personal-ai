@@ -180,7 +180,10 @@ async function executeWeatherRequest(
     provider,
     args.location,
     context,
-    personalContext,
+    {
+      ...(personalContext ? { personalContext } : {}),
+      selection: "ranked",
+    },
   );
   if ("result" in resolution) return resolution.result;
   const { location } = resolution;
