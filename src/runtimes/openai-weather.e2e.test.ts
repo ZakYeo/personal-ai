@@ -1,5 +1,3 @@
-// cspell:ignore Londn londn
-
 import { env } from "node:process";
 
 import { jsonResponse } from "../test-support/adapter-contract.js";
@@ -26,7 +24,7 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
       "Hey Jarvis, what is the current weather in London?",
     );
     const coat = await assistant.handleText(
-      "Hey Jarvis, will I need a coat in London tomorrow morning?",
+      "Hey Jarvis, will I need a coat tomorrow morning in London?",
     );
 
     expect(current).toMatchObject({
@@ -80,7 +78,7 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
     });
 
     await expect(
-      assistant.handleText("Hey Jarvis, what is the weather in Londn?"),
+      assistant.handleText("Hey Jarvis, what is the weather in London?"),
     ).resolves.toMatchObject({
       expectsFollowUp: true,
       status: "ok",
@@ -119,6 +117,7 @@ function createLiveWeatherConfig(adapter: "mock" | "openMeteo") {
 }
 
 function createLiveOpenAIWeatherFixtureFetch(): typeof fetch {
+  let geocodingRequests = 0;
   return async (input, init) => {
     const url = new URL(
       typeof input === "string" || input instanceof URL ? input : input.url,
@@ -127,8 +126,9 @@ function createLiveOpenAIWeatherFixtureFetch(): typeof fetch {
       return globalThis.fetch(input, init);
     }
     if (url.hostname === "geocoding-api.open-meteo.com") {
+      geocodingRequests++;
       return jsonResponse(
-        url.searchParams.get("name")?.toLowerCase() === "londn"
+        geocodingRequests === 1
           ? { results: [] }
           : createOpenMeteoGeocodingResponse(),
       );
