@@ -54,6 +54,67 @@ describe("createAssistant", () => {
     });
   });
 
+  it("retains only the safe failure when a feature returns oversized text", async () => {
+    const histories: ConversationState[] = [];
+    const start = vi.fn(
+      (
+        text: string,
+        _context: AssistantContext,
+        history: ConversationState,
+      ) => {
+        histories.push(history);
+        return {
+          next: () =>
+            Promise.resolve(
+              text === "run command"
+                ? {
+                    command: {
+                      capability: "test.echo",
+                      parameters: {},
+                      rawText: text,
+                    },
+                    kind: "command" as const,
+                  }
+                : { kind: "conversation" as const },
+            ),
+        };
+      },
+    );
+    const assistant = createAssistant({
+      clock,
+      config,
+      conversation: {
+        compactor: createConversationCompactor(),
+        history: { maxTurnsBeforeCompaction: 5 },
+        responder: {
+          respond: () => Promise.resolve({ status: "ok", text: "Continued." }),
+        },
+      },
+      features: [
+        createFeature({
+          execute: () => Promise.resolve({ text: "x".repeat(16_001) }),
+        }),
+      ],
+      intentInterpreter: { start },
+    });
+
+    await expect(assistant.handleText("run command")).resolves.toEqual({
+      status: "error",
+      text: "I could not complete that command.",
+    });
+    await assistant.handleText("continue");
+
+    expect(histories[1]).toEqual({
+      recentTurns: [
+        { content: "run command", role: "user" },
+        {
+          content: "I could not complete that command.",
+          role: "assistant",
+        },
+      ],
+    });
+  });
+
   it("shares completed command turns with intent and conversation providers", async () => {
     const histories: Array<ConversationState | undefined> = [];
     const start = vi.fn(

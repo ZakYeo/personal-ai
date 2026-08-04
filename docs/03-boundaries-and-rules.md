@@ -429,6 +429,10 @@ The assistant application boundary enforces a fixed request-text character
 limit before starting an intent session, consuming pending interaction state,
 or committing conversation history. Oversized requests return a safe validation
 response and do not mutate provider or history state.
+Feature response and resumable-clarification text crosses a separate fixed
+application limit immediately after execution. Oversized text becomes a safe
+feature failure before result references, rewriting, speech, or conversation
+history can retain it.
 
 Provider adapters should follow the same boundary discipline. Every real
 provider adapter must be opt-in through runtime configuration, receive network

@@ -20,6 +20,7 @@ import type {
   ResultReferenceSelectionRequest,
 } from "../../ports/result-reference.js";
 import { humanizeSpokenText } from "../../application/human-text.js";
+import { assertFeatureResponseTextWithinLimit } from "../../application/assistant-text-policy.js";
 import { createAppError } from "./app-error.js";
 import { outcomeFromError } from "./assistant-outcome.js";
 import { planRequiresConfirmation } from "./plan-confirmation.js";
@@ -209,6 +210,7 @@ async function executeFeatureCommand(
       },
       input.executionContext,
     );
+    assertFeatureResponseTextWithinLimit(result.text);
     if (result.kind === "resumable_clarification") {
       const clarificationResponse: AssistantResponse = {
         expectsFollowUp: true,

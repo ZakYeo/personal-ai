@@ -18,6 +18,43 @@ const config = createAssistantConfig({
 const clock = createFixedClock();
 
 describe("createAssistant", () => {
+  it("rejects oversized feature text before response rewriting", async () => {
+    const rewrite = vi.fn<ResponseRewriterPort["rewrite"]>();
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [
+        createFeature({
+          execute: () => Promise.resolve({ text: "x".repeat(16_001) }),
+        }),
+      ],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+      responseRewriter: { rewrite },
+    });
+
+    await expect(
+      assistant.handleTextWithDiagnostics("hello"),
+    ).resolves.toMatchObject({
+      diagnostics: [
+        {
+          category: "feature_failure",
+          capability: "test.echo",
+          cause: expect.objectContaining({
+            message:
+              "Feature response text exceeded the 16000-character application limit.",
+          }) as Error,
+          message:
+            "Feature response text exceeded the 16000-character application limit.",
+        },
+      ],
+      response: {
+        status: "error",
+        text: "I could not complete that command.",
+      },
+    });
+    expect(rewrite).not.toHaveBeenCalled();
+  });
+
   it("rewrites successful command responses when a response rewriter is configured", async () => {
     const command = createCommand("test.echo", { message: "hello" });
     const rewrite = vi.fn(() =>
