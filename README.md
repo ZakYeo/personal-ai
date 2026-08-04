@@ -9,6 +9,14 @@ deterministic with mock providers and local adapters, while opt-in OpenAI and
 Google Calendar integrations exercise real provider paths without making normal
 validation depend on external services.
 
+The source tree keeps boundary contracts and executable policy distinct:
+`src/ports` contains interfaces and shared boundary types, while
+`src/application` owns provider-neutral builders, catalog compilation, and
+shared domain, text, time, and output policy. Automated ESLint and dependency
+graph rules enforce that separation and prevent core from importing feature
+implementations or production core/features from importing Node and provider
+packages directly.
+
 ## Status
 
 Implemented today:

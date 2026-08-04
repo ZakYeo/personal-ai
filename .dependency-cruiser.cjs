@@ -16,6 +16,13 @@ module.exports = {
       to: { path: "^src/adapters" },
     },
     {
+      name: "core-not-to-features",
+      severity: "error",
+      comment: "Core must not import feature implementations.",
+      from: { path: "^src/core", pathNot: "\\.test\\.ts$" },
+      to: { path: "^src/features" },
+    },
+    {
       name: "core-not-to-runtimes",
       severity: "error",
       comment: "Core must not import runtime composition code.",
@@ -68,8 +75,24 @@ module.exports = {
       name: "ports-not-to-implementation",
       severity: "error",
       comment: "Ports must not import implementation modules.",
-      from: { path: "^src/ports" },
+      from: { path: "^src/ports", pathNot: "\\.test\\.ts$" },
+      to: { path: "^src/(application|core|features|adapters|runtimes)" },
+    },
+    {
+      name: "application-not-to-implementation",
+      severity: "error",
+      comment:
+        "Shared application policy must depend only on ports or application-local code.",
+      from: { path: "^src/application" },
       to: { path: "^src/(core|features|adapters|runtimes)" },
+    },
+    {
+      name: "core-features-not-to-node-or-packages",
+      severity: "error",
+      comment:
+        "Core and features must use injected ports instead of Node built-ins or provider packages.",
+      from: { path: "^src/(core|features)", pathNot: "\\.test\\.ts$" },
+      to: { dependencyTypes: ["core", "npm"] },
     },
   ],
   options: {

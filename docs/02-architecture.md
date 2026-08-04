@@ -41,6 +41,12 @@ The text-first flow is the preferred first milestone because it is deterministic
 
 ```text
 src/
+  application/
+    capability-catalog
+    feature
+    human-text
+    temporal-policy
+    feature-domain policies
   core/
     assistant/
   ports/
@@ -121,9 +127,21 @@ The core coordinates assistant behavior:
 
 The core must not know whether input came from a microphone, CLI, test fixture, HTTP request, or Raspberry Pi device.
 
+## Application
+
+The application layer owns provider-neutral executable policy shared across
+core, features, adapters, and runtimes. It includes feature and capability
+builders, immutable catalog compilation, human-text and temporal safety, and
+domain rules shared by multiple implementations. Application modules may
+depend on ports and other application modules, but not on core, feature,
+adapter, or runtime implementations.
+
 ## Ports
 
-Ports are interfaces owned by the application. They describe what the core needs without naming any specific provider or device.
+Ports contain only interfaces, application-owned contracts, and the shared
+boundary types needed to express them. They describe what the application
+needs without naming any specific provider or device. Executable policy and
+builders belong in `src/application`, not `src/ports`.
 Provider credentials, transport settings, and device command execution config
 belong with their adapters even when runtime config parsing consumes those
 types.

@@ -48,26 +48,36 @@ runtimes -> core
 runtimes -> adapters
 runtimes -> features
 
+core -> application
 core -> ports
 core -> core
 
+features -> application
 features -> ports
 features -> feature-local code
 
+adapters -> application
 adapters -> ports
 adapters -> adapter-local code
+
+runtimes -> application
 ```
 
 ## Hard Rules
 
 - `core` must not import from `adapters`.
+- Production `core` must not import from `features`.
 - `core` must not import from `runtimes`.
-- `core` must not import provider SDKs.
-- `core` must not import desktop-specific or Raspberry Pi-specific libraries.
+- Production `core` and `features` must not import Node built-ins, provider
+  packages, or device libraries; those dependencies enter through injected
+  ports.
 - `features` must not import concrete provider adapters.
 - `adapters` must not import from `runtimes`.
+- `application` must not import core, feature, adapter, or runtime
+  implementations.
 - `runtimes` are responsible for composition and dependency injection.
-- Ports should be defined by the application, not by external provider SDKs.
+- `ports` must contain only application-owned contracts and boundary types,
+  never executable policy or composition helpers.
 - No circular dependencies.
 
 ## Failure Handling Rule
@@ -698,6 +708,13 @@ should also guard against subtler boundary and abstraction drift.
 - Response shaping.
 - Normalizing expected feature failures into assistant responses while preserving diagnostics for runtime boundaries.
 
+### Application
+
+- Provider-neutral executable policy shared across layers.
+- Feature and capability builders and immutable catalog compilation.
+- Human-text, temporal, and model-output safety rules.
+- Domain rules shared by features and adapters through port-owned types.
+
 ### Ports
 
 - Interfaces and application-owned contracts.
@@ -790,10 +807,14 @@ tests, and typecheck.
 The dependency rules enforce:
 
 - No `src/core/**` imports from `src/adapters/**`.
-- No `src/core/**` imports from `src/runtimes/**`.
+- No production `src/core/**` imports from `src/features/**`; no core imports
+  from `src/runtimes/**`.
 - No `src/features/**` imports from `src/core/**`, `src/adapters/**`, or `src/runtimes/**`.
 - No `src/adapters/**` imports from `src/core/**`, `src/features/**`, or `src/runtimes/**`.
-- No `src/ports/**` imports from implementation modules.
+- No `src/application/**` imports from core, feature, adapter, or runtime implementations.
+- No production `src/ports/**` imports from application or implementation
+  modules.
+- No production `src/core/**` or `src/features/**` imports from Node built-ins or packages.
 - No circular dependencies.
 
 ## Documentation Maintenance

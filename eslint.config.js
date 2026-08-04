@@ -12,6 +12,12 @@ const architectureImportPatterns = {
     "../../../adapters/**",
     "../../../../adapters/**",
   ],
+  application: [
+    "../application/**",
+    "../../application/**",
+    "../../../application/**",
+    "../../../../application/**",
+  ],
   core: [
     "../core/**",
     "../../core/**",
@@ -177,8 +183,17 @@ export default tseslint.config(
               message: "Core must not import concrete adapters.",
             },
             {
+              group: architectureImportPatterns.features,
+              message: "Core must not import feature implementations.",
+            },
+            {
               group: architectureImportPatterns.runtimes,
               message: "Core must not import runtime composition code.",
+            },
+            {
+              regex: "^(?:node:|@?[^./])",
+              message:
+                "Core must use injected ports instead of Node built-ins or packages.",
             },
             {
               group: architectureImportPatterns.testSupport,
@@ -211,8 +226,37 @@ export default tseslint.config(
               message: "Features must not import runtime composition code.",
             },
             {
+              regex: "^(?:node:|@?[^./])",
+              message:
+                "Features must use injected ports instead of Node built-ins or packages.",
+            },
+            {
               group: architectureImportPatterns.testSupport,
               message: "Production code must not import test-support helpers.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/application/**/*.ts"],
+    ignores: ["src/**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                ...architectureImportPatterns.adapters,
+                ...architectureImportPatterns.core,
+                ...architectureImportPatterns.features,
+                ...architectureImportPatterns.runtimes,
+                ...architectureImportPatterns.testSupport,
+              ],
+              message:
+                "Application policy must depend only on ports or application-local code.",
             },
           ],
         },
@@ -260,6 +304,7 @@ export default tseslint.config(
             {
               group: [
                 ...architectureImportPatterns.adapters,
+                ...architectureImportPatterns.application,
                 ...architectureImportPatterns.core,
                 ...architectureImportPatterns.features,
                 ...architectureImportPatterns.runtimes,

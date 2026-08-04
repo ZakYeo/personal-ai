@@ -14,6 +14,7 @@
   - `docs/08-spike-9-report.md`
   - `docs/09-implemented-milestones.md`
 - Keep implementation changes aligned with the ports-and-adapters architecture and dependency boundaries documented there.
+- Keep `src/ports` restricted to contracts and shared boundary types. Put provider-neutral executable policy and builders in `src/application`, which may depend on ports but not core, feature, adapter, or runtime implementations.
 - Break work into thin, committable slices using TDD: write or update the failing test first, implement the smallest change that passes it, then make that slice a singular commit before starting the next slice.
 - After implementing and validating every milestone, launch a fresh sub-agent that has not reviewed an earlier milestone and instruct it to use the `thermo-nuclear-code-quality-review` skill against the completed milestone work. The review sub-agent must report its findings and feedback to the parent agent rather than implement changes itself.
 - The parent agent must evaluate and implement every actionable thermonuclear review finding and item of feedback in thin, tested commits, rerun validation, and only then declare the milestone complete. A milestone is not complete merely because its initial implementation passes tests.
