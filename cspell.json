@@ -30,6 +30,8 @@
     "Ollama",
     "OpenAI",
     "Piper",
+    "PPLA",
+    "PPLC",
     "QEMU",
     "Raspberry",
     "Secretlint",
