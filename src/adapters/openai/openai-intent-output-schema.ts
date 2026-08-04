@@ -1,4 +1,9 @@
 import type { CapabilityCatalogEntry } from "../../ports/capability-catalog.js";
+import {
+  listOpenAIIntentOutputVariants,
+  type OpenAIIntentOutputField,
+  type OpenAIIntentOutputKind,
+} from "./openai-intent-output-contract.js";
 
 export function createOpenAIIntentOutputSchema(
   capabilityCatalog: readonly CapabilityCatalogEntry[],
@@ -49,26 +54,11 @@ export function createOpenAIIntentOutputSchema(
     required: ["status", "text"],
     type: "object",
   } as const;
-  const variants = [
-    variant("command", { command: { $ref: "#/$defs/command" } }),
-    variant("plan", { plan: { $ref: "#/$defs/plan" } }),
-    variant("conversation"),
-    ...(capabilityNames.length === 0
-      ? []
-      : [
-          variant("clarification", {
-            clarificationCapability: {
-              enum: capabilityNames,
-              type: "string",
-            },
-            response: { $ref: "#/$defs/response" },
-          }),
-        ]),
-    variant("rephrase", { response: { $ref: "#/$defs/response" } }),
-    variant("replacement"),
-    variant("unknown", { response: { $ref: "#/$defs/response" } }),
-    variant("unsupported", { response: { $ref: "#/$defs/response" } }),
-  ];
+  const variants = listOpenAIIntentOutputVariants(
+    capabilityNames.length > 0,
+  ).map(([kind, variant]) =>
+    createVariantSchema(kind, variant.fields, capabilityNames),
+  );
 
   return {
     $defs: {
@@ -97,14 +87,40 @@ export function createOpenAIIntentOutputSchema(
   };
 }
 
-function variant(kind: string, properties: Record<string, unknown> = {}) {
+function createVariantSchema(
+  kind: OpenAIIntentOutputKind,
+  fields: readonly OpenAIIntentOutputField[],
+  capabilityNames: readonly string[],
+) {
   return {
     additionalProperties: false,
-    properties: {
-      kind: { enum: [kind], type: "string" },
-      ...properties,
-    },
-    required: ["kind", ...Object.keys(properties)],
+    properties: Object.fromEntries(
+      fields.map((field) => [
+        field,
+        createVariantPropertySchema(field, kind, capabilityNames),
+      ]),
+    ),
+    required: fields,
     type: "object",
   };
+}
+
+function createVariantPropertySchema(
+  field: OpenAIIntentOutputField,
+  kind: OpenAIIntentOutputKind,
+  capabilityNames: readonly string[],
+): unknown {
+  if (field === "kind") {
+    return { enum: [kind], type: "string" };
+  }
+  if (field === "command") {
+    return { $ref: "#/$defs/command" };
+  }
+  if (field === "plan") {
+    return { $ref: "#/$defs/plan" };
+  }
+  if (field === "clarificationCapability") {
+    return { enum: capabilityNames, type: "string" };
+  }
+  return { $ref: "#/$defs/response" };
 }

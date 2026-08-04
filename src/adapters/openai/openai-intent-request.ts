@@ -3,6 +3,7 @@ import type { CapabilityCatalogEntry } from "../../ports/capability-catalog.js";
 import type { IntentClarificationContext } from "../../ports/intent.js";
 import type { AssistantResultReference } from "../../ports/result-reference.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
+import { createOpenAIIntentVariantInstructions } from "./openai-intent-output-contract.js";
 import { createOpenAIIntentOutputSchema } from "./openai-intent-output-schema.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 
@@ -61,15 +62,21 @@ function createIntentInstructions(
   continuation?: "tool_result" | "user_reply",
   clarification?: IntentClarificationContext,
 ): string {
+  const hasCapabilities = capabilityCatalog.length > 0;
   return [
     `You are the intent interpreter for ${context.config.assistant.name}.`,
     "Return one interpretation variant matching the supplied schema unless calling one declared read tool.",
     "Call at most one read tool in a response. Never call a terminal-only capability as a tool.",
     "After a tool result, either call one more read tool or return a fully resolved terminal command or plan.",
-    "Use kind clarification with an ok response and clarificationCapability set to the exact enabled capability only when a specific workflow is selected and one user answer is required to resolve it.",
-    "Use kind rephrase with an ok response when the request is too incomplete to select a specific workflow; ask one concise open question.",
-    "Apply that distinction in this order: first attempt to select an exact enabled capability. If one matches, never use kind rephrase; use kind clarification when that capability still needs user information. Use kind rephrase only when no exact capability can be selected at all.",
-    "An incomplete modal fragment such as 'can you do', 'could you help', or 'I need' does not select a workflow. Return kind rephrase for it, never kind clarification. This applies only when no capability, domain, or action is named; a request such as 'can you set an alarm for me?' selects alarm creation and must clarify for its missing detail.",
+    ...createOpenAIIntentVariantInstructions(hasCapabilities),
+    ...(hasCapabilities
+      ? [
+          "Apply the clarification and rephrase distinction in this order: first attempt to select an exact enabled capability. If one matches, never use kind rephrase; ask a clarification when that capability still needs user information. Use kind rephrase only when no exact capability can be selected at all.",
+          "An incomplete modal fragment such as 'can you do', 'could you help', or 'I need' does not select a workflow. Return kind rephrase for it. This applies only when no capability, domain, or action is named; a request such as 'can you set an alarm for me?' selects alarm creation and must ask for its missing detail.",
+        ]
+      : [
+          "An incomplete modal fragment such as 'can you do', 'could you help', or 'I need' should use kind rephrase and ask one concise open question.",
+        ]),
     ...(continuation === "user_reply"
       ? [
           "The current input is a reply to a clarification. First decide whether it answers the exact application clarification prompt. If it does, continue resolving that existing workflow. If it does not answer the prompt and instead makes any independently routable request or changes topic, return the kind replacement variant. Do not resolve or return the new command inside this response; the application will interpret the exact input afresh.",
@@ -78,18 +85,17 @@ function createIntentInstructions(
       : ["Do not use kind replacement for this response."]),
     ...(clarification ? [formatClarificationContext(clarification)] : []),
     "Map requests to enabled assistant capabilities when possible.",
-    "When a capability matches but required information is missing, use kind clarification and ask one concise question for that information.",
-    "A user asking whether you can perform an enabled capability without supplying its required information is starting that capability, so clarify for the missing information rather than describing capabilities or inventing a value.",
+    ...(hasCapabilities
+      ? [
+          "When a capability matches but required information is missing, use kind clarification and ask one concise question for that information.",
+          "A user asking whether you can perform an enabled capability without supplying its required information is starting that capability, so clarify for the missing information rather than describing capabilities or inventing a value.",
+        ]
+      : []),
     "A question about one named action is not a broad capability-catalog question; reserve the capability-list command for broad questions such as what the assistant can do.",
     "Never fill a required parameter with words that merely restate the capability request; required values must contain the user's actual subject, value, or constraint.",
     "Choose by the requested object or domain, not by a generic verb such as search, check, list, or look up. Web, online, internet, and current public-information requests belong to internet search; personal events, schedules, and calendar requests belong to calendar capabilities.",
     openAISpokenStyleInstruction,
     "Questions about the assistant's enabled capabilities must use the enabled assistant capability that lists them when one is present.",
-    "Use kind command with the exact enabled capability name, a parameters array, and the user's original text when one capability matches.",
-    "Use kind plan with one to three fully resolved commands when the user requests multiple enabled capabilities in one utterance.",
-    "Use kind conversation for general questions or casual chat.",
-    "Use kind unsupported with a response for command-like requests that no enabled capability can handle.",
-    "Use kind unknown with a response only when the user intent is unclear.",
     `Current time: ${context.clock.now().toISOString()}.`,
     `Assistant time zone: ${context.config.assistant.timeZone}.`,
     "Resolve relative dates and times into exact capability parameters using that current time and time zone. When a capability requires an instant, return a canonical UTC ISO timestamp with milliseconds, such as 2026-07-29T08:00:00.000Z.",

@@ -7,6 +7,10 @@ import type {
 import type { IntentInterpretation } from "../../ports/intent.js";
 import { OpenAIIntentError } from "./openai-intent-error.js";
 import { isRecord } from "../parsing.js";
+import {
+  getOpenAIIntentOutputContract,
+  isOpenAIIntentOutputKind,
+} from "./openai-intent-output-contract.js";
 import { parseValidatedOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
 import { isOpenAISpokenTextSafe } from "./openai-spoken-style.js";
 
@@ -32,34 +36,36 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
     throw new OpenAIIntentError("OpenAI intent response must be an object.");
   }
 
-  if (value.kind === "command") {
-    assertVariantFields(value, ["kind", "command"]);
+  if (!isOpenAIIntentOutputKind(value.kind)) {
+    throw new OpenAIIntentError(
+      "OpenAI intent response kind is not a supported terminal variant.",
+    );
+  }
+  const kind = value.kind;
+  const variant = getOpenAIIntentOutputContract(kind);
+  assertVariantFields(value, variant.fields);
 
+  if (kind === "command") {
     return {
       command: parseCommand(value.command),
       kind: "command",
     };
   }
 
-  if (value.kind === "plan") {
-    assertVariantFields(value, ["kind", "plan"]);
-
+  if (kind === "plan") {
     return {
       kind: "plan",
       plan: parsePlan(value.plan),
     };
   }
 
-  if (value.kind === "conversation") {
-    assertVariantFields(value, ["kind"]);
-
+  if (kind === "conversation") {
     return {
       kind: "conversation",
     };
   }
 
-  if (value.kind === "clarification") {
-    assertVariantFields(value, ["kind", "clarificationCapability", "response"]);
+  if (kind === "clarification") {
     if (
       typeof value.clarificationCapability !== "string" ||
       value.clarificationCapability.length === 0
@@ -79,29 +85,30 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
     };
   }
 
-  if (value.kind === "rephrase") {
-    assertVariantFields(value, ["kind", "response"]);
+  if (kind === "rephrase") {
     return {
       kind: "rephrase",
       response: parseAssistantResponse(value.response),
     };
   }
 
-  if (value.kind === "replacement") {
-    assertVariantFields(value, ["kind"]);
+  if (kind === "replacement") {
     return { kind: "replacement" };
   }
 
-  if (value.kind === "unknown" || value.kind === "unsupported") {
-    assertVariantFields(value, ["kind", "response"]);
+  if (kind === "unknown" || kind === "unsupported") {
     return {
-      kind: value.kind,
+      kind,
       response: parseAssistantResponse(value.response),
     };
   }
 
+  return assertUnreachable(kind);
+}
+
+function assertUnreachable(value: never): never {
   throw new OpenAIIntentError(
-    "OpenAI intent response kind must be command, plan, conversation, clarification, rephrase, replacement, unknown, or unsupported.",
+    `OpenAI intent response kind ${String(value)} was not handled.`,
   );
 }
 

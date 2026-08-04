@@ -142,37 +142,69 @@ describe("OpenAIIntentInterpreter", () => {
         properties: { interpretation: { anyOf: unknown[] } };
       }
     ).properties.interpretation.anyOf;
-    expect(variants).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          additionalProperties: false,
-          properties: {
-            command: { $ref: "#/$defs/command" },
-            kind: { enum: ["command"], type: "string" },
+    expect(variants).toEqual([
+      expect.objectContaining({
+        additionalProperties: false,
+        properties: {
+          command: { $ref: "#/$defs/command" },
+          kind: { enum: ["command"], type: "string" },
+        },
+        required: ["kind", "command"],
+      }),
+      expect.objectContaining({
+        properties: {
+          kind: { enum: ["plan"], type: "string" },
+          plan: { $ref: "#/$defs/plan" },
+        },
+        required: ["kind", "plan"],
+      }),
+      expect.objectContaining({
+        additionalProperties: false,
+        properties: {
+          kind: { enum: ["conversation"], type: "string" },
+        },
+        required: ["kind"],
+      }),
+      expect.objectContaining({
+        additionalProperties: false,
+        properties: {
+          clarificationCapability: {
+            enum: ["calendar.search_events"],
+            type: "string",
           },
-          required: ["kind", "command"],
-        }),
-        expect.objectContaining({
-          additionalProperties: false,
-          properties: {
-            kind: { enum: ["conversation"], type: "string" },
-          },
-          required: ["kind"],
-        }),
-        expect.objectContaining({
-          additionalProperties: false,
-          properties: {
-            clarificationCapability: {
-              enum: ["calendar.search_events"],
-              type: "string",
-            },
-            kind: { enum: ["clarification"], type: "string" },
-            response: { $ref: "#/$defs/response" },
-          },
-          required: ["kind", "clarificationCapability", "response"],
-        }),
-      ]),
-    );
+          kind: { enum: ["clarification"], type: "string" },
+          response: { $ref: "#/$defs/response" },
+        },
+        required: ["kind", "clarificationCapability", "response"],
+      }),
+      expect.objectContaining({
+        properties: {
+          kind: { enum: ["rephrase"], type: "string" },
+          response: { $ref: "#/$defs/response" },
+        },
+        required: ["kind", "response"],
+      }),
+      expect.objectContaining({
+        properties: {
+          kind: { enum: ["replacement"], type: "string" },
+        },
+        required: ["kind"],
+      }),
+      expect.objectContaining({
+        properties: {
+          kind: { enum: ["unknown"], type: "string" },
+          response: { $ref: "#/$defs/response" },
+        },
+        required: ["kind", "response"],
+      }),
+      expect.objectContaining({
+        properties: {
+          kind: { enum: ["unsupported"], type: "string" },
+          response: { $ref: "#/$defs/response" },
+        },
+        required: ["kind", "response"],
+      }),
+    ]);
     expect(body.text.format.schema).not.toHaveProperty("anyOf");
     expect(JSON.stringify(body.input)).toContain("calendar.search_events");
     expect(JSON.stringify(body.input)).toContain("query: string (optional)");
@@ -191,6 +223,43 @@ describe("OpenAIIntentInterpreter", () => {
     expect(JSON.stringify(body.input)).toContain(
       "Resolve relative dates and times into exact capability parameters",
     );
+  });
+
+  it("omits unavailable clarification variants and instructions", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-1",
+        output_text: JSON.stringify({
+          interpretation: { kind: "conversation" },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({ capabilityCatalog: [], fetch });
+
+    await interpretOnce(interpreter, "Thank you.", context);
+
+    const body = readRequestBody(fetch);
+    const requestText = JSON.stringify(body.input);
+    const variants = (
+      body.text.format.schema as {
+        properties: {
+          interpretation: {
+            anyOf: Array<{ properties: { kind: { enum: string[] } } }>;
+          };
+        };
+      }
+    ).properties.interpretation.anyOf;
+    expect(variants.map((variant) => variant.properties.kind.enum[0])).toEqual([
+      "command",
+      "plan",
+      "conversation",
+      "rephrase",
+      "replacement",
+      "unknown",
+      "unsupported",
+    ]);
+    expect(requestText).not.toContain("kind clarification");
+    expect(requestText).toContain("kind rephrase");
   });
 
   it("returns a conversation classification from structured provider output", async () => {
