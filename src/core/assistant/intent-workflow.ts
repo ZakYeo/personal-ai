@@ -4,6 +4,7 @@ import type {
   AssistantPolicyConfig,
   ClockPort,
 } from "../../ports/assistant.js";
+import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
 import type {
@@ -162,12 +163,18 @@ export function createIntentWorkflow(input: {
       return input.dependencies.interaction.requestConfirmation(
         validation.plan,
         decorate(createPlanConfirmationPrompt(validation.plan)),
-        decorate,
+        executePlan,
       );
     }
+    return executePlan(validation.plan);
+  }
+
+  async function executePlan(
+    plan: ValidatedAssistantPlan,
+  ): Promise<AssistantOutcome> {
     return decorate(
       await executeValidatedPlan(
-        validation.plan,
+        plan,
         input.dependencies,
         input.dependencies.resultReferences,
         context.signal,

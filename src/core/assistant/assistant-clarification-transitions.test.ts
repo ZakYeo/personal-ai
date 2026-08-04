@@ -7,12 +7,100 @@ import type {
 import type { ResponseRewriteRequest } from "../../ports/response-rewriter.js";
 import {
   createAssistantConfig,
+  createFeature,
   createFixedClock,
   createRawFeature,
 } from "../../test-support/core-assistant.js";
 import { createAssistant } from "./assistant.js";
 
 describe("assistant clarification transitions", () => {
+  it("keeps a confirmed command in its intent session through feature clarification", async () => {
+    const continuations: IntentSessionContinuation[] = [];
+    const starts = vi.fn();
+    let firstInterpretation = true;
+    const intentInterpreter: IntentInterpreterPort = {
+      start: () => {
+        starts();
+        return {
+          next: (continuation) => {
+            if (continuation) continuations.push(continuation);
+            const location = firstInterpretation ? "London" : "London, UK";
+            firstInterpretation = false;
+            return Promise.resolve({
+              command: {
+                capability: "weather.watch.create",
+                parameters: { location },
+                rawText: location,
+              },
+              kind: "command" as const,
+            });
+          },
+        };
+      },
+    };
+    const execute = vi.fn((request: { args: { location: string } }) =>
+      Promise.resolve(
+        request.args.location === "London"
+          ? {
+              kind: "resumable_clarification" as const,
+              text: "Which London did you mean?",
+            }
+          : { text: "Weather watch created for London, England." },
+      ),
+    );
+    const feature = createFeature({
+      id: "weather",
+      capability: {
+        name: "weather.watch.create",
+        parameters: { location: { required: true, type: "string" } },
+        requiresConfirmation: true,
+        risk: "high",
+      },
+      confirmation: (args) => ({
+        facts: { location: args.location },
+        text: `create a weather watch for ${args.location}`,
+      }),
+      execute,
+    });
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([feature]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({ weather: { enabled: true } }),
+      intentInterpreter,
+    });
+
+    await expect(
+      assistant.handleText("Watch the weather in London"),
+    ).resolves.toMatchObject({ status: "needs_confirmation" });
+    await expect(assistant.handleText("yes")).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: "Which London did you mean?",
+    });
+    await expect(assistant.handleText("London, UK")).resolves.toMatchObject({
+      status: "needs_confirmation",
+    });
+    await expect(assistant.handleText("yes")).resolves.toEqual({
+      status: "ok",
+      text: "Weather watch created for London, England.",
+    });
+    expect(starts).toHaveBeenCalledTimes(1);
+    expect(continuations).toEqual([
+      {
+        clarification: {
+          capability: "weather.watch.create",
+          origin: "feature_execution",
+          originalText: "Watch the weather in London",
+          prompt: "Which London did you mean?",
+          session: "resume",
+        },
+        kind: "user_reply",
+        text: "London, UK",
+      },
+    ]);
+    expect(execute).toHaveBeenCalledTimes(2);
+  });
+
   it("resumes feature execution follow-ups through the exact intent session", async () => {
     const continuations: IntentSessionContinuation[] = [];
     let firstInterpretation = true;
