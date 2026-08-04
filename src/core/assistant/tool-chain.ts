@@ -81,6 +81,16 @@ export async function resolveToolCalls(input: {
     }
 
     const execution = await input.executeRead(validation.step);
+    if (execution.kind === "resumable_clarification") {
+      return failToolCall(
+        input.state,
+        call.command.capability,
+        rejectToolChain(
+          call.command.capability,
+          "Read capabilities may not request user clarification during a tool chain.",
+        ),
+      );
+    }
     if (execution.outcome.response.status !== "ok") {
       return failToolCall(input.state, call.command.capability, {
         kind: "outcome",

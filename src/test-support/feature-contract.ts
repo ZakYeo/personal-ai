@@ -8,6 +8,7 @@ import type {
   FeatureCapability,
   FeatureExecutionContext,
   FeatureExecutionRequest,
+  FeatureExecutionResult,
   FeaturePlugin,
   FeatureResult,
 } from "../ports/feature.js";
@@ -102,7 +103,9 @@ export async function expectFeatureExecution(
   context: FeatureExecutionContext = createFeatureContext(),
 ): Promise<void> {
   await expect(
-    feature.execute(createFeatureExecutionRequest(command, args), context),
+    feature
+      .execute(createFeatureExecutionRequest(command, args), context)
+      .then(featureResultPayload),
   ).resolves.toEqual(expected);
 }
 
@@ -128,13 +131,22 @@ export async function executeFeature<
   context: FeatureExecutionContext = createFeatureContext(),
   rawText = "feature command",
 ): Promise<FeatureResult> {
-  return feature.execute(
-    createFeatureExecutionRequest(
-      createTypedFeatureCommand(capability, args, rawText),
-      args,
+  return featureResultPayload(
+    await feature.execute(
+      createFeatureExecutionRequest(
+        createTypedFeatureCommand(capability, args, rawText),
+        args,
+      ),
+      context,
     ),
-    context,
   );
+}
+
+function featureResultPayload(result: FeatureExecutionResult): FeatureResult {
+  if (result.kind === "resumable_clarification") return result;
+  const { kind: _kind, ...payload } = result;
+  void _kind;
+  return payload;
 }
 
 export async function expectDecodedFeatureExecution<

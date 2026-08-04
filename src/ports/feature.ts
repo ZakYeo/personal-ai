@@ -29,14 +29,30 @@ export type FeatureCapabilityParameters = Record<
   FeatureCapabilityParameter
 >;
 
-export interface FeatureResult {
+interface CompletedFeatureResult {
   text: string;
   citations?: readonly AssistantCitation[];
-  clarification?: { readonly kind: "resumable" };
   data?: AssistantCommandParameters;
   expectsFollowUp?: boolean;
   resultReferences?: FeatureResultReferenceSet;
 }
+
+interface ResumableFeatureClarification {
+  readonly citations?: never;
+  readonly data?: never;
+  readonly expectsFollowUp?: never;
+  readonly kind: "resumable_clarification";
+  readonly resultReferences?: never;
+  readonly text: string;
+}
+
+export type FeatureResult =
+  | (CompletedFeatureResult & { readonly kind?: never })
+  | ResumableFeatureClarification;
+
+export type FeatureExecutionResult =
+  | (CompletedFeatureResult & { readonly kind: "completed" })
+  | ResumableFeatureClarification;
 
 export type FeatureArgumentValue = string | number | boolean | undefined;
 export type FeatureArguments = Record<string, FeatureArgumentValue>;
@@ -60,7 +76,7 @@ export interface FeaturePlugin<
   execute(
     request: TExecutionRequest,
     context: FeatureExecutionContext,
-  ): Promise<FeatureResult>;
+  ): Promise<FeatureExecutionResult>;
 }
 
 type FeatureParameterValue<TParameter extends FeatureCapabilityParameter> =
@@ -223,14 +239,24 @@ export function defineFeature<
         }
       : {}),
     async execute(request, context) {
-      return executeSelectedCapability(
-        definition.id,
-        handlers.get(request.capability),
-        request,
-        context,
+      return normalizeFeatureResult(
+        await executeSelectedCapability(
+          definition.id,
+          handlers.get(request.capability),
+          request,
+          context,
+        ),
       );
     },
   };
+}
+
+export function normalizeFeatureResult(
+  result: FeatureResult,
+): FeatureExecutionResult {
+  return result.kind === "resumable_clarification"
+    ? result
+    : { ...result, kind: "completed" };
 }
 
 function executeSelectedCapability<TRequest extends FeatureExecutionRequest>(

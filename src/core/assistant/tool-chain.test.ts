@@ -68,6 +68,7 @@ describe("resolveToolCalls", () => {
     const sessionNext = vi.fn();
     const executeRead = vi.fn(() =>
       Promise.resolve({
+        kind: "completed" as const,
         outcome: failureOutcome("calendar unavailable"),
       }),
     );
@@ -85,6 +86,44 @@ describe("resolveToolCalls", () => {
       },
     });
     expect(executeRead).toHaveBeenCalledTimes(1);
+    expect(sessionNext).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a read requests user clarification", async () => {
+    const sessionNext = vi.fn();
+    const executeRead = vi.fn(() =>
+      Promise.resolve({
+        kind: "resumable_clarification" as const,
+        outcome: {
+          response: {
+            expectsFollowUp: true,
+            status: "ok" as const,
+            text: "Which calendar did you mean?",
+          },
+        },
+      }),
+    );
+
+    const result = await runToolChain([toolCall("read-1")], {
+      executeRead,
+      sessionNext,
+    });
+
+    expect(result).toMatchObject({
+      kind: "outcome",
+      outcome: {
+        diagnostics: [
+          {
+            capability: "calendar.search_events",
+            category: "unsupported",
+          },
+        ],
+        response: { status: "unsupported" },
+        toolChain: {
+          calls: [{ capability: "calendar.search_events", status: "failed" }],
+        },
+      },
+    });
     expect(sessionNext).not.toHaveBeenCalled();
   });
 });
@@ -154,5 +193,6 @@ const step: ValidatedAssistantPlanStep = {
 };
 const successfulRead = Promise.resolve({
   data: { count: 1 },
+  kind: "completed" as const,
   outcome: { response: { status: "ok" as const, text: "Read." } },
 });

@@ -22,7 +22,11 @@ import type {
   FeaturePlugin,
   FeatureResult,
 } from "../ports/feature.js";
-import { defineCapability, defineFeature } from "../ports/feature.js";
+import {
+  defineCapability,
+  defineFeature,
+  normalizeFeatureResult,
+} from "../ports/feature.js";
 import { createCapabilityRoutingIndex } from "../ports/capability-catalog.js";
 import type {
   IntentInterpretation,
@@ -226,13 +230,18 @@ export function createRawFeature(
       { name: "test.echo", risk: "low" },
     ],
     ...(overrides.canHandle ? { canHandle: overrides.canHandle } : {}),
-    execute:
-      overrides.execute ??
-      (() =>
-        Promise.resolve({
-          text: "Handled.",
-        })),
+    execute: async (request, context) =>
+      normalizeFeatureResult(
+        await (overrides.execute ?? defaultRawFeatureExecution)(
+          request,
+          context,
+        ),
+      ),
   };
+}
+
+function defaultRawFeatureExecution(): Promise<FeatureResult> {
+  return Promise.resolve({ text: "Handled." });
 }
 
 export function createAssistantHarness(

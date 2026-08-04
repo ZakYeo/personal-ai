@@ -294,6 +294,7 @@ function createForgedReferenceFeature(): FeaturePlugin {
     execute: (request, context) => {
       if (request.capability === "calendar.search") {
         return Promise.resolve({
+          kind: "completed" as const,
           resultReferences: {
             items: ["First", "Second"].map((title) => ({
               facts: { date: "2026-07-17", time: "11:00", title },
@@ -319,8 +320,12 @@ function createForgedReferenceFeature(): FeaturePlugin {
       });
       return Promise.resolve(
         selected?.publicReference.kind === "calendar_event"
-          ? { text: selected.publicReference.facts.title }
+          ? {
+              kind: "completed" as const,
+              text: selected.publicReference.facts.title,
+            }
           : {
+              kind: "completed" as const,
               expectsFollowUp: true,
               text: "I am not sure which event you mean.",
             },

@@ -325,6 +325,46 @@ describe("assistant compound plans", () => {
     });
     expect(laterExecute).not.toHaveBeenCalled();
   });
+
+  it("fails closed when a compound-plan step requests clarification", async () => {
+    const laterExecute = vi.fn(() => Promise.resolve({ text: "Too late." }));
+    const first = createFeature({
+      id: "first",
+      capability: {
+        name: "first.read",
+        risk: "low",
+        summary: "Read the first item.",
+        parameters: {},
+      },
+      execute: () =>
+        Promise.resolve({
+          kind: "resumable_clarification" as const,
+          text: "Which first item did you mean?",
+        }),
+    });
+    const second = createFeature({
+      id: "second",
+      capability: {
+        name: "second.write",
+        risk: "low",
+        summary: "Write the second item.",
+        parameters: {},
+      },
+      execute: laterExecute,
+    });
+    const assistant = createPlanAssistant([first, second], {
+      kind: "plan",
+      plan: {
+        commands: [createCommand("first.read"), createCommand("second.write")],
+      },
+    });
+
+    await expect(assistant.handleText("do both")).resolves.toEqual({
+      status: "error",
+      text: "I could not complete this step: Read the first item. I did not attempt this remaining step: Write the second item.",
+    });
+    expect(laterExecute).not.toHaveBeenCalled();
+  });
 });
 
 function createPlanAssistant(

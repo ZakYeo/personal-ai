@@ -211,8 +211,7 @@ describe("weather watch capabilities", () => {
         context,
       ),
     ).resolves.toEqual({
-      clarification: { kind: "resumable" },
-      expectsFollowUp: true,
+      kind: "resumable_clarification",
       text: "I found multiple locations for London: London, England (GB), London, Ontario (CA). Which one did you mean?",
     });
     await expect(store.list()).resolves.toEqual([]);

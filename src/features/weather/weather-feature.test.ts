@@ -102,8 +102,7 @@ describe("createWeatherFeature", () => {
         context,
       ),
     ).resolves.toEqual({
-      clarification: { kind: "resumable" },
-      expectsFollowUp: true,
+      kind: "resumable_clarification",
       text: "I do not have an explicitly stored home location. Which location should I check?",
     });
   });
@@ -148,8 +147,7 @@ describe("createWeatherFeature", () => {
         context,
       ),
     ).resolves.toEqual({
-      clarification: { kind: "resumable" },
-      expectsFollowUp: true,
+      kind: "resumable_clarification",
       text: "Which location should I check?",
     });
   });
@@ -292,8 +290,7 @@ describe("createWeatherFeature", () => {
         context,
       ),
     ).resolves.toEqual({
-      clarification: { kind: "resumable" },
-      expectsFollowUp: true,
+      kind: "resumable_clarification",
       text: 'I could not find a weather location for "Nowhere". Which location should I use?',
     });
 

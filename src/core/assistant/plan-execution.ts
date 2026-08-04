@@ -7,11 +7,16 @@ import type {
   ValidatedAssistantPlanStep,
 } from "../../ports/assistant-plan.js";
 
-export interface CommandExecutionOutcome {
-  clarificationRequested?: boolean;
-  data?: AssistantCommandParameters;
-  outcome: AssistantOutcome;
-}
+export type CommandExecutionOutcome =
+  | {
+      data?: AssistantCommandParameters;
+      kind: "completed";
+      outcome: AssistantOutcome;
+    }
+  | {
+      kind: "resumable_clarification";
+      outcome: AssistantOutcome;
+    };
 
 export async function executeAssistantPlan(
   plan: ValidatedAssistantPlan,
@@ -37,11 +42,15 @@ export async function executeAssistantPlan(
     }
 
     const execution = await executeStep(step);
-    const succeeded = execution.outcome.response.status === "ok";
+    const succeeded =
+      execution.kind === "completed" &&
+      execution.outcome.response.status === "ok";
     failed = !succeeded;
     stepOutcomes.push({
       capability: step.command.capability,
-      ...(execution.data ? { data: execution.data } : {}),
+      ...(execution.kind === "completed" && execution.data
+        ? { data: execution.data }
+        : {}),
       ...(execution.outcome.diagnostics
         ? { diagnostics: execution.outcome.diagnostics }
         : {}),

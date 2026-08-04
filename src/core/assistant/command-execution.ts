@@ -157,7 +157,7 @@ async function executeCommand(
   input: CommandExecutionInput,
 ): Promise<CommandExecutionOutcome> {
   const execution = await executeFeatureCommand(input);
-  if (execution.clarificationRequested) return execution;
+  if (execution.kind === "resumable_clarification") return execution;
   if (execution.outcome.response.status !== "ok") return execution;
 
   return {
@@ -185,6 +185,22 @@ async function executeFeatureCommand(
       },
       input.executionContext,
     );
+    if (result.kind === "resumable_clarification") {
+      const clarificationResponse: AssistantResponse = {
+        expectsFollowUp: true,
+        status: "ok",
+        text: result.text,
+      };
+      return {
+        kind: "resumable_clarification",
+        outcome: input.requestClarification
+          ? input.requestClarification(
+              clarificationResponse,
+              input.command.capability,
+            )
+          : { response: clarificationResponse },
+      };
+    }
     const response: AssistantResponse = {
       ...(result.citations ? { citations: result.citations } : {}),
       ...(result.expectsFollowUp ? { expectsFollowUp: true } : {}),
@@ -195,15 +211,13 @@ async function executeFeatureCommand(
       input.resultReferences.retain(result.resultReferences);
     }
     return {
-      ...(result.clarification ? { clarificationRequested: true } : {}),
       ...(result.data ? { data: Object.freeze({ ...result.data }) } : {}),
-      outcome:
-        result.clarification && input.requestClarification
-          ? input.requestClarification(response, input.command.capability)
-          : { response },
+      kind: "completed",
+      outcome: { response },
     };
   } catch (error) {
     return {
+      kind: "completed",
       outcome: outcomeFromError(
         createAppError({
           category: "feature_failure",
