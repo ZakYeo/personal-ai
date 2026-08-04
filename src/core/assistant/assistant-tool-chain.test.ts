@@ -123,7 +123,9 @@ describe("assistant bounded tool chains", () => {
 
     expect(continuations[1]).toMatchObject({
       kind: "tool_result",
-      observation: { text: "Starts at 10am today. See" },
+      observation: {
+        text: "Starts at 10am today. See the linked source.",
+      },
     });
   });
 

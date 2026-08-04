@@ -88,6 +88,57 @@ describe("human-facing text policy", () => {
   });
 
   it.each([
+    [
+      "See https://example.test/Europe/London for details.",
+      "See the linked source for details.",
+    ],
+    [
+      "See https://example.test/2026-08-04T15:00:00.000Z/details.",
+      "See the linked source.",
+    ],
+    ["https://example.test/only", "The linked source."],
+  ])("removes a URL before interpreting its contents: %s", (text, expected) => {
+    expect(
+      humanizeSpokenText(text, {
+        assistantTimeZone: "Europe/London",
+        now,
+        timeZone: "Europe/London",
+      }),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["2026-08-04T15:00:00Z", "4pm today"],
+    ["2026-08-04T16:00:00+01:00", "4pm today"],
+    ["Tue, 04 Aug 2026 15:00:00 GMT", "4pm today"],
+  ])("humanizes supported machine timestamp %s", (value, expected) => {
+    const options = {
+      assistantTimeZone: "Europe/London",
+      now,
+      timeZone: "Europe/London",
+    };
+    expect(renderSpokenFact(value, options)).toBe(expected);
+    expect(humanizeSpokenText(`Observed at ${value}.`, options)).toBe(
+      `Observed at ${expected}.`,
+    );
+    expect(isSpokenTextSafe(value)).toBe(false);
+  });
+
+  it("recognizes validated IANA identifiers outside the common region families", () => {
+    const options = {
+      assistantTimeZone: "Europe/London",
+      now,
+      timeZone: "Europe/London",
+    };
+    expect(renderSpokenFact("Etc/GMT+5", options)).toBe("GMT+5 time");
+    expect(humanizeSpokenText("Scheduled in Etc/GMT+5.", options)).toBe(
+      "Scheduled in GMT+5 time.",
+    );
+    expect(isSpokenTextSafe("Scheduled in Etc/GMT+5.")).toBe(false);
+    expect(isSpokenTextSafe("AC/DC is playing.")).toBe(true);
+  });
+
+  it.each([
     "See https://example.test/path.",
     "Read [the source](https://example.test/path).",
     "Observed at 2026-08-04T15:00:00.000Z.",
@@ -103,8 +154,8 @@ describe("human-facing text policy", () => {
       timeZone: "Europe/London",
     };
     expect(renderSpokenFact("2026-02-30", options)).toBe("2026-02-30");
-    expect(renderSpokenFact("2026-08-04T15:00:00Z", options)).toBe(
-      "2026-08-04T15:00:00Z",
+    expect(renderSpokenFact("2026-13-04T15:00:00Z", options)).toBe(
+      "2026-13-04T15:00:00Z",
     );
   });
 });

@@ -6,28 +6,35 @@ interface SpokenTextContext {
   timeZone: string;
 }
 
-const canonicalInstantPattern =
-  /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\b/gu;
-const ianaTimeZonePattern =
-  /\b(?:Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Europe|Indian|Pacific)\/[A-Za-z_+-]+(?:\/[A-Za-z_+-]+)?\b/gu;
-const canonicalInstantSafetyPattern =
-  /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\b/u;
-const ianaTimeZoneSafetyPattern =
-  /\b(?:Africa|America|Antarctica|Arctic|Asia|Atlantic|Australia|Europe|Indian|Pacific)\/[A-Za-z_+-]+(?:\/[A-Za-z_+-]+)?\b/u;
+const isoInstantSource = String.raw`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})`;
+const rfcInstantSource = String.raw`(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s+\d{2}:\d{2}(?::\d{2})?\s+(?:GMT|UTC|[+-]\d{4})`;
+const isoInstantPattern = new RegExp(`\\b${isoInstantSource}\\b`, "gu");
+const rfcInstantPattern = new RegExp(`\\b${rfcInstantSource}\\b`, "gu");
+const isoInstantSafetyPattern = new RegExp(`\\b${isoInstantSource}\\b`, "u");
+const rfcInstantSafetyPattern = new RegExp(`\\b${rfcInstantSource}\\b`, "u");
+const ianaTimeZoneCandidatePattern =
+  /\b[A-Za-z][A-Za-z0-9._+-]*(?:\/[A-Za-z0-9._+-]+)+\b/gu;
+const rawUrlPattern = /(?:https?:\/\/|www\.)[^\s)\]]+/giu;
+const safeSpokenFallback =
+  "I have a result, but part of it cannot be read aloud safely.";
 
 export function humanizeSpokenText(
   value: string,
   context: SpokenTextContext,
 ): string {
-  return value
-    .replace(canonicalInstantPattern, (instant) =>
-      renderCanonicalInstant(instant, context),
-    )
-    .replace(ianaTimeZonePattern, (timeZone) => formatTimeZoneLabel(timeZone))
+  const humanized = value
     .replace(/\[([^\]]+)\]\((?:https?:\/\/|www\.)[^)]+\)/giu, "$1")
-    .replace(/\b(?:at|from|via)\s+(?=(?:https?:\/\/|www\.))/giu, "")
-    .replace(/(?:https?:\/\/|www\.)[^\s)\]]+/giu, "")
+    .replace(/\(\s*(?:https?:\/\/|www\.)[^\s)\]]+\s*\)/giu, "")
+    .replace(rawUrlPattern, replaceRawUrl)
+    .replace(isoInstantPattern, (instant) => renderInstant(instant, context))
+    .replace(rfcInstantPattern, (instant) => renderInstant(instant, context))
+    .replace(ianaTimeZoneCandidatePattern, (candidate) =>
+      isCanonicalTimeZone(candidate)
+        ? formatTimeZoneLabel(candidate)
+        : candidate,
+    )
     .replace(/\[\d+\]/gu, "")
+    .replace(/[*_~`>#]+/gu, "")
     .replace(/\(\s*\)/gu, "")
     .replace(/\bOn (today|tomorrow|yesterday)\b/gu, (_, day: string) =>
       capitalize(day),
@@ -36,6 +43,13 @@ export function humanizeSpokenText(
     .replace(/\s+([,.!?;:])(?=\s|$)/gu, "$1")
     .replace(/\s+/gu, " ")
     .trim();
+
+  if (humanized.length === 0 || !isSpokenTextSafe(humanized)) {
+    return safeSpokenFallback;
+  }
+  return /^the linked source[.!?]?$/iu.test(humanized)
+    ? `${capitalize(humanized.replace(/[.!?]+$/u, ""))}.`
+    : humanized;
 }
 
 function capitalize(value: string): string {
@@ -48,8 +62,9 @@ export function isSpokenTextSafe(value: string): boolean {
     !/\bwww\./iu.test(value) &&
     !/\[[^\]]+\]\([^)]+\)/u.test(value) &&
     !/\[\d+\]/u.test(value) &&
-    !canonicalInstantSafetyPattern.test(value) &&
-    !ianaTimeZoneSafetyPattern.test(value)
+    !isoInstantSafetyPattern.test(value) &&
+    !rfcInstantSafetyPattern.test(value) &&
+    !containsIanaTimeZone(value)
   );
 }
 
@@ -57,7 +72,7 @@ export function renderSpokenFact(
   value: string,
   context: SpokenTextContext,
 ): string {
-  const instant = renderCanonicalInstant(value, context);
+  const instant = renderInstant(value, context);
   if (instant !== value) return instant;
 
   const date = parseIsoDate(value);
@@ -71,12 +86,9 @@ export function renderSpokenFact(
   return value;
 }
 
-function renderCanonicalInstant(
-  value: string,
-  context: SpokenTextContext,
-): string {
+function renderInstant(value: string, context: SpokenTextContext): string {
   const instant = new Date(value);
-  if (!Number.isFinite(instant.getTime()) || instant.toISOString() !== value) {
+  if (!Number.isFinite(instant.getTime()) || !isSupportedInstant(value)) {
     return value;
   }
 
@@ -88,6 +100,25 @@ function renderCanonicalInstant(
       ? ""
       : `, ${formatTimeZoneLabel(context.timeZone)}`;
   return `${time} ${date}${timeZone}`;
+}
+
+function isSupportedInstant(value: string): boolean {
+  return (
+    new RegExp(`^${isoInstantSource}$`, "u").test(value) ||
+    new RegExp(`^${rfcInstantSource}$`, "u").test(value)
+  );
+}
+
+function containsIanaTimeZone(value: string): boolean {
+  ianaTimeZoneCandidatePattern.lastIndex = 0;
+  return [...value.matchAll(ianaTimeZoneCandidatePattern)].some((match) =>
+    isCanonicalTimeZone(match[0]),
+  );
+}
+
+function replaceRawUrl(url: string): string {
+  const punctuation = /[.,!?;:]+$/u.exec(url)?.[0] ?? "";
+  return `the linked source${punctuation}`;
 }
 
 function renderContextualDate(
@@ -150,10 +181,8 @@ function parseIsoDate(
 
 function isCanonicalTimeZone(value: string): boolean {
   try {
-    return (
-      new Intl.DateTimeFormat("en", { timeZone: value }).resolvedOptions()
-        .timeZone === value
-    );
+    new Intl.DateTimeFormat("en", { timeZone: value });
+    return value === "UTC" || value.includes("/");
   } catch {
     return false;
   }
