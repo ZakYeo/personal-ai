@@ -1,4 +1,5 @@
 import {
+  attachSecondaryCause,
   type RunCommandRequest,
   isCommandDiagnosticError,
   startCommandProcess,
@@ -52,19 +53,126 @@ export async function runCommandWritableStream(
     detached: true,
     stdio: ["pipe", "ignore", "pipe"],
   });
+  const commandCompletion = commandProcess.waitForSuccess();
+  const iterator = chunks[Symbol.asyncIterator]();
+  let iteratorCleanupAttempted = false;
+  let iteratorDone = false;
 
   try {
-    for await (const chunk of chunks) {
-      await commandProcess.writeStdin(chunk);
-    }
-    await commandProcess.endStdin();
+    while (true) {
+      const next = await raceWithCommandCompletion(
+        iterator.next(),
+        commandCompletion,
+      );
 
-    await commandProcess.waitForSuccess();
+      if (next.kind === "command_completed") {
+        break;
+      }
+
+      if (next.value.done) {
+        iteratorDone = true;
+        const ended = await raceWithCommandCompletion(
+          commandProcess.endStdin(),
+          commandCompletion,
+        );
+
+        if (ended.kind === "operation_completed") {
+          await commandCompletion;
+        }
+        break;
+      }
+
+      const written = await raceWithCommandCompletion(
+        commandProcess.writeStdin(next.value.value),
+        commandCompletion,
+      );
+
+      if (written.kind === "command_completed") {
+        break;
+      }
+    }
+
+    iteratorCleanupAttempted = !iteratorDone;
+    const cleanupError = iteratorCleanupAttempted
+      ? await cleanupIteratorWithinDeadline(iterator)
+      : undefined;
+
+    if (cleanupError) {
+      throw cleanupError;
+    }
   } catch (error) {
+    const cleanupError =
+      iteratorDone || iteratorCleanupAttempted
+        ? undefined
+        : await cleanupIteratorWithinDeadline(iterator);
+
     if (isCommandDiagnosticError(error)) {
-      throw error;
+      throw cleanupError === undefined
+        ? error
+        : attachSecondaryCause(error, cleanupError);
     }
 
-    await commandProcess.terminateInputFailure(toError(error));
+    const inputError = toError(error);
+    await commandProcess.terminateInputFailure(
+      cleanupError === undefined
+        ? inputError
+        : attachSecondaryCause(inputError, cleanupError),
+    );
   }
+}
+
+type CommandRaceResult<TValue> =
+  | { kind: "command_completed" }
+  | { kind: "operation_completed"; value: TValue };
+
+function raceWithCommandCompletion<TValue>(
+  operation: Promise<TValue>,
+  commandCompletion: Promise<unknown>,
+): Promise<CommandRaceResult<TValue>> {
+  return Promise.race([
+    operation.then((value) => ({
+      kind: "operation_completed" as const,
+      value,
+    })),
+    commandCompletion.then(() => ({ kind: "command_completed" as const })),
+  ]);
+}
+
+const iteratorCleanupDeadlineMs = 1_000;
+
+function cleanupIteratorWithinDeadline(
+  iterator: AsyncIterator<Uint8Array>,
+): Promise<Error | undefined> {
+  if (!iterator.return) {
+    return Promise.resolve(undefined);
+  }
+
+  let cleanup: Promise<IteratorResult<Uint8Array>>;
+
+  try {
+    cleanup = Promise.resolve(iterator.return());
+  } catch (error) {
+    return Promise.resolve(toError(error));
+  }
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      resolve(
+        new Error(
+          `Command input iterator cleanup timed out after ${iteratorCleanupDeadlineMs}ms.`,
+        ),
+      );
+    }, iteratorCleanupDeadlineMs);
+
+    void cleanup.then(
+      () => {
+        clearTimeout(timer);
+        resolve(undefined);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        resolve(toError(error));
+      },
+    );
+  });
 }

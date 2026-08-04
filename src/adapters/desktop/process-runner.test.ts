@@ -377,6 +377,65 @@ describe("runCommandReadableStream", () => {
 });
 
 describe("runCommandWritableStream", () => {
+  it("does not wait forever for a producer after the command times out", async () => {
+    const result = runCommandWritableStream(
+      {
+        args: ["-c", "sleep 10"],
+        command: "/bin/sh",
+        terminationGraceMs: 10,
+        timeoutMs: 10,
+      },
+      createNonSettlingInputChunks(),
+    );
+
+    await expect(
+      Promise.race([
+        result,
+        new Promise((_, reject) => {
+          setTimeout(
+            () => reject(new Error("writable stream did not settle")),
+            1_500,
+          );
+        }),
+      ]),
+    ).rejects.toMatchObject({
+      name: "CommandTimeoutError",
+      timeoutMs: 10,
+    } satisfies Partial<CommandTimeoutError>);
+  });
+
+  it("does not wait forever for a producer after the command is aborted", async () => {
+    const controller = new AbortController();
+    const reason = new Error("shutdown requested");
+    const result = runCommandWritableStream(
+      {
+        args: ["-c", "sleep 10"],
+        command: "/bin/sh",
+        signal: controller.signal,
+        terminationGraceMs: 10,
+        timeoutMs: 1_000,
+      },
+      createNonSettlingInputChunks(),
+    );
+
+    controller.abort(reason);
+
+    await expect(
+      Promise.race([
+        result,
+        new Promise((_, reject) => {
+          setTimeout(
+            () => reject(new Error("writable stream did not settle")),
+            1_500,
+          );
+        }),
+      ]),
+    ).rejects.toMatchObject({
+      name: "CommandAbortError",
+      reason,
+    } satisfies Partial<CommandAbortError>);
+  });
+
   it("terminates the command when the input stream fails", async () => {
     const killedProcessGroups: number[] = [];
     const processControl: ProcessControl = {
@@ -522,4 +581,13 @@ async function* createFailingInputChunks(
   await Promise.resolve();
   yield Buffer.from("partial audio", "utf8");
   throw failure;
+}
+
+function createNonSettlingInputChunks(): AsyncIterable<Uint8Array> {
+  return {
+    [Symbol.asyncIterator]: () => ({
+      next: () => new Promise(() => {}),
+      return: () => new Promise(() => {}),
+    }),
+  };
 }
