@@ -9,6 +9,7 @@ import type { NotificationDeliveryPort } from "../../ports/notification-delivery
 import { isRecord } from "../config/config-parse-utils.js";
 import { resolveLocalStatePath } from "../local-state-path.js";
 import {
+  defineConfiglessFeatureAdapterEntry,
   defineFeatureAdapter,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
@@ -18,9 +19,6 @@ import type { RuntimeBackgroundTaskContext } from "../background-task.js";
 
 const fileAlarmAdapter = defineFeatureAdapter({
   parseConfig: parseFileAlarmStoreConfig,
-});
-const localAlarmAdapter = defineFeatureAdapter({
-  parseConfig: parseLocalAlarmConfig,
 });
 
 export function createAlarmFeatureRegistryEntry(
@@ -64,7 +62,7 @@ function createFileAlarmAdapterEntry(
 function createLocalAlarmAdapterEntry(
   notificationDelivery: NotificationDeliveryPort | undefined,
 ) {
-  return localAlarmAdapter.bind({
+  return defineConfiglessFeatureAdapterEntry({
     create: ({ runtime }) =>
       createAlarmComposition(
         createInMemoryAlarmStore({
@@ -74,8 +72,6 @@ function createLocalAlarmAdapterEntry(
       ),
   });
 }
-
-function parseLocalAlarmConfig(): void {}
 
 function createAlarmComposition(
   alarmStore: AlarmStore,

@@ -9,6 +9,7 @@ import type { NotificationDeliveryPort } from "../../ports/notification-delivery
 import type { RuntimeBackgroundTaskContext } from "../background-task.js";
 import { isRecord } from "../config/config-parse-utils.js";
 import {
+  defineConfiglessFeatureAdapterEntry,
   defineFeatureAdapter,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
@@ -18,9 +19,6 @@ import { runTaskReminderScheduler } from "../tasks/task-reminder-scheduler.js";
 
 const fileTaskAdapter = defineFeatureAdapter({
   parseConfig: parseFileTaskStoreConfig,
-});
-const localTaskAdapter = defineFeatureAdapter({
-  parseConfig: parseLocalTaskConfig,
 });
 
 export function createTaskFeatureRegistryEntry(
@@ -64,7 +62,7 @@ function createFileTaskAdapterEntry(
 function createLocalTaskAdapterEntry(
   notificationDelivery: NotificationDeliveryPort | undefined,
 ) {
-  return localTaskAdapter.bind({
+  return defineConfiglessFeatureAdapterEntry({
     create: ({ runtime }) =>
       createTaskComposition(
         createInMemoryTaskStore({
@@ -74,8 +72,6 @@ function createLocalTaskAdapterEntry(
       ),
   });
 }
-
-function parseLocalTaskConfig(): void {}
 
 function createTaskComposition(
   store: TaskStore,

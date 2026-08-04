@@ -15,7 +15,10 @@ import {
 } from "./feature-adapter-selection.js";
 
 import { createDefaultFeatureAdapterRegistry } from "./default-feature-adapter-registry.js";
-import { defineFeatureAdapter } from "./feature-adapter-registry.js";
+import {
+  defineConfiglessFeatureAdapterEntry,
+  defineFeatureAdapter,
+} from "./feature-adapter-registry.js";
 import { rebindFeatureAdapters } from "./config/feature-config.js";
 
 const featureAdapterRuntime: FeatureAdapterRuntimeContext = {
@@ -201,6 +204,105 @@ describe("createConfiguredFeatures", () => {
     expect(originalCreate).not.toHaveBeenCalled();
     expect(replacementCreate).toHaveBeenCalledWith({
       adapterConfig: { endpoint: "https://notes.test" },
+      runtime: featureAdapterRuntime,
+    });
+  });
+
+  it("rejects rebinding through an independently defined adapter", () => {
+    const config = parseAssistantConfig(
+      createMinimalFeatureConfig({
+        notes: { adapter: "remote", enabled: true },
+      }),
+      {
+        featureAdapterRegistry: {
+          notes: {
+            adapters: {
+              remote: defineFeatureAdapter({
+                parseConfig: () => ({ endpoint: "https://notes.test" }),
+              }).bind({ create: () => createTestFeature("notes") }),
+            },
+          },
+        },
+      },
+    );
+
+    expect(() =>
+      rebindFeatureAdapters(config.features, {
+        notes: {
+          adapters: {
+            remote: defineFeatureAdapter({
+              parseConfig: () => ({ endpoint: "https://notes.test" }),
+            }).bind({ create: () => createTestFeature("notes") }),
+          },
+        },
+      }),
+    ).toThrow(
+      "Feature adapter parsed configuration is incompatible with the selected registry entry.",
+    );
+  });
+
+  it("rejects rebinding when the selected registry entry is missing", () => {
+    const adapter = defineFeatureAdapter({ parseConfig: () => ({}) });
+    const config = parseAssistantConfig(
+      createMinimalFeatureConfig({
+        notes: { adapter: "remote", enabled: true },
+      }),
+      {
+        featureAdapterRegistry: {
+          notes: {
+            adapters: {
+              remote: adapter.bind({
+                create: () => createTestFeature("notes"),
+              }),
+            },
+          },
+        },
+      },
+    );
+
+    expect(() => rebindFeatureAdapters(config.features, {})).toThrow(
+      'Config feature "notes" is not registered.',
+    );
+  });
+
+  it("rebinds configless adapter entries without fake parsing", () => {
+    const originalCreate = vi.fn(() => createTestFeature("notes"));
+    const replacementCreate = vi.fn(() => createTestFeature("notes"));
+    const config = parseAssistantConfig(
+      createMinimalFeatureConfig({
+        notes: { adapter: "local", enabled: true },
+      }),
+      {
+        featureAdapterRegistry: {
+          notes: {
+            adapters: {
+              local: defineConfiglessFeatureAdapterEntry({
+                create: originalCreate,
+              }),
+            },
+          },
+        },
+      },
+    );
+    const rebound = rebindFeatureAdapters(config.features, {
+      notes: {
+        adapters: {
+          local: defineConfiglessFeatureAdapterEntry({
+            create: replacementCreate,
+          }),
+        },
+      },
+    });
+
+    createConfiguredFeatures(
+      { ...config, features: rebound },
+      {
+        runtime: featureAdapterRuntime,
+      },
+    );
+
+    expect(originalCreate).not.toHaveBeenCalled();
+    expect(replacementCreate).toHaveBeenCalledWith({
       runtime: featureAdapterRuntime,
     });
   });

@@ -1,15 +1,14 @@
 import { createMessagingFeature } from "../../features/messaging/messaging-feature.js";
 import {
-  defineFeatureAdapterEntry,
+  defineConfiglessFeatureAdapterEntry,
   type FeatureRegistryEntry,
 } from "../feature-adapter-registry.js";
 
 export function createMessagingFeatureRegistryEntry(): FeatureRegistryEntry {
   return {
     adapters: {
-      mock: defineFeatureAdapterEntry({
+      mock: defineConfiglessFeatureAdapterEntry({
         create: () => createMessagingFeature(),
-        parseConfig: () => {},
       }),
     },
   };

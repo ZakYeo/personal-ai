@@ -99,7 +99,9 @@ function rebindRuntimeConfigSource(
     ...source,
     config: {
       ...source.config,
-      features: rebindFeatureAdapters(source.config.features, registry),
+      features: rebindFeatureAdapters(source.config.features, registry, {
+        preserveUnregistered: true,
+      }),
     },
   };
 }

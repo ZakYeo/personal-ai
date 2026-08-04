@@ -18,6 +18,13 @@ interface FeatureAdapterBinding<TAdapterConfig> {
   validateStartup?(adapterConfig: TAdapterConfig): void;
 }
 
+interface ConfiglessFeatureAdapterBinding {
+  create(
+    context: Pick<FeatureAdapterContext<never>, "runtime">,
+  ): FeaturePlugin | FeatureAdapterComposition;
+  validateStartup?(): void;
+}
+
 interface FeatureAdapterEntryDefinition<
   TAdapterConfig,
 > extends FeatureAdapterBinding<TAdapterConfig> {
@@ -28,6 +35,7 @@ export interface ResolvedFeatureAdapter {
   create(
     runtime: FeatureAdapterRuntimeContext,
   ): FeaturePlugin | FeatureAdapterComposition;
+  readonly parsedConfig: ParsedFeatureAdapterConfig;
   validateStartup?(): void;
 }
 
@@ -38,7 +46,7 @@ export interface FeatureAdapterComposition {
 
 export interface FeatureAdapterEntry {
   parse(featureConfig: Record<string, unknown>): ResolvedFeatureAdapter;
-  rebind(resolved: ResolvedFeatureAdapter): ResolvedFeatureAdapter;
+  rebind(parsedConfig: ParsedFeatureAdapterConfig): ResolvedFeatureAdapter;
 }
 
 export interface FeatureRegistryEntry {
@@ -47,44 +55,76 @@ export interface FeatureRegistryEntry {
 
 export type FeatureAdapterRegistry = Record<string, FeatureRegistryEntry>;
 
+const parsedConfigDefinition = Symbol("parsedFeatureAdapterConfigDefinition");
+
+export interface ParsedFeatureAdapterConfig {
+  readonly [parsedConfigDefinition]: symbol;
+  readonly value: unknown;
+}
+
 export function defineFeatureAdapter<TAdapterConfig>(definition: {
   parseConfig(featureConfig: Record<string, unknown>): TAdapterConfig;
 }) {
-  const parsedConfigs = new WeakMap<
-    ResolvedFeatureAdapter,
-    { value: TAdapterConfig }
-  >();
+  const definitionId = Symbol("featureAdapterDefinition");
 
   return {
     bind(binding: FeatureAdapterBinding<TAdapterConfig>): FeatureAdapterEntry {
       const resolve = (
-        adapterConfig: TAdapterConfig,
+        parsedConfig: ParsedFeatureAdapterConfig,
       ): ResolvedFeatureAdapter => {
+        requireCompatibleParsedConfig(parsedConfig, definitionId);
+        const adapterConfig = parsedConfig.value as TAdapterConfig;
         const resolved: ResolvedFeatureAdapter = {
           create: (runtime) =>
             binding.create({
               adapterConfig,
               runtime,
             }),
+          parsedConfig,
           ...(binding.validateStartup
             ? {
                 validateStartup: () => binding.validateStartup?.(adapterConfig),
               }
             : {}),
         };
-        parsedConfigs.set(resolved, { value: adapterConfig });
         return resolved;
       };
 
       return {
         parse: (featureConfig) =>
-          resolve(definition.parseConfig(featureConfig)),
-        rebind: (resolved) => {
-          const parsedConfig = parsedConfigs.get(resolved);
-          return parsedConfig ? resolve(parsedConfig.value) : resolved;
-        },
+          resolve(
+            createParsedConfig(
+              definitionId,
+              definition.parseConfig(featureConfig),
+            ),
+          ),
+        rebind: resolve,
       };
     },
+  };
+}
+
+const configlessDefinitionId = Symbol("configlessFeatureAdapterDefinition");
+
+export function defineConfiglessFeatureAdapterEntry(
+  binding: ConfiglessFeatureAdapterBinding,
+): FeatureAdapterEntry {
+  const resolve = (
+    parsedConfig: ParsedFeatureAdapterConfig,
+  ): ResolvedFeatureAdapter => {
+    requireCompatibleParsedConfig(parsedConfig, configlessDefinitionId);
+    return {
+      create: (runtime) => binding.create({ runtime }),
+      parsedConfig,
+      ...(binding.validateStartup
+        ? { validateStartup: () => binding.validateStartup?.() }
+        : {}),
+    };
+  };
+
+  return {
+    parse: () => resolve(createParsedConfig(configlessDefinitionId, undefined)),
+    rebind: resolve,
   };
 }
 
@@ -94,4 +134,25 @@ export function defineFeatureAdapterEntry<TAdapterConfig>(
   return defineFeatureAdapter({
     parseConfig: (featureConfig) => entry.parseConfig(featureConfig),
   }).bind(entry);
+}
+
+function createParsedConfig(
+  definitionId: symbol,
+  value: unknown,
+): ParsedFeatureAdapterConfig {
+  return Object.freeze({
+    [parsedConfigDefinition]: definitionId,
+    value,
+  });
+}
+
+function requireCompatibleParsedConfig(
+  parsedConfig: ParsedFeatureAdapterConfig,
+  definitionId: symbol,
+): void {
+  if (parsedConfig[parsedConfigDefinition] !== definitionId) {
+    throw new Error(
+      "Feature adapter parsed configuration is incompatible with the selected registry entry.",
+    );
+  }
 }
