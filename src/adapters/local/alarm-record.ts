@@ -12,6 +12,21 @@ import {
 } from "../../application/alarm-lifecycle-policy.js";
 import { nextRecurringOccurrence } from "./alarm-recurrence.js";
 
+export interface AlarmRecordCandidate {
+  createdAt: string;
+  deliveryAttempts: number;
+  id: string;
+  label: string;
+  nextDeliveryAt?: string;
+  recurrence?: AlarmRecurrence;
+  revision: number;
+  scheduledFor: string;
+  status: AlarmRecord["status"];
+  successfulDeliveries: number;
+  terminalAt?: string;
+  updatedAt: string;
+}
+
 export function createScheduledAlarm(
   alarm: NewAlarmRecord,
   id: string,
@@ -25,7 +40,7 @@ export function createScheduledAlarm(
       )
     : undefined;
 
-  const stored: AlarmRecord = {
+  const stored: AlarmRecordCandidate = {
     ...alarm,
     ...(recurrence ? { recurrence } : {}),
     createdAt: timestamp,
@@ -61,7 +76,7 @@ export function applyAlarmLifecycleUpdate(
     update.changes.nextDeliveryAt === null
       ? undefined
       : (update.changes.nextDeliveryAt ?? alarm.nextDeliveryAt);
-  const updated: AlarmRecord = {
+  const updated: AlarmRecordCandidate = {
     ...alarm,
     ...(update.changes.deliveryAttempts === undefined
       ? {}
@@ -92,6 +107,7 @@ export function applyAlarmLifecycleUpdate(
     delete updated.terminalAt;
   }
 
+  assertValidAlarmRecord(updated);
   return applyValidatedTransition(alarm, updated).record;
 }
 
@@ -114,7 +130,7 @@ function applyValidatedTransition(
     requested.updatedAt,
     recurrence,
   );
-  const advanced: AlarmRecord = {
+  const advanced: AlarmRecordCandidate = {
     ...requested,
     deliveryAttempts: 0,
     nextDeliveryAt: scheduledFor,
@@ -123,6 +139,7 @@ function applyValidatedTransition(
     successfulDeliveries: 0,
   };
   delete advanced.terminalAt;
+  assertValidAlarmRecord(advanced);
   assertValidRecurringAdvance(previous, advanced);
   return { kind: "recurrence_advanced", record: advanced };
 }
@@ -153,7 +170,9 @@ function assertValidRecurringAdvance(
   }
 }
 
-export function assertValidAlarmRecord(alarm: AlarmRecord): void {
+export function assertValidAlarmRecord(
+  alarm: AlarmRecordCandidate,
+): asserts alarm is AlarmRecord {
   if (
     alarm.id.length === 0 ||
     alarm.label.length === 0 ||
@@ -238,7 +257,7 @@ const allowedNextStatuses: Record<
   snoozed: ["scheduled", "ringing", "cancelled", "missed"],
 };
 
-function hasConsistentStatusFields(alarm: AlarmRecord): boolean {
+function hasConsistentStatusFields(alarm: AlarmRecordCandidate): boolean {
   switch (alarm.status) {
     case "scheduled":
     case "snoozed":

@@ -72,7 +72,7 @@ export async function processAlarmSchedulerCycle(
     }
 
     const next = findNextActiveAlarm(alarms);
-    if (!next?.nextDeliveryAt) {
+    if (!next) {
       return;
     }
 
@@ -102,7 +102,7 @@ function isInterruptedFinalClaim(alarm: AlarmRecord): boolean {
 
 function findNextActiveAlarm(
   alarms: readonly AlarmRecord[],
-): AlarmRecord | undefined {
+): DeliverableAlarmRecord | undefined {
   return alarms
     .filter(
       (alarm) =>
@@ -111,9 +111,18 @@ function findNextActiveAlarm(
           alarm.status === "ringing") &&
         alarm.nextDeliveryAt !== undefined,
     )
+    .filter(hasNextDeliveryAt)
     .sort((left, right) =>
-      left.nextDeliveryAt!.localeCompare(right.nextDeliveryAt!),
+      left.nextDeliveryAt.localeCompare(right.nextDeliveryAt),
     )[0];
+}
+
+type DeliverableAlarmRecord = AlarmRecord & { nextDeliveryAt: string };
+
+function hasNextDeliveryAt(
+  alarm: AlarmRecord,
+): alarm is DeliverableAlarmRecord {
+  return alarm.nextDeliveryAt !== undefined;
 }
 
 async function claimAndDeliver(

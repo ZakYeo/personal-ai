@@ -7,7 +7,10 @@ import {
 } from "../../application/alarm-lifecycle-policy.js";
 import type { AlarmRecord, AlarmStatus } from "../../ports/alarm-store.js";
 import { isRecord } from "../parsing.js";
-import { assertValidAlarmRecord } from "./alarm-record.js";
+import {
+  assertValidAlarmRecord,
+  type AlarmRecordCandidate,
+} from "./alarm-record.js";
 import { assertAlarmStateCapacity } from "./alarm-store-state.js";
 
 export interface AlarmStateDocument {
@@ -70,7 +73,7 @@ function migrateVersionTwoAlarm(value: unknown): AlarmRecord {
   if (!alarm) {
     throw invalidAlarmState();
   }
-  const migrated: AlarmRecord = {
+  const migrated: AlarmRecordCandidate = {
     ...alarm,
     ...(isTerminalAlarmStatus(alarm.status)
       ? { terminalAt: alarm.updatedAt }
@@ -94,7 +97,7 @@ function parseVersionThreeAlarm(value: unknown): AlarmRecord {
   ) {
     throw invalidAlarmState();
   }
-  const parsed: AlarmRecord = {
+  const parsed: AlarmRecordCandidate = {
     ...alarm,
     ...(isCanonicalAlarmRecurrence(value.recurrence)
       ? { recurrence: { ...value.recurrence } }
@@ -116,7 +119,7 @@ function parseVersionThreeAlarm(value: unknown): AlarmRecord {
 function parseRecordFields(
   value: Record<string, unknown>,
   isStatus: (status: unknown) => status is AlarmStatus,
-): AlarmRecord | undefined {
+): AlarmRecordCandidate | undefined {
   if (
     !isCanonicalIsoTimestamp(value.createdAt) ||
     !isNonNegativeInteger(value.deliveryAttempts) ||
@@ -150,7 +153,9 @@ function parseRecordFields(
   };
 }
 
-function assertValidPersistedAlarm(alarm: AlarmRecord): void {
+function assertValidPersistedAlarm(
+  alarm: AlarmRecordCandidate,
+): asserts alarm is AlarmRecord {
   try {
     assertValidAlarmRecord(alarm);
   } catch {

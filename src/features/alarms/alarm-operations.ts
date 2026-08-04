@@ -377,29 +377,29 @@ function projectAlarmStatus(alarm: AlarmRecord): {
       };
     case "snoozed":
       return {
-        facts: { ...facts, NextDeliveryAt: alarm.nextDeliveryAt! },
+        facts: { ...facts, NextDeliveryAt: alarm.nextDeliveryAt },
         text: `${identity} is snoozed until ${alarm.nextDeliveryAt}.`,
       };
     case "ringing":
       return { facts, text: `${identity} is ringing.` };
     case "completed":
       return {
-        facts: { ...facts, TerminalAt: alarm.terminalAt! },
+        facts: { ...facts, TerminalAt: alarm.terminalAt },
         text: `${identity} was completed at ${alarm.terminalAt}.`,
       };
     case "dismissed":
       return {
-        facts: { ...facts, TerminalAt: alarm.terminalAt! },
+        facts: { ...facts, TerminalAt: alarm.terminalAt },
         text: `${identity} was dismissed at ${alarm.terminalAt}.`,
       };
     case "cancelled":
       return {
-        facts: { ...facts, TerminalAt: alarm.terminalAt! },
+        facts: { ...facts, TerminalAt: alarm.terminalAt },
         text: `${identity} was cancelled at ${alarm.terminalAt}.`,
       };
     case "missed":
       return {
-        facts: { ...facts, TerminalAt: alarm.terminalAt! },
+        facts: { ...facts, TerminalAt: alarm.terminalAt },
         text: `${identity} was missed at ${alarm.terminalAt}.`,
       };
   }

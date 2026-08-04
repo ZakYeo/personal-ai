@@ -1,5 +1,9 @@
 import type { AlarmRecord, AlarmStatus } from "../../ports/alarm-store.js";
-import { applyAlarmLifecycleUpdate } from "./alarm-record.js";
+import {
+  applyAlarmLifecycleUpdate,
+  assertValidAlarmRecord,
+  type AlarmRecordCandidate,
+} from "./alarm-record.js";
 
 describe("applyAlarmLifecycleUpdate", () => {
   it.each([
@@ -88,9 +92,15 @@ function alarmInStatus(status: AlarmStatus): AlarmRecord {
       ? 1
       : 0;
   const successfulDeliveries = status === "completed" ? 1 : 0;
-  const active = status === "scheduled" || status === "ringing";
+  const active =
+    status === "scheduled" || status === "snoozed" || status === "ringing";
+  const terminal =
+    status === "completed" ||
+    status === "dismissed" ||
+    status === "cancelled" ||
+    status === "missed";
 
-  return {
+  const alarm: AlarmRecordCandidate = {
     createdAt: "2026-07-14T09:00:00.000Z",
     deliveryAttempts: attempts,
     id: "alarm-1",
@@ -100,6 +110,9 @@ function alarmInStatus(status: AlarmStatus): AlarmRecord {
     scheduledFor: "2026-07-14T09:10:00.000Z",
     status,
     successfulDeliveries,
+    ...(terminal ? { terminalAt: "2026-07-14T09:10:00.000Z" } : {}),
     updatedAt: "2026-07-14T09:10:00.000Z",
   };
+  assertValidAlarmRecord(alarm);
+  return alarm;
 }

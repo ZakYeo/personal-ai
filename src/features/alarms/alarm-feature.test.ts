@@ -721,6 +721,7 @@ describe("createAlarmFeature", () => {
       status: "completed",
       successfulDeliveries: 1,
       terminalAt: "2026-06-26T09:00:30.000Z",
+      updatedAt: "2026-06-26T09:00:30.000Z",
     });
     const second = createScheduledAlarmRecord({
       deliveryAttempts: 1,

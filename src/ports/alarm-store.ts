@@ -12,37 +12,57 @@ export interface AlarmRecurrence {
   readonly timeZone: string;
 }
 
-export interface AlarmRecord {
+interface AlarmRecordFields {
   createdAt: string;
   deliveryAttempts: number;
   id: string;
   label: string;
-  nextDeliveryAt?: string;
   recurrence?: AlarmRecurrence;
   revision: number;
   scheduledFor: string;
-  status: AlarmStatus;
   successfulDeliveries: number;
-  terminalAt?: string;
   updatedAt: string;
 }
 
-export type NewAlarmRecord = Pick<AlarmRecord, "label" | "scheduledFor"> & {
-  recurrence?: AlarmRecurrence;
-};
+export interface ScheduledAlarmRecord extends AlarmRecordFields {
+  deliveryAttempts: 0;
+  nextDeliveryAt: string;
+  status: "scheduled" | "snoozed";
+  successfulDeliveries: 0;
+  terminalAt?: never;
+}
 
-type AlarmLifecycleChanges = Partial<
-  Pick<
-    AlarmRecord,
-    | "deliveryAttempts"
-    | "label"
-    | "scheduledFor"
-    | "status"
-    | "successfulDeliveries"
-  >
-> & {
+export interface RingingAlarmRecord extends AlarmRecordFields {
+  nextDeliveryAt?: string;
+  status: "ringing";
+  terminalAt?: never;
+}
+
+export interface TerminalAlarmRecord extends AlarmRecordFields {
+  nextDeliveryAt?: never;
+  status: "cancelled" | "completed" | "dismissed" | "missed";
+  terminalAt: string;
+}
+
+export type AlarmRecord =
+  | ScheduledAlarmRecord
+  | RingingAlarmRecord
+  | TerminalAlarmRecord;
+
+export interface NewAlarmRecord {
+  label: string;
+  recurrence?: AlarmRecurrence;
+  scheduledFor: string;
+}
+
+interface AlarmLifecycleChanges {
+  deliveryAttempts?: number;
+  label?: string;
   nextDeliveryAt?: string | null;
-};
+  scheduledFor?: string;
+  status?: AlarmStatus;
+  successfulDeliveries?: number;
+}
 
 export interface AlarmLifecycleUpdate {
   changes: AlarmLifecycleChanges;
