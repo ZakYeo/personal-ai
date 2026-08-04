@@ -102,6 +102,12 @@ const liveClarificationScenarios = [
   "Search the web for me.",
 ] as const;
 
+const liveConversationScenarios = [
+  "Thank you.",
+  "Thanks, Jarvis.",
+  "That was helpful, cheers.",
+] as const;
+
 const runOpenAIE2E = env.PERSONAL_AI_RUN_OPENAI_E2E === "1";
 
 describe.skipIf(!runOpenAIE2E)("OpenAI intent routing live E2E", () => {
@@ -144,6 +150,17 @@ describe.skipIf(!runOpenAIE2E)("OpenAI intent routing live E2E", () => {
           status: "ok",
           text: expect.stringMatching(/\?/u) as string,
         },
+      });
+    },
+  );
+
+  it.each(liveConversationScenarios)(
+    "classifies casual acknowledgements as conversation: %s",
+    async (text) => {
+      const interpreter = createInterpreter();
+
+      await expect(interpretOnce(interpreter, text, context)).resolves.toEqual({
+        kind: "conversation",
       });
     },
   );
