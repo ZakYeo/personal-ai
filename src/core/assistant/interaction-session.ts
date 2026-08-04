@@ -9,7 +9,7 @@ export interface InteractionSession {
   ): AssistantOutcome;
   requestClarification(
     prompt: AssistantOutcome,
-    resume: (reply: string) => Promise<AssistantOutcome>,
+    resume: (reply: string) => Promise<ClarificationResolution>,
   ): AssistantOutcome;
   run(
     input: string,
@@ -18,6 +18,10 @@ export interface InteractionSession {
     onCompleted: () => void,
   ): Promise<AssistantOutcome>;
 }
+
+export type ClarificationResolution =
+  | { kind: "completed"; outcome: AssistantOutcome }
+  | { kind: "replacement" };
 
 type PendingInteraction =
   | {
@@ -29,7 +33,7 @@ type PendingInteraction =
   | {
       kind: "clarification";
       prompt: AssistantOutcome;
-      resume: (reply: string) => Promise<AssistantOutcome>;
+      resume: (reply: string) => Promise<ClarificationResolution>;
     };
 
 export function createInteractionSession(): InteractionSession {
@@ -66,7 +70,11 @@ export function createInteractionSession(): InteractionSession {
           } else {
             const resume = pending.resume;
             pending = undefined;
-            outcome = await resume(input);
+            const resolution = await resume(input);
+            outcome =
+              resolution.kind === "replacement"
+                ? await handle()
+                : resolution.outcome;
           }
           onCompleted();
           return outcome;

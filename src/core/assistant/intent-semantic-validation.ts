@@ -23,12 +23,22 @@ export function createSemanticallyValidatedIntentSession(
   options: SemanticValidationOptions,
 ): IntentInterpreterSession {
   return {
-    next: async (input) =>
-      validateIntentSemantics(
-        await options.session.next(input),
+    next: async (input) => {
+      const interpretation = await options.session.next(input);
+      if (
+        interpretation.kind === "replacement" &&
+        input?.kind !== "user_reply"
+      ) {
+        throw new Error(
+          "An intent session may replace a request only after a user clarification reply.",
+        );
+      }
+      return validateIntentSemantics(
+        interpretation,
         options.originalText,
         options.capabilityCatalog,
-      ),
+      );
+    },
   };
 }
 
@@ -73,6 +83,7 @@ function commandsFromInterpretation(
       return [interpretation.call.command];
     case "clarification":
     case "rephrase":
+    case "replacement":
     case "conversation":
     case "unknown":
     case "unsupported":

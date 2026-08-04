@@ -19,6 +19,9 @@ export type IntentInterpretation =
       response: AssistantResponse;
     }
   | {
+      kind: "replacement";
+    }
+  | {
       kind: "plan";
       plan: ProposedAssistantPlan;
     }

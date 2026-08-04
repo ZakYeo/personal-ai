@@ -121,6 +121,15 @@ export function createIntentWorkflow(input: {
         response: { ...current.response, expectsFollowUp: true },
       });
     }
+    if (current.kind === "replacement") {
+      return decorate(
+        unexpectedOutcome(
+          new Error(
+            "A request replacement was returned outside a clarification reply.",
+          ),
+        ),
+      );
+    }
     if (current.kind === "unknown" || current.kind === "unsupported") {
       return decorate({ response: current.response });
     }
@@ -214,11 +223,21 @@ export function createIntentWorkflow(input: {
       decorate({ response: { ...response, expectsFollowUp: true } }),
       async (reply) => {
         try {
-          return handleInterpretation(
-            await requireSession().next({ kind: "user_reply", text: reply }),
-          );
+          const interpretation = await requireSession().next({
+            kind: "user_reply",
+            text: reply,
+          });
+          return interpretation.kind === "replacement"
+            ? { kind: "replacement" }
+            : {
+                kind: "completed",
+                outcome: await handleInterpretation(interpretation),
+              };
         } catch (error) {
-          return decorate(unexpectedOutcome(error));
+          return {
+            kind: "completed",
+            outcome: decorate(unexpectedOutcome(error)),
+          };
         }
       },
     );

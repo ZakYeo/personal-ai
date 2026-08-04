@@ -5,7 +5,12 @@ describe("interaction session clarification", () => {
     "discards a pending clarification for %j",
     async (reply) => {
       const session = createInteractionSession();
-      const resume = vi.fn(() => Promise.resolve(completedOutcome));
+      const resume = vi.fn(() =>
+        Promise.resolve({
+          kind: "completed" as const,
+          outcome: completedOutcome,
+        }),
+      );
       await session.run(
         "initial",
         () =>
@@ -27,7 +32,12 @@ describe("interaction session clarification", () => {
 
   it("resumes the exact clarification callback for other input", async () => {
     const session = createInteractionSession();
-    const resume = vi.fn(() => Promise.resolve(completedOutcome));
+    const resume = vi.fn(() =>
+      Promise.resolve({
+        kind: "completed" as const,
+        outcome: completedOutcome,
+      }),
+    );
     await session.run(
       "initial",
       () =>
