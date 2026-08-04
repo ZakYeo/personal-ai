@@ -29,9 +29,17 @@ export function humanizeSpokenText(
     .replace(/(?:https?:\/\/|www\.)[^\s)\]]+/giu, "")
     .replace(/\[\d+\]/gu, "")
     .replace(/\(\s*\)/gu, "")
-    .replace(/\s+([,.!?;:])/gu, "$1")
+    .replace(/\bOn (today|tomorrow|yesterday)\b/gu, (_, day: string) =>
+      capitalize(day),
+    )
+    .replace(/\bon (today|tomorrow|yesterday)\b/gu, "$1")
+    .replace(/\s+([,.!?;:])(?=\s|$)/gu, "$1")
     .replace(/\s+/gu, " ")
     .trim();
+}
+
+function capitalize(value: string): string {
+  return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
 }
 
 export function isSpokenTextSafe(value: string): boolean {

@@ -223,7 +223,7 @@ describe("assistant compound plans", () => {
     await expect(assistant.handleText("set a tea alarm")).resolves.toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "Please confirm this plan: 1. set the tea alarm for 2026-06-26T09:10:00.000Z. Say yes or no.",
+      text: "Please confirm this plan: 1. set the tea alarm for 10:10am today. Say yes or no.",
     });
 
     now = new Date("2026-06-26T09:05:00.000Z");
@@ -244,7 +244,7 @@ describe("assistant compound plans", () => {
       },
       response: {
         status: "ok",
-        text: "Handled. Alarm set for 2026-06-26T09:10:00.000Z (tea).",
+        text: "Handled. Alarm set for 10:10am today (tea).",
       },
     });
     await expect(store.list()).resolves.toEqual([

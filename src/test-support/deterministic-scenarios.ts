@@ -11,7 +11,7 @@ export const deterministicScenarios = {
     response: {
       expectsFollowUp: true,
       status: "ok",
-      text: "Upcoming wedding is on 2026-09-12, all day.",
+      text: "Upcoming wedding is on 12 September, all day.",
     },
   },
   calendarUpcomingEvents: {
@@ -19,7 +19,7 @@ export const deterministicScenarios = {
     response: {
       expectsFollowUp: true,
       status: "ok",
-      text: "You have 1 upcoming calendar event: Upcoming wedding on 2026-09-12, all day.",
+      text: "You have 1 upcoming calendar event: Upcoming wedding on 12 September, all day.",
     },
   },
   messagingWhatsappDraft: {
@@ -34,7 +34,7 @@ export const deterministicScenarios = {
     response: {
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "Please confirm: 1. set the ping me alarm for 2026-06-26T09:10:00.000Z. Say yes or no.",
+      text: "Please confirm: 1. set the ping me alarm for 10:10am today. Say yes or no.",
     },
   },
   alarmListEmpty: {
@@ -48,7 +48,7 @@ export const deterministicScenarios = {
     text: "Hey Jarvis, list my alarms",
     response: {
       status: "ok",
-      text: "The ping me alarm (alarm-1) is scheduled for 2026-06-26T09:10:00.000Z.",
+      text: "The ping me alarm (alarm-1) is scheduled for 10:10am today.",
     },
   },
   capabilityList: {

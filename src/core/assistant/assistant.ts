@@ -8,6 +8,7 @@ import type { FeaturePlugin } from "../../ports/feature.js";
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
+import { humanizeSpokenText } from "../../ports/human-text.js";
 import {
   createConversationSession,
   type ConversationSessionDependencies,
@@ -57,7 +58,7 @@ export function createAssistant(
     text: string,
     options: AssistantRequestOptions = {},
   ): Promise<AssistantOutcome> {
-    return interaction.run(
+    const outcome = await interaction.run(
       text,
       () =>
         createIntentWorkflow({
@@ -79,6 +80,8 @@ export function createAssistant(
         ),
       () => resultReferences.completeTurn(),
     );
+
+    return humanizeOutcome(outcome, dependencies);
   }
 
   return {
@@ -91,5 +94,40 @@ export function createAssistant(
       return outcome.response;
     },
     handleTextWithDiagnostics,
+  };
+}
+
+function humanizeOutcome(
+  outcome: AssistantOutcome,
+  dependencies: Pick<AssistantDependencies, "clock" | "config">,
+): AssistantOutcome {
+  const now = dependencies.clock.now();
+  const timeZone = dependencies.config.assistant.timeZone;
+  const humanizeResponse = (
+    response: AssistantResponse,
+  ): AssistantResponse => ({
+    ...response,
+    text: humanizeSpokenText(response.text, {
+      assistantTimeZone: timeZone,
+      now,
+      timeZone,
+    }),
+  });
+
+  return {
+    ...outcome,
+    ...(outcome.plan
+      ? {
+          plan: {
+            steps: outcome.plan.steps.map((step) => ({
+              ...step,
+              ...(step.response
+                ? { response: humanizeResponse(step.response) }
+                : {}),
+            })),
+          },
+        }
+      : {}),
+    response: humanizeResponse(outcome.response),
   };
 }

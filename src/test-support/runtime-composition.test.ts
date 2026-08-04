@@ -109,7 +109,7 @@ describe("runtime composition test support", () => {
     ).resolves.toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "Please confirm: 1. set the ping me alarm for 2026-06-26T09:11:00.000Z. Say yes or no.",
+      text: "Please confirm: 1. set the ping me alarm for 10:11am today. Say yes or no.",
     });
   });
 

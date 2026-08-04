@@ -15,6 +15,7 @@ import type {
 } from "../../ports/feature.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import type { ResultReferenceSelectionRequest } from "../../ports/result-reference.js";
+import { humanizeSpokenText } from "../../ports/human-text.js";
 import { createAppError } from "./app-error.js";
 import { outcomeFromError } from "./assistant-outcome.js";
 import { planRequiresConfirmation } from "./plan-confirmation.js";
@@ -93,14 +94,14 @@ export function executeValidatedPlan(
   );
 }
 
-export function executeWorkflowRead(input: {
+export async function executeWorkflowRead(input: {
   context: AssistantContext;
   dependencies: CommandExecutionDependencies;
   normalizedText: string;
   resultReferences: ResultReferenceSession;
   step: Parameters<typeof executeAssistantPlan>[0]["steps"][number];
 }): Promise<CommandExecutionOutcome> {
-  return executeFeatureCommand({
+  const execution = await executeFeatureCommand({
     command: input.step.command,
     context: createTrustedCommandContext(
       input.context,
@@ -119,6 +120,23 @@ export function executeWorkflowRead(input: {
     normalizedText: input.normalizedText,
     resultReferences: input.resultReferences,
   });
+  if (
+    execution.kind === "resumable_clarification" ||
+    execution.outcome.response.status !== "ok"
+  ) {
+    return execution;
+  }
+  return {
+    ...execution,
+    outcome: {
+      ...execution.outcome,
+      response: prepareCommandResponse(
+        execution.outcome.response,
+        execution.data ?? {},
+        input.context,
+      ).restore(),
+    },
+  };
 }
 
 export function createTrustedCommandContext(
@@ -239,31 +257,31 @@ async function rewriteCommandResponse(input: {
   response: AssistantResponse;
   text: string;
 }): Promise<AssistantOutcome> {
+  const prepared = prepareCommandResponse(
+    input.response,
+    input.facts,
+    input.context,
+  );
   const rewriter = input.dependencies.responseRewriter;
-  if (!rewriter) return { response: input.response };
+  if (!rewriter) return { response: prepared.restore() };
 
   try {
-    const protectedResponse = protectResponseFacts(
-      input.response.text,
-      input.facts,
-      input.context.clock.now(),
-    );
     const rewrite = await rewriter.rewrite(
       {
         capability: input.command.capability,
         command: input.command,
         originalText: input.text,
-        ...(protectedResponse.facts.length > 0
-          ? { protectedFacts: protectedResponse.facts }
+        ...(prepared.facts.length > 0
+          ? { protectedFacts: prepared.facts }
           : {}),
-        response: { ...input.response, text: protectedResponse.text },
+        response: { ...input.response, text: prepared.text },
       },
       input.context,
     );
     return {
       response: {
         ...input.response,
-        text: protectedResponse.restore(rewrite.text),
+        text: prepared.restore(rewrite.text).text,
       },
     };
   } catch (error) {
@@ -277,7 +295,58 @@ async function rewriteCommandResponse(input: {
             ? error.message
             : "Unknown response rewrite error",
       }),
-      input.response,
+      prepared.restore(),
     );
+  }
+}
+
+function prepareCommandResponse(
+  response: AssistantResponse,
+  facts: AssistantCommand["parameters"],
+  context: AssistantContext,
+) {
+  const assistantTimeZone = context.config.assistant.timeZone;
+  const timeZone = selectResponseTimeZone(facts, assistantTimeZone);
+  const now = context.clock.now();
+  const protectedResponse = protectResponseFacts(
+    response.text,
+    facts,
+    now,
+    timeZone,
+    assistantTimeZone,
+  );
+  return {
+    facts: protectedResponse.facts,
+    restore: (text = protectedResponse.text): AssistantResponse => ({
+      ...response,
+      text: humanizeSpokenText(protectedResponse.restore(text), {
+        assistantTimeZone,
+        now,
+        timeZone,
+      }),
+    }),
+    text: protectedResponse.text,
+  };
+}
+
+function selectResponseTimeZone(
+  facts: AssistantCommand["parameters"],
+  fallback: string,
+): string {
+  const timeZones = new Set(
+    Object.entries(facts).flatMap(([name, value]) =>
+      /timezone$/iu.test(name) && typeof value === "string" ? [value] : [],
+    ),
+  );
+  if (timeZones.size !== 1) return fallback;
+  const [timeZone] = timeZones;
+  if (!timeZone) return fallback;
+  try {
+    return new Intl.DateTimeFormat("en", { timeZone }).resolvedOptions()
+      .timeZone === timeZone
+      ? timeZone
+      : fallback;
+  } catch {
+    return fallback;
   }
 }

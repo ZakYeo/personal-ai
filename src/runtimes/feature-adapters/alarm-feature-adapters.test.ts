@@ -63,7 +63,7 @@ describe("alarm feature adapters", () => {
     ).resolves.toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "Please confirm: 1. set the take medicine alarm for 2026-07-14T09:10:00.000Z, repeating daily in europe/london. Say yes or no.",
+      text: "Please confirm: 1. set the take medicine alarm for 10:10am today, repeating daily in europe/london. Say yes or no.",
     });
     await assistant.handleText("yes");
 
@@ -123,7 +123,7 @@ describe("alarm feature adapters", () => {
       assistant.handleText("Hey Jarvis, list my alarms"),
     ).resolves.toEqual({
       status: "ok",
-      text: "The tea alarm (persisted-alarm) is scheduled for 2026-07-13T17:00:00.000Z.",
+      text: "The tea alarm (persisted-alarm) is scheduled for 6pm on 13 July.",
     });
   });
 

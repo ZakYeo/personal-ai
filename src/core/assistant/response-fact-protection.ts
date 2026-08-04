@@ -1,4 +1,5 @@
 import type { AssistantCommandParameters } from "../../ports/assistant.js";
+import { renderSpokenFact } from "../../ports/human-text.js";
 import type { ProtectedResponseFact } from "../../ports/response-rewriter.js";
 
 interface FactReplacement extends ProtectedResponseFact {
@@ -16,6 +17,8 @@ export function protectResponseFacts(
   text: string,
   facts: AssistantCommandParameters,
   now: Date,
+  timeZone = "UTC",
+  assistantTimeZone = timeZone,
 ): ProtectedResponse {
   const groupedFacts = groupFactsByValue(facts);
   const replacements: FactReplacement[] = [];
@@ -38,7 +41,7 @@ export function protectResponseFacts(
     replacements.push({
       names,
       occurrences: replaced.occurrences,
-      rendering: renderFact(value, now),
+      rendering: renderFact(value, now, timeZone, assistantTimeZone),
       token,
     });
   }
@@ -62,7 +65,7 @@ function groupFactsByValue(
 
     const text = String(value);
 
-    if (text.length === 0) {
+    if (text.length === 0 || isHttpUrl(text)) {
       continue;
     }
 
@@ -165,7 +168,25 @@ function createFactToken(index: number, sourceText: string): string {
   return token;
 }
 
-function renderFact(value: string, now: Date): string {
+function renderFact(
+  value: string,
+  now: Date,
+  timeZone: string,
+  assistantTimeZone: string,
+): string {
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(value)) {
+    return renderSpokenFact(value, { assistantTimeZone, now, timeZone });
+  }
+
+  if (value === "UTC" || value.includes("/")) {
+    const rendered = renderSpokenFact(value, {
+      assistantTimeZone,
+      now,
+      timeZone,
+    });
+    if (rendered !== value) return rendered;
+  }
+
   const date = parseIsoDate(value);
 
   if (!date) {
@@ -282,6 +303,15 @@ function parseIsoDate(
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 const monthNames = [

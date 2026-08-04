@@ -36,9 +36,8 @@ describe("weather feature adapters", () => {
       status: "ok",
     });
     expect(response.text).toContain("In London, it is 21°C and partly cloudy");
-    expect(response.text).toContain(
-      "Source: Deterministic weather fixture (https://example.test/weather-source).",
-    );
+    expect(response.text).toContain("Source: Deterministic weather fixture.");
+    expect(response.text).not.toContain("https://");
   });
 
   it("routes spoken coat advice through only the injected explicit-home reader", async () => {
@@ -68,10 +67,8 @@ describe("weather feature adapters", () => {
     expect(response.text).toContain(
       "Yes, take a coat: the forecast includes rain or cool conditions.",
     );
-    expect(response.text).toContain(
-      "from 2026-07-29T05:00:00.000Z to 2026-07-29T11:00:00.000Z",
-    );
-    expect(response.text).toContain("Fetched at 2026-07-28T12:00:05.000Z");
+    expect(response.text).toContain("from 6am tomorrow to noon tomorrow");
+    expect(response.text).toContain("Fetched at 1pm today");
     expect(readHomeLocation).toHaveBeenCalledOnce();
   });
 
@@ -236,7 +233,7 @@ describe("weather feature adapters", () => {
     ).resolves.toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "Please confirm: 1. create a weather watch for precipitation at least 0.1 mm in london from 2026-07-28T12:00:00.000Z to 2026-07-29T12:00:00.000Z. Say yes or no.",
+      text: "Please confirm: 1. create a weather watch for precipitation at least 0.1 mm in london from 1pm today to 1pm tomorrow. Say yes or no.",
     });
     await expect(firstAssistant.handleText("yes")).resolves.toMatchObject({
       status: "ok",

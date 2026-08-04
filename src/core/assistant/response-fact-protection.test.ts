@@ -131,4 +131,30 @@ describe("protectResponseFacts", () => {
       ),
     ).toBe(`The event is on ${expected}.`);
   });
+
+  it("restores a protected canonical instant as contextual local speech", () => {
+    const protectedResponse = protectResponseFacts(
+      "Observed at 2026-08-04T15:00:00.000Z.",
+      { observedAt: "2026-08-04T15:00:00.000Z" },
+      new Date("2026-08-04T15:10:13.032Z"),
+      "Europe/London",
+    );
+
+    expect(
+      protectedResponse.restore("Observed at __ASSISTANT_PROTECTED_FACT_0__."),
+    ).toBe("Observed at 4pm today.");
+  });
+
+  it("does not force URL facts to remain in spoken text", () => {
+    const protectedResponse = protectResponseFacts(
+      "Source: Example (https://example.test/source).",
+      { sourceUrl: "https://example.test/source" },
+      deterministicTestNow,
+    );
+
+    expect(protectedResponse.facts).toEqual([]);
+    expect(protectedResponse.text).toBe(
+      "Source: Example (https://example.test/source).",
+    );
+  });
 });

@@ -8,6 +8,7 @@ import { createConfiguredTextRuntime } from "./configured-text-runtime.js";
 
 const now = new Date("2026-07-28T08:00:00.000Z");
 const reminderAt = "2026-07-29T08:00:00.000Z";
+const spokenReminderAt = "9am tomorrow";
 const runOpenAIE2E = env.PERSONAL_AI_RUN_OPENAI_E2E === "1";
 
 describe("OpenAI persistent task routing", () => {
@@ -62,7 +63,7 @@ describe("OpenAI persistent task routing", () => {
     ).resolves.toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: `Please confirm: 1. create Submit the form on the To-do list with a reminder for ${reminderAt}. Say yes or no.`,
+      text: `Please confirm: 1. create Submit the form on the To-do list with a reminder for ${spokenReminderAt}. Say yes or no.`,
     });
     await expect(
       createFileTaskStore({ filePath: statePath, now: () => now }).listTasks(),
@@ -71,7 +72,7 @@ describe("OpenAI persistent task routing", () => {
     await expect(firstRuntime.handleText("yes")).resolves.toEqual({
       expectsFollowUp: true,
       status: "ok",
-      text: `Added Submit the form to your To-do list with a reminder for ${reminderAt}.`,
+      text: `Added Submit the form to your To-do list with a reminder for ${spokenReminderAt}.`,
     });
     await expect(
       createFileTaskStore({ filePath: statePath, now: () => now }).listTasks(),
@@ -141,14 +142,14 @@ describe("OpenAI persistent task routing", () => {
     ).resolves.toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: `Please confirm this plan: 1. create Submit the form on the To-do list with a reminder for ${reminderAt}. Say yes or no.`,
+      text: `Please confirm this plan: 1. create Submit the form on the To-do list with a reminder for ${spokenReminderAt}. Say yes or no.`,
     });
     await expect(access(statePath)).rejects.toMatchObject({ code: "ENOENT" });
 
     await expect(assistant.handleText("yes")).resolves.toEqual({
       expectsFollowUp: true,
       status: "ok",
-      text: `Created the To-do list. Added Submit the form to your To-do list with a reminder for ${reminderAt}.`,
+      text: `Created the To-do list. Added Submit the form to your To-do list with a reminder for ${spokenReminderAt}.`,
     });
     const store = createFileTaskStore({ filePath: statePath, now: () => now });
     await expect(store.listLists()).resolves.toEqual([

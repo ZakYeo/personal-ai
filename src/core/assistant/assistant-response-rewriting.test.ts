@@ -166,6 +166,35 @@ describe("createAssistant", () => {
     );
   });
 
+  it("restores protected instants in the feature timezone", async () => {
+    const command = createCommand("test.echo");
+    const assistant = createAssistant({
+      clock: createFixedClock(new Date("2026-08-04T15:10:00.000Z")),
+      config,
+      features: [
+        createFeature({
+          execute: () =>
+            Promise.resolve({
+              data: {
+                observedAt: "2026-08-05T00:00:00.000Z",
+                timezone: "Asia/Tokyo",
+              },
+              text: "Observed at 2026-08-05T00:00:00.000Z.",
+            }),
+        }),
+      ],
+      intentInterpreter: createInterpreter(command),
+      responseRewriter: {
+        rewrite: (request) => Promise.resolve({ text: request.response.text }),
+      },
+    });
+
+    await expect(assistant.handleText("weather now")).resolves.toEqual({
+      status: "ok",
+      text: "Observed at 9am today, Tokyo time.",
+    });
+  });
+
   it("falls back with diagnostics when a rewrite drops a protected count", async () => {
     const assistant = createAssistant({
       clock,
@@ -228,7 +257,7 @@ describe("createAssistant", () => {
 
     expect(outcome.response).toEqual({
       status: "ok",
-      text: "The private appointment alarm (alarm-1) is scheduled for 2026-06-26T09:10:00.000Z.",
+      text: "The private appointment alarm (alarm-1) is scheduled for 10:10am today.",
     });
     expect(outcome.diagnostics).toEqual([
       expect.objectContaining({
@@ -249,7 +278,7 @@ describe("createAssistant", () => {
         scheduledFor: "2026-06-26T09:10:00.000Z",
         status: "snoozed",
       }),
-      text: "The tea alarm (alarm-1) is snoozed until 2026-06-26T09:15:00.000Z.",
+      text: "The tea alarm (alarm-1) is snoozed until 10:15am today.",
     },
     {
       factName: "alarm0TerminalAt",
@@ -263,7 +292,7 @@ describe("createAssistant", () => {
         successfulDeliveries: 1,
         terminalAt: "2026-06-26T09:11:00.000Z",
       }),
-      text: "The tea alarm (alarm-1) was completed at 2026-06-26T09:11:00.000Z.",
+      text: "The tea alarm (alarm-1) was completed at 10:11am today.",
     },
     {
       factName: "alarm0RecurrenceFrequency",
@@ -273,7 +302,7 @@ describe("createAssistant", () => {
         recurrence: { frequency: "daily", timeZone: "Europe/London" },
         scheduledFor: "2026-06-26T09:10:00.000Z",
       }),
-      text: "The tea alarm (alarm-1) is scheduled for 2026-06-26T09:10:00.000Z and repeats daily in Europe/London.",
+      text: "The tea alarm (alarm-1) is scheduled for 10:10am today and repeats daily in London time.",
     },
     {
       factName: "alarm0RecurrenceTimeZone",
@@ -283,7 +312,7 @@ describe("createAssistant", () => {
         recurrence: { frequency: "daily", timeZone: "Europe/London" },
         scheduledFor: "2026-06-26T09:10:00.000Z",
       }),
-      text: "The tea alarm (alarm-1) is scheduled for 2026-06-26T09:10:00.000Z and repeats daily in Europe/London.",
+      text: "The tea alarm (alarm-1) is scheduled for 10:10am today and repeats daily in London time.",
     },
   ])(
     "protects $factName when rewriting alarm status",
@@ -349,7 +378,7 @@ describe("createAssistant", () => {
 
     expect(outcome.response).toEqual({
       status: "ok",
-      text: "Acknowledged the tea alarm. Its next occurrence is 2026-06-27T09:10:00.000Z.",
+      text: "Acknowledged the tea alarm. Its next occurrence is 10:10am tomorrow.",
     });
     expect(outcome.diagnostics).toEqual([
       expect.objectContaining({ category: "response_rewrite_failure" }),

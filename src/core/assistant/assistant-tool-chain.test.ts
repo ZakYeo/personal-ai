@@ -69,6 +69,64 @@ describe("assistant bounded tool chains", () => {
     );
   });
 
+  it("humanizes intermediate observations without rewriting them", async () => {
+    const continuations: Array<IntentSessionContinuation | undefined> = [];
+    const steps: IntentInterpretation[] = [
+      {
+        call: {
+          command: command("calendar.search_events", {}),
+          id: "read-1",
+        },
+        kind: "tool_call",
+      },
+      { command: command("alarm.list", {}), kind: "command" },
+    ];
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([
+        createRawFeature({
+          id: "calendar",
+          capabilities: [
+            {
+              name: "calendar.search_events",
+              risk: "low",
+              toolChain: "read",
+            },
+          ],
+          execute: () =>
+            Promise.resolve({
+              data: { startAt: "2026-06-26T09:00:00.000Z" },
+              text: "Starts at 2026-06-26T09:00:00.000Z. See https://example.test/event.",
+            }),
+        }),
+        createRawFeature({
+          id: "alarms",
+          capabilities: [{ name: "alarm.list", risk: "low" }],
+          execute: () => Promise.resolve({ text: "No alarms." }),
+        }),
+      ]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({
+        alarms: { enabled: true },
+        calendar: { enabled: true },
+      }),
+      intentInterpreter: {
+        start: () => ({
+          next: (continuation) => {
+            continuations.push(continuation);
+            return Promise.resolve(steps.shift()!);
+          },
+        }),
+      },
+    });
+
+    await assistant.handleText("check and list");
+
+    expect(continuations[1]).toMatchObject({
+      kind: "tool_result",
+      observation: { text: "Starts at 10am today. See" },
+    });
+  });
+
   it("preserves completed reads when provider continuation fails", async () => {
     const continuationFailure = new Error("provider continuation failed");
     let nextCall = 0;
@@ -569,14 +627,14 @@ describe("assistant bounded tool chains", () => {
     expect(prompt).toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "Please confirm: 1. set the Dentist reminder alarm for 2026-07-17T09:50:00.000Z, 10 minutes before Dentist. Say yes or no.",
+      text: "Please confirm: 1. set the Dentist reminder alarm for 10:50am on 17 July, 10 minutes before Dentist. Say yes or no.",
     });
     expect(JSON.stringify(prompt)).not.toContain("private-event");
 
     await expect(assistant.handleTextWithDiagnostics("yes")).resolves.toEqual({
       response: {
         status: "ok",
-        text: "Alarm set for 2026-07-17T09:50:00.000Z (Dentist reminder), using the confirmed Dentist calendar snapshot.",
+        text: "Alarm set for 10:50am on 17 July (Dentist reminder), using the confirmed Dentist calendar snapshot.",
       },
       toolChain: {
         calls: [
@@ -675,7 +733,7 @@ describe("assistant bounded tool chains", () => {
     await expect(assistant.handleText("10am")).resolves.toEqual({
       expectsFollowUp: true,
       status: "needs_confirmation",
-      text: "Please confirm: 1. set the Birthday reminder alarm for 2026-07-17T08:50:00.000Z, 10 minutes before Birthday. Say yes or no.",
+      text: "Please confirm: 1. set the Birthday reminder alarm for 9:50am on 17 July, 10 minutes before Birthday. Say yes or no.",
     });
     await assistant.handleText("yes");
     await expect(store.list()).resolves.toEqual([

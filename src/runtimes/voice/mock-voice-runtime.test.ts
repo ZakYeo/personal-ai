@@ -69,10 +69,10 @@ describe("mock voice runtime", () => {
       response: {
         expectsFollowUp: true,
         status: "needs_confirmation",
-        text: "Please confirm this plan: 1. create submit the form on the to-do list with a reminder for 2026-07-29T08:00:00.000Z. Say yes or no.",
+        text: "Please confirm this plan: 1. create submit the form on the to-do list with a reminder for 9am on 29 July. Say yes or no.",
       },
       spokenText:
-        "Please confirm this plan: 1. create submit the form on the to-do list with a reminder for 2026-07-29T08:00:00.000Z. Say yes or no.",
+        "Please confirm this plan: 1. create submit the form on the to-do list with a reminder for 9am on 29 July. Say yes or no.",
       status: "spoken",
     });
   });
@@ -89,7 +89,7 @@ describe("mock voice runtime", () => {
       response: {
         expectsFollowUp: true,
         status: "needs_confirmation",
-        text: "Please confirm this plan: 1. set the tea alarm for 2026-06-26T09:10:00.000Z. Say yes or no.",
+        text: "Please confirm this plan: 1. set the tea alarm for 10:10am today. Say yes or no.",
       },
       status: "spoken",
     });
@@ -152,7 +152,7 @@ describe("mock voice runtime", () => {
         ) as string,
       },
       spokenText: expect.stringContaining(
-        "from 2026-07-29T05:00:00.000Z to 2026-07-29T11:00:00.000Z",
+        "from 6am tomorrow to noon tomorrow",
       ) as string,
       status: "spoken",
     });

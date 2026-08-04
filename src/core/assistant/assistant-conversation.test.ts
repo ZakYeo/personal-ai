@@ -64,6 +64,31 @@ describe("createAssistant", () => {
     );
   });
 
+  it("applies the human-facing policy to conversation output", async () => {
+    const assistant = createAssistant({
+      clock,
+      config,
+      conversation: {
+        compactor: createConversationCompactor(),
+        history: { maxTurnsBeforeCompaction: 5 },
+        responder: {
+          respond: () =>
+            Promise.resolve({
+              status: "ok",
+              text: "Updated at 2026-06-26T09:00:00.000Z. See https://example.test/details.",
+            }),
+        },
+      },
+      features: [],
+      intentInterpreter: createInterpreter({ kind: "conversation" }),
+    });
+
+    await expect(assistant.handleText("what changed?")).resolves.toEqual({
+      status: "ok",
+      text: "Updated at 10am today. See",
+    });
+  });
+
   it("compacts conversation history after the configured number of chats", async () => {
     const compact = vi.fn((state: ConversationState) =>
       Promise.resolve({
