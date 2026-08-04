@@ -1,3 +1,4 @@
+import { assertConversationSummaryWithinLimit } from "../../application/model-output-policy.js";
 import type {
   AssistantContext,
   AssistantResponse,
@@ -64,9 +65,12 @@ async function compactConversationIfNeeded(
     return { compacted: false, state };
   }
 
+  const compactedState = await dependencies.compactor.compact(state, context);
+  assertConversationSummaryWithinLimit(compactedState.summary);
+
   return {
     compacted: true,
-    state: await dependencies.compactor.compact(state, context),
+    state: compactedState,
   };
 }
 

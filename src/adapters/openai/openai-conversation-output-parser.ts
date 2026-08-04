@@ -1,3 +1,4 @@
+import { modelOutputLimits } from "../../application/model-output-policy.js";
 import { OpenAIConversationError } from "./openai-conversation-error.js";
 import { isRecord } from "../parsing.js";
 import { parseValidatedOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
@@ -23,6 +24,11 @@ function parseConversationResponse(parsed: unknown): {
   if (typeof parsed.text !== "string" || parsed.text.length === 0) {
     throw new OpenAIConversationError(
       "OpenAI conversation response text must be a non-empty string.",
+    );
+  }
+  if (parsed.text.length > modelOutputLimits.responseCharacters) {
+    throw new OpenAIConversationError(
+      "OpenAI conversation response text exceeded the application limit.",
     );
   }
   if (!isOpenAISpokenTextSafe(parsed.text)) {
@@ -57,6 +63,11 @@ function parseConversationSummary(parsed: unknown): string {
   if (typeof parsed.summary !== "string" || parsed.summary.length === 0) {
     throw new OpenAIConversationError(
       "OpenAI conversation summary must be a non-empty string.",
+    );
+  }
+  if (parsed.summary.length > modelOutputLimits.summaryCharacters) {
+    throw new OpenAIConversationError(
+      "OpenAI conversation summary exceeded the application limit.",
     );
   }
 

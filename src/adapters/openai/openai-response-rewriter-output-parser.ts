@@ -1,3 +1,4 @@
+import { modelOutputLimits } from "../../application/model-output-policy.js";
 import { OpenAIResponseRewriterError } from "./openai-response-rewriter-error.js";
 import { isRecord } from "../parsing.js";
 import { parseValidatedOpenAIStructuredOutput } from "./openai-structured-output-parser.js";
@@ -25,6 +26,11 @@ function parseResponseRewrite(parsed: unknown): { text: string } {
   if (typeof parsed.text !== "string" || parsed.text.length === 0) {
     throw new OpenAIResponseRewriterError(
       "OpenAI response rewrite text must be a non-empty string.",
+    );
+  }
+  if (parsed.text.length > modelOutputLimits.responseCharacters) {
+    throw new OpenAIResponseRewriterError(
+      "OpenAI response rewrite text exceeded the application limit.",
     );
   }
   if (!isOpenAISpokenTextSafe(parsed.text)) {

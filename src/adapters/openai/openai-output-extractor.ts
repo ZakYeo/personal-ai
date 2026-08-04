@@ -1,3 +1,4 @@
+import { modelOutputLimits } from "../../application/model-output-policy.js";
 import { OpenAIIntentError } from "./openai-intent-error.js";
 import { isRecord } from "../parsing.js";
 
@@ -20,7 +21,7 @@ export function extractOpenAIOutputText(
   }
 
   if (typeof value.output_text === "string") {
-    return value.output_text;
+    return requireBoundedOutputText(value.output_text, messages);
   }
 
   if (Array.isArray(value.output)) {
@@ -28,12 +29,25 @@ export function extractOpenAIOutputText(
       const text = extractContentText(outputItem);
 
       if (text) {
-        return text;
+        return requireBoundedOutputText(text, messages);
       }
     }
   }
 
   throw messages.createError(messages.missingMessage);
+}
+
+function requireBoundedOutputText(
+  text: string,
+  messages: ExtractOpenAIOutputTextMessages,
+): string {
+  if (text.length > modelOutputLimits.responseCharacters) {
+    throw messages.createError(
+      "OpenAI model output text exceeded the application limit.",
+    );
+  }
+
+  return text;
 }
 
 function extractContentText(value: unknown): string | undefined {

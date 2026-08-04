@@ -47,4 +47,25 @@ describe("createConversationSession", () => {
       },
     ]);
   });
+
+  it("does not commit an oversized compaction summary", async () => {
+    const session = createConversationSession({
+      compactor: {
+        compact: () =>
+          Promise.resolve({
+            recentTurns: [],
+            summary: "a".repeat(2_001),
+          }),
+      },
+      history: { maxTurnsBeforeCompaction: 1 },
+      responder: {
+        respond: () => Promise.resolve({ status: "ok", text: "reply" }),
+      },
+    });
+
+    await expect(
+      session.commit("first", { status: "ok", text: "reply" }, context),
+    ).rejects.toThrow("Conversation summary exceeded the application limit.");
+    expect(session.snapshot()).toEqual({ recentTurns: [] });
+  });
 });

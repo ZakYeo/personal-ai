@@ -1,3 +1,4 @@
+import { modelOutputLimits } from "../../application/model-output-policy.js";
 import type {
   AssistantCommand,
   AssistantCommandParameters,
@@ -240,6 +241,11 @@ function parseAssistantResponse(value: unknown): AssistantResponse {
   if (typeof value.text !== "string" || value.text.length === 0) {
     throw new OpenAIIntentError(
       "OpenAI intent response text must be a non-empty string.",
+    );
+  }
+  if (value.text.length > modelOutputLimits.responseCharacters) {
+    throw new OpenAIIntentError(
+      "OpenAI intent response text exceeded the application limit.",
     );
   }
   if (!isOpenAISpokenTextSafe(value.text)) {
