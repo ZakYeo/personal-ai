@@ -127,7 +127,21 @@ describe("createAssistant", () => {
     );
   });
 
-  it("applies the human-facing policy to conversation output", async () => {
+  it("commits the exact humanized response shared with providers", async () => {
+    const histories: ConversationState[] = [];
+    const responderStates: ConversationState[] = [];
+    const start = vi.fn(
+      (
+        _text: string,
+        _context: AssistantContext,
+        history: ConversationState,
+      ) => {
+        histories.push(history);
+        return {
+          next: () => Promise.resolve({ kind: "conversation" as const }),
+        };
+      },
+    );
     const assistant = createAssistant({
       clock,
       config,
@@ -135,21 +149,38 @@ describe("createAssistant", () => {
         compactor: createConversationCompactor(),
         history: { maxTurnsBeforeCompaction: 5 },
         responder: {
-          respond: () =>
-            Promise.resolve({
-              status: "ok",
-              text: "Updated at 2026-06-26T09:00:00.000Z. See https://example.test/details.",
-            }),
+          respond: (_input, state) => {
+            responderStates.push(state);
+            return state.recentTurns.length === 0
+              ? Promise.resolve({
+                  status: "ok",
+                  text: "Updated at 2026-06-26T09:00:00.000Z. See https://example.test/details.",
+                })
+              : Promise.resolve({ status: "ok", text: "Still updated." });
+          },
         },
       },
       features: [],
-      intentInterpreter: createInterpreter({ kind: "conversation" }),
+      intentInterpreter: { start },
     });
 
     await expect(assistant.handleText("what changed?")).resolves.toEqual({
       status: "ok",
       text: "Updated at 10am today. See the linked source.",
     });
+    await assistant.handleText("is that still current?");
+
+    const expectedHistory = {
+      recentTurns: [
+        { content: "what changed?", role: "user" },
+        {
+          content: "Updated at 10am today. See the linked source.",
+          role: "assistant",
+        },
+      ],
+    };
+    expect(histories[1]).toEqual(expectedHistory);
+    expect(responderStates[1]).toEqual(expectedHistory);
   });
 
   it("compacts conversation history after the configured number of chats", async () => {

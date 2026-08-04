@@ -79,20 +79,21 @@ export function createAssistant(
           options.signal,
         ),
       async (outcome) => {
+        const completedOutcome = humanizeOutcome(outcome, dependencies);
         resultReferences.completeTurn();
-        if (!conversation) return outcome;
+        if (!conversation) return completedOutcome;
         try {
-          await conversation.commit(text, outcome.response, {
+          await conversation.commit(text, completedOutcome.response, {
             clock: dependencies.clock,
             config: dependencies.config,
             ...(options.signal ? { signal: options.signal } : {}),
           });
-          return outcome;
+          return completedOutcome;
         } catch (error) {
           return {
-            ...outcome,
+            ...completedOutcome,
             diagnostics: [
-              ...(outcome.diagnostics ?? []),
+              ...(completedOutcome.diagnostics ?? []),
               {
                 category: "conversation_failure" as const,
                 cause: error,
@@ -107,7 +108,7 @@ export function createAssistant(
       },
     );
 
-    return humanizeOutcome(outcome, dependencies);
+    return outcome;
   }
 
   return {
