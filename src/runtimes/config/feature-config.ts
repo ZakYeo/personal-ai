@@ -63,7 +63,6 @@ export function parseFeaturesConfig(
 export function rebindFeatureAdapters(
   features: ParsedFeaturesConfig,
   registry: FeatureAdapterRegistry,
-  options: { preserveUnregistered?: boolean } = {},
 ): ParsedFeaturesConfig {
   const rebound: ParsedFeaturesConfig = {};
   for (const [featureId, feature] of Object.entries(features)) {
@@ -72,10 +71,6 @@ export function rebindFeatureAdapters(
       continue;
     }
     const entry = registry[featureId]?.adapters[feature.adapter];
-    if (!entry && options.preserveUnregistered) {
-      rebound[featureId] = feature;
-      continue;
-    }
     const selectedEntry =
       entry ?? selectFeatureAdapterEntry(featureId, feature.adapter, registry);
     rebound[featureId] = {

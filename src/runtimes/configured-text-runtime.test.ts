@@ -18,7 +18,10 @@ import {
 import type { Assistant } from "../core/assistant/assistant.js";
 import { createLoadedRuntimeConfig } from "../test-support/core-assistant.js";
 import { parseAssistantConfig } from "./config/config.js";
-import { defineFeatureAdapterEntry } from "./feature-adapter-registry.js";
+import {
+  defineFeatureAdapter,
+  defineFeatureAdapterEntry,
+} from "./feature-adapter-registry.js";
 import { createAlarmFeature } from "../features/alarms/alarm-feature.js";
 import { createInMemoryAlarmStore } from "../adapters/local/in-memory-alarm-store.js";
 import { openAIIntentOutput } from "../test-support/openai-intent.js";
@@ -55,8 +58,16 @@ describe("createConfiguredTextRuntime", () => {
     ).resolves.toEqual(deterministicScenarios.calendarWedding.response);
   });
 
-  it("preserves custom pre-bound adapters under provider dependency overrides", async () => {
-    const create = vi.fn(() =>
+  it("rebinds custom adapters through the explicitly supplied registry", async () => {
+    const adapter = defineFeatureAdapter({ parseConfig: () => ({}) });
+    const originalCreate = vi.fn(() =>
+      createAlarmFeature(
+        createInMemoryAlarmStore({
+          now: () => new Date("2026-07-14T09:00:00.000Z"),
+        }),
+      ),
+    );
+    const replacementCreate = vi.fn(() =>
       createAlarmFeature(
         createInMemoryAlarmStore({
           now: () => new Date("2026-07-14T09:00:00.000Z"),
@@ -72,10 +83,7 @@ describe("createConfiguredTextRuntime", () => {
         featureAdapterRegistry: {
           alarms: {
             adapters: {
-              custom: defineFeatureAdapterEntry({
-                create,
-                parseConfig: () => ({}),
-              }),
+              custom: adapter.bind({ create: originalCreate }),
             },
           },
         },
@@ -86,10 +94,50 @@ describe("createConfiguredTextRuntime", () => {
       createConfiguredTextRuntimeHarness({
         config,
         env: {},
+        featureAdapterRegistry: {
+          alarms: {
+            adapters: {
+              custom: adapter.bind({ create: replacementCreate }),
+            },
+          },
+        },
         fetch: vi.fn(),
       }),
     ).resolves.toBeDefined();
-    expect(create).toHaveBeenCalledOnce();
+    expect(originalCreate).not.toHaveBeenCalled();
+    expect(replacementCreate).toHaveBeenCalledOnce();
+  });
+
+  it("fails when injected custom feature config cannot be rebound", async () => {
+    const config = parseAssistantConfig(
+      {
+        ...disabledCalendarConfig,
+        features: { alarms: { adapter: "custom", enabled: true } },
+      },
+      {
+        featureAdapterRegistry: {
+          alarms: {
+            adapters: {
+              custom: defineFeatureAdapterEntry({
+                create: () =>
+                  createAlarmFeature(
+                    createInMemoryAlarmStore({
+                      now: () => new Date("2026-07-14T09:00:00.000Z"),
+                    }),
+                  ),
+                parseConfig: () => ({}),
+              }),
+            },
+          },
+        },
+      },
+    );
+
+    await expect(
+      createConfiguredTextRuntimeHarness({ config, env: {}, fetch: vi.fn() }),
+    ).rejects.toThrow(
+      'Config feature "alarms" adapter "custom" is not registered.',
+    );
   });
 
   it("smoke-routes upcoming calendar events through the mock calendar adapter", async () => {

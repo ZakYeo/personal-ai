@@ -126,6 +126,7 @@
 - Feature adapters should register through the explicit per-feature adapter registry shape and receive narrow adapter dependencies/config from runtime composition rather than broad loaded config.
 - Keep selected adapter config typed at the same boundary as selected adapter factories; avoid `unknown` adapter config bags and downstream casts when a registry-local resolver can prove the shape once.
 - Feature registry entries should parse selected provider config once and capture it for construction and startup preflight; do not expose provider fields through the common loaded feature config.
+- Rebind every enabled adapter when injected parsed config is combined with replacement dependencies or an explicit feature registry; missing or incompatible entries must fail instead of preserving stale pre-bound dependencies.
 - Parsed feature config must discriminate enabled entries with required resolved adapters from disabled entries, and runtime construction must reject adapters that return a plugin ID different from the configured feature key.
 - Feature adapters may contribute neutral runtime background tasks that close over feature-owned resources; generic feature selection and service orchestration must not grow optional feature-specific resource fields or imports.
 - Neutral background-task context owns live clock, timer, shutdown, and diagnostic dependencies; tests may inject the timer without reopening feature-specific service options.

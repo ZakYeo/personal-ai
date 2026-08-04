@@ -63,8 +63,7 @@ export function resolveConfiguredRuntimeConfigSource(
       }),
   }).then((source) =>
     options.config &&
-    !options.featureAdapterRegistry &&
-    hasFeatureBindingOverrides(options)
+    (options.featureAdapterRegistry || hasFeatureBindingOverrides(options))
       ? rebindRuntimeConfigSource(source, options)
       : source,
   );
@@ -85,23 +84,23 @@ function rebindRuntimeConfigSource(
   source: RuntimeConfigSource,
   options: ConfiguredRuntimeConfigSourceOptions,
 ): RuntimeConfigSource {
-  const registry = createRuntimeFeatureAdapterRegistry({
-    ...(source.configDirectory
-      ? { configDirectory: source.configDirectory }
-      : {}),
-    env: options.env ?? process.env,
-    fetch: options.fetch ?? globalThis.fetch,
-    ...(options.notificationDelivery
-      ? { notificationDelivery: options.notificationDelivery }
-      : {}),
-  });
+  const registry =
+    options.featureAdapterRegistry ??
+    createRuntimeFeatureAdapterRegistry({
+      ...(source.configDirectory
+        ? { configDirectory: source.configDirectory }
+        : {}),
+      env: options.env ?? process.env,
+      fetch: options.fetch ?? globalThis.fetch,
+      ...(options.notificationDelivery
+        ? { notificationDelivery: options.notificationDelivery }
+        : {}),
+    });
   return {
     ...source,
     config: {
       ...source.config,
-      features: rebindFeatureAdapters(source.config.features, registry, {
-        preserveUnregistered: true,
-      }),
+      features: rebindFeatureAdapters(source.config.features, registry),
     },
   };
 }

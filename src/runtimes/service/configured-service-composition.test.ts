@@ -18,7 +18,7 @@ import type {
 import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
 import { parseAssistantConfig } from "../config/config.js";
-import { defineFeatureAdapterEntry } from "../feature-adapter-registry.js";
+import { defineFeatureAdapter } from "../feature-adapter-registry.js";
 import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
 import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
 
@@ -125,8 +125,16 @@ describe("runConfiguredServiceRuntime", () => {
     ).resolves.toMatchObject({ status: "stopped" });
   });
 
-  it("preserves custom pre-bound adapters under provider dependency overrides", async () => {
-    const create = vi.fn(() =>
+  it("rebinds custom adapters through the explicitly supplied registry", async () => {
+    const adapter = defineFeatureAdapter({ parseConfig: () => ({}) });
+    const originalCreate = vi.fn(() =>
+      createAlarmFeature(
+        createInMemoryAlarmStore({
+          now: () => new Date("2026-07-14T09:00:00.000Z"),
+        }),
+      ),
+    );
+    const replacementCreate = vi.fn(() =>
       createAlarmFeature(
         createInMemoryAlarmStore({
           now: () => new Date("2026-07-14T09:00:00.000Z"),
@@ -142,10 +150,7 @@ describe("runConfiguredServiceRuntime", () => {
         featureAdapterRegistry: {
           alarms: {
             adapters: {
-              custom: defineFeatureAdapterEntry({
-                create,
-                parseConfig: () => ({}),
-              }),
+              custom: adapter.bind({ create: originalCreate }),
             },
           },
         },
@@ -154,7 +159,18 @@ describe("runConfiguredServiceRuntime", () => {
 
     await expect(
       runConfiguredServiceRuntime(
-        { config, env: {}, fetch: vi.fn() },
+        {
+          config,
+          env: {},
+          featureAdapterRegistry: {
+            alarms: {
+              adapters: {
+                custom: adapter.bind({ create: replacementCreate }),
+              },
+            },
+          },
+          fetch: vi.fn(),
+        },
         {
           validateConfig: () => {},
           runTurn: (context) => {
@@ -164,7 +180,8 @@ describe("runConfiguredServiceRuntime", () => {
         },
       ),
     ).resolves.toMatchObject({ status: "stopped" });
-    expect(create).toHaveBeenCalledOnce();
+    expect(originalCreate).not.toHaveBeenCalled();
+    expect(replacementCreate).toHaveBeenCalledOnce();
   });
 
   it("starts feature-contributed background tasks through neutral service orchestration", async () => {

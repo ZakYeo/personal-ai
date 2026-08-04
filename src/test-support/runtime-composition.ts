@@ -16,6 +16,7 @@ import { resolveConfiguredRuntimeProvider } from "../runtimes/runtime-provider-r
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { createDefaultFeatureAdapterRegistry } from "../runtimes/default-feature-adapter-registry.js";
+import type { FeatureAdapterRegistry } from "../runtimes/feature-adapter-registry.js";
 
 type ConfiguredTextRuntimeHarnessOptions = Partial<{
   config: LoadedRuntimeConfig;
@@ -23,6 +24,7 @@ type ConfiguredTextRuntimeHarnessOptions = Partial<{
   configPath: string;
   env: Record<string, string | undefined>;
   fetch: typeof fetch;
+  featureAdapterRegistry: FeatureAdapterRegistry;
   now: () => Date;
   useRuntimeDefaultConfig: boolean;
 }>;
@@ -44,6 +46,9 @@ export async function createConfiguredTextRuntimeHarness(
     ...(options.configPath ? { configPath: options.configPath } : {}),
     ...(options.env ? { env: options.env } : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
+    ...(options.featureAdapterRegistry
+      ? { featureAdapterRegistry: options.featureAdapterRegistry }
+      : {}),
     now: options.now ?? (() => deterministicNow),
   });
 }

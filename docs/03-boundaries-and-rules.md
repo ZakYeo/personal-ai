@@ -311,6 +311,10 @@ Parsed feature config is a discriminated enabled/disabled union: enabled entries
 always carry a selected adapter ID and resolved adapter. Runtime construction
 also verifies that the adapter-created plugin ID matches the configured feature
 key so confirmation and capability policy cannot silently attach to another ID.
+When runtime composition supplies replacement dependencies or an explicit
+feature registry for already parsed config, every enabled adapter must rebind
+through that registry's compatible entry. Missing or incompatible entries fail
+startup; composition must not preserve a stale pre-bound adapter silently.
 Desktop streaming provider entries follow the same boundary: they parse their
 selected raw desktop section and capture provider-specific construction and test
 dependencies. Common desktop config retains command settings and neutral
