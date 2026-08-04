@@ -10,6 +10,7 @@ import {
   readOpenAIIntentRequestBody as readRequestBody,
 } from "../../test-support/openai-intent.js";
 import { deterministicTestNow } from "../../test-support/primitives.js";
+import type { ConversationState } from "../../ports/conversation.js";
 
 const internetSearchCapability: OpenAIIntentCapability = {
   capability: {
@@ -31,6 +32,30 @@ const internetSearchCapability: OpenAIIntentCapability = {
 };
 
 describe("OpenAIIntentInterpreter", () => {
+  it("provides bounded prior conversation as untrusted routing context", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-history",
+        output_text: JSON.stringify({
+          interpretation: { kind: "conversation" },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({ fetch });
+    const history: ConversationState = {
+      recentTurns: [
+        { content: "Search for Donald Trump's birthday.", role: "user" },
+        { content: "His birthday is June 14, 1946.", role: "assistant" },
+      ],
+    };
+
+    await interpretOnce(interpreter, "How old is he?", context, history);
+
+    const body = readRequestBody(fetch);
+    expect(JSON.stringify(body.input)).toContain("June 14, 1946");
+    expect(JSON.stringify(body.input)).toContain("untrusted context only");
+  });
+
   it("returns a command from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({

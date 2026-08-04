@@ -1,4 +1,5 @@
 import type { AssistantContext } from "../../ports/assistant.js";
+import type { ConversationState } from "../../ports/conversation.js";
 import type {
   IntentInterpreterSession,
   IntentSessionContinuation,
@@ -28,7 +29,11 @@ interface OpenAIIntentInterpreterOptions {
 export class OpenAIIntentInterpreter implements IntentInterpreterPort {
   constructor(private readonly options: OpenAIIntentInterpreterOptions) {}
 
-  start(text: string, context: AssistantContext): IntentInterpreterSession {
+  start(
+    text: string,
+    context: AssistantContext,
+    history: ConversationState = { recentTurns: [] },
+  ): IntentInterpreterSession {
     const capabilityCatalog = this.options.capabilityCatalog ?? [];
     const toolNames = createOpenAIIntentToolNameMap(capabilityCatalog);
     let previousResponseId: string | undefined;
@@ -59,12 +64,15 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
               context,
               this.options.config,
               capabilityCatalog,
+              history,
             )
           : createOpenAIIntentRequestBody(
               text,
               context,
               this.options.config,
               capabilityCatalog,
+              undefined,
+              history,
             );
         const response = await this.request(body);
         const parsed = parseOpenAIIntentSessionResponse(

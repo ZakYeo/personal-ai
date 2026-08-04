@@ -607,8 +607,12 @@ The default provider is `disabled`, so deterministic configs remain network-free
 and unknown non-command text stays deterministic. The `openai` conversation
 provider requires `conversation.openai.model` and uses the same environment
 credential defaults as the OpenAI intent provider. One assistant instance owns
-one in-memory chat window. Conversation turns append user and assistant text to
-that window. Each response, compaction, and commit transaction is serialized in
+one in-memory chat window. Every completed capability or conversation turn
+appends safe user and assistant text to that window. Intent and conversation
+providers receive the same frozen pre-turn snapshot, with prior text explicitly
+marked as untrusted context rather than a command or permission. Feature
+execution contexts remain narrow and do not receive the transcript. Each
+response, compaction, and commit transaction is serialized in
 invocation order so concurrent callers cannot observe stale history or overwrite
 completed turns. After `conversation.history.maxTurnsBeforeCompaction` completed
 user/assistant turns, the configured compactor replaces older turns with a
@@ -617,6 +621,8 @@ return strict JSON containing safe response text and `expectsFollowUp`; raw
 provider output stays inside adapter diagnostics.
 Provider instructions reserve the signal for an answer required to complete the
 current interaction and reject generic invitations to continue chatting.
+History compaction failure preserves the already completed human response, keeps
+the last valid state, and emits an internal conversation diagnostic.
 The deterministic compactor removes summaries echoed by its own responder and
 caps retained summary text at 2,000 characters, preventing repeated compaction
 from multiplying stored history.

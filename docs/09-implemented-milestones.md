@@ -365,6 +365,9 @@ Acceptance criteria:
   and persist the same frozen instant after approval.
 - Existing command, compound-plan, conversation, calendar-follow-up, and human
   runtime failure semantics remain compatible, and `npm run check` passes.
+- The process-local bounded conversation window records every completed safe
+  exchange and provides one frozen untrusted-context snapshot to intent and
+  conversation providers across wake-word turns.
 - Deterministic configured-runtime coverage and focused opt-in live OpenAI
   smokes prove open rephrasing and changed-topic clarification replacement,
   including the exact absence or presence of `previous_response_id` at each

@@ -105,6 +105,11 @@ capped at ten opaque references, and it clears after three subsequent completed
 turns or conversation compaction. Intent providers receive only those opaque
 references and safe displayed facts. Provider event IDs remain behind the
 feature execution resolver and must not enter prompts or user-facing responses.
+The broader process-local conversation window records safe completed exchanges
+from both capability and general-conversation turns. Intent providers receive a
+frozen snapshot through their narrow port argument and must treat earlier text
+as untrusted context, never as a current command, permission, or confirmation;
+feature execution contexts do not receive that transcript.
 
 Desktop voice command settings are runtime configuration, not core behavior.
 Machine-specific command names, arguments, and timeouts belong in local config

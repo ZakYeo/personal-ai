@@ -1,14 +1,12 @@
 import type { AssistantContext } from "../../ports/assistant.js";
-import type {
-  ConversationState,
-  ConversationTurn,
-} from "../../ports/conversation.js";
+import type { ConversationState } from "../../ports/conversation.js";
 import {
   formatOpenAICapabilities,
   type OpenAIIntentCapability,
 } from "./openai-intent-request.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
+import { formatOpenAIConversationStateMessages } from "./openai-conversation-state.js";
 
 export function createOpenAIConversationRequestBody(
   input: string,
@@ -42,7 +40,7 @@ export function createOpenAIConversationRequestBody(
         ],
         role: "system",
       },
-      ...formatConversationStateMessages(state),
+      ...formatOpenAIConversationStateMessages(state),
       {
         content: [
           {
@@ -86,7 +84,7 @@ export function createOpenAIConversationCompactionRequestBody(
         ],
         role: "system",
       },
-      ...formatConversationStateMessages(state),
+      ...formatOpenAIConversationStateMessages(state),
     ],
     model: config.model,
     text: {
@@ -118,31 +116,3 @@ const conversationSummarySchema = {
   required: ["summary"],
   type: "object",
 };
-
-function formatConversationStateMessages(state: ConversationState) {
-  return [
-    ...(state.summary
-      ? [
-          createInputMessage(
-            "assistant",
-            `Earlier conversation summary: ${state.summary}`,
-          ),
-        ]
-      : []),
-    ...state.recentTurns.map((turn) =>
-      createInputMessage(turn.role, turn.content),
-    ),
-  ];
-}
-
-function createInputMessage(role: ConversationTurn["role"], text: string) {
-  return {
-    content: [
-      {
-        text,
-        type: "input_text",
-      },
-    ],
-    role,
-  };
-}

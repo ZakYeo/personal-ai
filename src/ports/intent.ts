@@ -4,6 +4,7 @@ import type {
   AssistantResponse,
 } from "./assistant.js";
 import type { AssistantResultReference } from "./result-reference.js";
+import type { ConversationState } from "./conversation.js";
 
 export type IntentInterpretation =
   | {
@@ -47,15 +48,20 @@ export interface ProposedAssistantPlan {
 }
 
 export interface IntentInterpreterPort {
-  start(text: string, context: AssistantContext): IntentInterpreterSession;
+  start(
+    text: string,
+    context: AssistantContext,
+    history?: ConversationState,
+  ): IntentInterpreterSession;
 }
 
 export function interpretOnce(
   interpreter: IntentInterpreterPort,
   text: string,
   context: AssistantContext,
+  history?: ConversationState,
 ): Promise<IntentInterpretation> {
-  return interpreter.start(text, context).next();
+  return interpreter.start(text, context, history).next();
 }
 
 export interface IntentInterpreterSession {

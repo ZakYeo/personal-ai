@@ -2,10 +2,12 @@ import {
   createAssistantWithFeatures as createAssistant,
   createAssistantConfig,
   createConversationCompactor,
+  createFeature,
   createFixedClock,
   createInterpreter,
 } from "../../test-support/core-assistant.js";
 import type { ConversationState } from "../../ports/conversation.js";
+import type { AssistantContext } from "../../ports/assistant.js";
 
 const config = createAssistantConfig({
   test: { enabled: true },
@@ -14,6 +16,67 @@ const config = createAssistantConfig({
 const clock = createFixedClock();
 
 describe("createAssistant", () => {
+  it("shares completed command turns with intent and conversation providers", async () => {
+    const histories: Array<ConversationState | undefined> = [];
+    const start = vi.fn(
+      (
+        text: string,
+        _context: AssistantContext,
+        history: ConversationState,
+      ) => {
+        histories.push(history);
+        return {
+          next: () =>
+            Promise.resolve(
+              text === "run command"
+                ? {
+                    command: {
+                      capability: "test.echo",
+                      parameters: {},
+                      rawText: text,
+                    },
+                    kind: "command" as const,
+                  }
+                : { kind: "conversation" as const },
+            ),
+        };
+      },
+    );
+    const respond = vi.fn(() =>
+      Promise.resolve({ status: "ok" as const, text: "Context retained." }),
+    );
+    const assistant = createAssistant({
+      clock,
+      config,
+      conversation: {
+        compactor: createConversationCompactor(),
+        history: { maxTurnsBeforeCompaction: 5 },
+        responder: { respond },
+      },
+      features: [createFeature()],
+      intentInterpreter: { start },
+    });
+
+    await expect(assistant.handleText("run command")).resolves.toMatchObject({
+      text: "Handled.",
+    });
+    await expect(assistant.handleText("what happened?")).resolves.toMatchObject(
+      { text: "Context retained." },
+    );
+
+    const expectedHistory = {
+      recentTurns: [
+        { content: "run command", role: "user" },
+        { content: "Handled.", role: "assistant" },
+      ],
+    };
+    expect(histories[1]).toEqual(expectedHistory);
+    expect(respond).toHaveBeenCalledWith("what happened?", expectedHistory, {
+      clock,
+      config,
+    });
+  });
+
   it("answers conversation turns with chat history", async () => {
     const respond = vi
       .fn()
@@ -215,10 +278,7 @@ describe("createAssistant", () => {
             message: "compaction failed",
           },
         ],
-        response: {
-          status: "error",
-          text: "I could not answer that right now.",
-        },
+        response: { status: "ok", text: "answered first after 0 turns" },
       },
     );
     await expect(
@@ -231,10 +291,7 @@ describe("createAssistant", () => {
           message: "compaction failed",
         },
       ],
-      response: {
-        status: "error",
-        text: "I could not answer that right now.",
-      },
+      response: { status: "ok", text: "answered second after 0 turns" },
     });
     expect(respond).toHaveBeenNthCalledWith(
       2,

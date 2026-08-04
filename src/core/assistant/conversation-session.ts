@@ -18,7 +18,13 @@ export interface ConversationSessionDependencies {
 }
 
 export interface ConversationSession {
+  commit(
+    input: string,
+    response: AssistantResponse,
+    context: AssistantContext,
+  ): Promise<void>;
   respond(input: string, context: AssistantContext): Promise<AssistantResponse>;
+  snapshot(): ConversationState;
 }
 
 export function createConversationSession(
@@ -27,36 +33,24 @@ export function createConversationSession(
   let state: ConversationState = {
     recentTurns: [],
   };
-  let pendingTurn: Promise<void> = Promise.resolve();
-
   return {
-    respond(input, context) {
-      const turn = pendingTurn.then(async () => {
-        const response = await dependencies.responder.respond(
-          input,
-          cloneConversationState(state),
-          context,
-        );
-        const candidateState = appendConversationTurn(state, input, response);
-        const compaction = await compactConversationIfNeeded(
-          candidateState,
-          dependencies,
-          context,
-        );
-
-        state = cloneConversationState(compaction.state);
-        if (compaction.compacted) dependencies.onCompacted?.();
-
-        return response;
-      });
-
-      pendingTurn = turn.then(
-        () => {},
-        () => {},
+    async commit(input, response, context) {
+      const candidateState = appendConversationTurn(state, input, response);
+      const compaction = await compactConversationIfNeeded(
+        candidateState,
+        dependencies,
+        context,
       );
-
-      return turn;
+      state = cloneConversationState(compaction.state);
+      if (compaction.compacted) dependencies.onCompacted?.();
     },
+    respond: (input, context) =>
+      dependencies.responder.respond(
+        input,
+        cloneConversationState(state),
+        context,
+      ),
+    snapshot: () => cloneConversationState(state),
   };
 }
 

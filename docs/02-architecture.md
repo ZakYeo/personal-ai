@@ -332,7 +332,9 @@ The LLM should help with:
 - Drafting responses.
 - Asking clarification questions.
 - General Q&A and casual conversation.
-- Compacting chat history into a safe summary.
+- Recording every completed safe user/assistant exchange, supplying a frozen
+  untrusted-context snapshot to intent and conversation providers, and
+  compacting older history into a safe summary.
 
 The LLM should not directly perform irreversible actions. The core must validate structured commands and route side effects through feature plugins.
 

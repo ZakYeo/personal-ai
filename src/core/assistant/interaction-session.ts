@@ -15,7 +15,9 @@ export interface InteractionSession {
     input: string,
     handle: () => Promise<AssistantOutcome>,
     execute: (plan: ValidatedAssistantPlan) => Promise<AssistantOutcome>,
-    onCompleted: () => void,
+    onCompleted: (
+      outcome: AssistantOutcome,
+    ) => AssistantOutcome | Promise<AssistantOutcome> | void,
   ): Promise<AssistantOutcome>;
 }
 
@@ -56,11 +58,12 @@ export function createInteractionSession(): InteractionSession {
     },
     run(input, handle, execute, onCompleted) {
       const turn = queue.then(async () => {
+        const complete = async (outcome: AssistantOutcome) =>
+          (await onCompleted(outcome)) ?? outcome;
         let outcome: AssistantOutcome;
         if (!pending) {
           outcome = await handle();
-          onCompleted();
-          return outcome;
+          return complete(outcome);
         }
 
         if (pending.kind === "clarification") {
@@ -76,15 +79,13 @@ export function createInteractionSession(): InteractionSession {
                 ? await handle()
                 : resolution.outcome;
           }
-          onCompleted();
-          return outcome;
+          return complete(outcome);
         }
 
         const decision = parseConfirmation(input);
         if (decision === "pending") {
           outcome = pending.prompt;
-          onCompleted();
-          return outcome;
+          return complete(outcome);
         }
 
         const { execute: executePending, plan } = pending;
@@ -93,8 +94,7 @@ export function createInteractionSession(): InteractionSession {
           decision === "confirmed"
             ? await (executePending ?? execute)(plan)
             : cancelledOutcome;
-        onCompleted();
-        return outcome;
+        return complete(outcome);
       });
 
       queue = turn.then(

@@ -2,7 +2,6 @@ import {
   createAssistantConfig,
   createFixedClock,
 } from "../../test-support/core-assistant.js";
-import type { AssistantResponse } from "../../ports/assistant.js";
 import type { ConversationState } from "../../ports/conversation.js";
 import { createConversationSession } from "./conversation-session.js";
 
@@ -12,18 +11,10 @@ const context = {
 };
 
 describe("createConversationSession", () => {
-  it("serializes concurrent turns so history follows invocation order", async () => {
-    let resolveFirst: ((response: AssistantResponse) => void) | undefined;
+  it("shares committed turns with subsequent responders", async () => {
     const states: ConversationState[] = [];
     const respond = vi.fn((input: string, state: ConversationState) => {
       states.push(state);
-
-      if (input === "first") {
-        return new Promise<AssistantResponse>((resolve) => {
-          resolveFirst = resolve;
-        });
-      }
-
       return Promise.resolve({ status: "ok" as const, text: `${input} reply` });
     });
     const session = createConversationSession({
@@ -32,16 +23,10 @@ describe("createConversationSession", () => {
       responder: { respond },
     });
 
-    const first = session.respond("first", context);
-    const second = session.respond("second", context);
-
-    await vi.waitFor(() => expect(respond).toHaveBeenCalledTimes(1));
-    resolveFirst?.({ status: "ok", text: "first reply" });
-
-    await expect(Promise.all([first, second])).resolves.toEqual([
-      { status: "ok", text: "first reply" },
-      { status: "ok", text: "second reply" },
-    ]);
+    const first = await session.respond("first", context);
+    await session.commit("first", first, context);
+    const second = await session.respond("second", context);
+    await session.commit("second", second, context);
     await session.respond("third", context);
 
     expect(states).toEqual([

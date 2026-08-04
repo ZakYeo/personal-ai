@@ -275,7 +275,9 @@ diagnostics and adapter failures stay on stderr.
 The default OpenAI desktop voice config routes casual questions such as
 `"Hey Jarvis, how are you today?"` to the OpenAI conversation provider after
 wake activation, keeps one in-memory chat window for the running assistant
-instance, and compacts chat history after 5 completed user/assistant turns.
+instance, and compacts history after 5 completed user/assistant turns. The
+window records both general chat and completed capability turns, and its frozen
+snapshot is available to intent routing after a later wake word.
 OpenAI conversation responses use structured JSON with safe text plus an
 `expectsFollowUp` flag; when that flag is true, voice service runtimes listen
 for the next reply without another wake word before returning to normal wake

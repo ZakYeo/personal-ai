@@ -76,10 +76,13 @@ export function createIntentWorkflow(input: {
       session = createSemanticallyValidatedIntentSession({
         capabilityCatalog: input.dependencies.capabilityRouting.catalog,
         originalText: normalizedText,
-        session: input.dependencies.intentInterpreter.start(
-          normalizedText,
-          context,
-        ),
+        session: input.dependencies.conversation
+          ? input.dependencies.intentInterpreter.start(
+              normalizedText,
+              context,
+              input.dependencies.conversation.snapshot(),
+            )
+          : input.dependencies.intentInterpreter.start(normalizedText, context),
       });
       return handleInterpretation(await session.next());
     } catch (error) {

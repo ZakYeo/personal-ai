@@ -78,7 +78,33 @@ export function createAssistant(
           resultReferences,
           options.signal,
         ),
-      () => resultReferences.completeTurn(),
+      async (outcome) => {
+        resultReferences.completeTurn();
+        if (!conversation) return outcome;
+        try {
+          await conversation.commit(text, outcome.response, {
+            clock: dependencies.clock,
+            config: dependencies.config,
+            ...(options.signal ? { signal: options.signal } : {}),
+          });
+          return outcome;
+        } catch (error) {
+          return {
+            ...outcome,
+            diagnostics: [
+              ...(outcome.diagnostics ?? []),
+              {
+                category: "conversation_failure" as const,
+                cause: error,
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : "Conversation history commit failed.",
+              },
+            ],
+          };
+        }
+      },
     );
 
     return humanizeOutcome(outcome, dependencies);

@@ -28,6 +28,7 @@
 - Use the configless runtime-provider entry helper for deterministic or disabled providers; do not add fake parsers or `void` config parameters when no provider config exists.
 - Keep broad loaded config at runtime composition boundaries; pass core, features, and adapters the narrowest validated shape they need.
 - General conversation support is selected with `conversation.provider`; keep chat history in the assistant instance unless a persistence milestone explicitly changes that boundary.
+- The configured conversation window records every completed safe user/assistant exchange and supplies a frozen, untrusted-context snapshot to both intent and conversation providers; feature execution contexts must not receive the broad transcript.
 - Conversation history compacts after `conversation.history.maxTurnsBeforeCompaction` completed user/assistant turns; the current default is 5.
 - Deterministic conversation compaction must remove echoed summaries and keep its stored summary within a fixed character bound so repeated compaction cannot multiply history text.
 - Serialize each assistant instance's conversation response, compaction, and history commit transaction so concurrent callers cannot overwrite turns or reorder history.
