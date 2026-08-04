@@ -1,3 +1,5 @@
+// cspell:ignore Londn londn
+
 import { env } from "node:process";
 
 import { jsonResponse } from "../test-support/adapter-contract.js";

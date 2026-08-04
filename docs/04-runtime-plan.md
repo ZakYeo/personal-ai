@@ -515,7 +515,7 @@ When one executed feature result carries the discriminated resumable
 clarification signal and requested parameter, core registers the prompt as the
 assistant's one pending interaction and continues the exact intent session on
 the next reply. Confirmed commands retain that workflow-owned continuation
-callback. Deterministic intent sessions bind an otherwise unroutable reply to
+callback. Deterministic intent sessions bind an otherwise unmatched reply to
 the declared parameter while still recognizing independently routable changed
 topics. Compound plans and intermediate reads fail closed on this result.
 `expectsFollowUp` alone remains a human/voice capture hint, not the owner of
