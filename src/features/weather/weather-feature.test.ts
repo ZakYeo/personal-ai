@@ -249,7 +249,7 @@ describe("createWeatherFeature", () => {
       context,
     );
 
-    expect(result.text).toContain("Expect showers. It is windy.");
+    expect(result.text).toContain("There are showers. It is windy.");
     expect(result.text).not.toMatch(/0\.4|35 km\/h/iu);
   });
 

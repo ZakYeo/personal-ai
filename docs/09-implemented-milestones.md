@@ -104,7 +104,8 @@ Included:
   freshness.
 - Concise request-aware weather speech keeps exact precipitation, wind, and
   fetch telemetry that was not requested in structured facts while describing notable
-  conditions and observation freshness naturally.
+  conditions and observation freshness naturally with tense-correct current and
+  forecast wording.
 - Versioned in-memory and atomic JSON-file weather-watch stores with
   revision-checked lifecycle transitions, restrictive file modes, canonical
   validation, a maximum of 1,000 retained records, and a maximum of 24 active

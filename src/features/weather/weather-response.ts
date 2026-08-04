@@ -1,4 +1,8 @@
 import type { WeatherForecast, WeatherUnits } from "../../ports/weather.js";
+import {
+  qualitativeWeatherDetails,
+  type WeatherTemporalMode,
+} from "./weather-condition-summary.js";
 
 interface WeatherResponseOptions {
   includePrecipitation: boolean;
@@ -11,7 +15,7 @@ export function currentWeatherResult(
   options: WeatherResponseOptions,
 ) {
   const { current, location, units } = forecast;
-  const details = formatWeatherDetails(current, units, options);
+  const details = formatWeatherDetails(current, units, options, "current");
   return {
     citations: [weatherAttributionCitation(forecast)],
     data: {
@@ -46,10 +50,10 @@ export function forecastWeatherResult(
   const daily = forecast.daily[0];
   const summary = [
     hourly
-      ? `At ${hourly.forecastAt}: ${hourly.temperature}${formatTemperatureUnit(forecast.units.temperature)} and ${hourly.weather}.${formatWeatherDetails(hourly, forecast.units, options)}`
+      ? `At ${hourly.forecastAt}: ${hourly.temperature}${formatTemperatureUnit(forecast.units.temperature)} and ${hourly.weather}.${formatWeatherDetails(hourly, forecast.units, options, "forecast")}`
       : undefined,
     daily
-      ? `On ${daily.date}: ${daily.temperatureMin}–${daily.temperatureMax}${formatTemperatureUnit(forecast.units.temperature)} and ${daily.weather}.${formatWeatherDetails({ precipitation: daily.precipitation, weather: daily.weather, windSpeed: daily.windSpeedMax }, forecast.units, options)}`
+      ? `On ${daily.date}: ${daily.temperatureMin}–${daily.temperatureMax}${formatTemperatureUnit(forecast.units.temperature)} and ${daily.weather}.${formatWeatherDetails({ precipitation: daily.precipitation, weather: daily.weather, windSpeed: daily.windSpeedMax }, forecast.units, options, "forecast")}`
       : undefined,
   ]
     .filter((value): value is string => value !== undefined)
@@ -126,10 +130,10 @@ function formatWeatherDetails(
   },
   units: WeatherUnits,
   options: Pick<WeatherResponseOptions, "includePrecipitation" | "includeWind">,
+  mode: WeatherTemporalMode,
 ): string {
   const details = [
-    notablePrecipitation(conditions),
-    conditions.windSpeed >= 29 ? "It is windy." : undefined,
+    ...qualitativeWeatherDetails(conditions, mode),
     options.includePrecipitation
       ? `Precipitation is ${conditions.precipitation} ${units.precipitation}.`
       : undefined,
@@ -138,18 +142,6 @@ function formatWeatherDetails(
       : undefined,
   ].filter((detail): detail is string => detail !== undefined);
   return details.length === 0 ? "" : ` ${details.join(" ")}`;
-}
-
-function notablePrecipitation(conditions: {
-  precipitation: number;
-  weather: string;
-}): string | undefined {
-  if (/\bshowers?\b/iu.test(conditions.weather)) return "Expect showers.";
-  if (/\b(?:snow|sleet)\b/iu.test(conditions.weather)) return "Expect snow.";
-  if (/\bthunder/iu.test(conditions.weather)) return "Expect thunderstorms.";
-  if (conditions.precipitation > 0 || /\brain\b/iu.test(conditions.weather)) {
-    return "It is raining.";
-  }
 }
 
 function formatObservationAge(observedAt: string, now: Date): string {

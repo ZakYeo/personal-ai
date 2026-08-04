@@ -554,6 +554,8 @@ should also guard against subtler boundary and abstraction drift.
   metadata.
 - Weather speech defaults to temperature, general conditions, relative
   observation freshness, and only materially notable precipitation or wind.
+  Qualitative condition policy distinguishes current observations from
+  forecasts so present and future tense cannot leak across temporal modes.
   Exact precipitation and wind are included only when decoded request flags say
   they were explicitly requested; fetch and all other exact facts remain in
   protected structured data.
