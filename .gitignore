@@ -8,3 +8,4 @@ coverage/
 npm-debug.log*
 *.tsbuildinfo
 .voice-benchmark/
+config/state/
