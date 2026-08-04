@@ -5,45 +5,45 @@ import type {
 } from "./assistant.js";
 
 export interface FeatureCapability {
-  name: string;
-  risk: "low" | "high";
-  toolChain?: "read";
-  summary?: string;
-  spokenSummary?: string;
-  description?: string;
-  requiresConfirmation?: boolean;
-  parameters?: Record<string, FeatureCapabilityParameter>;
-  renderConfirmation?: (
-    args: Record<string, string | number | boolean | undefined>,
+  readonly name: string;
+  readonly risk: "low" | "high";
+  readonly toolChain?: "read";
+  readonly summary?: string;
+  readonly spokenSummary?: string;
+  readonly description?: string;
+  readonly requiresConfirmation?: boolean;
+  readonly parameters?: Readonly<Record<string, FeatureCapabilityParameter>>;
+  readonly renderConfirmation?: (
+    args: Readonly<Record<string, string | number | boolean | undefined>>,
     context: AssistantContext,
   ) => ConfirmationDeclaration;
-  requestClarification?: (
-    args: Record<string, string | number | boolean | undefined>,
+  readonly requestClarification?: (
+    args: Readonly<Record<string, string | number | boolean | undefined>>,
     context: AssistantContext,
   ) => AssistantResponse | undefined;
 }
 
 export interface FeatureCapabilityParameter {
-  type: "string" | "number" | "boolean";
-  description?: string;
-  required?: boolean;
-  minimum?: number;
-  positive?: boolean;
+  readonly type: "string" | "number" | "boolean";
+  readonly description?: string;
+  readonly required?: boolean;
+  readonly minimum?: number;
+  readonly positive?: boolean;
 }
 
 export interface CapabilityCatalogFeature {
-  capabilities: FeatureCapability[];
-  displayName: string;
-  id: string;
-  spokenSummary?: string;
+  readonly capabilities: readonly FeatureCapability[];
+  readonly displayName: string;
+  readonly id: string;
+  readonly spokenSummary?: string;
 }
 
 export interface CapabilityCatalogEntry {
-  capability: FeatureCapability;
-  featureId: string;
-  featureName: string;
-  featureSpokenSummary?: string;
-  parameterText: string;
+  readonly capability: FeatureCapability;
+  readonly featureId: string;
+  readonly featureName: string;
+  readonly featureSpokenSummary?: string;
+  readonly parameterText: string;
 }
 
 export type CapabilityCatalog = readonly CapabilityCatalogEntry[];
@@ -58,12 +58,12 @@ export interface CapabilityRoute<
 export interface CapabilityRoutingIndex<
   TFeature extends CapabilityCatalogFeature = CapabilityCatalogFeature,
 > {
-  catalog: CapabilityCatalog;
+  readonly catalog: CapabilityCatalog;
   get(capabilityName: string): CapabilityRoute<TFeature> | undefined;
 }
 
 export function createCapabilityCatalog(
-  features: CapabilityCatalogFeature[],
+  features: readonly CapabilityCatalogFeature[],
 ): CapabilityCatalog {
   return createCapabilityRoutingIndex(features).catalog;
 }
@@ -75,7 +75,12 @@ export function createCapabilityRoutingIndex<
   const routes = new Map<string, CapabilityRoute<TFeature>>();
 
   for (const feature of features) {
-    for (const capability of feature.capabilities) {
+    const compiledFeature = Object.freeze({
+      ...feature,
+      capabilities: Object.freeze(feature.capabilities.map(freezeCapability)),
+    }) as TFeature;
+
+    for (const capability of compiledFeature.capabilities) {
       const existing = routes.get(capability.name);
 
       if (existing) {
@@ -90,16 +95,16 @@ export function createCapabilityRoutingIndex<
         capability.name,
         Object.freeze({
           capability: frozenCapability,
-          feature,
+          feature: compiledFeature,
         }),
       );
       catalog.push(
         Object.freeze({
           capability: frozenCapability,
-          featureId: feature.id,
-          featureName: feature.displayName,
-          ...(feature.spokenSummary
-            ? { featureSpokenSummary: feature.spokenSummary }
+          featureId: compiledFeature.id,
+          featureName: compiledFeature.displayName,
+          ...(compiledFeature.spokenSummary
+            ? { featureSpokenSummary: compiledFeature.spokenSummary }
             : {}),
           parameterText: formatCapabilityParameters(frozenCapability),
         }),

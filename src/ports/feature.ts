@@ -20,13 +20,12 @@ export type {
 } from "./capability-catalog.js";
 
 export interface FeatureExecutionContext extends AssistantContext {
-  capabilityCatalog: CapabilityCatalog;
-  validatedConfirmationFacts?: Readonly<AssistantCommandParameters>;
+  readonly capabilityCatalog: CapabilityCatalog;
+  readonly validatedConfirmationFacts?: Readonly<AssistantCommandParameters>;
 }
 
-export type FeatureCapabilityParameters = Record<
-  string,
-  FeatureCapabilityParameter
+export type FeatureCapabilityParameters = Readonly<
+  Record<string, FeatureCapabilityParameter>
 >;
 
 interface CompletedFeatureResult {
@@ -39,8 +38,8 @@ interface CompletedFeatureResult {
 }
 
 export interface FeatureSpokenTextContext {
-  dateStyle: "calendar" | "contextual";
-  timeZone: string;
+  readonly dateStyle: "calendar" | "contextual";
+  readonly timeZone: string;
 }
 
 interface ResumableFeatureClarification {
@@ -77,11 +76,14 @@ export interface FeatureExecutionRequest<
 export interface FeaturePlugin<
   TExecutionRequest extends FeatureExecutionRequest = FeatureExecutionRequest,
 > {
-  id: string;
-  displayName: string;
-  spokenSummary?: string;
-  capabilities: FeatureCapability[];
-  canHandle?(command: AssistantCommand, context: AssistantContext): boolean;
+  readonly id: string;
+  readonly displayName: string;
+  readonly spokenSummary?: string;
+  readonly capabilities: readonly FeatureCapability[];
+  readonly canHandle?: (
+    command: AssistantCommand,
+    context: AssistantContext,
+  ) => boolean;
   execute(
     request: TExecutionRequest,
     context: FeatureExecutionContext,

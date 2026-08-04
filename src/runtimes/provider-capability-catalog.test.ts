@@ -98,8 +98,10 @@ describe("createProviderCapabilityCatalog", () => {
     expect(routedCapability).toBe(catalogCapability);
     expect(Object.isFrozen(routedCapability)).toBe(true);
 
-    feature.capabilities[0]!.risk = "high";
-    expect(routedCapability?.risk).toBe("low");
+    expect(routing.get("calendar.list")?.feature).not.toBe(feature);
+    expect(
+      Object.isFrozen(routing.get("calendar.list")?.feature.capabilities),
+    ).toBe(true);
   });
 });
 
