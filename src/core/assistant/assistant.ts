@@ -49,7 +49,7 @@ export function createAssistant(
   const conversation = dependencies.conversation
     ? createConversationSession({
         ...dependencies.conversation,
-        onCompacted: () => resultReferences.clear(),
+        onCompacted: () => resultReferences.invalidateForCompaction(),
       })
     : undefined;
   const interaction = createInteractionSession();
@@ -80,16 +80,18 @@ export function createAssistant(
         ),
       async (outcome) => {
         const completedOutcome = humanizeOutcome(outcome, dependencies);
-        resultReferences.completeTurn();
-        if (!conversation) return completedOutcome;
+        if (!conversation) {
+          resultReferences.completeTurn();
+          return completedOutcome;
+        }
         try {
           await conversation.commit(text, completedOutcome.response, {
             clock: dependencies.clock,
             config: dependencies.config,
             ...(options.signal ? { signal: options.signal } : {}),
           });
-          return completedOutcome;
         } catch (error) {
+          resultReferences.completeTurn();
           return {
             ...completedOutcome,
             diagnostics: [
@@ -105,6 +107,8 @@ export function createAssistant(
             ],
           };
         }
+        resultReferences.completeTurn();
+        return completedOutcome;
       },
     );
 

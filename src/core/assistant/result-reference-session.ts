@@ -13,6 +13,7 @@ import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
 export interface ResultReferenceSession {
   clear(): void;
   completeTurn(): void;
+  invalidateForCompaction(): void;
   publicReferences(): readonly AssistantResultReference[];
   select(
     request: ResultReferenceSelectionRequest,
@@ -25,14 +26,15 @@ export function createResultReferenceSession(): ResultReferenceSession {
   let subsequentTurns = 0;
   let focusedReference: string | undefined;
   let retainedSinceLastCompletion = false;
+  const clear = (): void => {
+    entries = [];
+    subsequentTurns = 0;
+    focusedReference = undefined;
+    retainedSinceLastCompletion = false;
+  };
 
   return {
-    clear() {
-      entries = [];
-      subsequentTurns = 0;
-      focusedReference = undefined;
-      retainedSinceLastCompletion = false;
-    },
+    clear,
     completeTurn() {
       if (entries.length === 0) return;
       if (retainedSinceLastCompletion) {
@@ -44,6 +46,9 @@ export function createResultReferenceSession(): ResultReferenceSession {
         entries = [];
         focusedReference = undefined;
       }
+    },
+    invalidateForCompaction() {
+      if (!retainedSinceLastCompletion) clear();
     },
     publicReferences: () =>
       entries.map(({ publicReference }) => publicReference),

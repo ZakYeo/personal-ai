@@ -151,7 +151,7 @@ describe("assistant result references", () => {
     expect(contexts[4]?.resultReferences).toBeUndefined();
   });
 
-  it("clears references immediately when conversation compacts", async () => {
+  it("preserves references created by the turn that compacts history", async () => {
     const contexts: AssistantContext[] = [];
     let call = 0;
     const assistant = createReferenceAssistant(
@@ -169,6 +169,9 @@ describe("assistant result references", () => {
     await assistant.handleText("tell me something");
     await assistant.handleText("the first one");
 
+    expect(contexts[1]?.resultReferences).toMatchObject([
+      { kind: "calendar_event", reference: "calendar-event-1" },
+    ]);
     expect(contexts[2]?.resultReferences).toBeUndefined();
   });
 

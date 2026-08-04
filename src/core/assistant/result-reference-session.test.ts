@@ -1,4 +1,5 @@
 import { createResultReferenceSession } from "./result-reference-session.js";
+import type { FeatureResultReferenceSet } from "../../ports/result-reference.js";
 
 describe("result reference session", () => {
   it("retains only ten opaque references and resolves their private targets", () => {
@@ -141,6 +142,67 @@ describe("result reference session", () => {
 
     expect(session.publicReferences()).toEqual([]);
   });
+
+  it.each([
+    {
+      expectedKind: "calendar_event",
+      resultSet: resultSet("event"),
+    },
+    {
+      expectedKind: "internet_source",
+      resultSet: {
+        items: [
+          {
+            facts: {
+              title: "Current source",
+              url: "https://example.com/current",
+            },
+          },
+        ],
+        kind: "internet_sources",
+      },
+    },
+    {
+      expectedKind: "task_item",
+      resultSet: {
+        items: [
+          {
+            facts: {
+              label: "Oat milk",
+              listName: "Shopping",
+              status: "open",
+            },
+            target: {
+              kind: "task_item",
+              listId: "list-id",
+              listRevision: 1,
+              revision: 1,
+              taskId: "task-id",
+            },
+          },
+        ],
+        kind: "task_items",
+      },
+    },
+  ] satisfies readonly {
+    expectedKind: string;
+    resultSet: FeatureResultReferenceSet;
+  }[])(
+    "preserves newly retained $expectedKind references across compaction",
+    ({ expectedKind, resultSet }) => {
+      const session = createResultReferenceSession();
+      session.retain(resultSet);
+
+      session.invalidateForCompaction();
+
+      expect(session.publicReferences()).toMatchObject([
+        { kind: expectedKind },
+      ]);
+      session.completeTurn();
+      session.invalidateForCompaction();
+      expect(session.publicReferences()).toEqual([]);
+    },
+  );
 
   it("owns ordinal selection, rejects provider conflicts, and advances focus", () => {
     const session = createResultReferenceSession();
