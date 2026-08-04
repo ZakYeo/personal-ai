@@ -89,6 +89,9 @@ Streaming provider slots must keep provider config types inside their registry
 entries. Neutral desktop voice topology resolves an entry and captures its
 typed config/constructor; adding a provider must not widen a shared
 provider-specific union or add adapter-ID branches to aggregate composition.
+Streaming speech timeouts bound connection and individual body-read inactivity.
+They are disarmed while the consumer processes a yielded chunk, so total speech
+duration and playback delays are not mistaken for provider stalls.
 Follow-up listening is neutral voice runtime behavior. A voice runtime may
 capture a no-wake reply only when the assistant response explicitly sets
 `expectsFollowUp: true`, and it should return to normal wake listening once a

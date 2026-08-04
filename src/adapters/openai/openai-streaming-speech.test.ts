@@ -147,6 +147,61 @@ describe("OpenAIStreamingSpeech", () => {
     }
   });
 
+  it("allows a stream to outlive the timeout while chunks keep arriving", async () => {
+    vi.useFakeTimers();
+    const adapter = createAdapter({
+      fetch: vi.fn().mockResolvedValue(
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(Buffer.from("first", "utf8"));
+              setTimeout(() => {
+                controller.enqueue(Buffer.from(" second", "utf8"));
+              }, 20);
+              setTimeout(() => controller.close(), 40);
+            },
+          }),
+        ),
+      ),
+      timeoutMs: 25,
+    });
+
+    try {
+      const speech = await adapter.synthesizeStream("A longer answer.");
+      const result = readChunksAsText(speech.chunks);
+      await vi.advanceTimersByTimeAsync(20);
+      await vi.advanceTimersByTimeAsync(20);
+      await expect(result).resolves.toBe("first second");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not count consumer processing delays as provider inactivity", async () => {
+    vi.useFakeTimers();
+    const adapter = createAdapter({
+      fetch: vi
+        .fn()
+        .mockResolvedValue(
+          new Response(streamFromText("audio"), { status: 200 }),
+        ),
+      timeoutMs: 25,
+    });
+
+    try {
+      const speech = await adapter.synthesizeStream("A longer answer.");
+      const iterator = speech.chunks[Symbol.asyncIterator]();
+      await expect(iterator.next()).resolves.toMatchObject({ done: false });
+      await vi.advanceTimersByTimeAsync(30);
+      await expect(iterator.next()).resolves.toEqual({
+        done: true,
+        value: undefined,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("cancels the response reader when the consumer exits early", async () => {
     const cancel = vi.fn();
     const adapter = createAdapter({

@@ -303,7 +303,9 @@ exercises the assistant turn and streaming spoken-output path. It is
 intentionally outside `npm run check` and guards the same post-wake path used by
 `npm start` without depending on room acoustics or a live microphone.
 Configured OpenAI streaming speech timeouts and service shutdown signals cover
-both the initial request and streamed response body.
+both the initial request and streamed response body. Timeout accounting measures
+connection or next-chunk inactivity rather than total speech duration, so a
+regularly advancing long response is not aborted while it is still speaking.
 Successful smoke runs print a `Voice timing summary` with wake activation,
 command stream setup, command transcription, assistant handling, speech output,
 and total durations. These timings are diagnostic and provider-variable; recent

@@ -24,6 +24,7 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
     );
 
     try {
+      abortScope.armTimeout();
       const response = await this.options.fetch(
         createOpenAIUrl(this.options.config.baseUrl, "audio/speech"),
         {
@@ -42,11 +43,15 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
           signal: abortScope.signal,
         },
       );
+      abortScope.disarmTimeout();
 
       if (!response.ok) {
+        abortScope.armTimeout();
+        const responseBody = await response.text();
+        abortScope.disarmTimeout();
         throw createOpenAIVoiceProviderError({
           message: `OpenAI speech request failed with status ${response.status}.`,
-          responseBody: await response.text(),
+          responseBody,
           status: response.status,
         });
       }
@@ -62,6 +67,7 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
         text,
       };
     } catch (error) {
+      abortScope.disarmTimeout();
       abortScope.dispose();
 
       if (abortScope.signal.aborted) {
@@ -82,7 +88,7 @@ async function* streamToAsyncIterable(
 
   try {
     while (true) {
-      const result = await readWithAbort(reader, abortScope.signal);
+      const result = await readWithAbort(reader, abortScope);
 
       if (result.done) {
         completed = true;
@@ -112,6 +118,8 @@ async function* streamToAsyncIterable(
 }
 
 interface SpeechAbortScope {
+  armTimeout(): void;
+  disarmTimeout(): void;
   dispose(): void;
   signal: AbortSignal;
   timedOut(): boolean;
@@ -124,17 +132,25 @@ function createSpeechAbortScope(
 ): SpeechAbortScope {
   const controller = new AbortController();
   let timedOut = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const onShutdown = (): void => {
     controller.abort(abortReason(shutdownSignal));
   };
-  const timer = setTimeout(() => {
-    timedOut = true;
-    controller.abort(
-      new Error(`OpenAI speech timed out after ${timeoutMs}ms.`),
-    );
-  }, timeoutMs);
+  const disarmTimeout = (): void => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined;
+  };
+  const armTimeout = (): void => {
+    disarmTimeout();
+    timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort(
+        new Error(`OpenAI speech timed out after ${timeoutMs}ms.`),
+      );
+    }, timeoutMs);
+  };
   const dispose = (): void => {
-    clearTimeout(timer);
+    disarmTimeout();
     shutdownSignal?.removeEventListener("abort", onShutdown);
   };
 
@@ -147,6 +163,8 @@ function createSpeechAbortScope(
   }
 
   return {
+    armTimeout,
+    disarmTimeout,
     dispose,
     signal: controller.signal,
     timedOut: () => timedOut,
@@ -156,24 +174,29 @@ function createSpeechAbortScope(
 
 function readWithAbort(
   reader: ReadableStreamDefaultReader<Uint8Array>,
-  signal: AbortSignal,
+  scope: SpeechAbortScope,
 ): ReturnType<ReadableStreamDefaultReader<Uint8Array>["read"]> {
+  const { signal } = scope;
   if (signal.aborted) {
     return Promise.reject(toError(abortReason(signal)));
   }
 
+  scope.armTimeout();
   return new Promise((resolve, reject) => {
     const onAbort = (): void => {
+      scope.disarmTimeout();
       reject(toError(abortReason(signal)));
     };
 
     signal.addEventListener("abort", onAbort, { once: true });
     void reader.read().then(
       (result) => {
+        scope.disarmTimeout();
         signal.removeEventListener("abort", onAbort);
         resolve(result);
       },
       (error: unknown) => {
+        scope.disarmTimeout();
         signal.removeEventListener("abort", onAbort);
         reject(error instanceof Error ? error : new Error(String(error)));
       },
