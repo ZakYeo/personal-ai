@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { TaskListRecord, TaskRecord, TaskReminder } from "./task-store.js";
+import type {
+  TaskListRecord,
+  TaskRecord,
+  TaskReminder,
+} from "../ports/task-store.js";
 import {
   assertValidTaskListRecord,
   assertValidTaskRecord,

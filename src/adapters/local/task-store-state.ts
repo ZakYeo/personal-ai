@@ -1,4 +1,4 @@
-import { normalizeTaskListName } from "../../ports/task-policy.js";
+import { normalizeTaskListName } from "../../application/task-policy.js";
 import type {
   ClearTaskListRequest,
   TaskListRecord,

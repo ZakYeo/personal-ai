@@ -1,5 +1,5 @@
-import type { WeatherWatchCondition } from "./weather-watch-store.js";
-import type { HourlyWeatherForecast } from "./weather.js";
+import type { WeatherWatchCondition } from "../ports/weather-watch-store.js";
+import type { HourlyWeatherForecast } from "../ports/weather.js";
 
 interface WeatherWatchConditionInput {
   metric: string;

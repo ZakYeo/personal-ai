@@ -14,7 +14,7 @@ import {
   metricWeatherUnits,
   validateWeatherForecast,
   weatherForecastIsStale,
-} from "../../ports/weather-policy.js";
+} from "../../application/weather-policy.js";
 import type { WeatherWatchStore } from "../../ports/weather-watch-store.js";
 import type { PersonalContextReaderPort } from "../../ports/personal-context.js";
 import {

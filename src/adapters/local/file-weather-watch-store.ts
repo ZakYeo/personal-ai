@@ -5,7 +5,7 @@ import type {
   WeatherWatchRecord,
   WeatherWatchStore,
 } from "../../ports/weather-watch-store.js";
-import { cloneWeatherWatch } from "../../ports/weather-watch-policy.js";
+import { cloneWeatherWatch } from "../../application/weather-watch-policy.js";
 import {
   assertValidWeatherWatchStateDocument,
   parseWeatherWatchState,

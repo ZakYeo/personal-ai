@@ -3,7 +3,7 @@ import {
   normalizeTaskLabel,
   normalizeTaskNote,
   taskReminderTerminalTimestamp,
-} from "../../ports/task-policy.js";
+} from "../../application/task-policy.js";
 import type {
   AcknowledgeTaskReminderRequest,
   ClaimTaskReminderRequest,

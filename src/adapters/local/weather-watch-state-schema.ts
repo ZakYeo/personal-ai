@@ -4,11 +4,11 @@ import type {
   WeatherWatchRecord,
   WeatherWatchStatus,
 } from "../../ports/weather-watch-store.js";
-import { decodeWeatherWatchCondition } from "../../ports/weather-watch-condition-policy.js";
+import { decodeWeatherWatchCondition } from "../../application/weather-watch-condition-policy.js";
 import {
   assertWeatherWatchActiveLimit,
   assertValidWeatherWatchRecord,
-} from "../../ports/weather-watch-policy.js";
+} from "../../application/weather-watch-policy.js";
 import type { WeatherLocation, WeatherPeriod } from "../../ports/weather.js";
 import { isRecord } from "../parsing.js";
 

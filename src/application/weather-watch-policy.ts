@@ -1,8 +1,8 @@
 import type {
   NewWeatherWatch,
   WeatherWatchRecord,
-} from "./weather-watch-store.js";
-import type { WeatherPeriod } from "./weather.js";
+} from "../ports/weather-watch-store.js";
+import type { WeatherPeriod } from "../ports/weather.js";
 import {
   isCanonicalWeatherTimestamp,
   isValidWeatherLocation,

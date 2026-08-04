@@ -9,7 +9,7 @@ import {
   assertValidNewWeatherWatch,
   assertValidWeatherWatchRecord,
   cloneNewWeatherWatch,
-} from "../../ports/weather-watch-policy.js";
+} from "../../application/weather-watch-policy.js";
 
 export function createActiveWeatherWatch(
   input: NewWeatherWatch,

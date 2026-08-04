@@ -6,7 +6,7 @@ import type {
   AlarmStatus,
   AlarmStore,
 } from "../../ports/alarm-store.js";
-import { resolveAlarmRecurrence } from "../../ports/alarm-lifecycle-policy.js";
+import { resolveAlarmRecurrence } from "../../application/alarm-lifecycle-policy.js";
 import type {
   AlarmCreateArgs,
   AlarmDelayTargetArgs,

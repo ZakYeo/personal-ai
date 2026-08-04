@@ -1,4 +1,4 @@
-import type { HourlyWeatherForecast } from "./weather.js";
+import type { HourlyWeatherForecast } from "../ports/weather.js";
 import {
   decodeWeatherWatchCondition,
   weatherWatchConditionMatches,

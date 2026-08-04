@@ -1,4 +1,4 @@
-import { zonedParts } from "../application/local-date-time.js";
+import { zonedParts } from "./local-date-time.js";
 import type {
   DailyWeatherForecast,
   HourlyWeatherForecast,
@@ -7,7 +7,7 @@ import type {
   WeatherLocationCandidate,
   WeatherPeriod,
   WeatherUnits,
-} from "./weather.js";
+} from "../ports/weather.js";
 
 export const metricWeatherUnits = Object.freeze({
   precipitation: "mm",

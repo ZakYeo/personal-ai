@@ -6,7 +6,7 @@ import {
   type FeatureExecutionContext,
 } from "../../ports/feature.js";
 import type { WeatherWatchStore } from "../../ports/weather-watch-store.js";
-import { decodeWeatherWatchCondition } from "../../ports/weather-watch-condition-policy.js";
+import { decodeWeatherWatchCondition } from "../../application/weather-watch-condition-policy.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";
 import { resolveWeatherLocation } from "./weather-location-resolution.js";
 import { createForecastWeatherPeriod } from "./weather-validation.js";

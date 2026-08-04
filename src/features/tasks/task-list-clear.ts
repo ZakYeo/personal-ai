@@ -4,7 +4,7 @@ import {
   type FeatureCapabilityParameters,
   type FeatureResult,
 } from "../../ports/feature.js";
-import { normalizeTaskListName } from "../../ports/task-policy.js";
+import { normalizeTaskListName } from "../../application/task-policy.js";
 import type { TaskStore } from "../../ports/task-store.js";
 import { selectTaskList } from "./task-selection.js";
 import { taskSpokenSummary } from "./task-capability-metadata.js";

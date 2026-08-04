@@ -9,7 +9,7 @@ import {
   isCanonicalIsoTimestamp,
   isTerminalAlarmStatus,
   resolveAlarmRecurrence,
-} from "../../ports/alarm-lifecycle-policy.js";
+} from "../../application/alarm-lifecycle-policy.js";
 import { nextRecurringOccurrence } from "./alarm-recurrence.js";
 
 export function createScheduledAlarm(

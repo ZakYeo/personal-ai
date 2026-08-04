@@ -6,7 +6,7 @@ import type {
 import {
   assertWeatherWatchActiveLimit,
   cloneWeatherWatch,
-} from "../../ports/weather-watch-policy.js";
+} from "../../application/weather-watch-policy.js";
 import {
   cancelWeatherWatch,
   claimWeatherWatchNotification,

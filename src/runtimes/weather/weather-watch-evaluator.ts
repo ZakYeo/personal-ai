@@ -5,8 +5,8 @@ import {
   weatherWatchConditionMatches,
   weatherWatchConditionValue,
   weatherWatchMetricLabel,
-} from "../../ports/weather-watch-condition-policy.js";
-import { assertWeatherWatchActiveLimit } from "../../ports/weather-watch-policy.js";
+} from "../../application/weather-watch-condition-policy.js";
+import { assertWeatherWatchActiveLimit } from "../../application/weather-watch-policy.js";
 import type {
   WeatherWatchCondition,
   WeatherWatchRecord,
@@ -23,7 +23,7 @@ import {
   metricWeatherUnits,
   validateWeatherForecast,
   weatherForecastIsStale,
-} from "../../ports/weather-policy.js";
+} from "../../application/weather-policy.js";
 import {
   systemRuntimeBackgroundTaskTimer,
   type RuntimeBackgroundTaskTimer,

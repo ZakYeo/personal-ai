@@ -11,7 +11,7 @@ import {
   normalizeTaskLabel,
   normalizeTaskListName,
   normalizeTaskNote,
-} from "../../ports/task-policy.js";
+} from "../../application/task-policy.js";
 import type { TaskRecord, TaskStore } from "../../ports/task-store.js";
 import { isCanonicalIsoTimestamp } from "../../application/temporal-policy.js";
 import { defineDeterministicFeatureRules } from "../../ports/deterministic-feature-rules.js";

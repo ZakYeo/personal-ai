@@ -7,7 +7,7 @@ import type {
 import {
   isCanonicalWeatherDate,
   weatherLocalDate,
-} from "../../ports/weather-policy.js";
+} from "../../application/weather-policy.js";
 import { isRecord } from "../parsing.js";
 import {
   hasExactOpenMeteoForecastUnits,

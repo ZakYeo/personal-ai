@@ -3,11 +3,11 @@ import type {
   InternetSearchResponse,
   InternetSearchSource,
 } from "../../ports/internet-search.js";
-import { internetSearchLimits } from "../../ports/internet-search.js";
+import { internetSearchLimits } from "../../application/internet-search-policy.js";
 import {
   type InternetSearchCitationIntegrityFailure,
   validateInternetSearchCitationIntegrity,
-} from "../../ports/internet-search-policy.js";
+} from "../../application/internet-search-policy.js";
 import { isRecord } from "../parsing.js";
 import { OpenAIWebSearchError } from "./openai-web-search-error.js";
 

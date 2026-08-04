@@ -1,7 +1,7 @@
 import {
   assertValidTaskListRecord,
   assertValidTaskRecord,
-} from "../../ports/task-policy.js";
+} from "../../application/task-policy.js";
 import type {
   TaskListRecord,
   TaskRecord,

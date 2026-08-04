@@ -5,7 +5,7 @@ import {
   validateWeatherForecast,
   validateWeatherLocations,
   weatherForecastIsStale,
-} from "../../ports/weather-policy.js";
+} from "../../application/weather-policy.js";
 import { createForecastWeatherPeriod } from "./weather-validation.js";
 
 const location = {

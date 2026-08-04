@@ -9,8 +9,10 @@ import type {
   InternetSearchPort,
   InternetSearchSource,
 } from "../../ports/internet-search.js";
-import { internetSearchLimits } from "../../ports/internet-search.js";
-import { validateInternetSearchCitationIntegrity } from "../../ports/internet-search-policy.js";
+import {
+  internetSearchLimits,
+  validateInternetSearchCitationIntegrity,
+} from "../../application/internet-search-policy.js";
 import {
   defineDeterministicFeatureRules,
   type DeterministicFeatureRule,

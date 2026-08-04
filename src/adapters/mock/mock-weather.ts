@@ -3,7 +3,7 @@ import type {
   WeatherProviderPort,
   WeatherRequestOptions,
 } from "../../ports/weather.js";
-import { weatherLocalDate } from "../../ports/weather-policy.js";
+import { weatherLocalDate } from "../../application/weather-policy.js";
 
 const london = Object.freeze({
   countryCode: "GB",

@@ -1,7 +1,5 @@
-import {
-  internetSearchLimits,
-  type InternetSearchPort,
-} from "../../ports/internet-search.js";
+import { internetSearchLimits } from "../../application/internet-search-policy.js";
+import type { InternetSearchPort } from "../../ports/internet-search.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 import { requestOpenAIResponse } from "./openai-responses-client.js";
 import { OpenAIWebSearchError } from "./openai-web-search-error.js";

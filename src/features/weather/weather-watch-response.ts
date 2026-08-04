@@ -2,7 +2,7 @@ import type {
   WeatherWatchCondition,
   WeatherWatchRecord,
 } from "../../ports/weather-watch-store.js";
-import { weatherWatchMetricLabel } from "../../ports/weather-watch-condition-policy.js";
+import { weatherWatchMetricLabel } from "../../application/weather-watch-condition-policy.js";
 
 const weatherWatchReliabilityNotice =
   "Weather watches are convenience notifications, not guaranteed emergency alerts.";

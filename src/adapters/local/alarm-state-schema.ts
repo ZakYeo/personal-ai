@@ -4,7 +4,7 @@ import {
   isCanonicalIsoTimestamp,
   isTerminalAlarmStatus,
   isVersionTwoAlarmStatus,
-} from "../../ports/alarm-lifecycle-policy.js";
+} from "../../application/alarm-lifecycle-policy.js";
 import type { AlarmRecord, AlarmStatus } from "../../ports/alarm-store.js";
 import { isRecord } from "../parsing.js";
 import { assertValidAlarmRecord } from "./alarm-record.js";
