@@ -865,6 +865,8 @@ Implemented structure:
   live in focused config modules.
 - Provider-facing capability catalog construction lives in shared runtime
   composition and is reused by OpenAI intent provider selection.
+- Ordinary capability questions use concise feature-level spoken summaries;
+  explicitly complete or detailed questions expand capability-level metadata.
 
 ### Milestone 4.2: Provider Adapter Contract Hardening
 

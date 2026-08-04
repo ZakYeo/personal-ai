@@ -218,6 +218,9 @@ For each capability:
   than hard-coded prompt branches.
 - Provide `spokenSummary` when the normal voice-facing capability list needs a
   shorter spoken phrase than the provider-facing summary.
+- Provide a feature-level `spokenSummary` to group related capabilities in the
+  ordinary concise catalog; capability-level summaries remain available for an
+  explicitly detailed list.
 - Set `requiresConfirmation` for high-risk capabilities unless there is an
   explicit documented exception.
 - Declare expected command parameters with type metadata and

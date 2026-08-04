@@ -35,12 +35,14 @@ export interface CapabilityCatalogFeature {
   capabilities: FeatureCapability[];
   displayName: string;
   id: string;
+  spokenSummary?: string;
 }
 
 export interface CapabilityCatalogEntry {
   capability: FeatureCapability;
   featureId: string;
   featureName: string;
+  featureSpokenSummary?: string;
   parameterText: string;
 }
 
@@ -96,6 +98,9 @@ export function createCapabilityRoutingIndex<
           capability: frozenCapability,
           featureId: feature.id,
           featureName: feature.displayName,
+          ...(feature.spokenSummary
+            ? { featureSpokenSummary: feature.spokenSummary }
+            : {}),
           parameterText: formatCapabilityParameters(frozenCapability),
         }),
       );

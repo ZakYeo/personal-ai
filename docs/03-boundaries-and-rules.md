@@ -127,6 +127,9 @@ capabilities.
 Capability summaries and descriptions are part of the declared metadata.
 Provider prompts and user-facing capability list/detail answers should use the
 generated enabled capability catalog instead of hard-coded feature lists.
+Each feature may declare one broad spoken summary for ordinary catalog answers.
+Capability-level summaries remain the generated source for explicit complete or
+detailed requests and provider routing.
 
 Development or test fixtures may exercise an unconfirmed high-risk path only
 when the fixture name and test expectation make that override obvious. Production

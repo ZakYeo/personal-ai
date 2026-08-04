@@ -36,6 +36,7 @@ export function createMessagingFeature(): FeaturePlugin {
     defineFeature({
       id: "messaging",
       displayName: "Mock Messaging",
+      spokenSummary: "draft message replies",
       capabilities: {
         "messaging.draft_reply": defineCapability({
           description:

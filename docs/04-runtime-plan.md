@@ -696,6 +696,9 @@ Voice-facing answers should present this capability metadata in natural spoken
 language. Normal user-facing responses should avoid bullets, semicolon-delimited
 lists, and internal capability names such as `alarm.list` unless the user asks
 for technical detail.
+Ordinary list requests use one declared spoken summary per enabled feature.
+Only an explicit complete or detailed request expands the individual capability
+summaries, preventing closely related capabilities from being repeated.
 
 Runtime composition should resolve broad optional configuration into
 runtime-specific validated shapes before adapter construction. For a voice

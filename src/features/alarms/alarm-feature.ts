@@ -33,6 +33,8 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
     defineFeature({
       id: "alarms",
       displayName: "Local Alarms",
+      spokenSummary:
+        "manage local alarms and set reminders from calendar events",
       capabilities: {
         "alarm.acknowledge": defineCapability({
           description:

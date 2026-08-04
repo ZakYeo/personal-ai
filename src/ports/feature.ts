@@ -79,6 +79,7 @@ export interface FeaturePlugin<
 > {
   id: string;
   displayName: string;
+  spokenSummary?: string;
   capabilities: FeatureCapability[];
   canHandle?(command: AssistantCommand, context: AssistantContext): boolean;
   execute(
@@ -188,6 +189,7 @@ type DefinedFeatureExecutionRequest<
 interface DefinedFeature<TCapabilities extends DefinedCapabilityHandlers> {
   id: string;
   displayName: string;
+  spokenSummary?: string;
   capabilities: TCapabilities;
   canHandle?(command: AssistantCommand, context: AssistantContext): boolean;
 }
@@ -208,6 +210,9 @@ export function defineFeature<
   return {
     id: definition.id,
     displayName: definition.displayName,
+    ...(definition.spokenSummary
+      ? { spokenSummary: definition.spokenSummary }
+      : {}),
     capabilities: capabilityEntries.map(([name, handler]) => ({
       name,
       risk: handler.risk,

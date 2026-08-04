@@ -93,7 +93,8 @@ Implemented today:
   semantics that do not track later event changes.
 - Built-in assistant capability catalog feature for listing and describing the
   currently enabled capabilities from feature metadata, with concise spoken
-  summaries for normal voice answers.
+  feature-grouped summaries for normal voice answers and individual expansion
+  for explicit complete or detailed requests.
 - Runtime fallback handling that keeps human-facing responses safe while logging
   diagnostics internally.
 - Runtime-owned cleanup for desktop voice capture and speech temp files.

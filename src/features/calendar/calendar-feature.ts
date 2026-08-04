@@ -80,6 +80,7 @@ export function createCalendarFeature(
     defineFeature({
       id: "calendar",
       displayName: "Calendar",
+      spokenSummary: "check your calendar",
       capabilities: {
         "calendar.follow_up": defineCapability({
           description:

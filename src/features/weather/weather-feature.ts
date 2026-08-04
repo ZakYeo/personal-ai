@@ -177,6 +177,7 @@ export function createWeatherFeature(
         ...watchCapabilities,
       },
       displayName: "Weather",
+      spokenSummary: "check weather and manage weather watches",
       id: "weather",
     }),
     [...deterministicRules, ...weatherWatchDeterministicRules],

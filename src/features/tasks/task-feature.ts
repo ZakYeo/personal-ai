@@ -141,6 +141,7 @@ export function createTaskFeature(store: TaskStore) {
         }),
       },
       displayName: "Lists and Tasks",
+      spokenSummary: "manage personal lists, tasks, and reminders",
       id: "tasks",
     }),
     taskDeterministicRules,

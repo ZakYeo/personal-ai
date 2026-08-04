@@ -39,7 +39,13 @@ describe("createCapabilityInfoFeature", () => {
     expectCapabilityMetadata(feature, {
       name: "assistant.capabilities.list",
       risk: "low",
-      parameters: {},
+      parameters: {
+        detailed: {
+          description:
+            "Set true only when the user explicitly requests a complete or detailed capability list.",
+          type: "boolean",
+        },
+      },
     });
     expectCapabilityMetadata(feature, {
       name: "assistant.capabilities.describe",
@@ -85,6 +91,26 @@ describe("createCapabilityInfoFeature", () => {
         text: "I can manage local alarms and set reminders from calendar events. I will ask before high-risk actions.",
       },
       context,
+    );
+  });
+
+  it("expands individual capabilities only for an explicit detailed request", async () => {
+    const result = await createFeature().execute(
+      {
+        args: { detailed: true },
+        capability: "assistant.capabilities.list",
+        command: {
+          capability: "assistant.capabilities.list",
+          parameters: { detailed: true },
+          rawText: "Give me the exact list of all capabilities",
+        },
+      },
+      context,
+    );
+
+    expect(result.text).toContain("list local alarms");
+    expect(result.text).toContain(
+      "create a snapshot alarm before a calendar event",
     );
   });
 

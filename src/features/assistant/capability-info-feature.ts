@@ -15,8 +15,16 @@ const capabilityDescribeParameters = {
   name: { type: "string", required: true },
 } as const satisfies FeatureCapabilityParameters;
 
-const capabilityListParameters =
-  {} as const satisfies FeatureCapabilityParameters;
+const capabilityListParameters = {
+  detailed: {
+    description:
+      "Set true only when the user explicitly requests a complete or detailed capability list.",
+    type: "boolean",
+  },
+} as const satisfies FeatureCapabilityParameters;
+type CapabilityListArgs = FeatureArgsFromParameters<
+  typeof capabilityListParameters
+>;
 
 type CapabilityDescribeArgs = FeatureArgsFromParameters<
   typeof capabilityDescribeParameters
@@ -31,7 +39,7 @@ const capabilityInfoDeterministicRules = [
         text.includes("capabilities") ||
         text.includes("list your tools")) &&
       !findCapabilityName(text)
-        ? {}
+        ? { detailed: /\b(?:all|complete|detailed|exact|full)\b/u.test(text) }
         : undefined,
   },
   {
@@ -56,8 +64,8 @@ export function createCapabilityInfoFeature(): FeaturePlugin {
           risk: "low",
           summary: "List enabled assistant capabilities.",
           parameters: capabilityListParameters,
-          execute: (_request, context) =>
-            listCapabilities(context.capabilityCatalog),
+          execute: (request, context) =>
+            listCapabilities(context.capabilityCatalog, request.args),
         }),
         "assistant.capabilities.describe": defineCapability({
           description:
@@ -82,8 +90,13 @@ export function createCapabilityInfoCatalogFeature(): {
   return createCapabilityInfoFeature();
 }
 
-function listCapabilities(catalog: CapabilityCatalog): FeatureResult {
-  const spokenCapabilities = formatSpokenCapabilities(catalog);
+function listCapabilities(
+  catalog: CapabilityCatalog,
+  args: CapabilityListArgs,
+): FeatureResult {
+  const spokenCapabilities = args.detailed
+    ? formatDetailedCapabilities(catalog)
+    : formatSpokenCapabilities(catalog);
 
   if (spokenCapabilities.length === 0) {
     return {
@@ -105,15 +118,38 @@ function listCapabilities(catalog: CapabilityCatalog): FeatureResult {
 }
 
 function formatSpokenCapabilities(catalog: CapabilityCatalog): string[] {
+  const featureSummaries = new Map<string, string>();
+  for (const entry of catalog) {
+    if (entry.featureId === "assistant" || !entry.featureSpokenSummary)
+      continue;
+    featureSummaries.set(entry.featureId, entry.featureSpokenSummary);
+  }
   const capabilities = catalog
-    .filter(({ featureId }) => featureId !== "assistant")
+    .filter(
+      ({ featureId, featureSpokenSummary }) =>
+        featureId !== "assistant" && !featureSpokenSummary,
+    )
     .map(({ capability, featureName }) =>
       formatFallbackCapability(
         capability.spokenSummary ?? capability.summary ?? featureName,
       ),
     );
 
-  return [...new Set(capabilities)];
+  return [...featureSummaries.values(), ...new Set(capabilities)].map(
+    formatFallbackCapability,
+  );
+}
+
+function formatDetailedCapabilities(catalog: CapabilityCatalog): string[] {
+  return [
+    ...new Set(
+      catalog
+        .filter(({ featureId }) => featureId !== "assistant")
+        .map(({ capability, featureName }) =>
+          formatFallbackCapability(capability.summary ?? featureName),
+        ),
+    ),
+  ];
 }
 
 function formatFallbackCapability(text: string): string {

@@ -76,6 +76,7 @@ export function createInternetSearchFeature(
     defineFeature({
       id: "internetSearch",
       displayName: "Internet search",
+      spokenSummary: "search current public information with sources",
       capabilities: {
         "internet.follow_up": defineCapability({
           description:
