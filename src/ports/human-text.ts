@@ -27,10 +27,7 @@ export function humanizeSpokenText(
   value: string,
   context: SpokenTextContext,
 ): string {
-  const humanized = value
-    .replace(/\[([^\]]+)\]\((?:https?:\/\/|www\.)[^)]+\)/giu, "$1")
-    .replace(/\(\s*(?:https?:\/\/|www\.)[^\s)\]]+\s*\)/giu, "")
-    .replace(rawUrlPattern, replaceRawUrl)
+  const humanized = sanitizeHumanTextMarkup(value, "the linked source")
     .replace(isoInstantPattern, (instant) => renderInstant(instant, context))
     .replace(rfcInstantPattern, (instant) => renderInstant(instant, context))
     .replace(ianaTimeZoneCandidatePattern, (candidate) =>
@@ -38,8 +35,6 @@ export function humanizeSpokenText(
         ? formatTimeZoneLabel(candidate)
         : candidate,
     )
-    .replace(/\[\d+\]/gu, "")
-    .replace(/[*_~`>#]+/gu, "")
     .replace(/\(\s*\)/gu, "")
     .replace(/\bOn (today|tomorrow|yesterday)\b/gu, (_, day: string) =>
       capitalize(day),
@@ -55,6 +50,19 @@ export function humanizeSpokenText(
   return /^the linked source[.!?]?$/iu.test(humanized)
     ? `${capitalize(humanized.replace(/[.!?]+$/u, ""))}.`
     : humanized;
+}
+
+export function sanitizeHumanTextMarkup(
+  value: string,
+  rawUrlReplacement = "",
+): string {
+  return value
+    .replace(/\[([^\]]+)\]\((?:https?:\/\/|www\.)[^)]+\)/giu, "$1")
+    .replace(/\(\s*(?:https?:\/\/|www\.)[^\s)\]]+\s*\)/giu, "")
+    .replace(rawUrlPattern, (url) => replaceRawUrl(url, rawUrlReplacement))
+    .replace(/\[\d+\]/gu, "")
+    .replace(/[*_~`>#]+/gu, "")
+    .replace(/\b(?:at|from|via)\s+(?=[,.!?;:]|$)/giu, "");
 }
 
 function capitalize(value: string): string {
@@ -135,9 +143,9 @@ function containsIanaTimeZone(value: string): boolean {
   );
 }
 
-function replaceRawUrl(url: string): string {
+function replaceRawUrl(url: string, replacement: string): string {
   const punctuation = /[.,!?;:]+$/u.exec(url)?.[0] ?? "";
-  return `the linked source${punctuation}`;
+  return `${replacement}${punctuation}`;
 }
 
 function renderContextualDate(

@@ -270,10 +270,11 @@ describe("createInternetSearchFeature", () => {
             citations: [{ endIndex: 18, sourceId: "current", startIndex: 15 }],
             sources: [
               {
-                extract: "See **the details** at www.example.com [2].",
+                extract:
+                  "See **the details** from 2026-06-26T09:00:00Z at www.example.com [2].",
                 id: "current",
                 title:
-                  "[Current **source**](https://example.com/title) https://leak.example [3]",
+                  "[Current **source**](https://example.com/title), updated 2026-06-26T09:00:00Z in Europe/London https://leak.example [3]",
                 url: "https://example.com/current",
               },
             ],
@@ -284,7 +285,7 @@ describe("createInternetSearchFeature", () => {
       {
         citations: [
           {
-            title: "Current source",
+            title: "Current source, updated 10am today in London time",
             url: "https://example.com/current",
           },
         ],
@@ -294,15 +295,15 @@ describe("createInternetSearchFeature", () => {
           items: [
             {
               facts: {
-                extract: "See the details.",
-                title: "Current source",
+                extract: "See the details from 10am today.",
+                title: "Current source, updated 10am today in London time",
                 url: "https://example.com/current",
               },
             },
           ],
           kind: "internet_sources",
         },
-        text: "Current answer Source: Current source.",
+        text: "Current answer Source: Current source, updated 10am today in London time.",
       },
     );
   });

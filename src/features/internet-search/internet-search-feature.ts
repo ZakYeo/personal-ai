@@ -18,9 +18,10 @@ import {
 import { parseSpokenOrdinal } from "../../ports/spoken-ordinal.js";
 import { containsControlCharacters } from "../../ports/text-safety.js";
 import {
-  containsUnsafeInternetSearchTextControls,
-  humanizeInternetSearchText,
-} from "./internet-search-human-text.js";
+  humanizeSpokenText,
+  sanitizeHumanTextMarkup,
+} from "../../ports/human-text.js";
+import { containsUnsafeInternetSearchTextControls } from "./internet-search-human-text.js";
 
 const searchParameters = {
   query: {
@@ -94,7 +95,7 @@ export function createInternetSearchFeature(
           summary: "Search current public information with source citations.",
           parameters: searchParameters,
           execute: async (request, context) =>
-            executeSearch(search, request.args, context.signal, maxResults),
+            executeSearch(search, request.args, context, maxResults),
         }),
       },
     }),
@@ -105,7 +106,7 @@ export function createInternetSearchFeature(
 async function executeSearch(
   search: InternetSearchPort,
   args: SearchArgs,
-  signal: AbortSignal | undefined,
+  context: FeatureExecutionContext,
   maxResults: number,
 ) {
   const query = args.query.trim();
@@ -120,7 +121,7 @@ async function executeSearch(
 
   const response = await search.search(
     { maxResults, query },
-    signal ? { signal } : {},
+    context.signal ? { signal: context.signal } : {},
   );
   validateSearchResponse(response, maxResults);
   if (response.sources.length === 0) {
@@ -132,14 +133,14 @@ async function executeSearch(
       text: `I could not find current sources for "${query}".`,
     };
   }
-  const humanSources = humanizeSources(response.sources);
+  const humanSources = humanizeSources(response.sources, context);
 
   return {
     citations: createAssistantCitations(humanSources),
     data: createProtectedSearchFacts(response),
     expectsFollowUp: true,
     resultReferences: createResultReferences(humanSources),
-    text: formatCitedAnswer(response, humanSources),
+    text: formatCitedAnswer(response, humanSources, context),
   };
 }
 
@@ -221,9 +222,9 @@ function answerSearchFollowUp(
   }
 
   const { facts } = selected.publicReference;
-  const title = humanizeInternetSearchText(facts.title) || "Selected source";
+  const title = humanizeSearchText(facts.title, context) || "Selected source";
   const extract = facts.extract
-    ? humanizeInternetSearchText(facts.extract)
+    ? humanizeSearchText(facts.extract, context)
     : undefined;
   return {
     citations: [{ title, url: facts.url }],
@@ -237,15 +238,19 @@ function answerSearchFollowUp(
 function formatCitedAnswer(
   response: InternetSearchResponse,
   sources: readonly InternetSearchSource[],
+  context: FeatureExecutionContext,
 ): string {
-  const answer = removeCitationMarkup(response);
+  const answer = removeCitationMarkup(response, context);
   const sourceList = formatSpokenSourceList(
     sources.map((source) => source.title),
   );
   return `${answer} ${sources.length === 1 ? "Source" : "Sources"}: ${sourceList}.`;
 }
 
-function removeCitationMarkup(response: InternetSearchResponse): string {
+function removeCitationMarkup(
+  response: InternetSearchResponse,
+  context: FeatureExecutionContext,
+): string {
   const citations = [...response.citations].sort(
     (left, right) => left.startIndex - right.startIndex,
   );
@@ -256,24 +261,39 @@ function removeCitationMarkup(response: InternetSearchResponse): string {
     cursor = citation.endIndex;
   }
   answer += response.answer.slice(cursor);
-  return humanizeInternetSearchText(answer);
+  return humanizeSearchText(answer, context);
 }
 
 function humanizeSources(
   sources: readonly InternetSearchSource[],
+  context: FeatureExecutionContext,
 ): InternetSearchSource[] {
   return sources.map((source, index) => {
     const { extract: rawExtract, ...sourceWithoutExtract } = source;
     const title =
-      humanizeInternetSearchText(source.title) || `Source ${index + 1}`;
+      humanizeSearchText(source.title, context) || `Source ${index + 1}`;
     const extract = rawExtract
-      ? humanizeInternetSearchText(rawExtract)
+      ? humanizeSearchText(rawExtract, context)
       : undefined;
     return {
       ...sourceWithoutExtract,
       ...(extract ? { extract } : {}),
       title,
     };
+  });
+}
+
+function humanizeSearchText(
+  value: string,
+  context: FeatureExecutionContext,
+): string {
+  const timeZone = context.config.assistant.timeZone;
+  const safeMarkup = sanitizeHumanTextMarkup(value).trim();
+  if (safeMarkup.length === 0) return "";
+  return humanizeSpokenText(safeMarkup, {
+    assistantTimeZone: timeZone,
+    now: context.clock.now(),
+    timeZone,
   });
 }
 
