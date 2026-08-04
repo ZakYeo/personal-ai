@@ -126,6 +126,8 @@ describe("OpenAIIntentInterpreter", () => {
             "plan",
             "conversation",
             "clarification",
+            "rephrase",
+            "replacement",
             "unknown",
             "unsupported",
           ],
@@ -182,6 +184,35 @@ describe("OpenAIIntentInterpreter", () => {
     ).resolves.toEqual({
       kind: "conversation",
     });
+  });
+
+  it("returns an open rephrase prompt for an incomplete request", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-1",
+        output_text: JSON.stringify({
+          command: null,
+          kind: "rephrase",
+          plan: null,
+          response: {
+            status: "ok",
+            text: "What would you like me to do?",
+          },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({ fetch });
+
+    await expect(
+      interpretOnce(interpreter, "Can you do", context),
+    ).resolves.toEqual({
+      kind: "rephrase",
+      response: { status: "ok", text: "What would you like me to do?" },
+    });
+
+    expect(JSON.stringify(readRequestBody(fetch).input)).toContain(
+      "Use kind rephrase when the request is too incomplete to select a specific workflow",
+    );
   });
 
   it.each(["unknown", "unsupported"] as const)(

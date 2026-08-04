@@ -109,6 +109,52 @@ describe("OpenAIIntentInterpreter", () => {
     );
     expect(JSON.stringify(continuedBody.input)).not.toContain("diagnostics");
   });
+
+  it("lets a clarification reply replace the pending request", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: "resp_clarification",
+          output_text: JSON.stringify({
+            command: null,
+            kind: "clarification",
+            plan: null,
+            response: { status: "ok", text: "What time?" },
+          }),
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: "resp_replacement",
+          output_text: JSON.stringify({
+            command: null,
+            kind: "replacement",
+            plan: null,
+            response: null,
+          }),
+        }),
+      );
+    const session = createInterpreter({ fetch }).start("Set an alarm", context);
+
+    await expect(session.next()).resolves.toMatchObject({
+      kind: "clarification",
+    });
+    await expect(
+      session.next({
+        kind: "user_reply",
+        text: "What are your capabilities?",
+      }),
+    ).resolves.toEqual({ kind: "replacement" });
+
+    const continuation = readJsonRequestBody<Record<string, unknown>>(fetch, 1);
+    expect(continuation).toMatchObject({
+      previous_response_id: "resp_clarification",
+    });
+    expect(String(continuation.instructions)).toContain(
+      "return kind replacement",
+    );
+  });
   it("provides only safe opaque calendar references to the provider", async () => {
     const unsafeFacts = {
       date: "2026-07-17",

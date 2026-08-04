@@ -50,13 +50,20 @@ export function createOpenAIIntentRequestBody(
 function createIntentInstructions(
   context: AssistantContext,
   capabilityCatalog: readonly OpenAIIntentCapability[],
+  continuation?: "tool_result" | "user_reply",
 ): string {
   return [
     `You are the intent interpreter for ${context.config.assistant.name}.`,
     "Return only JSON matching the supplied schema unless calling one declared read tool.",
     "Call at most one read tool in a response. Never call a terminal-only capability as a tool.",
     "After a tool result, either call one more read tool or return a fully resolved terminal command or plan.",
-    "Use kind clarification with an ok response populated only when one user answer is required to resolve the workflow.",
+    "Use kind clarification with an ok response populated only when a specific workflow is selected and one user answer is required to resolve it.",
+    "Use kind rephrase when the request is too incomplete to select a specific workflow; ask one concise open question with an ok response.",
+    ...(continuation === "user_reply"
+      ? [
+          "The current input is a reply to a clarification. If it answers the clarification, continue resolving the existing workflow. If it instead makes a new request or changes topic, return kind replacement with command, plan, and response null so the application can interpret that exact input afresh.",
+        ]
+      : ["Do not use kind replacement for this response."]),
     "Map requests to enabled assistant capabilities when possible.",
     "When a capability matches but required information is missing, use kind clarification and ask one concise question for that information.",
     "A user asking whether you can perform an enabled capability without supplying its required information is starting that capability, so clarify for the missing information rather than describing capabilities or inventing a value.",
@@ -105,7 +112,11 @@ export function createOpenAIIntentContinuationRequestBody(
             },
           ]
         : [{ content: continuation.text, role: "user" }],
-    instructions: createIntentInstructions(context, capabilityCatalog),
+    instructions: createIntentInstructions(
+      context,
+      capabilityCatalog,
+      continuation.kind,
+    ),
     model: config.model,
     parallel_tool_calls: false,
     previous_response_id: previousResponseId,
@@ -268,6 +279,8 @@ function createIntentInterpretationSchema(
           "plan",
           "conversation",
           "clarification",
+          "rephrase",
+          "replacement",
           "unknown",
           "unsupported",
         ],

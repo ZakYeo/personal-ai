@@ -79,6 +79,26 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
     };
   }
 
+  if (value.kind === "rephrase") {
+    return {
+      kind: "rephrase",
+      response: parseAssistantResponse(value.response),
+    };
+  }
+
+  if (value.kind === "replacement") {
+    if (
+      value.command !== null ||
+      value.plan !== null ||
+      value.response !== null
+    ) {
+      throw new OpenAIIntentError(
+        "OpenAI intent replacement must set command, plan, and response to null.",
+      );
+    }
+    return { kind: "replacement" };
+  }
+
   if (value.kind === "unknown" || value.kind === "unsupported") {
     return {
       kind: value.kind,
@@ -87,7 +107,7 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
   }
 
   throw new OpenAIIntentError(
-    "OpenAI intent response kind must be command, plan, conversation, clarification, unknown, or unsupported.",
+    "OpenAI intent response kind must be command, plan, conversation, clarification, rephrase, replacement, unknown, or unsupported.",
   );
 }
 

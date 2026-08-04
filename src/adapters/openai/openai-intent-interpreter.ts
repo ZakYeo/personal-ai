@@ -86,6 +86,14 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
           text,
         );
         const interpretation = parsed.interpretation;
+        if (
+          interpretation.kind === "replacement" &&
+          input?.kind !== "user_reply"
+        ) {
+          throw new OpenAIIntentError(
+            "OpenAI intent replacement is valid only after a user clarification reply.",
+          );
+        }
         started = true;
         previousResponseId = parsed.responseId;
         expectedContinuation =
