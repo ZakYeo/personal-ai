@@ -2,7 +2,6 @@ import type { AssistantCommandParameters } from "../../ports/assistant.js";
 import {
   classifySpokenFact,
   renderSpokenFact,
-  type SpokenDateStyle,
 } from "../../ports/human-text.js";
 import type { ProtectedResponseFact } from "../../ports/response-rewriter.js";
 
@@ -23,7 +22,7 @@ export function protectResponseFacts(
   now: Date,
   timeZone = "UTC",
   assistantTimeZone = timeZone,
-  dateStyle: SpokenDateStyle = "calendar",
+  dateStyle: "calendar" | "contextual" = "calendar",
 ): ProtectedResponse {
   const groupedFacts = groupFactsByValue(facts);
   const replacements: FactReplacement[] = [];

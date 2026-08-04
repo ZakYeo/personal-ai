@@ -12,7 +12,6 @@ import type {
   FeatureCapabilityParameter,
 } from "./capability-catalog.js";
 import type { FeatureResultReferenceSet } from "./result-reference.js";
-import type { SpokenDateStyle } from "./human-text.js";
 
 export type { ConfirmationDeclaration } from "./assistant.js";
 export type {
@@ -40,7 +39,7 @@ interface CompletedFeatureResult {
 }
 
 export interface FeatureSpokenTextContext {
-  dateStyle: SpokenDateStyle;
+  dateStyle: "calendar" | "contextual";
   timeZone: string;
 }
 

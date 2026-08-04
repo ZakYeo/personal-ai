@@ -1,15 +1,15 @@
 import { zonedParts } from "./local-date-time.js";
 
-export type SpokenDateStyle = "calendar" | "contextual";
+type SpokenDateStyle = "calendar" | "contextual";
 
-export interface SpokenTextContext {
+interface SpokenTextContext {
   assistantTimeZone: string;
   dateStyle?: SpokenDateStyle;
   now: Date;
   timeZone: string;
 }
 
-export type SpokenFactForm = "date" | "date_time" | "time" | "time_zone";
+type SpokenFactForm = "date" | "date_time" | "time" | "time_zone";
 
 const isoInstantSource = String.raw`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})`;
 const rfcInstantSource = String.raw`(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\s+\d{2}:\d{2}(?::\d{2})?\s+(?:GMT|UTC|[+-]\d{4})`;
