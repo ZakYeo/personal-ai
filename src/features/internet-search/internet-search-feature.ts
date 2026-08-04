@@ -138,7 +138,6 @@ async function executeSearch(
   return {
     citations: createAssistantCitations(humanSources),
     data: createProtectedSearchFacts(response),
-    expectsFollowUp: true,
     resultReferences: createResultReferences(humanSources),
     text: formatCitedAnswer(response, humanSources, context),
   };

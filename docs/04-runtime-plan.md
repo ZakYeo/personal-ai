@@ -230,9 +230,9 @@ the service returns to normal wake listening. The neutral voice command
 sequence owns the maximum no-wake follow-up count so model output cannot keep a
 runtime in unbounded no-wake capture.
 
-Calendar searches that return results request one no-wake follow-up opportunity.
-The assistant retains only the most recent ten displayed events as opaque
-process-local references. A calendar follow-up resolves an ordinal or exact
+Calendar searches retain only the most recent ten displayed events as opaque
+process-local references without requesting a no-wake reply. A later calendar
+follow-up, including one after a new wake word, resolves an ordinal or exact
 opaque reference through the assistant session, then the read-only calendar port
 fetches current event details by its private stable provider ID. Ambiguous,
 missing, and expired references request clarification instead of guessing.
@@ -615,6 +615,8 @@ user/assistant turns, the configured compactor replaces older turns with a
 summary. The default compaction threshold is 5. OpenAI conversation responses
 return strict JSON containing safe response text and `expectsFollowUp`; raw
 provider output stays inside adapter diagnostics.
+Provider instructions reserve the signal for an answer required to complete the
+current interaction and reject generic invitations to continue chatting.
 The deterministic compactor removes summaries echoed by its own responder and
 caps retained summary text at 2,000 characters, preventing repeated compaction
 from multiplying stored history.

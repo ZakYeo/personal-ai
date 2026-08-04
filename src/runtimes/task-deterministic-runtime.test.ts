@@ -51,7 +51,6 @@ describe("deterministic task runtime", () => {
     await expect(
       assistant.handleText("Hey Jarvis, show my shopping list"),
     ).resolves.toEqual({
-      expectsFollowUp: true,
       status: "ok",
       text: "Your shopping list has coffee and oat milk.",
     });
@@ -79,7 +78,6 @@ describe("deterministic task runtime", () => {
       text: "Please confirm: 1. create submit the form on the to-do list with a reminder for 9am on 29 July. Say yes or no.",
     });
     await expect(assistant.handleText("yes")).resolves.toEqual({
-      expectsFollowUp: true,
       status: "ok",
       text: "Added submit the form to your to-do list with a reminder for 9am on 29 July.",
     });

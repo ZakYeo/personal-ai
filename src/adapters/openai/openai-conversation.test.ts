@@ -87,6 +87,25 @@ describe("OpenAIConversationResponder", () => {
     );
   });
 
+  it("instructs the provider to avoid generic follow-up invitations", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        output_text: JSON.stringify({
+          expectsFollowUp: false,
+          text: "You are welcome.",
+        }),
+      }),
+    );
+    const responder = createResponder({ fetch });
+
+    await responder.respond("Thank you.", state, context);
+
+    const body = readRequestBody(fetch);
+    expect(JSON.stringify(body.input)).toContain(
+      "Do not append a generic invitation",
+    );
+  });
+
   it("grounds general conversation with enabled capability metadata", async () => {
     const fetch = createFetchStub(
       jsonResponse({

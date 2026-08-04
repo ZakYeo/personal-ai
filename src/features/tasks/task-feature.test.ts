@@ -76,7 +76,6 @@ describe("createTaskFeature list capabilities", () => {
           task1Status: "open",
           taskCount: 2,
         },
-        expectsFollowUp: true,
         resultReferences: {
           items: [
             {
@@ -239,7 +238,6 @@ describe("createTaskFeature task creation capabilities", () => {
           revision: 1,
           status: "open",
         },
-        expectsFollowUp: true,
         resultReferences: {
           items: [
             {
@@ -304,7 +302,6 @@ describe("createTaskFeature task creation capabilities", () => {
           revision: 1,
           status: "open",
         },
-        expectsFollowUp: true,
         resultReferences: {
           items: [
             {

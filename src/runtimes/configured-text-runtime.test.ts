@@ -37,7 +37,6 @@ describe("createConfiguredTextRuntime", () => {
       text: "Please confirm this plan: 1. set the tea alarm for 10:10am today. Say yes or no.",
     });
     await expect(assistant.handleText("yes")).resolves.toEqual({
-      expectsFollowUp: true,
       status: "ok",
       text: "You have 1 upcoming calendar event: Upcoming wedding on 12 September, all day. Alarm set for 10:10am today (tea).",
     });
@@ -356,7 +355,6 @@ describe("createConfiguredTextRuntime", () => {
     await expect(
       assistant.handleText(deterministicScenarios.calendarWedding.text),
     ).resolves.toEqual({
-      expectsFollowUp: true,
       status: "ok",
       text: "Upcoming wedding is happening on 12 September, all day.",
     });
@@ -423,7 +421,6 @@ describe("createConfiguredTextRuntime", () => {
 
     expect(outcome).toEqual({
       response: {
-        expectsFollowUp: true,
         status: "ok",
         text: "You have 2 upcoming calendar events: .CLAY Studios: Gents Haircut on this Friday the 17th at 11am, and Zak - Onsite Interview - Agentic Engineer on next Monday the 20th at 9:30am.",
       },

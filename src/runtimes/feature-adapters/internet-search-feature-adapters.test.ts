@@ -29,7 +29,6 @@ describe("internet search feature adapters", () => {
           url: "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
         },
       ],
-      expectsFollowUp: true,
       status: "ok",
       text: "TypeScript 5.7 adds checks for variables that have never been initialized. Source: Announcing TypeScript 5.7.",
     });

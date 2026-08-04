@@ -40,7 +40,6 @@ describe.skipIf(!runOpenAIE2E)(
         expect(outcome).toMatchObject({
           response: {
             citations: expect.any(Array) as unknown[],
-            expectsFollowUp: true,
             status: "ok",
           },
         });

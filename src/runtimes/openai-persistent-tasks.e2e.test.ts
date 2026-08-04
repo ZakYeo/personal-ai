@@ -70,7 +70,6 @@ describe("OpenAI persistent task routing", () => {
     ).resolves.toEqual([]);
 
     await expect(firstRuntime.handleText("yes")).resolves.toEqual({
-      expectsFollowUp: true,
       status: "ok",
       text: `Added Submit the form to your To-do list with a reminder for ${spokenReminderAt}.`,
     });
@@ -91,7 +90,6 @@ describe("OpenAI persistent task routing", () => {
     await expect(
       restartedRuntime.handleText("Hey Jarvis, show my to-do list."),
     ).resolves.toEqual({
-      expectsFollowUp: true,
       status: "ok",
       text: "Your To-do list has Submit the form.",
     });
@@ -147,7 +145,6 @@ describe("OpenAI persistent task routing", () => {
     await expect(access(statePath)).rejects.toMatchObject({ code: "ENOENT" });
 
     await expect(assistant.handleText("yes")).resolves.toEqual({
-      expectsFollowUp: true,
       status: "ok",
       text: `Created the To-do list. Added Submit the form to your To-do list with a reminder for ${spokenReminderAt}.`,
     });
@@ -214,7 +211,6 @@ describe("OpenAI persistent task routing", () => {
     await expect(
       assistant.handleText("Hey Jarvis, show my shopping list."),
     ).resolves.toEqual({
-      expectsFollowUp: true,
       status: "ok",
       text: "Your Shopping list has Coffee and Oat milk.",
     });

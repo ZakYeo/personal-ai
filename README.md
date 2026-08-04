@@ -79,7 +79,7 @@ Implemented today:
   support.
 - Read-only calendar result follow-ups using one assistant-owned set of up to
   ten opaque references, deterministic expiry, safe OpenAI grounding, stable
-  Google event lookup, and no-wake voice continuation.
+  Google event lookup, and wake-word-independent reference retention.
 - Provider adapter contract helpers for deterministic credentials, transport,
   provider response, timeout, and diagnostic tests.
 - Mock calendar and messaging features.
@@ -279,7 +279,9 @@ instance, and compacts chat history after 5 completed user/assistant turns.
 OpenAI conversation responses use structured JSON with safe text plus an
 `expectsFollowUp` flag; when that flag is true, voice service runtimes listen
 for the next reply without another wake word before returning to normal wake
-listening.
+listening. Successful search, calendar, and task results retain their bounded
+references without setting that flag; only a reply that is required to finish
+the interaction keeps the microphone open.
 
 Run the opt-in desktop voice OpenAI smoke test:
 

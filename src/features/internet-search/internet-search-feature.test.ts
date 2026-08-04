@@ -62,7 +62,6 @@ describe("createInternetSearchFeature", () => {
             "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
           sourceCount: 1,
         },
-        expectsFollowUp: true,
         resultReferences: {
           items: [
             {
@@ -244,7 +243,6 @@ describe("createInternetSearchFeature", () => {
           },
         ],
         data: expect.any(Object) as Record<string, string | number>,
-        expectsFollowUp: true,
         resultReferences: {
           items: [
             {
@@ -290,7 +288,6 @@ describe("createInternetSearchFeature", () => {
           },
         ],
         data: expect.any(Object) as Record<string, string | number>,
-        expectsFollowUp: true,
         resultReferences: {
           items: [
             {
@@ -343,7 +340,6 @@ describe("createInternetSearchFeature", () => {
           },
         ],
         data: expect.any(Object) as Record<string, string | number>,
-        expectsFollowUp: true,
         resultReferences: {
           items: [
             {

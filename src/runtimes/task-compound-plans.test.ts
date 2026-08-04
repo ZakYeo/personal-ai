@@ -23,7 +23,6 @@ describe("task compound plans", () => {
         "Hey Jarvis, create a shopping list then add coffee to my shopping list then show my shopping list",
       ),
     ).resolves.toEqual({
-      expectsFollowUp: true,
       status: "ok",
       text: "Created the shopping list. Added coffee to your shopping list. Your shopping list has coffee.",
     });
@@ -45,7 +44,6 @@ describe("task compound plans", () => {
     await expect(store.listTasks()).resolves.toEqual([]);
 
     await expect(assistant.handleText("yes")).resolves.toEqual({
-      expectsFollowUp: true,
       status: "ok",
       text: "Added coffee to your shopping list. Cleared 1 tasks from your shopping list.",
     });

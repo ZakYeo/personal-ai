@@ -34,6 +34,7 @@ export function createOpenAIConversationRequestBody(
               `Assistant time zone: ${context.config.assistant.timeZone}.`,
               `The assistant's enabled capabilities are:\n${formatOpenAICapabilities(capabilityCatalog)}`,
               "Set expectsFollowUp to true only when your reply directly asks the user for more input.",
+              "Do not append a generic invitation, offer more help, or ask what the user wants next. Set expectsFollowUp only when the current answer genuinely cannot be completed without one user reply.",
               "Return only JSON matching the supplied schema.",
             ].join(" "),
             type: "input_text",

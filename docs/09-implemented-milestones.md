@@ -392,7 +392,8 @@ Included:
 - Safe OpenAI grounding containing only opaque references and displayed facts;
   private provider event IDs remain behind the execution resolver. Result data
   is serialized as delimited untrusted JSON with a tightly typed fact projection.
-- Protected feature facts and no-wake voice continuation after calendar results.
+- Protected feature facts and process-local follow-ups after a later wake word;
+  ordinary calendar results do not keep the microphone open.
 - Deterministic core, feature, configured text, voice, and Google adapter tests,
   plus an explicit opt-in live OpenAI and Google Calendar smoke.
 

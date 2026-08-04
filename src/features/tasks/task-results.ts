@@ -57,7 +57,6 @@ export function createdTaskResult(
       revision: task.revision,
       status: task.status,
     },
-    expectsFollowUp: true,
     resultReferences: createTaskResultReferences(list, [task]),
     text: scheduledReminder
       ? `Added ${task.label} to your ${list.name} list with a reminder for ${scheduledReminder.scheduledFor}.`
@@ -98,7 +97,6 @@ export function taskListResult(
         ? { visibleTaskCount: shown.length }
         : {}),
     },
-    expectsFollowUp: true,
     resultReferences: createTaskResultReferences(list, shown),
     text: `Your ${list.name} list has ${joinHuman(
       shown.map((task) => task.label),

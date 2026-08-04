@@ -363,13 +363,9 @@ describe("mock voice runtime", () => {
     ]);
   });
 
-  it("smoke-captures a calendar result follow-up without another wake phrase", async () => {
+  it("returns to wake listening after retaining calendar result references", async () => {
     const progressOutput = createCapturedWriter();
     const assistant = await createConfiguredTextRuntimeHarness();
-    const utterances = [
-      deterministicScenarios.calendarUpcomingEvents.text,
-      "Where is that?",
-    ];
     const dependencies = createVoiceRuntimeDependencies({ assistant });
 
     await expect(
@@ -378,7 +374,9 @@ describe("mock voice runtime", () => {
           ...dependencies,
           audioInput: {
             capture: () =>
-              Promise.resolve({ text: utterances.shift() ?? "unexpected" }),
+              Promise.resolve({
+                text: deterministicScenarios.calendarUpcomingEvents.text,
+              }),
           },
         },
         { progressOutput },
@@ -386,11 +384,11 @@ describe("mock voice runtime", () => {
     ).resolves.toMatchObject({
       response: {
         status: "ok",
-        text: "Upcoming wedding does not include a location.",
+        text: deterministicScenarios.calendarUpcomingEvents.response.text,
       },
-      transcript: "Where is that?",
+      transcript: deterministicScenarios.calendarUpcomingEvents.text,
     });
-    expect(progressOutput.writes).toContain(
+    expect(progressOutput.writes).not.toContain(
       line("Listening for your reply..."),
     );
   });
