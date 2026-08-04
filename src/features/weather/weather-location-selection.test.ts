@@ -48,6 +48,15 @@ describe("selectWeatherLocation", () => {
       kind: "ambiguous",
     });
   });
+
+  it.each(["London, Canada", "Londn"])(
+    "does not fall back to a contradictory or fuzzy candidate: %s",
+    (place) => {
+      expect(selectWeatherLocation(place, [candidates[0]], "ranked")).toEqual({
+        kind: "not_found",
+      });
+    },
+  );
 });
 
 function candidate(input: {

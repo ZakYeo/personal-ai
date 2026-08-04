@@ -64,6 +64,25 @@ describe("createOpenMeteoWeatherProvider", () => {
     ).toMatchObject({ method: "GET" });
   });
 
+  it.each([
+    ["oversized country", { country: "x".repeat(201) }],
+    ["oversized feature code", { feature_code: "P".repeat(33) }],
+  ])("rejects %s metadata at the geocoding boundary", async (_, override) => {
+    const response = createOpenMeteoGeocodingResponse() as {
+      results: Array<Record<string, unknown>>;
+    };
+    Object.assign(response.results[0]!, override);
+    const provider = createOpenMeteoWeatherProvider({
+      config,
+      fetch: createFetchStub(jsonResponse(response)),
+      now: () => new Date("2026-07-28T12:00:05.000Z"),
+    });
+
+    await expect(
+      provider.findLocations({ place: "London" }, {}),
+    ).rejects.toThrow("Open-Meteo returned malformed geocoding data.");
+  });
+
   it("parses exact metric facts and resolves provider-local times to UTC", async () => {
     const fetch = createFetchStub(
       jsonResponse(createOpenMeteoForecastResponse()),

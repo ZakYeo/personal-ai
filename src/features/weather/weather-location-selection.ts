@@ -5,6 +5,7 @@ import type {
 
 type WeatherLocationSelection =
   | { kind: "selected"; location: WeatherLocation }
+  | { kind: "not_found" }
   | {
       candidates: readonly WeatherLocationCandidate[];
       kind: "ambiguous";
@@ -21,14 +22,13 @@ export function selectWeatherLocation(
   const exact = candidates.filter((candidate) =>
     matchesUnqualifiedPlace(place, candidate),
   );
-  const eligible =
-    qualified.length > 0 ? qualified : exact.length > 0 ? exact : candidates;
+  const eligible = qualified.length > 0 ? qualified : exact;
   const ranked = [...eligible].sort(
     (left, right) => left.providerRank - right.providerRank,
   );
 
   if (ranked.length === 0) {
-    return { candidates: [], kind: "ambiguous" };
+    return { kind: "not_found" };
   }
   if (ranked.length === 1 || policy === "ranked") {
     return { kind: "selected", location: ranked[0]!.location };

@@ -1,5 +1,8 @@
 import type { WeatherLocationCandidate } from "../../ports/weather.js";
-import { assertValidWeatherLocation } from "../../ports/weather-policy.js";
+import {
+  assertValidWeatherLocation,
+  validateWeatherLocationCandidates,
+} from "../../ports/weather-policy.js";
 import { isRecord } from "../parsing.js";
 import { OpenMeteoWeatherError } from "./open-meteo-error.js";
 
@@ -13,9 +16,15 @@ export function parseOpenMeteoLocations(
   if (!Array.isArray(value.results) || value.results.length > maxLocations) {
     throw malformedGeocoding();
   }
-  return value.results.map((location, index) =>
+  const candidates = value.results.map((location, index) =>
     parseLocation(location, index + 1),
   );
+  try {
+    validateWeatherLocationCandidates(candidates);
+    return candidates;
+  } catch {
+    throw malformedGeocoding();
+  }
 }
 
 function parseLocation(

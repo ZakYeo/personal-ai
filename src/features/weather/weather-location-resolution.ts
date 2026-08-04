@@ -62,14 +62,15 @@ export async function resolveWeatherLocation(
   validateWeatherLocationCandidates(candidates);
   if (candidates.length === 0) {
     return {
-      result: {
-        clarification: { kind: "resumable" },
-        expectsFollowUp: true,
-        text: `I could not find a weather location for "${place}". Which location should I use?`,
-      },
+      result: unavailableLocationResult(place),
     };
   }
   const selection = selectWeatherLocation(place, candidates, options.selection);
+  if (selection.kind === "not_found") {
+    return {
+      result: unavailableLocationResult(place),
+    };
+  }
   if (selection.kind === "ambiguous") {
     return {
       result: {
@@ -85,4 +86,12 @@ export async function resolveWeatherLocation(
     };
   }
   return { location: selection.location };
+}
+
+function unavailableLocationResult(place: string): FeatureResult {
+  return {
+    clarification: { kind: "resumable" },
+    expectsFollowUp: true,
+    text: `I could not find a weather location for "${place}". Which location should I use?`,
+  };
 }
