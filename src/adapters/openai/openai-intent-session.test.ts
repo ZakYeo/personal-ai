@@ -142,6 +142,12 @@ describe("OpenAIIntentInterpreter", () => {
     });
     await expect(
       session.next({
+        clarification: {
+          origin: "intent_interpreter",
+          originalText: "Set an alarm",
+          prompt: "What time?",
+          session: "resume",
+        },
         kind: "user_reply",
         text: "What are your capabilities?",
       }),

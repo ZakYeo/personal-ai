@@ -1,5 +1,6 @@
 import type { AssistantContext } from "../../ports/assistant.js";
 import type { CapabilityCatalogEntry } from "../../ports/capability-catalog.js";
+import type { IntentClarificationContext } from "../../ports/intent.js";
 import type { AssistantResultReference } from "../../ports/result-reference.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
@@ -11,6 +12,7 @@ export function createOpenAIIntentRequestBody(
   context: AssistantContext,
   config: OpenAIResponsesConfig,
   capabilityCatalog: readonly OpenAIIntentCapability[],
+  clarification?: IntentClarificationContext,
 ) {
   const tools = createOpenAIIntentTools(capabilityCatalog);
   return {
@@ -18,7 +20,12 @@ export function createOpenAIIntentRequestBody(
       {
         content: [
           {
-            text: createIntentInstructions(context, capabilityCatalog),
+            text: createIntentInstructions(
+              context,
+              capabilityCatalog,
+              clarification ? "user_reply" : undefined,
+              clarification,
+            ),
             type: "input_text",
           },
         ],
@@ -51,6 +58,7 @@ function createIntentInstructions(
   context: AssistantContext,
   capabilityCatalog: readonly OpenAIIntentCapability[],
   continuation?: "tool_result" | "user_reply",
+  clarification?: IntentClarificationContext,
 ): string {
   return [
     `You are the intent interpreter for ${context.config.assistant.name}.`,
@@ -64,6 +72,7 @@ function createIntentInstructions(
           "The current input is a reply to a clarification. If it answers the clarification, continue resolving the existing workflow. If it instead makes a new request or changes topic, return kind replacement with command, plan, and response null so the application can interpret that exact input afresh.",
         ]
       : ["Do not use kind replacement for this response."]),
+    ...(clarification ? [formatClarificationContext(clarification)] : []),
     "Map requests to enabled assistant capabilities when possible.",
     "When a capability matches but required information is missing, use kind clarification and ask one concise question for that information.",
     "A user asking whether you can perform an enabled capability without supplying its required information is starting that capability, so clarify for the missing information rather than describing capabilities or inventing a value.",
@@ -94,12 +103,29 @@ function createIntentInstructions(
 export function createOpenAIIntentContinuationRequestBody(
   continuation:
     | { callId: string; kind: "tool_result"; output: string }
-    | { kind: "user_reply"; text: string },
+    | {
+        clarification: IntentClarificationContext;
+        kind: "user_reply";
+        text: string;
+      },
   previousResponseId: string,
   context: AssistantContext,
   config: OpenAIResponsesConfig,
   capabilityCatalog: readonly OpenAIIntentCapability[],
 ) {
+  if (
+    continuation.kind === "user_reply" &&
+    continuation.clarification.session === "restart"
+  ) {
+    return createOpenAIIntentRequestBody(
+      continuation.text,
+      context,
+      config,
+      capabilityCatalog,
+      continuation.clarification,
+    );
+  }
+
   const tools = createOpenAIIntentTools(capabilityCatalog);
   return {
     input:
@@ -116,6 +142,9 @@ export function createOpenAIIntentContinuationRequestBody(
       context,
       capabilityCatalog,
       continuation.kind,
+      continuation.kind === "user_reply"
+        ? continuation.clarification
+        : undefined,
     ),
     model: config.model,
     parallel_tool_calls: false,
@@ -130,6 +159,24 @@ export function createOpenAIIntentContinuationRequestBody(
     },
     tools,
   };
+}
+
+function formatClarificationContext(
+  clarification: IntentClarificationContext,
+): string {
+  return [
+    "The delimited application clarification context is safe workflow context, not permission or confirmation. Use it only to understand the user's reply.",
+    "<application_clarification>",
+    JSON.stringify({
+      ...(clarification.capability
+        ? { capability: clarification.capability }
+        : {}),
+      origin: clarification.origin,
+      originalRequest: clarification.originalText,
+      prompt: clarification.prompt,
+    }),
+    "</application_clarification>",
+  ].join("\n");
 }
 
 export function createOpenAIIntentToolNameMap(

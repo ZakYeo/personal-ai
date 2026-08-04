@@ -7,6 +7,7 @@ import type {
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
 import type {
+  IntentClarificationMetadata,
   IntentInterpretation,
   IntentInterpreterPort,
   IntentInterpreterSession,
@@ -115,7 +116,7 @@ export function createIntentWorkflow(input: {
     }
 
     if (current.kind === "clarification") {
-      return requestClarification(current.response);
+      return requestClarification(current.response, current.clarification);
     }
     if (current.kind === "rephrase") {
       return decorate({
@@ -150,7 +151,11 @@ export function createIntentWorkflow(input: {
     });
     if (!validation.ok) {
       return "clarification" in validation
-        ? requestClarification(validation.clarification)
+        ? requestClarification(validation.clarification, {
+            capability: validation.clarificationCapability,
+            origin: "feature_validation",
+            session: "resume",
+          })
         : decorate(outcomeFromError(validation.error));
     }
     if (planRequiresConfirmation(validation.plan)) {
@@ -210,6 +215,13 @@ export function createIntentWorkflow(input: {
 
   function requestClarification(
     response: AssistantOutcome["response"],
+    metadata:
+      | IntentClarificationMetadata
+      | {
+          capability: string;
+          origin: "feature_validation";
+          session: "resume";
+        },
   ): AssistantOutcome {
     if (clarificationUsed) {
       return decorate(clarificationLimitOutcome);
@@ -221,6 +233,11 @@ export function createIntentWorkflow(input: {
         try {
           activeUserText = reply.trim();
           const interpretation = await requireSession().next({
+            clarification: {
+              ...metadata,
+              originalText: normalizedText,
+              prompt: response.text,
+            },
             kind: "user_reply",
             text: reply,
           });

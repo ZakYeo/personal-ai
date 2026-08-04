@@ -103,6 +103,10 @@ describe("assistant result references", () => {
     });
     const initialSteps = [
       {
+        clarification: {
+          origin: "intent_interpreter" as const,
+          session: "resume" as const,
+        },
         kind: "clarification" as const,
         response: { status: "ok" as const, text: "Which calendar?" },
       },

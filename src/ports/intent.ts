@@ -11,6 +11,7 @@ export type IntentInterpretation =
       kind: "tool_call";
     }
   | {
+      clarification: IntentClarificationMetadata;
       kind: "clarification";
       response: AssistantResponse;
     }
@@ -61,6 +62,20 @@ export interface IntentInterpreterSession {
   next(input?: IntentSessionContinuation): Promise<IntentInterpretation>;
 }
 
+export interface IntentClarificationMetadata {
+  readonly capability?: string;
+  readonly origin: "intent_interpreter" | "semantic_validation";
+  readonly session: "restart" | "resume";
+}
+
+export interface IntentClarificationContext {
+  readonly capability?: string;
+  readonly origin: IntentClarificationMetadata["origin"] | "feature_validation";
+  readonly originalText: string;
+  readonly prompt: string;
+  readonly session: IntentClarificationMetadata["session"];
+}
+
 export interface AssistantToolCall {
   readonly command: AssistantCommand;
   readonly id: string;
@@ -80,6 +95,7 @@ export type IntentSessionContinuation =
       readonly observation: AssistantToolObservation;
     }
   | {
+      readonly clarification: IntentClarificationContext;
       readonly kind: "user_reply";
       readonly text: string;
     };

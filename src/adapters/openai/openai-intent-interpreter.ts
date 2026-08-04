@@ -31,8 +31,6 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
   start(text: string, context: AssistantContext): IntentInterpreterSession {
     const capabilityCatalog = this.options.capabilityCatalog ?? [];
     const toolNames = createOpenAIIntentToolNameMap(capabilityCatalog);
-    let expectedContinuation: "tool_result" | "user_reply" | undefined;
-    let pendingCallId: string | undefined;
     let previousResponseId: string | undefined;
     let started = false;
 
@@ -48,17 +46,6 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
             "OpenAI intent session continuation input is required.",
           );
         }
-        if (input && input.kind !== expectedContinuation) {
-          throw new OpenAIIntentError(
-            "OpenAI intent session received an unexpected continuation kind.",
-          );
-        }
-        if (input?.kind === "tool_result" && input.callId !== pendingCallId) {
-          throw new OpenAIIntentError(
-            "OpenAI intent session tool result did not match the pending call.",
-          );
-        }
-
         const body = input
           ? createOpenAIIntentContinuationRequestBody(
               input.kind === "tool_result"
@@ -83,31 +70,11 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
         const parsed = parseOpenAIIntentSessionResponse(
           response,
           toolNames,
-          text,
+          input?.kind === "user_reply" ? input.text : text,
         );
         const interpretation = parsed.interpretation;
-        if (
-          interpretation.kind === "replacement" &&
-          input?.kind !== "user_reply"
-        ) {
-          throw new OpenAIIntentError(
-            "OpenAI intent replacement is valid only after a user clarification reply.",
-          );
-        }
         started = true;
         previousResponseId = parsed.responseId;
-        expectedContinuation =
-          interpretation.kind === "tool_call"
-            ? "tool_result"
-            : interpretation.kind === "clarification" ||
-                interpretation.kind === "command" ||
-                interpretation.kind === "plan"
-              ? "user_reply"
-              : undefined;
-        pendingCallId =
-          interpretation.kind === "tool_call"
-            ? interpretation.call.id
-            : undefined;
         return interpretation;
       },
     };

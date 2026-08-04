@@ -74,6 +74,10 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
 
   if (value.kind === "clarification") {
     return {
+      clarification: {
+        origin: "intent_interpreter",
+        session: "resume",
+      },
       kind: "clarification",
       response: parseAssistantResponse(value.response),
     };

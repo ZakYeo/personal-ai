@@ -83,6 +83,10 @@ describe("assistant clarification transitions", () => {
               if (!started) {
                 started = true;
                 return Promise.resolve({
+                  clarification: {
+                    origin: "intent_interpreter" as const,
+                    session: "resume" as const,
+                  },
                   kind: "clarification" as const,
                   response: { status: "ok" as const, text: "What time?" },
                 });
@@ -124,7 +128,16 @@ describe("assistant clarification transitions", () => {
     ).resolves.toEqual({ status: "ok", text: "I can help." });
     expect(starts).toEqual(["Set an alarm", "What are your capabilities?"]);
     expect(continuations).toEqual([
-      { kind: "user_reply", text: "What are your capabilities?" },
+      {
+        clarification: {
+          origin: "intent_interpreter",
+          originalText: "Set an alarm",
+          prompt: "What time?",
+          session: "resume",
+        },
+        kind: "user_reply",
+        text: "What are your capabilities?",
+      },
     ]);
   });
 
@@ -132,6 +145,10 @@ describe("assistant clarification transitions", () => {
     const rewrites: ResponseRewriteRequest[] = [];
     const steps: IntentInterpretation[] = [
       {
+        clarification: {
+          origin: "intent_interpreter",
+          session: "resume",
+        },
         kind: "clarification",
         response: { status: "ok", text: "What would you like me to do?" },
       },

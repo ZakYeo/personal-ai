@@ -146,6 +146,10 @@ describe("assistant bounded tool chains", () => {
             nextCall++;
             return nextCall === 1
               ? Promise.resolve({
+                  clarification: {
+                    origin: "intent_interpreter" as const,
+                    session: "resume" as const,
+                  },
                   kind: "clarification" as const,
                   response: { status: "ok" as const, text: "Which one?" },
                 })
@@ -419,6 +423,10 @@ describe("assistant bounded tool chains", () => {
     const continuations: IntentSessionContinuation[] = [];
     const steps: IntentInterpretation[] = [
       {
+        clarification: {
+          origin: "intent_interpreter",
+          session: "resume",
+        },
         kind: "clarification",
         response: {
           expectsFollowUp: true,
@@ -472,16 +480,35 @@ describe("assistant bounded tool chains", () => {
       text: "Alarm set.",
     });
     expect(starts).toBe(1);
-    expect(continuations).toEqual([{ kind: "user_reply", text: "ten am" }]);
+    expect(continuations).toEqual([
+      {
+        clarification: {
+          origin: "intent_interpreter",
+          originalText: "remind me before it",
+          prompt: "What time should I use?",
+          session: "resume",
+        },
+        kind: "user_reply",
+        text: "ten am",
+      },
+    ]);
   });
 
   it("fails closed when a provider asks a second clarification", async () => {
     const steps: IntentInterpretation[] = [
       {
+        clarification: {
+          origin: "intent_interpreter",
+          session: "resume",
+        },
         kind: "clarification",
         response: { status: "ok", text: "First question?" },
       },
       {
+        clarification: {
+          origin: "intent_interpreter",
+          session: "resume",
+        },
         kind: "clarification",
         response: { status: "ok", text: "Second question?" },
       },

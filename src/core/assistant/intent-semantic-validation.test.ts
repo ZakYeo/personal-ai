@@ -120,7 +120,12 @@ describe("intent semantic validation", () => {
         session: fixedSession(interpretation),
       });
 
-      await expect(session.next()).resolves.toEqual(canonicalClarification);
+      await expect(session.next()).resolves.toEqual(
+        canonicalClarification(
+          "internet.search",
+          interpretation.kind === "tool_call" ? "restart" : "resume",
+        ),
+      );
     },
   );
 
@@ -139,7 +144,9 @@ describe("intent semantic validation", () => {
       }),
     });
 
-    await expect(session.next()).resolves.toEqual(canonicalClarification);
+    await expect(session.next()).resolves.toEqual(
+      canonicalClarification("assistant.capabilities.list", "resume"),
+    );
   });
 
   it("uses the original request when validating continuation output", async () => {
@@ -175,7 +182,7 @@ describe("intent semantic validation", () => {
           text: "Weather result.",
         },
       }),
-    ).resolves.toEqual(canonicalClarification);
+    ).resolves.toEqual(canonicalClarification("internet.search", "resume"));
   });
 
   it("normalizes provider clarification status at the shared boundary", async () => {
@@ -183,12 +190,20 @@ describe("intent semantic validation", () => {
       capabilityCatalog,
       originalText: "Search for something",
       session: fixedSession({
+        clarification: {
+          origin: "intent_interpreter",
+          session: "resume",
+        },
         kind: "clarification",
         response: { status: "unknown", text: "What should I search for?" },
       }),
     });
 
     await expect(session.next()).resolves.toEqual({
+      clarification: {
+        origin: "intent_interpreter",
+        session: "resume",
+      },
       kind: "clarification",
       response: { status: "ok", text: "What should I search for?" },
     });
@@ -214,13 +229,23 @@ describe("intent semantic validation", () => {
   });
 });
 
-const canonicalClarification: IntentInterpretation = {
-  kind: "clarification",
-  response: {
-    status: "ok",
-    text: "What details should I use for this request?",
-  },
-};
+function canonicalClarification(
+  capability: string,
+  session: "restart" | "resume",
+): IntentInterpretation {
+  return {
+    clarification: {
+      capability,
+      origin: "semantic_validation",
+      session,
+    },
+    kind: "clarification",
+    response: {
+      status: "ok",
+      text: "What details should I use for this request?",
+    },
+  };
+}
 
 function command(
   capability: string,

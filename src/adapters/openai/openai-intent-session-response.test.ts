@@ -53,6 +53,10 @@ describe("parseOpenAIIntentSessionResponse", () => {
       ),
     ).toEqual({
       interpretation: {
+        clarification: {
+          origin: "intent_interpreter",
+          session: "resume",
+        },
         kind: "clarification",
         response: { status: "ok", text: "What time should I use?" },
       },

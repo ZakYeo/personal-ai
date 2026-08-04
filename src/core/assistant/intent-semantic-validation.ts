@@ -5,14 +5,6 @@ import type {
   IntentInterpreterSession,
 } from "../../ports/intent.js";
 
-const canonicalClarification: IntentInterpretation = {
-  kind: "clarification",
-  response: {
-    status: "ok",
-    text: "What details should I use for this request?",
-  },
-};
-
 interface SemanticValidationOptions {
   capabilityCatalog: CapabilityCatalog;
   originalText: string;
@@ -30,14 +22,6 @@ export function createSemanticallyValidatedIntentSession(
         activeUserText = input.text.trim();
       }
       const interpretation = await options.session.next(input);
-      if (
-        interpretation.kind === "replacement" &&
-        input?.kind !== "user_reply"
-      ) {
-        throw new Error(
-          "An intent session may replace a request only after a user clarification reply.",
-        );
-      }
       return validateIntentSemantics(
         interpretation,
         { activeUserText, originalText: options.originalText },
@@ -62,8 +46,7 @@ function validateIntentSemantics(
     };
   }
 
-  const commands = commandsFromInterpretation(interpretation);
-  return commands.some(
+  const unsafeCommand = commandsFromInterpretation(interpretation).find(
     (command) =>
       isNarrowCapabilityListRequest(command, text.activeUserText) ||
       echoesRequestInRequiredParameter(
@@ -71,9 +54,31 @@ function validateIntentSemantics(
         text.originalText,
         capabilityCatalog,
       ),
-  )
-    ? canonicalClarification
+  );
+  return unsafeCommand
+    ? createCanonicalClarification(
+        unsafeCommand.capability,
+        interpretation.kind === "tool_call" ? "restart" : "resume",
+      )
     : interpretation;
+}
+
+function createCanonicalClarification(
+  capability: string,
+  session: "restart" | "resume",
+): IntentInterpretation {
+  return {
+    clarification: {
+      capability,
+      origin: "semantic_validation",
+      session,
+    },
+    kind: "clarification",
+    response: {
+      status: "ok",
+      text: "What details should I use for this request?",
+    },
+  };
 }
 
 function commandsFromInterpretation(
