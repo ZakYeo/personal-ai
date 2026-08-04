@@ -55,6 +55,10 @@ The assistant should support natural voice commands such as:
   clarification before proposing a terminal action. Core validation and
   deterministic confirmation remain authoritative; this is not an open-ended
   agent loop.
+- Open prompts that ask the user to restate an incomplete request do not lock
+  the next turn to an intent session. A reply to a specific clarification may
+  answer it or replace it with one fresh request, while confirmations remain
+  strict yes/no interactions.
 
 ## Near-Term Direction
 

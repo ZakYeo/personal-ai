@@ -49,6 +49,10 @@ Implemented today:
   plan; intermediate reads bypass response rewriting, completed-read metadata
   survives provider continuation failures, and OpenAI parallel function calls
   are disabled.
+- Flexible clarification transitions distinguish open rephrase prompts from
+  resumable workflow questions, let a changed-topic reply replace an unfinished
+  clarification through a fresh validated workflow, and keep confirmation
+  replies strict.
 - Opt-in OpenAI command response rewriter for spoken-friendly command answers.
 - Shared OpenAI Responses configuration parsing with provider-local config
   types rather than provider details in application ports.
@@ -176,7 +180,9 @@ tool observations, event titles/times, and continuation context are subject to
 the configured OpenAI account's data handling and retention policy. Use the
 deterministic provider when that off-device retention tradeoff is unacceptable.
 Every OpenAI intent response must include a non-empty response ID so any
-application-owned clarification can resume the exact provider session.
+application-owned clarification can resume the exact provider session. If that
+reply changes topic, the provider may request replacement, but core discards the
+old session and interprets the exact trusted reply through a fresh workflow.
 
 The default desktop OpenAI voice service config used by `npm start` selects the
 Google Calendar adapter, OpenAI internet search, the OpenAI response rewriter,
@@ -548,6 +554,8 @@ Common development commands:
 - `npm run test:e2e:openai:calendar-followup` - run the focused opt-in live
   OpenAI plus Google Calendar result-follow-up smoke; requires a configured
   fixture query, expected title/location detail, and Google credentials.
+- `npm run test:e2e:openai:clarifications` - run the focused opt-in live OpenAI
+  open-rephrase and changed-topic clarification smoke.
 - `npm run test:e2e:openai:search` - run the focused opt-in live OpenAI intent
   routing and web-search citation smoke; requires `OPENAI_API_KEY`.
 - `npm run test:e2e:open-meteo` - run the focused opt-in live key-free

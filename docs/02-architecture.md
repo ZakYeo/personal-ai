@@ -103,8 +103,12 @@ The core coordinates assistant behavior:
 - Retains at most one process-local validated command while awaiting an explicit
   yes or no, and serializes turns that inspect or change that pending state.
 - Retains one process-local pending interaction, either confirmation or
-  clarification. Clarification resumes the exact provider session; a resulting
-  confirmation replaces it without reinterpretation.
+  clarification. A clarification answer resumes the exact provider session; a
+  changed-topic reply may discard it and start one fresh workflow from the
+  trusted reply; a resulting confirmation replaces it without reinterpretation.
+- Treats an open rephrase prompt as a follow-up signal without pending workflow
+  state, and validates directly resolved clarification replies against the
+  latest trusted user turn.
 - Produces structured assistant responses.
 
 The core must not know whether input came from a microphone, CLI, test fixture, HTTP request, or Raspberry Pi device.

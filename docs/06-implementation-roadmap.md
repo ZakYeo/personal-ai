@@ -246,7 +246,10 @@ Thin slices:
 Post-implementation hardening moved bounded orchestration into a dedicated
 `IntentWorkflow`, stopped rewriting intermediate reads, preserved completed
 read traces across provider continuation failures, and required a non-empty
-OpenAI response ID for every intent response.
+OpenAI response ID for every intent response. Later clarification hardening
+distinguished open rephrase prompts from resumable questions, allowed a
+changed-topic reply to start one fresh workflow, made semantic validation
+turn-aware, and replaced clarification-limit jargon with a safe rephrase.
 
 Acceptance criteria:
 
@@ -262,6 +265,9 @@ Acceptance criteria:
   word, applies deterministic timezone/DST policy, and then confirms normally.
 - Existing single commands, compound plans, conversation, follow-ups, and
   runtime failure boundaries remain compatible, and `npm run check` passes.
+- Open rephrases retain no pending workflow, changed-topic replies replace a
+  clarification through a fresh bounded workflow, and confirmations retain
+  their strict existing behavior.
 
 ## Milestone 13: Explicit Personal Profile and Preferences
 

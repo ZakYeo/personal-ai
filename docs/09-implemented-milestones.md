@@ -261,6 +261,9 @@ Included:
 - One optional process-local clarification that resumes the exact provider
   session, followed by the existing terminal validation, aggregate
   confirmation, and ordered execution pipeline.
+- Open rephrase prompts that retain no provider workflow, plus explicit
+  changed-topic replacement that starts one fresh workflow from the exact
+  trusted reply while confirmation remains strict.
 - OpenAI Responses continuation through `previous_response_id`, strict read
   tools, and disabled parallel calls, with provider-managed response-state
   privacy documented for operators. Every intent response requires a non-empty
@@ -306,6 +309,10 @@ Outcomes:
 - Intermediate reads bypass response rewriting; the optional rewriter remains
   final human-response post-processing only. Core returns provider-session
   failures through the normal safe outcome with internal diagnostics.
+- Clarification continuation semantics are turn-aware: scope checks and final
+  execution use the latest trusted reply, original-request restatement guards
+  remain intact, and a second unresolved clarification ends with a safe open
+  rephrase instead of tool-chain jargon.
 - The fresh thermonuclear maintainability review findings were all addressed:
   intent sessions became the sole interpreter contract; invalid post-read
   terminal states, identifiers, validation failures, and execution failures
@@ -330,6 +337,8 @@ Acceptance criteria:
   and persist the same frozen instant after approval.
 - Existing command, compound-plan, conversation, calendar-follow-up, and human
   runtime failure semantics remain compatible, and `npm run check` passes.
+- Deterministic configured-runtime coverage and focused opt-in live OpenAI
+  smokes prove open rephrasing and changed-topic clarification replacement.
 
 ## Milestone 11: Calendar Result Follow-Ups
 

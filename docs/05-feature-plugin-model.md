@@ -138,11 +138,14 @@ a yes/no follow-up prompt. A positive response resumes the already decoded
 command without asking the intent provider to interpret it again; a negative
 response discards it. Restarting the assistant discards any pending command.
 
-The same single interaction slot may hold one clarification. Its user reply
-resumes the already-created intent session, while no/cancel discards it. If the
-resumed result requires confirmation, the validated confirmation replaces the
-clarification. Confirmed feature execution receives the immutable exact facts
-rendered at validation so snapshot actions persist precisely what the user saw.
+The same single interaction slot may hold one specific clarification. Its answer
+resumes the already-created intent session, while no/cancel discards it. A
+provider-classified changed-topic reply discards the session and begins one
+fresh workflow from the exact trusted reply. Open rephrase prompts set the
+follow-up signal without occupying the interaction slot. If the resumed result
+requires confirmation, the validated confirmation replaces the clarification.
+Confirmed feature execution receives the immutable exact facts rendered at
+validation so snapshot actions persist precisely what the user saw.
 
 High-risk capability safety should fail closed. A capability marked
 `risk: "high"` should require confirmation by default unless the feature's

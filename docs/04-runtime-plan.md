@@ -104,6 +104,10 @@ subsequent confirmation without another wake phrase, while the existing
 follow-up-turn cap prevents an unbounded spoken loop. Text, voice, and service
 runtimes receive the same safe final response and diagnostic-aware tool-chain
 trace from the neutral assistant core.
+Open rephrase responses request another no-wake voice turn without retaining an
+intent workflow. Specific clarification answers resume the provider session;
+changed-topic replies replace it through one fresh core workflow. Confirmation
+turns remain strict and cannot be replaced implicitly.
 The core workflow transaction preserves completed reads when an intent provider
 fails during continuation and returns an `unexpected` diagnostic through this
 normal outcome path. Intermediate reads are not response-rewriter inputs.
@@ -543,6 +547,9 @@ with no search topic. The core-owned, provider-neutral intent-session semantic
 guard catches echoed required values and narrow action questions misclassified
 as broad capability-list requests even when the model ignores those routing
 instructions. Both smokes are excluded from the default validation gate.
+The focused opt-in `npm run test:e2e:openai:clarifications` smoke verifies an
+open rephrase followed by a fresh request and a changed-topic reply replacing a
+specific pending clarification. It is also excluded from the default gate.
 The opt-in `npm run test:e2e:open-meteo` smoke validates the key-free live
 adapter path independently. The opt-in `npm run test:e2e:openai:weather` smoke
 validates live intent routing to the deterministic weather feature; both remain

@@ -153,20 +153,26 @@ clarification-resume provider failures into a safe outcome with internal
 `unexpected` diagnostics. Those diagnostics stay out of tool observations and
 remain visible to the exhaustive human-boundary logging policy.
 
-One clarification may be retained process-locally and resumed against the exact
-intent-provider session. No/cancel discards it; other input resumes it. A
-resulting high-risk action replaces the clarification with the ordinary frozen
-confirmation. Calendar-driven alarms snapshot the selected public event facts
-and calculated instant at confirmation, persist no calendar provider ID, and do
-not follow event edits or deletion. All-day events require an explicit local
-time resolved in the canonical assistant IANA timezone.
+One specific clarification may be retained process-locally and resumed against
+the exact intent-provider session. No/cancel discards it; an answer resumes it;
+a provider-classified changed-topic reply discards it and starts one fresh
+workflow from the exact trusted reply. Open rephrase prompts request a follow-up
+without retaining provider-session state. A resulting high-risk action replaces
+the clarification with the ordinary frozen confirmation. Calendar-driven alarms
+snapshot the selected public event facts and calculated instant at confirmation,
+persist no calendar provider ID, and do not follow event edits or deletion.
+All-day events require an explicit local time resolved in the canonical
+assistant IANA timezone.
 
 Provider intent output must pass a semantic guard before entering that
 transaction. A required string parameter equal to the whole normalized request
 is an unresolved restatement, not a usable value. A narrow question about one
 action must not become the broad capability-list command. Both cases become one
 canonical clarification, and provider clarification statuses are normalized to
-the clarification branch's safe status.
+the clarification branch's safe status. Scope checks after a user reply use the
+latest trusted turn, while unresolved-restatement checks retain the original
+request. A second unresolved clarification ends the old workflow with a safe
+open rephrase response rather than entering an unbounded loop.
 
 Every confirmation-required capability must deterministically render its exact
 decoded action through an application-owned declaration. Aggregate prompts must
