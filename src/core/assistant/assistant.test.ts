@@ -16,6 +16,22 @@ const config = createAssistantConfig({
 const clock = createFixedClock();
 
 describe("createAssistant", () => {
+  it("rejects oversized input before starting the intent provider", async () => {
+    const start = vi.fn<IntentInterpreterPort["start"]>();
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [],
+      intentInterpreter: { start },
+    });
+
+    await expect(assistant.handleText("x".repeat(16_001))).resolves.toEqual({
+      status: "invalid",
+      text: "I could not use that command: Request text exceeded the 16000-character application limit.",
+    });
+    expect(start).not.toHaveBeenCalled();
+  });
+
   it("routes interpreted commands to an enabled feature", async () => {
     const command = createCommand("test.echo", { message: "hello" });
     const execute = vi.fn(() =>

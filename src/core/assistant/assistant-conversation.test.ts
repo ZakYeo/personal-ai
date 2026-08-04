@@ -16,6 +16,44 @@ const config = createAssistantConfig({
 const clock = createFixedClock();
 
 describe("createAssistant", () => {
+  it("does not retain an oversized request in conversation history", async () => {
+    const states: ConversationState[] = [];
+    const start = vi.fn(
+      (_text: string, _context: AssistantContext, state: ConversationState) => {
+        states.push(state);
+        return {
+          next: () => Promise.resolve({ kind: "conversation" as const }),
+        };
+      },
+    );
+    const assistant = createAssistant({
+      clock,
+      config,
+      conversation: {
+        compactor: createConversationCompactor(),
+        history: { maxTurnsBeforeCompaction: 5 },
+        responder: {
+          respond: (input) =>
+            Promise.resolve({ status: "ok", text: `answered ${input}` }),
+        },
+      },
+      features: [],
+      intentInterpreter: { start },
+    });
+
+    await assistant.handleText("first");
+    await assistant.handleText("x".repeat(16_001));
+    await assistant.handleText("third");
+
+    expect(start).toHaveBeenCalledTimes(2);
+    expect(states[1]).toEqual({
+      recentTurns: [
+        { content: "first", role: "user" },
+        { content: "answered first", role: "assistant" },
+      ],
+    });
+  });
+
   it("shares completed command turns with intent and conversation providers", async () => {
     const histories: Array<ConversationState | undefined> = [];
     const start = vi.fn(

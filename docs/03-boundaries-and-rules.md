@@ -425,6 +425,11 @@ response-rewriter, and unexpected failures emit diagnostics even when the
 thrown JavaScript value does not provide a usable cause; expected validation,
 confirmation, and unsupported outcomes do not.
 
+The assistant application boundary enforces a fixed request-text character
+limit before starting an intent session, consuming pending interaction state,
+or committing conversation history. Oversized requests return a safe validation
+response and do not mutate provider or history state.
+
 Provider adapters should follow the same boundary discipline. Every real
 provider adapter must be opt-in through runtime configuration, receive network
 clients and environment credentials through injection, read credentials from

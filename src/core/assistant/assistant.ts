@@ -10,6 +10,12 @@ import type { IntentInterpreterPort } from "../../ports/intent.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import { humanizeSpokenText } from "../../application/human-text.js";
 import {
+  assistantTextLimits,
+  isAssistantRequestTextWithinLimit,
+} from "../../application/assistant-text-policy.js";
+import { createAppError } from "./app-error.js";
+import { outcomeFromError } from "./assistant-outcome.js";
+import {
   createConversationSession,
   type ConversationSessionDependencies,
 } from "./conversation-session.js";
@@ -58,6 +64,15 @@ export function createAssistant(
     text: string,
     options: AssistantRequestOptions = {},
   ): Promise<AssistantOutcome> {
+    if (!isAssistantRequestTextWithinLimit(text)) {
+      return outcomeFromError(
+        createAppError({
+          category: "validation",
+          message: `Request text exceeded the ${assistantTextLimits.requestCharacters}-character application limit.`,
+        }),
+      );
+    }
+
     const outcome = await interaction.run(
       text,
       () =>
