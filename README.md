@@ -573,7 +573,8 @@ Common development commands:
 - `npm run test:e2e:open-meteo` - run the focused opt-in live key-free
   Open-Meteo adapter smoke.
 - `npm run test:e2e:openai:weather` - run the focused opt-in live OpenAI
-  weather-routing smoke; requires `OPENAI_API_KEY`.
+  weather-routing and Open-Meteo ranked-location smoke; requires
+  `OPENAI_API_KEY`.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.

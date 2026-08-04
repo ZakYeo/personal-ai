@@ -516,7 +516,8 @@ as the assistant's one resumable clarification and continues the exact intent
 session on the next reply. Voice `expectsFollowUp` remains a capture signal, not
 the owner of continuation state.
 The opt-in `npm run test:e2e:openai:weather` smoke exercises live OpenAI routing
-through the deterministic weather adapter. Text and voice profile commands use
+through ranked, key-free Open-Meteo geocoding and weather retrieval. Text and
+voice profile commands use
 the same assistant-owned validation and feature execution path; voice
 composition does not receive a separate hardcoded profile.
 
@@ -566,7 +567,7 @@ open rephrase followed by a fresh request and a changed-topic reply replacing a
 specific pending clarification. It is also excluded from the default gate.
 The opt-in `npm run test:e2e:open-meteo` smoke validates the key-free live
 adapter path independently. The opt-in `npm run test:e2e:openai:weather` smoke
-validates live intent routing to the deterministic weather feature; both remain
+validates live intent routing to ranked Open-Meteo weather resolution; both remain
 outside the default validation gate.
 The OpenAI adapter keeps request construction, Responses API transport,
 provider-output text extraction, and assistant intent-output parsing in separate
