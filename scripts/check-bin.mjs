@@ -27,7 +27,7 @@ const exitCode = await main(
   },
 );
 
-const expectedOutput = "Upcoming wedding is on 2026-09-12, all day.\n";
+const expectedOutput = "Upcoming wedding is on 12 September, all day.\n";
 const actualOutput = stdout.join("");
 
 if (exitCode !== 0 || actualOutput !== expectedOutput || stderr.length > 0) {

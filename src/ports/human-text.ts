@@ -1,6 +1,6 @@
 import { zonedParts } from "./local-date-time.js";
 
-export interface SpokenTextContext {
+interface SpokenTextContext {
   assistantTimeZone: string;
   now: Date;
   timeZone: string;
