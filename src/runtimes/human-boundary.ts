@@ -40,7 +40,7 @@ export function logAssistantDiagnostics(
       io.stderr?.write(
         `${causePrefix}: ${formatDiagnosticCause(diagnostic.cause)}\n`,
       );
-      for (const causeDiagnostic of formatDiagnosticFields(
+      for (const causeDiagnostic of formatAssistantDiagnosticFields(
         diagnostic.cause,
         causePrefix,
       )) {
@@ -66,6 +66,17 @@ function formatDiagnosticCause(cause: unknown): string {
   }
 
   return String(cause);
+}
+
+function formatAssistantDiagnosticFields(
+  error: unknown,
+  prefix: string,
+): string[] {
+  if (!isRecord(error)) {
+    return [];
+  }
+
+  return formatDiagnosticNumberField(prefix, "status", error.status);
 }
 
 function formatDiagnosticFields(error: unknown, prefix: string): string[] {

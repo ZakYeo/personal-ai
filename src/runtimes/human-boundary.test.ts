@@ -50,12 +50,14 @@ describe("assistant diagnostic logging", () => {
     ]);
   });
 
-  it("logs bounded provider fields from assistant diagnostic causes", () => {
+  it("logs safe provider status without raw assistant cause fields", () => {
     const stderr = createCapturedWriter();
-    const responseBody = `provider details ${"x".repeat(2_100)}`;
     const providerError = Object.assign(new Error("OpenAI intent failed."), {
-      responseBody,
+      event: { detail: "private event payload" },
+      responseBody: "provider secret\ninjected log line",
       status: 400,
+      stderr: "private command stderr",
+      stdout: "private command stdout",
     });
 
     logAssistantDiagnostics(
@@ -75,7 +77,9 @@ describe("assistant diagnostic logging", () => {
         "Unexpected assistant failure cause: Error: OpenAI intent failed.",
       ),
       "Unexpected assistant failure cause status: 400\n",
-      `Unexpected assistant failure cause response body: ${responseBody.slice(0, 2_000)}...\n`,
     ]);
+    expect(stderr.writes.join("")).not.toMatch(
+      /provider secret|injected log line|private event payload|private command stderr|private command stdout/u,
+    );
   });
 });
