@@ -36,7 +36,7 @@ case "${1:-}" in
     fi
 
     jq -Rs \
-      '{model:"gpt-4o-mini-tts", voice:"coral", input:., instructions:"Speak clearly and concisely.", response_format:"wav"}' |
+      '{model:"gpt-4o-mini-tts", voice:"marin", input:., instructions:"Speak in a warm, natural British English voice. Sound calm and conversational, with varied intonation and brief natural pauses. Avoid an announcer-like cadence. Read the supplied text exactly; do not add or omit words.", response_format:"wav"}' |
       request_with_auth \
         --fail \
         --silent \

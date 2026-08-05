@@ -83,7 +83,12 @@ describe("OpenAI audio command helper", () => {
     });
 
     expect(await readFile(jqInputPath, "utf8")).toBe(privateText);
-    expect(await readFile(jqArgsPath, "utf8")).not.toContain(privateText);
+    const jqArgs = await readFile(jqArgsPath, "utf8");
+    expect(jqArgs).not.toContain(privateText);
+    expect(jqArgs).toContain('voice:"marin"');
+    expect(jqArgs).toContain(
+      'instructions:"Speak in a warm, natural British English voice. Sound calm and conversational, with varied intonation and brief natural pauses. Avoid an announcer-like cadence. Read the supplied text exactly; do not add or omit words."',
+    );
     expect(await readFile(curlArgsPath, "utf8")).not.toContain(privateText);
   });
 });

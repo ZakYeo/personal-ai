@@ -114,6 +114,27 @@ describe("loadConfig", () => {
     }
   });
 
+  it("uses the natural exact-reading TTS voice across checked-in OpenAI configs", async () => {
+    const configPaths = [
+      "config/local-desktop-voice-openai.json",
+      "config/pi-voice-openai.example.json",
+    ];
+
+    for (const configPath of configPaths) {
+      const input: unknown = JSON.parse(await readFile(configPath, "utf8"));
+
+      expect(input).toMatchObject({
+        desktopVoice: {
+          openAIStreamingSpeech: {
+            instructions:
+              "Speak in a warm, natural British English voice. Sound calm and conversational, with varied intonation and brief natural pauses. Avoid an announcer-like cadence. Read the supplied text exactly; do not add or omit words.",
+            voice: "marin",
+          },
+        },
+      });
+    }
+  });
+
   it("targets WSLg PulseAudio explicitly in the local desktop voice config", async () => {
     const config = await loadConfig({
       configPath: "config/local-desktop-voice-openai.json",

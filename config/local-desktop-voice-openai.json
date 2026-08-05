@@ -131,8 +131,8 @@
     },
     "openAIStreamingSpeech": {
       "model": "gpt-4o-mini-tts",
-      "voice": "coral",
-      "instructions": "Speak clearly and concisely.",
+      "voice": "marin",
+      "instructions": "Speak in a warm, natural British English voice. Sound calm and conversational, with varied intonation and brief natural pauses. Avoid an announcer-like cadence. Read the supplied text exactly; do not add or omit words.",
       "maxAudioBytes": 16777216,
       "responseFormat": "pcm",
       "timeoutMs": 30000
