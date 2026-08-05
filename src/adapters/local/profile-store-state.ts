@@ -11,7 +11,7 @@ import type {
   ProfileFactSelector,
 } from "../../ports/profile-store.js";
 
-const maximumProfileFacts = maximumProfileInterests + 6;
+export const maximumProfileFacts = maximumProfileInterests + 6;
 
 export function setStoredProfileFact(
   facts: ProfileFact[],

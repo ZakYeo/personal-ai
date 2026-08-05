@@ -16,6 +16,41 @@
       "active": true
     },
     {
+      "id": "profile-set-v1",
+      "text": "Remember that my preferred name is Zak",
+      "capabilities": ["profile.set"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "profile-show-v1",
+      "text": "What do you know about me",
+      "capabilities": ["profile.show"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "profile-explain-v1",
+      "text": "Why do you know my name",
+      "capabilities": ["profile.explain"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "profile-forget-v1",
+      "text": "Forget my preferred name",
+      "capabilities": ["profile.forget"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "profile-clear-v1",
+      "text": "Clear my complete personal profile",
+      "capabilities": ["profile.clear"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
       "id": "alarm-acknowledge-v1",
       "text": "Acknowledge the ringing tea alarm",
       "capabilities": ["alarm.acknowledge"],

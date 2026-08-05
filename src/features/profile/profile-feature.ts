@@ -81,7 +81,7 @@ export function createProfileFeature(store: ProfileStorePort) {
       capabilities: {
         "profile.set": defineCapability({
           description:
-            "Explicitly save or update one supported user-authored profile fact.",
+            "Explicitly save or update one user-authored profile fact. The field must be preferredName, birthDate, pronouns, homeTimeZone, homeLocation, interest, or responseStyle.",
           parameters: profileSetParameters,
           risk: "low",
           summary: "Remember an explicit personal detail or preference.",
@@ -90,7 +90,7 @@ export function createProfileFeature(store: ProfileStorePort) {
         }),
         "profile.show": defineCapability({
           description:
-            "Show one explicitly stored profile field or a concise complete profile summary.",
+            "Show a concise complete profile summary, or one field selected as preferredName, birthDate, age, pronouns, homeTimeZone, homeLocation, interest, or responseStyle.",
           parameters: profileShowParameters,
           risk: "low",
           summary: "Show explicitly remembered profile details.",
@@ -106,7 +106,8 @@ export function createProfileFeature(store: ProfileStorePort) {
           execute: (request) => explainProfileFact(store, request.args),
         }),
         "profile.forget": defineCapability({
-          description: "Forget one explicitly selected profile fact.",
+          description:
+            "Forget one explicitly selected profile fact. The field must be preferredName, birthDate, pronouns, homeTimeZone, homeLocation, interest, or responseStyle.",
           parameters: profileForgetParameters,
           risk: "low",
           summary: "Forget one personal detail or preference.",

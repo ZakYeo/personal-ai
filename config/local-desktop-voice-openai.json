@@ -225,6 +225,13 @@
       "state": {
         "path": "state/tasks.json"
       }
+    },
+    "profile": {
+      "enabled": true,
+      "adapter": "file",
+      "state": {
+        "path": "state/profile.json"
+      }
     }
   }
 }

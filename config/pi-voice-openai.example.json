@@ -200,6 +200,13 @@
       "state": {
         "path": "/var/lib/personal-ai/tasks.json"
       }
+    },
+    "profile": {
+      "enabled": true,
+      "adapter": "file",
+      "state": {
+        "path": "/var/lib/personal-ai/profile.json"
+      }
     }
   }
 }

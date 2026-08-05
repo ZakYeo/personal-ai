@@ -50,6 +50,10 @@
     "tasks": {
       "enabled": true,
       "adapter": "local"
+    },
+    "profile": {
+      "enabled": true,
+      "adapter": "local"
     }
   }
 }

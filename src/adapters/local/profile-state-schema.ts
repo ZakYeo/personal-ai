@@ -1,7 +1,13 @@
 import { isRecord } from "../parsing.js";
-import { isProfileField } from "../../application/profile-policy.js";
+import {
+  isProfileField,
+  maximumProfileInterests,
+} from "../../application/profile-policy.js";
 import type { ProfileFact } from "../../ports/profile-store.js";
-import { assertValidProfileFacts } from "./profile-store-state.js";
+import {
+  assertValidProfileFacts,
+  maximumProfileFacts,
+} from "./profile-store-state.js";
 
 export interface ProfileStateDocument {
   facts: ProfileFact[];
@@ -29,8 +35,15 @@ export function parseProfileState(input: unknown): ProfileStateDocument {
   const interestCount = input.facts.filter(
     (fact) => isRecord(fact) && fact.field === "interest",
   ).length;
-  if (interestCount > 20 || input.facts.length > 26) {
-    throw new Error("Profile state cannot contain more than 20 interests.");
+  if (interestCount > maximumProfileInterests) {
+    throw new Error(
+      `Profile state cannot contain more than ${maximumProfileInterests} interests.`,
+    );
+  }
+  if (input.facts.length > maximumProfileFacts) {
+    throw new Error(
+      `Profile state cannot contain more than ${maximumProfileFacts} facts.`,
+    );
   }
   const facts = input.facts.map(parseProfileFact);
   assertValidProfileFacts(facts);
