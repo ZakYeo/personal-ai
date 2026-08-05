@@ -151,8 +151,9 @@ Current roadmap position:
   after its required independent maintainability review, including durable
   lists, revision-checked tasks, restart-safe reminder delivery,
   text/voice/service integration, exact opaque task follow-ups, and opt-in live
-  OpenAI smoke-test support. Milestone 13's implementation and deterministic
-  smoke coverage are complete and awaiting its required independent review.
+  OpenAI smoke-test support. Milestone 13 is implemented after its required
+  independent maintainability review, with deterministic and mocked-provider
+  smoke coverage for durable profile use and generic missing-detail resolution.
   The remaining roadmap prioritizes scheduled daily briefings. Profiles are
   created and edited through validated text and voice commands rather than
   hardcoded setup. Smart-home control, a personal

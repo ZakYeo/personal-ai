@@ -4,6 +4,80 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 13: Explicit Personal Profile and Preferences
+
+Status: implemented.
+
+Goal: give the assistant durable, user-controlled personal context so enabled
+features can produce relevant answers without retaining conversation transcripts
+or silently inferring personal facts.
+
+Included:
+
+- Typed profile facts for exactly preferred name, birth date, pronouns, home
+  timezone, home location, interests, and response style. Age is derived from
+  birth date at read time.
+- Explicit set, show, explain, correct, forget, and confirmed complete-clear
+  capabilities with user-authored provenance and created/updated timestamps.
+- Versioned in-memory and atomic JSON-file stores with restrictive permissions,
+  config-directory-relative paths, and external-state validation from `unknown`.
+- A frozen per-turn personalization projection containing only preferred name
+  and response style for model system contexts, plus narrow field readers for
+  consumers that explicitly need another detail.
+- A target-neutral `profile.lookup` read tool for any selected capability. When
+  a needed fact is absent, the application discloses that the reply will be
+  saved, validates it through `profile.set`, saves before execution, and resumes
+  the exact selected capability in the same bounded intent workflow.
+- Deterministic text and voice restart coverage, a mocked configured OpenAI
+  smoke spanning durable profile state and weather-at-home resolution, and an
+  explicit opt-in live OpenAI profile-routing smoke.
+
+Excluded:
+
+- Automatic extraction from normal conversation, inferred traits, transcript
+  retention, embeddings, cloud synchronization, or general long-term memory.
+- Unbounded custom schemas, whole-profile provider injection, hardcoded user
+  details, or setup-time profile requirements.
+- Provider-owned persistence, target-specific missing-detail prompt cases, or
+  writes after a clarification reply that changes topic.
+
+Outcomes:
+
+- Normal text and voice requests produce decoded, validated profile commands;
+  neither conversation nor provider memory can directly persist a fact.
+- Preferred name and response style are automatically available to intent,
+  conversation, compaction, and response-rewriter providers when present. Other
+  facts remain behind narrow requested-field reads.
+- The same generic read/clarify/save/resume mechanism supports requests such as
+  weather at home and internet search about the user without encoding either
+  target as a special prompt case.
+- Application-owned clarification declarations cross the tool-chain boundary as
+  one typed result. The application synthesizes the exact profile write,
+  canonicalizes it before the resumed action, and rejects duplicate or
+  conflicting provider-proposed saves before execution.
+- The fresh thermonuclear maintainability review produced four actionable
+  findings, all addressed: save-before-resume order can no longer be bypassed;
+  target clarification metadata is preserved without a bogus profile parameter;
+  mutable cross-module clarification state was replaced by a discriminated
+  result; and profile wiring, operations, responses, and deterministic matching
+  now live in focused modules.
+
+Acceptance criteria:
+
+- Feature and runtime tests prove set/show/explain/correct/forget/clear behavior,
+  derived age, confirmation, user-authored provenance, narrow projection, and
+  durable restart behavior with malformed-state rejection.
+- Generic workflow tests prove missing details are disclosed, saved, and used in
+  order; exact provider saves are canonicalized; duplicates and conflicts fail
+  closed; and changed-topic replies perform no profile write.
+- OpenAI request tests prove application clarification context does not invent a
+  target parameter, while terminal model output cannot invoke the internal-only
+  profile lookup directly.
+- Deterministic and mocked-provider smoke tests pass. The live OpenAI profile
+  smoke remains explicit opt-in and is not part of the default validation gate.
+- The final full `npm run check` passed with 1,394 tests passing and 34 opt-in
+  tests skipped.
+
 ## Milestone 16: Personal Lists, Tasks, and Reminders
 
 Status: implemented.

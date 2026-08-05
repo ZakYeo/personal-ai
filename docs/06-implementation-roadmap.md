@@ -35,6 +35,9 @@ Milestone 12.1 is implemented after its required independent maintainability
 review. It adds bounded, provider-neutral read-tool chaining before a fully
 validated terminal command or compound plan, initially proving
 calendar-result-driven alarm creation.
+Milestone 13 is implemented after its required independent maintainability
+review. It adds durable explicit personal profiles, narrow personalization,
+and generic ask-save-resume resolution for missing personal details.
 Milestone 14 is implemented after its required independent maintainability
 review. It adds bounded source-grounded internet search, deterministic and
 opt-in OpenAI web-search adapters, bounded citation projection, clickable
@@ -44,7 +47,7 @@ and service composition.
 
 ## Implemented Milestone Archive
 
-Detailed acceptance criteria and outcomes for Milestones 1 through 12.1 and 14
+Detailed acceptance criteria and outcomes for Milestones 1 through 16
 are kept in `docs/09-implemented-milestones.md`. The earlier provider-focused
 roadmap after Milestone 12.1 was retired and replaced by capability-focused
 Milestones 13 through 17, selected from current user needs.
@@ -276,8 +279,9 @@ Acceptance criteria:
 
 ## Milestone 13: Explicit Personal Profile and Preferences
 
-Status: implementation and validation complete; required independent
-maintainability review pending.
+Status: implemented after the required independent maintainability review.
+Detailed review outcomes and completion evidence are archived in
+`docs/09-implemented-milestones.md`.
 
 Goal: give the assistant durable, user-controlled personal context so enabled
 features can produce relevant answers without retaining conversation transcripts

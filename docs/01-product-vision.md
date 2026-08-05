@@ -71,7 +71,7 @@ reviews. Milestone 16 is also implemented after its independent maintainability
 review; it adds durable named lists,
 revision-checked tasks, bounded result-reference follow-ups, and restart-safe
 reminder delivery without treating delivery as task completion. Milestone 13's
-explicit personal profile is implemented and awaiting its required independent
+explicit personal profile is implemented after its required independent
 maintainability review. Milestone 17 prioritizes proactive daily briefings.
 The goal is a more personalized everyday assistant while preserving the
 existing validation, confirmation, privacy, and runtime-boundary guarantees.
