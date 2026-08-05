@@ -11,6 +11,7 @@ import {
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 import { formatOpenAIConversationStateMessages } from "./openai-conversation-state.js";
 import type { OpenAIConversationRequestBody } from "./openai-responses-request.js";
+import { renderAssistantPersonalization } from "../../application/assistant-personalization.js";
 
 export function createOpenAIConversationRequestBody(
   input: string,
@@ -19,6 +20,9 @@ export function createOpenAIConversationRequestBody(
   config: OpenAIResponsesConfig,
   capabilityCatalog: readonly OpenAIIntentCapability[] = [],
 ) {
+  const personalization = renderAssistantPersonalization(
+    context.personalization ?? {},
+  );
   return {
     input: [
       {
@@ -26,6 +30,7 @@ export function createOpenAIConversationRequestBody(
           {
             text: [
               `You are ${context.config.assistant.name}, a concise personal voice assistant.`,
+              ...(personalization ? [personalization] : []),
               "Answer the user's general question conversationally.",
               "Your response text will be spoken aloud, so keep it brief and use natural sentences.",
               openAISpokenStyleInstruction,
@@ -73,6 +78,9 @@ export function createOpenAIConversationCompactionRequestBody(
   context: AssistantContext,
   config: OpenAIResponsesConfig,
 ) {
+  const personalization = renderAssistantPersonalization(
+    context.personalization ?? {},
+  );
   return {
     input: [
       {
@@ -80,6 +88,7 @@ export function createOpenAIConversationCompactionRequestBody(
           {
             text: [
               `Summarize ${context.config.assistant.name}'s chat history for future turns.`,
+              ...(personalization ? [personalization] : []),
               "Preserve stable user preferences, facts, open questions, and useful context.",
               "Do not include secrets, credentials, stack traces, or provider diagnostics.",
               "Return only JSON matching the supplied schema.",

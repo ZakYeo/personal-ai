@@ -46,7 +46,8 @@ type ProfileForgetArgs = FeatureArgsFromParameters<
 const deterministicRules = [
   {
     capability: "profile.set",
-    match: (text: string) => matchProfileSet(text),
+    match: (text: string, originalText?: string) =>
+      matchProfileSet(originalText ?? text),
   },
   {
     capability: "profile.show",
@@ -380,32 +381,32 @@ function matchProfileSet(
 ): { field: string; value: string } | undefined {
   const patterns: Array<[RegExp, ProfileField]> = [
     [
-      /^(?:remember that |set )?my (?:preferred )?name (?:is|to) (?<value>.+)$/u,
+      /^(?:remember that |set )?my (?:preferred )?name (?:is|to) (?<value>.+)$/iu,
       "preferredName",
     ],
     [
-      /^(?:remember that |set )?my (?:birth date|birthday) (?:is|to) (?<value>\d{4}-\d{2}-\d{2})$/u,
+      /^(?:remember that |set )?my (?:birth date|birthday) (?:is|to) (?<value>\d{4}-\d{2}-\d{2})$/iu,
       "birthDate",
     ],
     [
-      /^(?:remember that |set )?my pronouns (?:are|to) (?<value>.+)$/u,
+      /^(?:remember that |set )?my pronouns (?:are|to) (?<value>.+)$/iu,
       "pronouns",
     ],
     [
-      /^(?:remember that |set )?my home timezone (?:is|to) (?<value>.+)$/u,
+      /^(?:remember that |set )?my home timezone (?:is|to) (?<value>.+)$/iu,
       "homeTimeZone",
     ],
     [
-      /^(?:remember that |set )?my home location (?:is|to) (?<value>.+)$/u,
+      /^(?:remember that |set )?my home location (?:is|to) (?<value>.+)$/iu,
       "homeLocation",
     ],
     [
-      /^(?:remember that )?i(?: am|'m) interested in (?<value>.+)$/u,
+      /^(?:remember that )?i(?: am|'m) interested in (?<value>.+)$/iu,
       "interest",
     ],
-    [/^(?:remember that )?i (?:like|love|enjoy) (?<value>.+)$/u, "interest"],
+    [/^(?:remember that )?i (?:like|love|enjoy) (?<value>.+)$/iu, "interest"],
     [
-      /^(?:set )?my response style (?:is|to) (?<value>concise|balanced|detailed)$/u,
+      /^(?:set )?my response style (?:is|to) (?<value>concise|balanced|detailed)$/iu,
       "responseStyle",
     ],
   ];

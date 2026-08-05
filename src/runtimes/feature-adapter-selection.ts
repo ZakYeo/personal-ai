@@ -7,6 +7,10 @@ import type { FeaturePlugin } from "../ports/feature.js";
 import type { LoadedRuntimeConfig } from "./config/config.js";
 import type { FeatureAdapterRuntimeContext } from "./feature-adapter-registry.js";
 import type { RuntimeBackgroundTask } from "./background-task.js";
+import {
+  createRuntimeServiceRegistry,
+  type RuntimeServiceRegistry,
+} from "./runtime-service-registry.js";
 
 export {
   defineFeatureAdapterEntry,
@@ -18,6 +22,7 @@ interface ConfiguredFeatureSelection {
   backgroundTasks: RuntimeBackgroundTask[];
   capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
   features: FeaturePlugin[];
+  services: RuntimeServiceRegistry;
 }
 
 interface CreateConfiguredFeaturesOptions {
@@ -36,8 +41,10 @@ export function createConfiguredFeatureSelection(
   options: CreateConfiguredFeaturesOptions,
 ): ConfiguredFeatureSelection {
   const configuredAdapters = createAdapterBackedFeatures(config, options);
-  const configuredFeatures = configuredAdapters.map(({ feature }) => feature);
-  const backgroundTasks = configuredAdapters.flatMap(
+  const configuredFeatures = configuredAdapters.compositions.map(
+    ({ feature }) => feature,
+  );
+  const backgroundTasks = configuredAdapters.compositions.flatMap(
     ({ backgroundTasks }) => backgroundTasks ?? [],
   );
   const capabilityInfoFeature = createCapabilityInfoFeature();
@@ -48,6 +55,7 @@ export function createConfiguredFeatureSelection(
     backgroundTasks,
     capabilityRouting,
     features,
+    services: configuredAdapters.services,
   };
 }
 
@@ -64,22 +72,38 @@ export function validateConfiguredFeatureAdapters(
 function createAdapterBackedFeatures(
   config: LoadedRuntimeConfig,
   options: CreateConfiguredFeaturesOptions,
-): Array<{
-  backgroundTasks?: RuntimeBackgroundTask[];
-  feature: FeaturePlugin;
-}> {
-  return Object.entries(config.features).flatMap(
-    ([featureId, featureConfig]) =>
-      featureConfig.enabled
-        ? [
-            selectConfiguredFeatureAdapter(
-              featureId,
-              featureConfig,
-              options.runtime,
-            ),
-          ]
-        : [],
+): {
+  compositions: Array<{
+    backgroundTasks?: RuntimeBackgroundTask[];
+    feature: FeaturePlugin;
+  }>;
+  services: RuntimeServiceRegistry;
+} {
+  const enabled = Object.entries(config.features).filter(
+    (
+      entry,
+    ): entry is [
+      string,
+      Extract<LoadedRuntimeConfig["features"][string], { enabled: true }>,
+    ] => entry[1].enabled,
   );
+  const services = createRuntimeServiceRegistry(
+    enabled.flatMap(
+      ([, featureConfig]) =>
+        featureConfig.resolvedAdapter.provideServices?.(options.runtime) ?? [],
+    ),
+  );
+  return {
+    compositions: enabled.map(([featureId, featureConfig]) =>
+      selectConfiguredFeatureAdapter(
+        featureId,
+        featureConfig,
+        options.runtime,
+        services,
+      ),
+    ),
+    services,
+  };
 }
 
 function selectConfiguredFeatureAdapter(
@@ -89,8 +113,9 @@ function selectConfiguredFeatureAdapter(
     { enabled: true }
   >,
   runtime: FeatureAdapterRuntimeContext,
+  services: RuntimeServiceRegistry,
 ): { backgroundTasks?: RuntimeBackgroundTask[]; feature: FeaturePlugin } {
-  const created = featureConfig.resolvedAdapter.create(runtime);
+  const created = featureConfig.resolvedAdapter.create(runtime, services);
   const composition = isFeatureAdapterComposition(created)
     ? created
     : { feature: created };

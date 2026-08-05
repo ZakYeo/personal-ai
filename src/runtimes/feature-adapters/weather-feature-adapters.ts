@@ -17,6 +17,8 @@ import {
 } from "../feature-adapter-registry.js";
 import { resolveLocalStatePath } from "../local-state-path.js";
 import { runWeatherWatchEvaluator } from "../weather/weather-watch-evaluator.js";
+import { personalContextReaderService } from "../profile-runtime-services.js";
+import type { RuntimeServiceRegistry } from "../runtime-service-registry.js";
 import {
   parseWeatherFeatureConfig,
   parseWeatherOpenMeteoAdapterConfig,
@@ -44,7 +46,7 @@ export function createWeatherFeatureRegistryEntry(
   return {
     adapters: {
       mock: mockWeatherAdapter.bind({
-        create: ({ adapterConfig, runtime }) => {
+        create: ({ adapterConfig, runtime }, services) => {
           const { watchStore, ...featureConfig } = adapterConfig;
           return createWeatherComposition(
             createMockWeatherProvider(),
@@ -56,12 +58,12 @@ export function createWeatherFeatureRegistryEntry(
             ),
             featureConfig.maxForecastAgeMinutes,
             registryDependencies.notificationDelivery,
-            registryDependencies.personalContextReader,
+            resolvePersonalContext(registryDependencies, services),
           );
         },
       }),
       openMeteo: openMeteoWeatherAdapter.bind({
-        create: ({ adapterConfig, runtime }) => {
+        create: ({ adapterConfig, runtime }, services) => {
           const { openMeteo, watchStore, ...featureConfig } = adapterConfig;
           return createWeatherComposition(
             createOpenMeteoWeatherProvider({
@@ -77,12 +79,22 @@ export function createWeatherFeatureRegistryEntry(
             ),
             featureConfig.maxForecastAgeMinutes,
             registryDependencies.notificationDelivery,
-            registryDependencies.personalContextReader,
+            resolvePersonalContext(registryDependencies, services),
           );
         },
       }),
     },
   };
+}
+
+function resolvePersonalContext(
+  dependencies: WeatherFeatureRegistryDependencies,
+  services: RuntimeServiceRegistry,
+): PersonalContextReaderPort | undefined {
+  return (
+    dependencies.personalContextReader ??
+    services.get(personalContextReaderService)
+  );
 }
 
 function createWeatherComposition(

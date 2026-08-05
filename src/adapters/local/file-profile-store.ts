@@ -19,7 +19,7 @@ import { createSerializedExecutor } from "./serialized-executor.js";
 
 export type ProfileStoreFileSystem = LocalJsonStateFileSystem;
 
-interface FileProfileStoreDependencies {
+export interface FileProfileStoreDependencies {
   fileSystem?: ProfileStoreFileSystem;
 }
 

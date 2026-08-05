@@ -14,6 +14,7 @@ import type {
   IntentInterpreterSession,
 } from "../../ports/intent.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
+import type { AssistantPersonalization } from "../../ports/personal-context.js";
 import { createAppError } from "./app-error.js";
 import { outcomeFromError, unexpectedOutcome } from "./assistant-outcome.js";
 import {
@@ -44,6 +45,7 @@ interface IntentWorkflowDependencies {
   conversation: ConversationSession | undefined;
   interaction: InteractionSession;
   intentInterpreter: IntentInterpreterPort;
+  personalization?: AssistantPersonalization;
   responseRewriter?: ResponseRewriterPort;
   resultReferences: ResultReferenceSession;
 }
@@ -181,6 +183,9 @@ export function createIntentWorkflow(input: {
         input.dependencies.resultReferences,
         context.signal,
         {
+          ...(input.dependencies.personalization
+            ? { personalization: input.dependencies.personalization }
+            : {}),
           requestClarification: (response, metadata) =>
             requestClarification(response, {
               ...metadata,
@@ -374,6 +379,9 @@ function createContext(
   return {
     clock: dependencies.clock,
     config: dependencies.config,
+    ...(dependencies.personalization
+      ? { personalization: dependencies.personalization }
+      : {}),
     ...(signal ? { signal } : {}),
     ...(references.length > 0 ? { resultReferences: references } : {}),
   };

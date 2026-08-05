@@ -9,6 +9,8 @@ import { createMessagingFeatureRegistryEntry } from "./feature-adapters/messagin
 import { createInternetSearchFeatureRegistryEntry } from "./feature-adapters/internet-search-feature-adapters.js";
 import { createWeatherFeatureRegistryEntry } from "./feature-adapters/weather-feature-adapters.js";
 import { createTaskFeatureRegistryEntry } from "./feature-adapters/task-feature-adapters.js";
+import { createProfileFeatureRegistryEntry } from "./feature-adapters/profile-feature-adapters.js";
+import type { FileProfileStoreDependencies } from "../adapters/local/file-profile-store.js";
 import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
 
 interface DefaultFeatureAdapterRegistryOptions {
@@ -24,6 +26,9 @@ interface DefaultFeatureAdapterRegistryOptions {
   internetSearch?: {
     env?: Record<string, string | undefined>;
     fetch?: typeof fetch;
+  };
+  profile?: FileProfileStoreDependencies & {
+    configDirectory?: string;
   };
   tasks?: {
     configDirectory?: string;
@@ -61,6 +66,7 @@ export function createDefaultFeatureAdapterRegistry(
       fetch: options.internetSearch?.fetch ?? globalThis.fetch,
     }),
     messaging: createMessagingFeatureRegistryEntry(),
+    profile: createProfileFeatureRegistryEntry(options.profile),
     tasks: createTaskFeatureRegistryEntry({
       ...options.tasks?.store,
       ...(options.tasks?.configDirectory
@@ -108,6 +114,9 @@ export function createRuntimeFeatureAdapterRegistry(dependencies: {
     calendar: { env: dependencies.env, fetch: dependencies.fetch },
     internetSearch: { env: dependencies.env, fetch: dependencies.fetch },
     tasks: localStateDependencies,
+    profile: dependencies.configDirectory
+      ? { configDirectory: dependencies.configDirectory }
+      : {},
     weather: {
       ...localStateDependencies,
       fetch: dependencies.fetch,

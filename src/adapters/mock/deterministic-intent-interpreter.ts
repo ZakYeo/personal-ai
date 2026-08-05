@@ -8,7 +8,10 @@ import type {
   IntentInterpreterPort,
 } from "../../ports/intent.js";
 import type { DeterministicCapabilityRule } from "../../ports/deterministic-feature-rules.js";
-import { stripWakePhrase } from "../spoken-text.js";
+import {
+  stripWakePhrase,
+  stripWakePhrasePreservingCase,
+} from "../spoken-text.js";
 
 export interface DeterministicIntentRule {
   capability: string;
@@ -80,9 +83,14 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
       text,
       context.config.assistant.wakePhrases,
     );
+    const originalText = stripWakePhrasePreservingCase(
+      text,
+      context.config.assistant.wakePhrases,
+    );
 
     const clauseInterpretation = interpretClauses(
       normalizedText,
+      originalText,
       text,
       this.rules,
     );
@@ -130,7 +138,7 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
         continue;
       }
 
-      const parameters = rule.match(normalizedText);
+      const parameters = rule.match(normalizedText, originalText);
 
       if (parameters) {
         matchedCapabilities.add(rule.capability);
@@ -168,6 +176,7 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
 
 function interpretClauses(
   normalizedText: string,
+  originalText: string,
   rawText: string,
   rules: readonly DeterministicIntentRule[],
 ):
@@ -182,6 +191,10 @@ function interpretClauses(
     .split(/\s*(?:,\s*)?\b(?:and then|then|and)\b\s*/u)
     .map((clause) => clause.trim())
     .filter(Boolean);
+  const originalClauses = originalText
+    .split(/\s*(?:,\s*)?\b(?:and then|then|and)\b\s*/iu)
+    .map((clause) => clause.trim())
+    .filter(Boolean);
 
   if (clauses.length < 2) {
     return;
@@ -189,10 +202,10 @@ function interpretClauses(
 
   const commands: AssistantCommand[] = [];
   let fullyResolved = true;
-  for (const clause of clauses) {
+  for (const [index, clause] of clauses.entries()) {
     let resolved = false;
     for (const rule of rules) {
-      const parameters = rule.match(clause);
+      const parameters = rule.match(clause, originalClauses[index] ?? clause);
       if (parameters) {
         commands.push(createCommand(rule.capability, rawText, parameters));
         resolved = true;

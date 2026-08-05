@@ -3,6 +3,7 @@ import type { CapabilityCatalogEntry } from "../../ports/capability-catalog.js";
 import type { IntentClarificationContext } from "../../ports/intent.js";
 import type { ConversationState } from "../../ports/conversation.js";
 import type { AssistantResultReference } from "../../ports/result-reference.js";
+import { renderAssistantPersonalization } from "../../application/assistant-personalization.js";
 import {
   createOpenAIReasoningRequestConfig,
   type OpenAIResponsesConfig,
@@ -76,8 +77,12 @@ function createIntentInstructions(
   clarification?: IntentClarificationContext,
 ): string {
   const hasCapabilities = capabilityCatalog.length > 0;
+  const personalization = renderAssistantPersonalization(
+    context.personalization ?? {},
+  );
   return [
     `You are the intent interpreter for ${context.config.assistant.name}.`,
+    ...(personalization ? [personalization] : []),
     "Return one interpretation variant matching the supplied schema unless calling one declared read tool.",
     "Call at most one read tool in a response. Never call a terminal-only capability as a tool.",
     "After a tool result, either call one more read tool or return a fully resolved terminal command or plan.",

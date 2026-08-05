@@ -16,6 +16,14 @@ export function normalizeSpokenText(text: string): string {
     .trim();
 }
 
+function normalizeSpokenTextPreservingCase(text: string): string {
+  return text
+    .trim()
+    .replace(edgePunctuationPattern, "")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
 export function detectWakePhrase(
   text: string,
   wakePhrases: string[],
@@ -53,6 +61,22 @@ export function stripWakePhrase(
   }
 
   return normalizedText
+    .slice(normalizeSpokenText(phrase).length)
+    .replace(leadingPunctuationPattern, "")
+    .trim();
+}
+
+export function stripWakePhrasePreservingCase(
+  text: string,
+  wakePhrases: string[] = ["hey jarvis"],
+): string {
+  const originalText = normalizeSpokenTextPreservingCase(text);
+  const normalizedText = originalText.toLocaleLowerCase("en");
+  const phrase = wakePhrases.find((candidate) =>
+    normalizedText.startsWith(normalizeSpokenText(candidate)),
+  );
+  if (!phrase) return originalText;
+  return originalText
     .slice(normalizeSpokenText(phrase).length)
     .replace(leadingPunctuationPattern, "")
     .trim();

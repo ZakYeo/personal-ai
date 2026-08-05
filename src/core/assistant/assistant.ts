@@ -8,6 +8,10 @@ import type { FeaturePlugin } from "../../ports/feature.js";
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type { IntentInterpreterPort } from "../../ports/intent.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
+import type {
+  AssistantPersonalization,
+  AssistantPersonalizationReaderPort,
+} from "../../ports/personal-context.js";
 import { humanizeSpokenText } from "../../application/human-text.js";
 import {
   assistantTextLimits,
@@ -30,6 +34,7 @@ export interface AssistantDependencies {
   config: AssistantPolicyConfig;
   conversation?: ConversationSessionDependencies;
   intentInterpreter: IntentInterpreterPort;
+  personalizationReader?: AssistantPersonalizationReaderPort;
   responseRewriter?: ResponseRewriterPort;
 }
 
@@ -73,28 +78,53 @@ export function createAssistant(
       );
     }
 
+    let personalizationLoad:
+      | Promise<{
+          diagnostic?: NonNullable<AssistantOutcome["diagnostics"]>[number];
+          personalization?: AssistantPersonalization;
+        }>
+      | undefined;
+    const loadPersonalization = () => {
+      personalizationLoad ??= readPersonalization(dependencies);
+      return personalizationLoad;
+    };
+
     const outcome = await interaction.run(
       text,
-      () =>
-        createIntentWorkflow({
+      async () => {
+        const personalization = await loadPersonalization();
+        return createIntentWorkflow({
           dependencies: {
             ...dependencies,
             conversation,
             interaction,
+            ...(personalization.personalization
+              ? { personalization: personalization.personalization }
+              : {}),
             resultReferences,
           },
           text,
           ...(options.signal ? { signal: options.signal } : {}),
-        }).run(),
-      (plan) =>
-        executeValidatedPlan(
+        }).run();
+      },
+      async (plan) => {
+        const personalization = await loadPersonalization();
+        return executeValidatedPlan(
           plan,
           dependencies,
           resultReferences,
           options.signal,
-        ),
+          personalization.personalization
+            ? { personalization: personalization.personalization }
+            : {},
+        );
+      },
       async (outcome) => {
-        const completedOutcome = humanizeOutcome(outcome, dependencies);
+        const personalization = await loadPersonalization();
+        const completedOutcome = humanizeOutcome(
+          appendDiagnostic(outcome, personalization.diagnostic),
+          dependencies,
+        );
         if (!conversation) {
           resultReferences.completeTurn();
           return completedOutcome;
@@ -103,6 +133,9 @@ export function createAssistant(
           await conversation.commit(text, completedOutcome.response, {
             clock: dependencies.clock,
             config: dependencies.config,
+            ...(personalization.personalization
+              ? { personalization: personalization.personalization }
+              : {}),
             ...(options.signal ? { signal: options.signal } : {}),
           });
         } catch (error) {
@@ -140,6 +173,43 @@ export function createAssistant(
       return outcome.response;
     },
     handleTextWithDiagnostics,
+  };
+}
+
+async function readPersonalization(
+  dependencies: Pick<AssistantDependencies, "personalizationReader">,
+): Promise<{
+  diagnostic?: NonNullable<AssistantOutcome["diagnostics"]>[number];
+  personalization?: AssistantPersonalization;
+}> {
+  if (!dependencies.personalizationReader) return {};
+  try {
+    const personalization = Object.freeze({
+      ...(await dependencies.personalizationReader.readAssistantPersonalization()),
+    });
+    return Object.keys(personalization).length > 0 ? { personalization } : {};
+  } catch (error) {
+    return {
+      diagnostic: {
+        category: "personalization_failure",
+        cause: error,
+        message:
+          error instanceof Error
+            ? error.message
+            : "Assistant personalization could not be read.",
+      },
+    };
+  }
+}
+
+function appendDiagnostic(
+  outcome: AssistantOutcome,
+  diagnostic: NonNullable<AssistantOutcome["diagnostics"]>[number] | undefined,
+): AssistantOutcome {
+  if (!diagnostic) return outcome;
+  return {
+    ...outcome,
+    diagnostics: [...(outcome.diagnostics ?? []), diagnostic],
   };
 }
 

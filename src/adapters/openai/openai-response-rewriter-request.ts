@@ -6,12 +6,16 @@ import {
 } from "./openai-responses-config.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 import type { OpenAIResponseRewriteRequestBody } from "./openai-responses-request.js";
+import { renderAssistantPersonalization } from "../../application/assistant-personalization.js";
 
 export function createOpenAIResponseRewriteRequestBody(
   request: ResponseRewriteRequest,
   context: AssistantContext,
   config: OpenAIResponsesConfig,
 ) {
+  const personalization = renderAssistantPersonalization(
+    context.personalization ?? {},
+  );
   return {
     input: [
       {
@@ -19,6 +23,7 @@ export function createOpenAIResponseRewriteRequestBody(
           {
             text: [
               `You are ${context.config.assistant.name}, a concise personal voice assistant.`,
+              ...(personalization ? [personalization] : []),
               "Rewrite the provided assistant command response for spoken delivery.",
               openAISpokenStyleInstruction,
               "Preserve every factual claim exactly: event titles, dates, counts, names, IDs, and whether something was found.",

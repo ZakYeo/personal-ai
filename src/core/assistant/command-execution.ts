@@ -15,6 +15,7 @@ import type {
   FeatureSpokenTextContext,
 } from "../../ports/feature.js";
 import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
+import type { AssistantPersonalization } from "../../ports/personal-context.js";
 import type {
   AssistantResultReference,
   ResultReferenceSelectionRequest,
@@ -54,6 +55,7 @@ interface CommandExecutionInput {
 }
 
 interface ValidatedPlanExecutionOptions {
+  personalization?: AssistantPersonalization;
   requestClarification?: CommandExecutionInput["requestClarification"];
 }
 
@@ -69,6 +71,9 @@ export function executeValidatedPlan(
       ? { now: () => new Date(plan.validatedAt) }
       : dependencies.clock,
     config: dependencies.config,
+    ...(options.personalization
+      ? { personalization: options.personalization }
+      : {}),
     ...(signal ? { signal } : {}),
     ...(resultReferences.publicReferences().length > 0
       ? { resultReferences: resultReferences.publicReferences() }

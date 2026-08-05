@@ -20,6 +20,29 @@ const context: AssistantContext = {
 };
 
 describe("DeterministicIntentInterpreter", () => {
+  it("provides case-preserving command text to feature rules", async () => {
+    const interpreter = new DeterministicIntentInterpreter([
+      {
+        capability: "profile.set",
+        match: (normalizedText, originalText) => {
+          expect(normalizedText).toBe("set my name to zak");
+          expect(originalText).toBe("set my name to Zak");
+          const value = /set my name to (?<value>.+)$/u.exec(originalText ?? "")
+            ?.groups?.value;
+          return value ? { field: "preferredName", value } : undefined;
+        },
+      },
+    ]);
+
+    await expect(
+      interpreter.start("Hey Jarvis, set my name to Zak", context).next(),
+    ).resolves.toMatchObject({
+      command: {
+        parameters: { field: "preferredName", value: "Zak" },
+      },
+      kind: "command",
+    });
+  });
   it("starts an interpretation session whose first step preserves one-shot behavior", async () => {
     const interpreter = new DeterministicIntentInterpreter([
       {

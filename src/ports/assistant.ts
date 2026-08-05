@@ -3,6 +3,7 @@ import type {
   ResolvedResultReference,
   ResultReferenceSelectionRequest,
 } from "./result-reference.js";
+import type { AssistantPersonalization } from "./personal-context.js";
 
 export type AssistantResponseStatus =
   | "ok"
@@ -29,6 +30,7 @@ export type AssistantDiagnosticCategory =
   | "confirmation_required"
   | "unsupported"
   | "feature_failure"
+  | "personalization_failure"
   | "response_rewrite_failure"
   | "conversation_failure"
   | "unexpected";
@@ -104,6 +106,7 @@ export interface AssistantPolicyConfig {
 export interface AssistantContext {
   config: AssistantPolicyConfig;
   clock: ClockPort;
+  personalization?: AssistantPersonalization;
   resultReferences?: readonly AssistantResultReference[];
   signal?: AbortSignal;
   selectResultReference?(

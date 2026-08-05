@@ -17,6 +17,7 @@ const assistantDiagnosticLabels: Record<AssistantDiagnosticCategory, string> = {
   confirmation_required: "Confirmation required diagnostic",
   conversation_failure: "Conversation failure",
   feature_failure: "Feature failure",
+  personalization_failure: "Personalization failure",
   response_rewrite_failure: "Response rewrite failure",
   unexpected: "Unexpected assistant failure",
   unsupported: "Unsupported diagnostic",

@@ -137,7 +137,9 @@ function normalizeWhitespace(value: string): string {
   return value.trim().replace(/\s+/gu, " ");
 }
 
-function isProfileResponseStyle(value: string): value is ProfileResponseStyle {
+export function isProfileResponseStyle(
+  value: string,
+): value is ProfileResponseStyle {
   return value === "balanced" || value === "concise" || value === "detailed";
 }
 

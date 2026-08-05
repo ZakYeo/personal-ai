@@ -35,6 +35,7 @@ const diagnosticPolicy = {
   confirmation_required: false,
   conversation_failure: true,
   feature_failure: true,
+  personalization_failure: true,
   response_rewrite_failure: true,
   unexpected: true,
   unsupported: false,

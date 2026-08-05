@@ -20,12 +20,60 @@ import {
   defineFeatureAdapter,
 } from "./feature-adapter-registry.js";
 import { rebindFeatureAdapters } from "./config/feature-config.js";
+import {
+  bindRuntimeService,
+  defineRuntimeServiceToken,
+} from "./runtime-service-registry.js";
 
 const featureAdapterRuntime: FeatureAdapterRuntimeContext = {
   clock: { now: () => new Date("2026-07-14T09:00:00.000Z") },
 };
 
 describe("createConfiguredFeatures", () => {
+  it("collects services before constructing dependent feature adapters", () => {
+    const token = defineRuntimeServiceToken<string>("notes greeting");
+    const createConsumer = vi.fn(
+      (
+        _context: unknown,
+        services: { require(service: typeof token): string },
+      ) => {
+        expect(services.require(token)).toBe("hello");
+        return createTestFeature("consumer", "consumer.noop");
+      },
+    );
+    const registry: FeatureAdapterRegistry = {
+      consumer: {
+        adapters: {
+          local: defineConfiglessFeatureAdapterEntry({
+            create: createConsumer,
+          }),
+        },
+      },
+      provider: {
+        adapters: {
+          local: defineConfiglessFeatureAdapterEntry({
+            create: () => createTestFeature("provider", "provider.noop"),
+            provideServices: () => [bindRuntimeService(token, "hello")],
+          }),
+        },
+      },
+    };
+    const config = parseAssistantConfig(
+      createMinimalFeatureConfig({
+        consumer: { adapter: "local", enabled: true },
+        provider: { adapter: "local", enabled: true },
+      }),
+      { featureAdapterRegistry: registry },
+    );
+
+    const selection = createConfiguredFeatureSelection(config, {
+      runtime: featureAdapterRuntime,
+    });
+
+    expect(createConsumer).toHaveBeenCalledOnce();
+    expect(selection.services.require(token)).toBe("hello");
+  });
+
   it("collects neutral runtime tasks contributed by selected features", () => {
     const config = parseAssistantConfig(
       createMinimalFeatureConfig({
@@ -202,10 +250,16 @@ describe("createConfiguredFeatures", () => {
 
     expect(parseConfig).toHaveBeenCalledOnce();
     expect(originalCreate).not.toHaveBeenCalled();
-    expect(replacementCreate).toHaveBeenCalledWith({
-      adapterConfig: { endpoint: "https://notes.test" },
-      runtime: featureAdapterRuntime,
-    });
+    expect(replacementCreate).toHaveBeenCalledWith(
+      {
+        adapterConfig: { endpoint: "https://notes.test" },
+        runtime: featureAdapterRuntime,
+      },
+      expect.objectContaining({
+        get: expect.any(Function) as unknown,
+        require: expect.any(Function) as unknown,
+      }),
+    );
   });
 
   it("rejects rebinding through an independently defined adapter", () => {
@@ -302,9 +356,13 @@ describe("createConfiguredFeatures", () => {
     );
 
     expect(originalCreate).not.toHaveBeenCalled();
-    expect(replacementCreate).toHaveBeenCalledWith({
-      runtime: featureAdapterRuntime,
-    });
+    expect(replacementCreate).toHaveBeenCalledWith(
+      { runtime: featureAdapterRuntime },
+      expect.objectContaining({
+        get: expect.any(Function) as unknown,
+        require: expect.any(Function) as unknown,
+      }),
+    );
   });
 
   it("rejects adapters that construct a different feature ID", () => {

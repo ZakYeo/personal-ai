@@ -41,6 +41,11 @@ export function mapAppErrorToResponse(error: AppError): AssistantResponse {
         status: "error",
         text: error.publicMessage ?? "I could not complete that command.",
       };
+    case "personalization_failure":
+      return {
+        status: "error",
+        text: error.publicMessage ?? "I could not load your preferences.",
+      };
     case "response_rewrite_failure":
       return {
         status: "error",

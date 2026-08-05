@@ -12,6 +12,7 @@ import { resolveConfiguredRuntimeConfigSource } from "./config/runtime-config-so
 import type { RuntimeConfigSource } from "./config/runtime-config-source.js";
 import type { NotificationDeliveryPort } from "../ports/notification-delivery.js";
 import type { RuntimeBackgroundTask } from "./background-task.js";
+import { assistantPersonalizationReaderService } from "./profile-runtime-services.js";
 
 export interface ConfiguredTextRuntimeOptions {
   config?: LoadedRuntimeConfig;
@@ -69,6 +70,9 @@ export function createConfiguredTextRuntimeCompositionFromResolvedSource(
     env,
     fetch,
   });
+  const personalizationReader = featureSelection.services.get(
+    assistantPersonalizationReaderService,
+  );
 
   const assistant = createAssistant({
     capabilityRouting: featureSelection.capabilityRouting,
@@ -76,6 +80,7 @@ export function createConfiguredTextRuntimeCompositionFromResolvedSource(
     config: toAssistantPolicyConfig(config, {
       enabledFeatureIds: featureSelection.features.map((feature) => feature.id),
     }),
+    ...(personalizationReader ? { personalizationReader } : {}),
     ...(conversation ? { conversation } : {}),
     ...(responseRewriter ? { responseRewriter } : {}),
     intentInterpreter: createConfiguredIntentInterpreter(

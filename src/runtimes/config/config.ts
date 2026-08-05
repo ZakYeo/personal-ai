@@ -77,6 +77,7 @@ export async function loadConfigWithSource(
           : {
               featureAdapterRegistry: createDefaultFeatureAdapterRegistry({
                 alarms: { configDirectory },
+                profile: { configDirectory },
                 tasks: { configDirectory },
                 weather: { configDirectory },
               }),

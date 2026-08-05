@@ -3,6 +3,7 @@ import type { FeatureExecutionRequest, FeaturePlugin } from "./feature.js";
 
 export type DeterministicCapabilityRule = (
   normalizedText: string,
+  originalText?: string,
 ) => AssistantCommandParameters | undefined;
 
 export interface DeterministicFeatureRule<TCapability extends string = string> {

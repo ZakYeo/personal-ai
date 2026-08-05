@@ -1,6 +1,11 @@
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { ClockPort } from "../ports/assistant.js";
 import type { RuntimeBackgroundTask } from "./background-task.js";
+import {
+  createRuntimeServiceRegistry,
+  type RuntimeServiceBinding,
+  type RuntimeServiceRegistry,
+} from "./runtime-service-registry.js";
 
 export interface FeatureAdapterRuntimeContext {
   clock: ClockPort;
@@ -14,14 +19,22 @@ interface FeatureAdapterContext<TAdapterConfig> {
 interface FeatureAdapterBinding<TAdapterConfig> {
   create(
     context: FeatureAdapterContext<TAdapterConfig>,
+    services: RuntimeServiceRegistry,
   ): FeaturePlugin | FeatureAdapterComposition;
+  provideServices?(
+    context: FeatureAdapterContext<TAdapterConfig>,
+  ): readonly RuntimeServiceBinding[];
   validateStartup?(adapterConfig: TAdapterConfig): void;
 }
 
 interface ConfiglessFeatureAdapterBinding {
   create(
     context: Pick<FeatureAdapterContext<never>, "runtime">,
+    services: RuntimeServiceRegistry,
   ): FeaturePlugin | FeatureAdapterComposition;
+  provideServices?(
+    context: Pick<FeatureAdapterContext<never>, "runtime">,
+  ): readonly RuntimeServiceBinding[];
   validateStartup?(): void;
 }
 
@@ -34,8 +47,12 @@ interface FeatureAdapterEntryDefinition<
 export interface ResolvedFeatureAdapter {
   create(
     runtime: FeatureAdapterRuntimeContext,
+    services?: RuntimeServiceRegistry,
   ): FeaturePlugin | FeatureAdapterComposition;
   readonly parsedConfig: ParsedFeatureAdapterConfig;
+  provideServices?(
+    runtime: FeatureAdapterRuntimeContext,
+  ): readonly RuntimeServiceBinding[];
   validateStartup?(): void;
 }
 
@@ -75,12 +92,21 @@ export function defineFeatureAdapter<TAdapterConfig>(definition: {
         requireCompatibleParsedConfig(parsedConfig, definitionId);
         const adapterConfig = parsedConfig.value as TAdapterConfig;
         const resolved: ResolvedFeatureAdapter = {
-          create: (runtime) =>
-            binding.create({
-              adapterConfig,
-              runtime,
-            }),
+          create: (runtime, services = createRuntimeServiceRegistry([])) =>
+            binding.create(
+              {
+                adapterConfig,
+                runtime,
+              },
+              services,
+            ),
           parsedConfig,
+          ...(binding.provideServices
+            ? {
+                provideServices: (runtime: FeatureAdapterRuntimeContext) =>
+                  binding.provideServices?.({ adapterConfig, runtime }) ?? [],
+              }
+            : {}),
           ...(binding.validateStartup
             ? {
                 validateStartup: () => binding.validateStartup?.(adapterConfig),
@@ -114,8 +140,15 @@ export function defineConfiglessFeatureAdapterEntry(
   ): ResolvedFeatureAdapter => {
     requireCompatibleParsedConfig(parsedConfig, configlessDefinitionId);
     return {
-      create: (runtime) => binding.create({ runtime }),
+      create: (runtime, services = createRuntimeServiceRegistry([])) =>
+        binding.create({ runtime }, services),
       parsedConfig,
+      ...(binding.provideServices
+        ? {
+            provideServices: (runtime: FeatureAdapterRuntimeContext) =>
+              binding.provideServices?.({ runtime }) ?? [],
+          }
+        : {}),
       ...(binding.validateStartup
         ? { validateStartup: () => binding.validateStartup?.() }
         : {}),
