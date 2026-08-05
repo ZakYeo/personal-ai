@@ -87,7 +87,7 @@ describe("OpenAIConversationResponder", () => {
     );
   });
 
-  it("instructs the provider to avoid generic follow-up invitations", async () => {
+  it("marks direct conversational questions as follow-ups without inviting generic replies", async () => {
     const fetch = createFetchStub(
       jsonResponse({
         output_text: JSON.stringify({
@@ -101,8 +101,14 @@ describe("OpenAIConversationResponder", () => {
     await responder.respond("Thank you.", state, context);
 
     const body = readRequestBody(fetch);
-    expect(JSON.stringify(body.input)).toContain(
-      "Do not append a generic invitation",
+    const serializedInput = JSON.stringify(body.input);
+
+    expect(serializedInput).toContain(
+      "including a reciprocal conversational question",
+    );
+    expect(serializedInput).toContain("Do not append a generic invitation");
+    expect(JSON.stringify(body.text.format.schema)).toContain(
+      "direct question addressed to the user",
     );
   });
 

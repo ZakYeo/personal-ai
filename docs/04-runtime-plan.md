@@ -641,8 +641,10 @@ replace or inject recent-turn state. The default compaction threshold is 5.
 OpenAI conversation responses
 return strict JSON containing safe response text and `expectsFollowUp`; raw
 provider output stays inside adapter diagnostics.
-Provider instructions reserve the signal for an answer required to complete the
-current interaction and reject generic invitations to continue chatting.
+Provider instructions set the signal for direct questions addressed to the user
+whose answers the assistant intends to receive, including reciprocal
+conversation such as asking how the user is doing. They reject rhetorical
+questions and generic invitations to continue chatting.
 History compaction failure preserves the already completed human response, keeps
 the last valid state, and emits an internal conversation diagnostic.
 The deterministic compactor removes summaries echoed by its own responder and

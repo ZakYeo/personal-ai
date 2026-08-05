@@ -184,17 +184,17 @@ describe("voice activation", () => {
     const handledTexts: string[] = [];
     const commandUtterances = [
       "How are you today?",
-      "What are your capable functionalities?",
+      "I am doing well too, thanks.",
     ];
     const responses = [
       {
         expectsFollowUp: true,
         status: "ok" as const,
-        text: "I am doing well. How can I help you today?",
+        text: "I am doing well today, thanks for asking. How are you doing?",
       },
       {
         status: "ok" as const,
-        text: "I can list alarms and search calendar events.",
+        text: "Glad to hear it.",
       },
     ];
     const dependencies = createVoiceActivationDependencies({
@@ -237,24 +237,26 @@ describe("voice activation", () => {
     ).resolves.toMatchObject({
       response: {
         status: "ok",
-        text: "I can list alarms and search calendar events.",
+        text: "Glad to hear it.",
       },
-      transcript: "What are your capable functionalities?",
+      transcript: "I am doing well too, thanks.",
       wakePhrase: "hey jarvis",
     });
 
     expect(handledTexts).toEqual([
       "How are you today?",
-      "What are your capable functionalities?",
+      "I am doing well too, thanks.",
     ]);
     expect(progressOutput.writes).toEqual([
       line('Now listening for wake word "hey jarvis".'),
       line("Wake word detected, now listening..."),
       line("Heard: How are you today?"),
-      line("Assistant: I am doing well. How can I help you today?"),
+      line(
+        "Assistant: I am doing well today, thanks for asking. How are you doing?",
+      ),
       line("Listening for your reply..."),
-      line("Heard: What are your capable functionalities?"),
-      line("Assistant: I can list alarms and search calendar events."),
+      line("Heard: I am doing well too, thanks."),
+      line("Assistant: Glad to hear it."),
     ]);
   });
 

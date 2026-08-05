@@ -31,8 +31,8 @@ export function createOpenAIConversationRequestBody(
               `Current time: ${context.clock.now().toISOString()}.`,
               `Assistant time zone: ${context.config.assistant.timeZone}.`,
               `The assistant's enabled capabilities are:\n${formatOpenAICapabilities(capabilityCatalog)}`,
-              "Set expectsFollowUp to true only when your reply directly asks the user for more input.",
-              "Do not append a generic invitation, offer more help, or ask what the user wants next. Set expectsFollowUp only when the current answer genuinely cannot be completed without one user reply.",
+              "Set expectsFollowUp to true when your reply asks a direct question addressed to the user and you intend to receive their answer, including a reciprocal conversational question such as asking how the user is doing.",
+              "Set expectsFollowUp to false for rhetorical questions and replies that do not directly request an answer. Do not append a generic invitation, offer more help, or ask what the user wants next.",
               "Return only JSON matching the supplied schema.",
             ].join(" "),
             type: "input_text",
@@ -101,7 +101,11 @@ export function createOpenAIConversationCompactionRequestBody(
 const conversationResponseSchema = {
   additionalProperties: false,
   properties: {
-    expectsFollowUp: { type: "boolean" },
+    expectsFollowUp: {
+      description:
+        "True when the reply asks a direct question addressed to the user and intends to receive their answer, including a reciprocal conversational question; false for rhetorical questions or replies that do not request an answer.",
+      type: "boolean",
+    },
     text: { type: "string" },
   },
   required: ["text", "expectsFollowUp"],

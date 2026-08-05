@@ -111,8 +111,11 @@ response does not request another follow-up or the runtime-owned maximum
 follow-up count is reached.
 Successful operations that merely retain optional result references do not
 request a no-wake reply. The signal is reserved for confirmations,
-clarifications, rephrase prompts, and other responses that require one answer to
-finish the current interaction.
+clarifications, rephrase prompts, direct questions addressed to the user whose
+answers the assistant intends to receive, and other responses that require one
+answer to finish the current interaction. Direct questions include reciprocal
+conversation such as asking how the user is doing, but exclude rhetorical
+questions and generic invitations to continue chatting.
 
 Calendar result references are assistant-owned session state, not conversation
 memory or feature-owned state. Only the latest displayed set is retained, it is
