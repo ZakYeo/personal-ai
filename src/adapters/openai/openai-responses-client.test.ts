@@ -7,7 +7,7 @@ describe("requestOpenAIResponse", () => {
 
     await expect(
       requestOpenAIResponse({
-        body: { input: "hello" },
+        body: { input: "hello", model: "gpt-test" },
         config: {
           apiKeyEnv: "OPENAI_API_KEY",
           baseUrl: "https://openai.test/v1/",
@@ -23,7 +23,7 @@ describe("requestOpenAIResponse", () => {
     expect(fetch).toHaveBeenCalledWith(
       "https://openai.test/v1/responses",
       expect.objectContaining({
-        body: JSON.stringify({ input: "hello" }),
+        body: JSON.stringify({ input: "hello", model: "gpt-test" }),
         method: "POST",
       }),
     );
@@ -32,7 +32,7 @@ describe("requestOpenAIResponse", () => {
   it("uses the operation label in provider failures", async () => {
     await expect(
       requestOpenAIResponse({
-        body: {},
+        body: { input: "hello", model: "gpt-test" },
         config: {
           apiKeyEnv: "OPENAI_API_KEY",
           baseUrl: "https://openai.test/v1",

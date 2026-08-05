@@ -11,6 +11,7 @@ import { createOpenAIIntentVariantInstructions } from "./openai-intent-output-co
 import { createOpenAIIntentOutputSchema } from "./openai-intent-output-schema.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 import { formatOpenAIConversationStateMessages } from "./openai-conversation-state.js";
+import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
 
 export type OpenAIIntentCapability = CapabilityCatalogEntry;
 
@@ -61,7 +62,7 @@ export function createOpenAIIntentRequestBody(
         type: "json_schema",
       },
     },
-  };
+  } satisfies OpenAIResponsesRequestBody;
 }
 
 function createIntentInstructions(
@@ -180,7 +181,7 @@ export function createOpenAIIntentContinuationRequestBody(
       },
     },
     tools,
-  };
+  } satisfies OpenAIResponsesRequestBody;
 }
 
 function formatClarificationContext(

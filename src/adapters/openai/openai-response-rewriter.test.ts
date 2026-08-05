@@ -12,6 +12,7 @@ import {
 import { deterministicTestNow } from "../../test-support/primitives.js";
 import { OpenAIResponseRewriter } from "./openai-response-rewriter.js";
 import type { OpenAIResponseRewriterError } from "./openai-response-rewriter.js";
+import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
 
 const context = {
   clock: {
@@ -94,11 +95,18 @@ describe("OpenAIResponseRewriter", () => {
     expect(JSON.stringify(body.input)).toContain(
       "Assistant time zone: Europe/London",
     );
-    const messages = body.input as Array<{
-      content: Array<{ text: string }>;
-      role: string;
-    }>;
-    expect(JSON.parse(messages[1]!.content[0]!.text)).toMatchObject({
+    if (typeof body.input === "string") {
+      throw new TypeError("Expected response rewrite input messages.");
+    }
+    const userMessage = body.input[1];
+    if (
+      !userMessage ||
+      !("content" in userMessage) ||
+      typeof userMessage.content === "string"
+    ) {
+      throw new TypeError("Expected a structured user message.");
+    }
+    expect(JSON.parse(userMessage.content[0]!.text)).toMatchObject({
       protectedFacts: [{ spokenForm: "date" }],
     });
     expect(JSON.stringify(body.input)).toContain(
@@ -214,10 +222,13 @@ function createRewriter(options: CreateRewriterOptions = {}) {
   });
 }
 
-function readRequestBody(fetch: typeof globalThis.fetch): {
-  input: unknown;
+interface OpenAIResponseRewriteRequestBody extends OpenAIResponsesRequestBody {
   reasoning?: { effort: string };
   text: { format: { schema: unknown } };
-} {
-  return readJsonRequestBody(fetch);
+}
+
+function readRequestBody(
+  fetch: typeof globalThis.fetch,
+): OpenAIResponseRewriteRequestBody {
+  return readJsonRequestBody<OpenAIResponseRewriteRequestBody>(fetch);
 }

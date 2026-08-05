@@ -1,6 +1,7 @@
 import { fetchProviderJson } from "../http-json-client.js";
 import { createOpenAIUrl, resolveOpenAIApiKey } from "./openai-client.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
+import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
 
 interface OpenAIResponsesErrorOptions {
   cause?: unknown;
@@ -10,7 +11,7 @@ interface OpenAIResponsesErrorOptions {
 }
 
 interface RequestOpenAIResponseOptions {
-  body: unknown;
+  body: OpenAIResponsesRequestBody;
   cancelledMessage?: string;
   config: OpenAIResponsesConfig;
   createError(options: OpenAIResponsesErrorOptions): Error;

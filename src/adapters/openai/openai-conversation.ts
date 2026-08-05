@@ -8,6 +8,7 @@ import { extractOpenAIOutputText } from "./openai-output-extractor.js";
 import { OpenAIConversationError } from "./openai-conversation-error.js";
 import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
 import { requestOpenAIResponse } from "./openai-responses-client.js";
+import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
 import {
   createOpenAIConversationCompactionRequestBody,
   createOpenAIConversationRequestBody,
@@ -69,7 +70,7 @@ export class OpenAIConversationCompactor implements ConversationCompactorPort {
 }
 
 async function fetchConversationOutputText(input: {
-  body: unknown;
+  body: OpenAIResponsesRequestBody;
   options: OpenAIConversationOptions;
 }): Promise<string> {
   const response = await requestOpenAIResponse({

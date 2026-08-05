@@ -1,6 +1,7 @@
 import type { AssistantContext } from "../ports/assistant.js";
 import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
 import type { OpenAIIntentCapability } from "../adapters/openai/openai-intent-interpreter.js";
+import type { OpenAIResponsesRequestBody } from "../adapters/openai/openai-responses-request.js";
 import {
   createProviderCredentialEnv,
   readJsonRequestBody,
@@ -51,8 +52,7 @@ export function createOpenAIIntentInterpreter(
   });
 }
 
-interface OpenAIIntentRequestBody {
-  input: unknown;
+interface OpenAIIntentRequestBody extends OpenAIResponsesRequestBody {
   reasoning?: { effort: string };
   text: {
     format: {

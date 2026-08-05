@@ -16,6 +16,7 @@ import {
   OpenAIConversationResponder,
 } from "./openai-conversation.js";
 import { OpenAIConversationError } from "./openai-conversation-error.js";
+import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
 
 const context = {
   clock: {
@@ -70,10 +71,10 @@ describe("OpenAIConversationResponder", () => {
       },
       required: ["text", "expectsFollowUp"],
     });
-    const messages = body.input as Array<{
-      content: string | Array<{ text: string; type: string }>;
-      role: string;
-    }>;
+    if (typeof body.input === "string") {
+      throw new TypeError("Expected conversation input messages.");
+    }
+    const messages = body.input;
     const serializedInstructions = JSON.stringify(messages[0]);
     expect(serializedInstructions).not.toContain("How are you?");
     expect(serializedInstructions).not.toContain(
@@ -165,11 +166,18 @@ describe("OpenAIConversationResponder", () => {
     await responder.respond("What are your capabilities?", state, context);
 
     const body = readRequestBody(fetch);
-    const messages = body.input as Array<{
-      content: Array<{ text: string; type: string }>;
-      role: string;
-    }>;
-    const systemPrompt = messages[0]?.content[0]?.text ?? "";
+    if (typeof body.input === "string") {
+      throw new TypeError("Expected conversation input messages.");
+    }
+    const firstMessage = body.input[0];
+    if (
+      !firstMessage ||
+      !("content" in firstMessage) ||
+      typeof firstMessage.content === "string"
+    ) {
+      throw new TypeError("Expected a structured system message.");
+    }
+    const systemPrompt = firstMessage.content[0]?.text ?? "";
 
     expect(systemPrompt).toContain("spoken aloud");
     expect(systemPrompt).toContain(
@@ -389,8 +397,7 @@ function createOptions(options: CreateConversationOptions = {}) {
   };
 }
 
-interface RequestBody {
-  input: unknown;
+interface RequestBody extends OpenAIResponsesRequestBody {
   reasoning?: { effort: string };
   text: {
     format: {
