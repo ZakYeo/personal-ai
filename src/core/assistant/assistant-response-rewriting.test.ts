@@ -121,6 +121,31 @@ describe("createAssistant", () => {
     );
   });
 
+  it("does not send responses that disable rewriting to the configured provider", async () => {
+    const rewrite = vi.fn<ResponseRewriterPort["rewrite"]>();
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [
+        createFeature({
+          execute: () =>
+            Promise.resolve({
+              responseRewrite: "disabled",
+              text: "Your preferred name is Zak.",
+            }),
+        }),
+      ],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+      responseRewriter: { rewrite },
+    });
+
+    await expect(assistant.handleText("what is my name?")).resolves.toEqual({
+      status: "ok",
+      text: "Your preferred name is Zak.",
+    });
+    expect(rewrite).not.toHaveBeenCalled();
+  });
+
   it("keeps the original command response when response rewriting fails", async () => {
     const rewriteError = new Error("rewrite provider failure");
     const assistant = createAssistant({

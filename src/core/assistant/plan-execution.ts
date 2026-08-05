@@ -14,6 +14,7 @@ export type CommandExecutionOutcome =
       data?: AssistantCommandParameters;
       kind: "completed";
       outcome: AssistantOutcome;
+      responseRewrite?: "disabled";
       spokenText?: FeatureSpokenTextContext;
       toolObservationData?: AssistantCommandParameters;
       toolObservationReferences?: readonly AssistantResultReference[];

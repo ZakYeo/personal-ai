@@ -184,6 +184,21 @@ async function executeCommand(
   if (execution.kind === "resumable_clarification") return execution;
   if (execution.outcome.response.status !== "ok") return execution;
 
+  if (execution.responseRewrite === "disabled") {
+    return {
+      ...execution,
+      outcome: {
+        ...execution.outcome,
+        response: prepareCommandResponse(
+          execution.outcome.response,
+          execution.data ?? {},
+          input.context,
+          execution.spokenText,
+        ).restore(),
+      },
+    };
+  }
+
   return {
     ...execution,
     outcome: await rewriteCommandResponse({
@@ -244,6 +259,9 @@ async function executeFeatureCommand(
       ...(result.data ? { data: Object.freeze({ ...result.data }) } : {}),
       kind: "completed",
       outcome: { response },
+      ...(result.responseRewrite
+        ? { responseRewrite: result.responseRewrite }
+        : {}),
       ...(result.spokenText ? { spokenText: result.spokenText } : {}),
       ...(result.toolObservationData
         ? {

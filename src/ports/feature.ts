@@ -32,6 +32,7 @@ interface CompletedFeatureResult {
   data?: AssistantCommandParameters;
   expectsFollowUp?: boolean;
   resultReferences?: FeatureResultReferenceSet;
+  responseRewrite?: "disabled";
   spokenText?: FeatureSpokenTextContext;
   toolObservationData?: AssistantCommandParameters;
 }
@@ -48,6 +49,7 @@ interface ResumableFeatureClarification {
   readonly kind: "resumable_clarification";
   readonly parameter: string;
   readonly resultReferences?: never;
+  readonly responseRewrite?: never;
   readonly spokenText?: never;
   readonly text: string;
   readonly toolObservationData?: never;
