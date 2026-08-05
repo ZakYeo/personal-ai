@@ -31,6 +31,28 @@ const internetSearchCapability: OpenAIIntentCapability = {
     "query: string (required; The subject or question to search for.)",
 };
 
+const profileLookupCapability: OpenAIIntentCapability = {
+  capability: {
+    description:
+      "Read one explicitly stored personal profile fact needed for the current request.",
+    name: "profile.lookup",
+    parameters: {
+      field: {
+        description: "The one bounded profile field required by the request.",
+        required: true,
+        type: "string",
+      },
+    },
+    risk: "low",
+    toolChain: "read",
+    toolOnly: true,
+  },
+  featureId: "profile",
+  featureName: "Personal profile",
+  parameterText:
+    "field: string (required; The one bounded profile field required by the request.)",
+};
+
 describe("OpenAIIntentInterpreter", () => {
   it("provides bounded prior conversation as untrusted routing context", async () => {
     const fetch = createFetchStub(
@@ -396,7 +418,8 @@ describe("OpenAIIntentInterpreter", () => {
 
     await interpretOnce(interpreter, "Can you search?", context);
 
-    const input = JSON.stringify(readRequestBody(fetch).input);
+    const body = readRequestBody(fetch);
+    const input = JSON.stringify(body.input);
     expect(input).toContain(
       "When a capability matches but required information is missing",
     );
@@ -416,6 +439,53 @@ describe("OpenAIIntentInterpreter", () => {
     expect(input).toContain("If one matches, never use kind rephrase");
     expect(input).toContain(
       "Choose by the requested object or domain, not by a generic verb",
+    );
+  });
+
+  it("gives the model a general narrow-profile resolution policy", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-profile-policy",
+        output_text: JSON.stringify({
+          interpretation: { kind: "conversation" },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({
+      capabilityCatalog: [internetSearchCapability, profileLookupCapability],
+      fetch,
+    });
+
+    await interpretOnce(interpreter, "Help with something personal", context);
+
+    const body = readRequestBody(fetch);
+    const input = JSON.stringify(body.input);
+    expect(input).toContain(
+      "When resolving any request whose meaning depends on a personal detail about the user",
+    );
+    expect(input).toContain(
+      "call the narrow profile lookup read tool for exactly the field needed",
+    );
+    expect(input).toContain(
+      "The application will save an explicitly supplied missing value before resuming the original capability",
+    );
+    expect(input).not.toContain("weather at home");
+    expect(input).not.toContain("search for myself");
+    expect(body.text.format.schema).toMatchObject({
+      $defs: {
+        command: {
+          properties: { capability: { enum: ["internet.search"] } },
+        },
+      },
+    });
+    expect(body.tools).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          description: expect.stringContaining(
+            "Read one explicitly stored personal profile fact",
+          ) as string,
+        }),
+      ]),
     );
   });
 });

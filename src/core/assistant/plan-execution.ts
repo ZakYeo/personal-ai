@@ -2,7 +2,10 @@ import type {
   AssistantCommandParameters,
   AssistantOutcome,
 } from "../../ports/assistant.js";
-import type { FeatureSpokenTextContext } from "../../ports/feature.js";
+import type {
+  FeatureSpokenTextContext,
+  FeatureToolClarification,
+} from "../../ports/feature.js";
 import type { AssistantResultReference } from "../../ports/result-reference.js";
 import type {
   ValidatedAssistantPlan,
@@ -16,6 +19,7 @@ export type CommandExecutionOutcome =
       outcome: AssistantOutcome;
       responseRewrite?: "disabled";
       spokenText?: FeatureSpokenTextContext;
+      toolClarification?: FeatureToolClarification;
       toolObservationData?: AssistantCommandParameters;
       toolObservationReferences?: readonly AssistantResultReference[];
     }

@@ -9,9 +9,9 @@ import type { OpenAIResponsesJsonValue } from "./openai-responses-request.js";
 export function createOpenAIIntentOutputSchema(
   capabilityCatalog: readonly CapabilityCatalogEntry[],
 ) {
-  const capabilityNames = capabilityCatalog.map(
-    ({ capability }) => capability.name,
-  );
+  const capabilityNames = capabilityCatalog
+    .filter(({ capability }) => capability.toolOnly !== true)
+    .map(({ capability }) => capability.name);
   const command = {
     additionalProperties: false,
     properties: {

@@ -3,6 +3,7 @@ import type {
   AssistantToolChainCallOutcome,
 } from "../../ports/assistant.js";
 import type { ValidatedAssistantPlanStep } from "../../ports/assistant-plan.js";
+import type { FeatureToolClarification } from "../../ports/feature.js";
 import type {
   IntentInterpretation,
   IntentInterpreterSession,
@@ -25,6 +26,7 @@ type ToolChainResolution =
 interface ToolChainState {
   readonly callIds: Set<string>;
   readonly calls: AssistantToolChainCallOutcome[];
+  pendingClarification?: FeatureToolClarification;
   readCalls: number;
 }
 
@@ -133,11 +135,54 @@ export async function resolveToolCalls(input: {
     });
     input.state.readCalls++;
 
+    if (execution.toolClarification) {
+      if (input.state.pendingClarification) {
+        return failToolCall(
+          input.state,
+          call.command.capability,
+          rejectToolChain(
+            call.command.capability,
+            "A tool chain may contain at most one pending read clarification.",
+          ),
+        );
+      }
+      input.state.pendingClarification = execution.toolClarification;
+    }
+
     interpretation = await input.session.next({
       callId: call.id,
       kind: "tool_result",
       observation,
     });
+    if (
+      input.state.pendingClarification &&
+      interpretation.kind === "tool_call"
+    ) {
+      return failToolCall(
+        input.state,
+        interpretation.call.command.capability,
+        rejectToolChain(
+          interpretation.call.command.capability,
+          "A missing read value must be clarified before another tool call.",
+        ),
+      );
+    }
+  }
+
+  if (
+    input.state.pendingClarification &&
+    interpretation.kind !== "clarification"
+  ) {
+    return {
+      kind: "outcome",
+      outcome: withToolChainOutcome(
+        rejectToolChain(
+          input.state.calls.at(-1)?.capability ?? "tool.read",
+          "A missing read value must be clarified before terminal execution.",
+        ).outcome,
+        input.state,
+      ),
+    };
   }
 
   if (input.state.readCalls > 0 && interpretation.kind === "conversation") {

@@ -22,6 +22,7 @@ type PlanValidationResult =
   | { error: AppError; ok: false };
 
 export function validateAssistantPlan(input: {
+  allowToolOnly?: boolean;
   capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
   commands: readonly AssistantCommand[];
   config: AssistantPolicyConfig;
@@ -86,6 +87,15 @@ function validateStep(
         category: "unsupported",
         capability: proposedCommand.capability,
         message: `No enabled feature can handle ${proposedCommand.capability}.`,
+      }),
+      ok: false,
+    };
+  }
+  if (route.capability.toolOnly === true && input.allowToolOnly !== true) {
+    return {
+      error: createAppError({
+        category: "unsupported",
+        message: "That internal read is not available as a direct action.",
       }),
       ok: false,
     };

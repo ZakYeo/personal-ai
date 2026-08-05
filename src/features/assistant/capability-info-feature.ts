@@ -120,7 +120,11 @@ function listCapabilities(
 function formatSpokenCapabilities(catalog: CapabilityCatalog): string[] {
   const featureSummaries = new Map<string, string>();
   for (const entry of catalog) {
-    if (entry.featureId === "assistant" || !entry.featureSpokenSummary)
+    if (
+      entry.featureId === "assistant" ||
+      entry.capability.toolOnly === true ||
+      !entry.featureSpokenSummary
+    )
       continue;
     featureSummaries.set(entry.featureId, entry.featureSpokenSummary);
   }
@@ -129,6 +133,7 @@ function formatSpokenCapabilities(catalog: CapabilityCatalog): string[] {
       ({ featureId, featureSpokenSummary }) =>
         featureId !== "assistant" && !featureSpokenSummary,
     )
+    .filter(({ capability }) => capability.toolOnly !== true)
     .map(({ capability, featureName }) =>
       formatFallbackCapability(
         capability.spokenSummary ?? capability.summary ?? featureName,
@@ -144,7 +149,10 @@ function formatDetailedCapabilities(catalog: CapabilityCatalog): string[] {
   return [
     ...new Set(
       catalog
-        .filter(({ featureId }) => featureId !== "assistant")
+        .filter(
+          ({ capability, featureId }) =>
+            featureId !== "assistant" && capability.toolOnly !== true,
+        )
         .map(({ capability, featureName }) =>
           formatFallbackCapability(capability.summary ?? featureName),
         ),
@@ -174,7 +182,10 @@ function describeCapability(
   catalog: CapabilityCatalog,
   args: CapabilityDescribeArgs,
 ): FeatureResult {
-  const entry = catalog.find(({ capability }) => capability.name === args.name);
+  const entry = catalog.find(
+    ({ capability }) =>
+      capability.name === args.name && capability.toolOnly !== true,
+  );
 
   if (!entry) {
     return {

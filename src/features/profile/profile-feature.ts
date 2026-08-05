@@ -23,6 +23,9 @@ const profileSetParameters = {
   field: fieldParameter,
   value: valueParameter,
 } as const satisfies FeatureCapabilityParameters;
+const profileLookupParameters = {
+  field: fieldParameter,
+} as const satisfies FeatureCapabilityParameters;
 const profileShowParameters = {
   field: { type: "string" },
 } as const satisfies FeatureCapabilityParameters;
@@ -35,6 +38,9 @@ const profileClearParameters =
   {} as const satisfies FeatureCapabilityParameters;
 
 type ProfileSetArgs = FeatureArgsFromParameters<typeof profileSetParameters>;
+type ProfileLookupArgs = FeatureArgsFromParameters<
+  typeof profileLookupParameters
+>;
 type ProfileShowArgs = FeatureArgsFromParameters<typeof profileShowParameters>;
 type ProfileExplainArgs = FeatureArgsFromParameters<
   typeof profileExplainParameters
@@ -88,6 +94,16 @@ export function createProfileFeature(store: ProfileStorePort) {
           execute: (request, context) =>
             setProfileFact(store, request.args, context),
         }),
+        "profile.lookup": defineCapability({
+          description:
+            "Read exactly one explicitly stored personal profile fact needed to resolve the current request. The field must be preferredName, birthDate, pronouns, homeTimeZone, homeLocation, interest, or responseStyle. Never use this tool to retrieve the complete profile.",
+          parameters: profileLookupParameters,
+          risk: "low",
+          summary: "Read one explicitly stored personal profile detail.",
+          toolChain: "read",
+          toolOnly: true,
+          execute: (request) => lookupProfileFact(store, request.args),
+        }),
         "profile.show": defineCapability({
           description:
             "Show a concise complete profile summary, or one field selected as preferredName, birthDate, age, pronouns, homeTimeZone, homeLocation, interest, or responseStyle.",
@@ -132,6 +148,42 @@ export function createProfileFeature(store: ProfileStorePort) {
     }),
     deterministicRules,
   );
+}
+
+async function lookupProfileFact(
+  store: ProfileStorePort,
+  args: ProfileLookupArgs,
+): Promise<FeatureResult> {
+  const field = requireProfileField(args.field);
+  const selected = (await store.list()).filter((fact) => fact.field === field);
+  if (selected.length === 0) {
+    return {
+      responseRewrite: "disabled",
+      text: lookupMissingText(field),
+      toolClarification: {
+        parameter: "value",
+        prompt: `${lookupQuestion(field)} I’ll save it to your profile and then continue.`,
+        replyCommand: {
+          capability: "profile.set",
+          fixedParameters: { field },
+          replyParameter: "value",
+        },
+      },
+      toolObservationData: { field, found: false },
+    };
+  }
+
+  const value = selected.map((fact) => fact.value).join(", ");
+  return {
+    responseRewrite: "disabled",
+    text: renderSelectedFacts(field, selected),
+    toolObservationData: {
+      field,
+      found: true,
+      provenance: "user-authored",
+      value,
+    },
+  };
 }
 
 async function setProfileFact(
@@ -334,6 +386,31 @@ function profileFieldPossessive(field: ProfileField): string {
       return "that interest";
     case "responseStyle":
       return "your response style";
+  }
+}
+
+function lookupMissingText(field: ProfileField): string {
+  return field === "interest"
+    ? "I don’t have any interests stored."
+    : `I don’t have ${profileFieldPossessive(field)} stored.`;
+}
+
+function lookupQuestion(field: ProfileField): string {
+  switch (field) {
+    case "preferredName":
+      return "What is your preferred name?";
+    case "birthDate":
+      return "What is your birth date?";
+    case "pronouns":
+      return "What are your pronouns?";
+    case "homeTimeZone":
+      return "What is your home timezone?";
+    case "homeLocation":
+      return "What is your home location?";
+    case "interest":
+      return "What interest should I remember?";
+    case "responseStyle":
+      return "Which response style do you prefer: concise, balanced, or detailed?";
   }
 }
 

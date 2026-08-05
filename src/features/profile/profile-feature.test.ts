@@ -13,7 +13,7 @@ const context = {
 };
 
 describe("createProfileFeature", () => {
-  it("declares bounded set, show, explain, forget, and confirmed clear capabilities", () => {
+  it("declares bounded set, lookup, show, explain, forget, and confirmed clear capabilities", () => {
     const feature = createTestFeature();
 
     expectCapabilityMetadata(feature, {
@@ -25,6 +25,13 @@ describe("createProfileFeature", () => {
       risk: "low",
     });
     expectCapabilityMetadata(feature, {
+      name: "profile.lookup",
+      parameters: { field: { required: true, type: "string" } },
+      risk: "low",
+      toolChain: "read",
+      toolOnly: true,
+    });
+    expectCapabilityMetadata(feature, {
       name: "profile.show",
       parameters: { field: { type: "string" } },
       risk: "low",
@@ -34,6 +41,55 @@ describe("createProfileFeature", () => {
       parameters: {},
       requiresConfirmation: true,
       risk: "high",
+    });
+  });
+
+  it("returns one narrow stored fact as a safe tool observation", async () => {
+    const store = createProfileStoreFixture({ now: () => now });
+    const feature = createProfileFeature(store);
+    await store.set({ field: "preferredName", value: "Zak" });
+
+    await expect(
+      executeFeature(
+        feature,
+        "profile.lookup",
+        { field: "preferredName" },
+        context,
+      ),
+    ).resolves.toEqual({
+      responseRewrite: "disabled",
+      text: "Your preferred name is Zak.",
+      toolObservationData: {
+        field: "preferredName",
+        found: true,
+        provenance: "user-authored",
+        value: "Zak",
+      },
+    });
+  });
+
+  it("declares a general save-and-resume clarification for a missing fact", async () => {
+    await expect(
+      executeFeature(
+        createTestFeature(),
+        "profile.lookup",
+        { field: "homeLocation" },
+        context,
+      ),
+    ).resolves.toEqual({
+      responseRewrite: "disabled",
+      text: "I don’t have your home location stored.",
+      toolClarification: {
+        parameter: "value",
+        prompt:
+          "What is your home location? I’ll save it to your profile and then continue.",
+        replyCommand: {
+          capability: "profile.set",
+          fixedParameters: { field: "homeLocation" },
+          replyParameter: "value",
+        },
+      },
+      toolObservationData: { field: "homeLocation", found: false },
     });
   });
 

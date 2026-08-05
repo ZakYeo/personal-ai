@@ -34,12 +34,25 @@ interface CompletedFeatureResult {
   resultReferences?: FeatureResultReferenceSet;
   responseRewrite?: "disabled";
   spokenText?: FeatureSpokenTextContext;
+  toolClarification?: FeatureToolClarification;
   toolObservationData?: AssistantCommandParameters;
 }
 
 export interface FeatureSpokenTextContext {
   readonly dateStyle: "calendar" | "contextual";
   readonly timeZone: string;
+}
+
+export interface FeatureClarificationReplyCommand {
+  readonly capability: string;
+  readonly fixedParameters: AssistantCommandParameters;
+  readonly replyParameter: string;
+}
+
+export interface FeatureToolClarification {
+  readonly parameter: string;
+  readonly prompt: string;
+  readonly replyCommand: FeatureClarificationReplyCommand;
 }
 
 interface ResumableFeatureClarification {
@@ -52,6 +65,7 @@ interface ResumableFeatureClarification {
   readonly responseRewrite?: never;
   readonly spokenText?: never;
   readonly text: string;
+  readonly toolClarification?: never;
   readonly toolObservationData?: never;
 }
 

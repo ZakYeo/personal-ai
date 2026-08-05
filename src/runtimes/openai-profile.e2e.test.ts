@@ -35,10 +35,39 @@ describe.skipIf(!runOpenAIE2E)(
         text: "Your preferred name is Zak.",
       });
     }, 60_000);
+
+    it("captures a missing home location and resumes the original weather request", async () => {
+      const assistant = await createConfiguredTextRuntime({
+        config: createLiveProfileConfig(true),
+        env: { OPENAI_API_KEY: env.OPENAI_API_KEY },
+        fetch: globalThis.fetch,
+        now: () => new Date("2026-07-28T12:00:05.000Z"),
+      });
+
+      await expect(
+        assistant.handleText("Can you check what the weather's like at home?"),
+      ).resolves.toMatchObject({
+        expectsFollowUp: true,
+        status: "ok",
+        text: expect.stringContaining("What is your home location?") as string,
+      });
+      await expect(assistant.handleText("London")).resolves.toMatchObject({
+        status: "ok",
+        text: expect.stringContaining(
+          "I’ll remember London as your home location. In London, it is",
+        ) as string,
+      });
+      await expect(
+        assistant.handleText("What is my home location?"),
+      ).resolves.toMatchObject({
+        status: "ok",
+        text: "Your home location is London.",
+      });
+    }, 60_000);
   },
 );
 
-function createLiveProfileConfig() {
+function createLiveProfileConfig(includeWeather = false) {
   return parseAssistantConfig({
     assistant: {
       name: "Jarvis",
@@ -46,7 +75,18 @@ function createLiveProfileConfig() {
       wakePhrases: ["hey jarvis"],
     },
     conversation: { provider: "disabled" },
-    features: { profile: { adapter: "local", enabled: true } },
+    features: {
+      profile: { adapter: "local", enabled: true },
+      ...(includeWeather
+        ? {
+            weather: {
+              adapter: "mock",
+              enabled: true,
+              watches: { adapter: "local" },
+            },
+          }
+        : {}),
+    },
     intent: {
       openai: { model: "gpt-5.6-luna", reasoningEffort: "none" },
       provider: "openai",

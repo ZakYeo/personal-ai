@@ -10,6 +10,7 @@ import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type {
   FeatureArguments,
+  FeatureClarificationReplyCommand,
   FeatureExecutionContext,
   FeaturePlugin,
   FeatureSpokenTextContext,
@@ -50,7 +51,11 @@ interface CommandExecutionInput {
   resultReferences: ResultReferenceSession;
   requestClarification?: (
     response: AssistantResponse,
-    metadata: { capability: string; parameter: string },
+    metadata: {
+      capability: string;
+      parameter: string;
+      replyCommand?: FeatureClarificationReplyCommand;
+    },
   ) => AssistantOutcome;
 }
 
@@ -231,6 +236,9 @@ async function executeFeatureCommand(
       input.executionContext,
     );
     assertFeatureResponseTextWithinLimit(result.text);
+    if (result.toolClarification) {
+      assertFeatureResponseTextWithinLimit(result.toolClarification.prompt);
+    }
     if (result.kind === "resumable_clarification") {
       const clarificationResponse: AssistantResponse = {
         expectsFollowUp: true,
@@ -268,6 +276,9 @@ async function executeFeatureCommand(
         ? { responseRewrite: result.responseRewrite }
         : {}),
       ...(result.spokenText ? { spokenText: result.spokenText } : {}),
+      ...(result.toolClarification
+        ? { toolClarification: result.toolClarification }
+        : {}),
       ...(result.toolObservationData
         ? {
             toolObservationData: Object.freeze({

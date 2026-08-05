@@ -6,6 +6,7 @@ import { createMockVoiceRuntime } from "./voice/mock-voice-runtime.js";
 import { writeRuntimeHarnessConfig } from "../test-support/runtime-composition.js";
 import { mockVoiceConfig } from "../test-support/deterministic-runtime-fixtures.js";
 import { parseProfileState } from "../adapters/local/profile-state-schema.js";
+import { jsonResponse } from "../test-support/adapter-contract.js";
 
 const now = new Date("2026-08-05T12:00:00.000Z");
 
@@ -92,6 +93,124 @@ describe("personal profile runtime smoke", () => {
       spokenText: "Your preferred name is Zak.",
       status: "spoken",
     });
+  });
+
+  it("asks for a missing home location, saves the reply, and completes the original weather request", async () => {
+    let requestNumber = 0;
+    const fetchStub = vi.fn(
+      (_url: string | URL | Request, init?: RequestInit) => {
+        requestNumber++;
+        if (typeof init?.body !== "string") {
+          throw new Error("OpenAI smoke request body was not JSON text.");
+        }
+        const body = JSON.parse(init.body) as {
+          tools?: Array<{ description: string; name: string }>;
+        };
+        if (requestNumber === 1) {
+          const profileLookup = body.tools?.find(({ description }) =>
+            description.startsWith("Read exactly one explicitly stored"),
+          );
+          if (!profileLookup)
+            throw new Error("Profile lookup tool was absent.");
+          return Promise.resolve(
+            jsonResponse({
+              id: "profile-lookup-response",
+              output: [
+                {
+                  arguments: JSON.stringify({ field: "homeLocation" }),
+                  call_id: "profile-lookup-call",
+                  name: profileLookup.name,
+                  type: "function_call",
+                },
+              ],
+            }),
+          );
+        }
+        if (requestNumber === 2) {
+          return Promise.resolve(
+            jsonResponse({
+              id: "profile-clarification-response",
+              output_text: JSON.stringify({
+                interpretation: {
+                  clarificationCapability: "weather.current",
+                  kind: "clarification",
+                  response: {
+                    status: "ok",
+                    text: "Which place should I check?",
+                  },
+                },
+              }),
+            }),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse({
+            id: "profile-resumed-response",
+            output_text: JSON.stringify({
+              interpretation: {
+                command: {
+                  capability: "weather.current",
+                  parameters: [{ name: "location", value: "London" }],
+                  rawText: "London",
+                },
+                kind: "command",
+              },
+            }),
+          }),
+        );
+      },
+    ) as typeof globalThis.fetch;
+    const configPath = await writeRuntimeHarnessConfig(
+      profileConfig({
+        features: {
+          profile: {
+            adapter: "file",
+            enabled: true,
+            state: { path: "state/profile.json" },
+          },
+          weather: {
+            adapter: "mock",
+            enabled: true,
+            watches: { adapter: "local" },
+          },
+        },
+        intent: {
+          openai: { model: "profile-smoke-model", reasoningEffort: "none" },
+          provider: "openai",
+        },
+      }),
+    );
+    const assistant = await createConfiguredTextRuntime({
+      configPath,
+      env: { OPENAI_API_KEY: "profile-smoke-key" },
+      fetch: fetchStub,
+      now: () => new Date("2026-07-28T12:00:05.000Z"),
+    });
+
+    await expect(
+      assistant.handleText("Can you check what the weather's like at home?"),
+    ).resolves.toEqual({
+      expectsFollowUp: true,
+      status: "ok",
+      text: "What is your home location? I’ll save it to your profile and then continue.",
+    });
+    await expect(assistant.handleText("London")).resolves.toMatchObject({
+      status: "ok",
+      text: expect.stringContaining(
+        "I’ll remember London as your home location. In London, it is",
+      ) as string,
+    });
+    const rawPersisted: unknown = JSON.parse(
+      await readFile(join(dirname(configPath), "state/profile.json"), "utf8"),
+    );
+    expect(parseProfileState(rawPersisted).facts).toContainEqual(
+      expect.objectContaining({
+        field: "homeLocation",
+        provenance: "user-authored",
+        value: "London",
+      }),
+    );
+    expect(fetchStub).toHaveBeenCalledTimes(3);
   });
 });
 

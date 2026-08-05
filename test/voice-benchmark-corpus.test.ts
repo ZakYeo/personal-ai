@@ -28,7 +28,9 @@ describe("committed voice benchmark corpus", () => {
       },
     });
     const capabilityNames = features.flatMap((feature) =>
-      feature.capabilities.map((capability) => capability.name),
+      feature.capabilities.flatMap((capability) =>
+        capability.toolOnly === true ? [] : [capability.name],
+      ),
     );
 
     validateRecordingIndex(manifest, recordingIndex);

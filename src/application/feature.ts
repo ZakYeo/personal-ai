@@ -126,6 +126,7 @@ export function defineFeature<
       ...(handler.spokenSummary === undefined
         ? {}
         : { spokenSummary: handler.spokenSummary }),
+      ...(handler.toolOnly === undefined ? {} : { toolOnly: handler.toolOnly }),
       ...(handler.description === undefined
         ? {}
         : { description: handler.description }),

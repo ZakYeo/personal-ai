@@ -10,6 +10,7 @@ export interface FeatureCapability {
   readonly toolChain?: "read";
   readonly summary?: string;
   readonly spokenSummary?: string;
+  readonly toolOnly?: true;
   readonly description?: string;
   readonly requiresConfirmation?: boolean;
   readonly parameters?: Readonly<Record<string, FeatureCapabilityParameter>>;

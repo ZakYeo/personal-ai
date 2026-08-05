@@ -1,4 +1,5 @@
 import type {
+  AssistantCommand,
   AssistantContext,
   AssistantOutcome,
   AssistantPolicyConfig,
@@ -6,7 +7,10 @@ import type {
 } from "../../ports/assistant.js";
 import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
-import type { FeaturePlugin } from "../../ports/feature.js";
+import type {
+  FeatureClarificationReplyCommand,
+  FeaturePlugin,
+} from "../../ports/feature.js";
 import type {
   IntentClarificationMetadata,
   IntentInterpretation,
@@ -121,7 +125,19 @@ export function createIntentWorkflow(input: {
     }
 
     if (current.kind === "clarification") {
-      return requestClarification(current.response, current.clarification);
+      const pending = toolChain.pendingClarification;
+      return requestClarification(
+        pending
+          ? { ...current.response, text: pending.prompt }
+          : current.response,
+        pending
+          ? {
+              ...current.clarification,
+              parameter: pending.parameter,
+              replyCommand: pending.replyCommand,
+            }
+          : current.clarification,
+      );
     }
     if (current.kind === "rephrase") {
       return decorate({
@@ -201,6 +217,7 @@ export function createIntentWorkflow(input: {
     call,
   }: Extract<IntentInterpretation, { kind: "tool_call" }>) {
     const validation = validateAssistantPlan({
+      allowToolOnly: true,
       capabilityRouting: input.dependencies.capabilityRouting,
       commands: [call.command],
       config: input.dependencies.config,
@@ -237,14 +254,17 @@ export function createIntentWorkflow(input: {
 
   function requestClarification(
     response: AssistantOutcome["response"],
-    metadata:
+    metadata: (
       | IntentClarificationMetadata
       | {
           capability: string;
           origin: "feature_execution" | "feature_validation";
-          parameter?: string;
           session: "resume";
-        },
+        }
+    ) & {
+      parameter?: string;
+      replyCommand?: FeatureClarificationReplyCommand;
+    },
   ): AssistantOutcome {
     if (clarificationUsed) {
       return decorate(clarificationLimitOutcome);
@@ -255,9 +275,10 @@ export function createIntentWorkflow(input: {
       async (reply) => {
         try {
           activeUserText = reply.trim();
+          const { replyCommand, ...clarificationMetadata } = metadata;
           const interpretation = await requireSession().next({
             clarification: {
-              ...metadata,
+              ...clarificationMetadata,
               originalText: normalizedText,
               prompt: response.text,
             },
@@ -269,7 +290,15 @@ export function createIntentWorkflow(input: {
             ? { kind: "replacement" }
             : {
                 kind: "completed",
-                outcome: await handleInterpretation(interpretation),
+                outcome: await handleInterpretation(
+                  replyCommand
+                    ? prependClarificationReplyCommand(
+                        interpretation,
+                        replyCommand,
+                        activeUserText,
+                      )
+                    : interpretation,
+                ),
               };
         } catch (error) {
           return {
@@ -353,6 +382,62 @@ export function createIntentWorkflow(input: {
       ? withTrace
       : { ...withTrace, diagnostics: uniqueDiagnostics };
   }
+}
+
+function prependClarificationReplyCommand(
+  interpretation: IntentInterpretation,
+  declaration: FeatureClarificationReplyCommand,
+  reply: string,
+): IntentInterpretation {
+  if (interpretation.kind !== "command" && interpretation.kind !== "plan") {
+    return interpretation;
+  }
+  if (
+    reply.length === 0 ||
+    Object.hasOwn(declaration.fixedParameters, declaration.replyParameter)
+  ) {
+    throw new Error("A clarification reply command declaration was invalid.");
+  }
+
+  const command: AssistantCommand = Object.freeze({
+    capability: declaration.capability,
+    parameters: Object.freeze({
+      ...declaration.fixedParameters,
+      [declaration.replyParameter]: reply,
+    }),
+    rawText: reply,
+  });
+  const commands =
+    interpretation.kind === "command"
+      ? [interpretation.command]
+      : interpretation.plan.commands;
+  const existing = commands.find(
+    (candidate) => candidate.capability === command.capability,
+  );
+  if (existing) {
+    if (!sameCommandParameters(existing, command)) {
+      throw new Error(
+        "The intent provider returned a conflicting clarification reply command.",
+      );
+    }
+    return interpretation;
+  }
+  return {
+    kind: "plan",
+    plan: { commands: Object.freeze([command, ...commands]) },
+  };
+}
+
+function sameCommandParameters(
+  left: AssistantCommand,
+  right: AssistantCommand,
+): boolean {
+  const leftEntries = Object.entries(left.parameters);
+  const rightEntries = Object.entries(right.parameters);
+  return (
+    leftEntries.length === rightEntries.length &&
+    leftEntries.every(([key, value]) => right.parameters[key] === value)
+  );
 }
 
 const clarificationLimitOutcome: AssistantOutcome = {
