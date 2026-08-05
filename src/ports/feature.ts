@@ -50,7 +50,6 @@ export interface FeatureClarificationReplyCommand {
 }
 
 export interface FeatureToolClarification {
-  readonly parameter: string;
   readonly prompt: string;
   readonly replyCommand: FeatureClarificationReplyCommand;
 }

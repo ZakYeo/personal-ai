@@ -167,6 +167,54 @@ describe("OpenAIIntentInterpreter", () => {
       '"parameter":"scheduledFor"',
     );
   });
+
+  it("does not invent a parameter for a provider-selected clarification", async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: "resp_clarification",
+          output_text: openAIIntentOutput({
+            clarificationCapability: "internet.search",
+            kind: "clarification",
+            response: { status: "ok", text: "What should I search for?" },
+          }),
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          id: "resp_terminal",
+          output_text: openAIIntentOutput({
+            command: {
+              capability: "internet.search",
+              parameters: [{ name: "query", value: "Zak" }],
+              rawText: "Zak",
+            },
+            kind: "command",
+          }),
+        }),
+      );
+    const session = createInterpreter({ fetch }).start(
+      "Search the internet for myself",
+      context,
+    );
+
+    await session.next();
+    await session.next({
+      clarification: {
+        capability: "internet.search",
+        origin: "intent_interpreter",
+        originalText: "Search the internet for myself",
+        prompt: "What is your preferred name?",
+        session: "resume",
+      },
+      kind: "user_reply",
+      text: "Zak",
+    });
+
+    const continuation = readJsonRequestBody<Record<string, unknown>>(fetch, 1);
+    expect(String(continuation.instructions)).not.toContain('"parameter":');
+  });
   it("provides only safe opaque calendar references to the provider", async () => {
     const unsafeFacts = {
       date: "2026-07-17",

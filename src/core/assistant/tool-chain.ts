@@ -18,6 +18,11 @@ type ToolCallInterpretation = Extract<
 
 type ToolChainResolution =
   | {
+      declaration: FeatureToolClarification;
+      interpretation: Extract<IntentInterpretation, { kind: "clarification" }>;
+      kind: "clarification";
+    }
+  | {
       interpretation: Exclude<IntentInterpretation, { kind: "tool_call" }>;
       kind: "interpretation";
     }
@@ -26,7 +31,6 @@ type ToolChainResolution =
 interface ToolChainState {
   readonly callIds: Set<string>;
   readonly calls: AssistantToolChainCallOutcome[];
-  pendingClarification?: FeatureToolClarification;
   readCalls: number;
 }
 
@@ -135,18 +139,16 @@ export async function resolveToolCalls(input: {
     });
     input.state.readCalls++;
 
-    if (execution.toolClarification) {
-      if (input.state.pendingClarification) {
-        return failToolCall(
-          input.state,
+    const declaration = execution.toolClarification;
+    if (declaration && !isValidToolClarification(declaration)) {
+      return failToolCall(
+        input.state,
+        call.command.capability,
+        rejectToolChain(
           call.command.capability,
-          rejectToolChain(
-            call.command.capability,
-            "A tool chain may contain at most one pending read clarification.",
-          ),
-        );
-      }
-      input.state.pendingClarification = execution.toolClarification;
+          "A read capability returned an invalid clarification declaration.",
+        ),
+      );
     }
 
     interpretation = await input.session.next({
@@ -154,35 +156,23 @@ export async function resolveToolCalls(input: {
       kind: "tool_result",
       observation,
     });
-    if (
-      input.state.pendingClarification &&
-      interpretation.kind === "tool_call"
-    ) {
+    if (declaration) {
+      if (interpretation.kind === "clarification") {
+        return { declaration, interpretation, kind: "clarification" };
+      }
+      const capability =
+        interpretation.kind === "tool_call"
+          ? interpretation.call.command.capability
+          : call.command.capability;
       return failToolCall(
         input.state,
-        interpretation.call.command.capability,
+        capability,
         rejectToolChain(
-          interpretation.call.command.capability,
-          "A missing read value must be clarified before another tool call.",
+          capability,
+          "A missing read value must be clarified before continuing.",
         ),
       );
     }
-  }
-
-  if (
-    input.state.pendingClarification &&
-    interpretation.kind !== "clarification"
-  ) {
-    return {
-      kind: "outcome",
-      outcome: withToolChainOutcome(
-        rejectToolChain(
-          input.state.calls.at(-1)?.capability ?? "tool.read",
-          "A missing read value must be clarified before terminal execution.",
-        ).outcome,
-        input.state,
-      ),
-    };
   }
 
   if (input.state.readCalls > 0 && interpretation.kind === "conversation") {
@@ -199,6 +189,18 @@ export async function resolveToolCalls(input: {
   }
 
   return { interpretation, kind: "interpretation" };
+}
+
+function isValidToolClarification(
+  declaration: FeatureToolClarification,
+): boolean {
+  const { replyCommand } = declaration;
+  return (
+    declaration.prompt.trim().length > 0 &&
+    replyCommand.capability.trim().length > 0 &&
+    replyCommand.replyParameter.trim().length > 0 &&
+    !Object.hasOwn(replyCommand.fixedParameters, replyCommand.replyParameter)
+  );
 }
 
 export function withToolChainOutcome(

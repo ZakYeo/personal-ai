@@ -49,7 +49,6 @@ describe("assistant profile resolution", () => {
           capability: "internet.search",
           origin: "intent_interpreter",
           originalText: "Search the internet for myself",
-          parameter: "value",
           prompt:
             "What is your preferred name? I’ll save it to your profile and then continue.",
           session: "resume",
@@ -59,6 +58,65 @@ describe("assistant profile resolution", () => {
       },
     ]);
   });
+
+  it("canonicalizes an exact provider save after the target into save-before-resume order", async () => {
+    const harness = createProfileResolutionHarness([
+      profileLookupCall(),
+      targetClarification(),
+      targetPlan([
+        command("internet.search", { query: "Zak" }),
+        command("profile.set", { field: "preferredName", value: "Zak" }),
+      ]),
+    ]);
+
+    await harness.assistant.handleText("Search the internet for myself");
+    await expect(harness.assistant.handleText("Zak")).resolves.toEqual({
+      status: "ok",
+      text: "I’ll remember that your preferred name is Zak. Search complete.",
+    });
+    expect(harness.executions).toEqual([
+      ["profile.lookup", { field: "preferredName" }],
+      ["profile.set", { field: "preferredName", value: "Zak" }],
+      ["internet.search", { query: "Zak" }],
+    ]);
+  });
+
+  it.each([
+    {
+      label: "duplicate",
+      saves: [
+        command("profile.set", { field: "preferredName", value: "Zak" }),
+        command("profile.set", { field: "preferredName", value: "Zak" }),
+      ],
+    },
+    {
+      label: "conflicting",
+      saves: [
+        command("profile.set", {
+          field: "preferredName",
+          value: "Someone else",
+        }),
+      ],
+    },
+  ])(
+    "rejects $label provider profile saves before execution",
+    async ({ saves }) => {
+      const harness = createProfileResolutionHarness([
+        profileLookupCall(),
+        targetClarification(),
+        targetPlan([command("internet.search", { query: "Zak" }), ...saves]),
+      ]);
+
+      await harness.assistant.handleText("Search the internet for myself");
+      await expect(harness.assistant.handleText("Zak")).resolves.toEqual({
+        status: "error",
+        text: "I hit a problem and could not complete that.",
+      });
+      expect(harness.executions).toEqual([
+        ["profile.lookup", { field: "preferredName" }],
+      ]);
+    },
+  );
 
   it("does not save a missing fact when the reply changes topic", async () => {
     const harness = createProfileResolutionHarness(
@@ -206,7 +264,6 @@ function missingProfileLookupResult() {
     responseRewrite: "disabled" as const,
     text: "I don’t have your preferred name stored.",
     toolClarification: {
-      parameter: "value",
       prompt:
         "What is your preferred name? I’ll save it to your profile and then continue.",
       replyCommand: {
@@ -239,6 +296,12 @@ function targetClarification(): IntentInterpretation {
     kind: "clarification",
     response: { status: "ok", text: "What should I search for?" },
   };
+}
+
+function targetPlan(
+  commands: ReturnType<typeof command>[],
+): IntentInterpretation {
+  return { kind: "plan", plan: { commands } };
 }
 
 function targetCommand(query: string): IntentInterpretation {

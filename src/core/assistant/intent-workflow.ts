@@ -116,28 +116,29 @@ export function createIntentWorkflow(input: {
           state: toolChain,
           validateRead,
         });
-        return resolved.kind === "outcome"
-          ? decorate(resolved.outcome)
-          : handleInterpretation(resolved.interpretation);
+        if (resolved.kind === "outcome") {
+          return decorate(resolved.outcome);
+        }
+        if (resolved.kind === "clarification") {
+          return requestClarification(
+            {
+              ...resolved.interpretation.response,
+              text: resolved.declaration.prompt,
+            },
+            {
+              ...resolved.interpretation.clarification,
+              replyCommand: resolved.declaration.replyCommand,
+            },
+          );
+        }
+        return handleInterpretation(resolved.interpretation);
       } catch (error) {
         return decorate(unexpectedOutcome(error));
       }
     }
 
     if (current.kind === "clarification") {
-      const pending = toolChain.pendingClarification;
-      return requestClarification(
-        pending
-          ? { ...current.response, text: pending.prompt }
-          : current.response,
-        pending
-          ? {
-              ...current.clarification,
-              parameter: pending.parameter,
-              replyCommand: pending.replyCommand,
-            }
-          : current.clarification,
-      );
+      return requestClarification(current.response, current.clarification);
     }
     if (current.kind === "rephrase") {
       return decorate({
@@ -411,20 +412,28 @@ function prependClarificationReplyCommand(
     interpretation.kind === "command"
       ? [interpretation.command]
       : interpretation.plan.commands;
-  const existing = commands.find(
+  const matching = commands.filter(
     (candidate) => candidate.capability === command.capability,
   );
-  if (existing) {
-    if (!sameCommandParameters(existing, command)) {
-      throw new Error(
-        "The intent provider returned a conflicting clarification reply command.",
-      );
-    }
-    return interpretation;
+  if (matching.length > 1) {
+    throw new Error(
+      "The intent provider returned duplicate clarification reply commands.",
+    );
+  }
+  const existing = matching[0];
+  if (existing && !sameCommandParameters(existing, command)) {
+    throw new Error(
+      "The intent provider returned a conflicting clarification reply command.",
+    );
   }
   return {
     kind: "plan",
-    plan: { commands: Object.freeze([command, ...commands]) },
+    plan: {
+      commands: Object.freeze([
+        command,
+        ...commands.filter((candidate) => candidate !== existing),
+      ]),
+    },
   };
 }
 

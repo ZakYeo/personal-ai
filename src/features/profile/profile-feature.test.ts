@@ -80,7 +80,6 @@ describe("createProfileFeature", () => {
       responseRewrite: "disabled",
       text: "I don’t have your home location stored.",
       toolClarification: {
-        parameter: "value",
         prompt:
           "What is your home location? I’ll save it to your profile and then continue.",
         replyCommand: {

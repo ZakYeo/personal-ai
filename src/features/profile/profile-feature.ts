@@ -161,7 +161,6 @@ async function lookupProfileFact(
       responseRewrite: "disabled",
       text: lookupMissingText(field),
       toolClarification: {
-        parameter: "value",
         prompt: `${lookupQuestion(field)} I’ll save it to your profile and then continue.`,
         replyCommand: {
           capability: "profile.set",

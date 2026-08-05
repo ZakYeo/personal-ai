@@ -10,7 +10,6 @@ import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type {
   FeatureArguments,
-  FeatureClarificationReplyCommand,
   FeatureExecutionContext,
   FeaturePlugin,
   FeatureSpokenTextContext,
@@ -54,7 +53,6 @@ interface CommandExecutionInput {
     metadata: {
       capability: string;
       parameter: string;
-      replyCommand?: FeatureClarificationReplyCommand;
     },
   ) => AssistantOutcome;
 }
