@@ -14,7 +14,10 @@ import {
 } from "./openai-intent-request.js";
 import type { OpenAIIntentCapability } from "./openai-intent-request.js";
 import { requestOpenAIResponse } from "./openai-responses-client.js";
-import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
+import type {
+  OpenAIIntentContinuationRequestBody,
+  OpenAIIntentRequestBody,
+} from "./openai-responses-request.js";
 import { parseOpenAIIntentSessionResponse } from "./openai-intent-session-response.js";
 
 export { OpenAIIntentError } from "./openai-intent-error.js";
@@ -89,7 +92,9 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
     };
   }
 
-  private async request(body: OpenAIResponsesRequestBody): Promise<unknown> {
+  private async request(
+    body: OpenAIIntentContinuationRequestBody | OpenAIIntentRequestBody,
+  ): Promise<unknown> {
     return requestOpenAIResponse({
       body,
       config: this.options.config,

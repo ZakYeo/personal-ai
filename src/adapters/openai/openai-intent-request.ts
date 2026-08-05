@@ -11,7 +11,11 @@ import { createOpenAIIntentVariantInstructions } from "./openai-intent-output-co
 import { createOpenAIIntentOutputSchema } from "./openai-intent-output-schema.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 import { formatOpenAIConversationStateMessages } from "./openai-conversation-state.js";
-import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
+import type {
+  OpenAIResponsesFunctionTool,
+  OpenAIIntentContinuationRequestBody,
+  OpenAIIntentRequestBody,
+} from "./openai-responses-request.js";
 
 export type OpenAIIntentCapability = CapabilityCatalogEntry;
 
@@ -62,7 +66,7 @@ export function createOpenAIIntentRequestBody(
         type: "json_schema",
       },
     },
-  } satisfies OpenAIResponsesRequestBody;
+  } satisfies OpenAIIntentRequestBody;
 }
 
 function createIntentInstructions(
@@ -181,7 +185,7 @@ export function createOpenAIIntentContinuationRequestBody(
       },
     },
     tools,
-  } satisfies OpenAIResponsesRequestBody;
+  } satisfies OpenAIIntentContinuationRequestBody;
 }
 
 function formatClarificationContext(
@@ -217,7 +221,7 @@ export function createOpenAIIntentToolNameMap(
 
 function createOpenAIIntentTools(
   capabilityCatalog: readonly OpenAIIntentCapability[],
-) {
+): OpenAIResponsesFunctionTool[] {
   return [...createOpenAIIntentToolNameMap(capabilityCatalog)].map(
     ([name, { capability }]) => {
       const parameters = capability.parameters ?? {};

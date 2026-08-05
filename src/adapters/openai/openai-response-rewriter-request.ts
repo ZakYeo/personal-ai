@@ -5,7 +5,7 @@ import {
   type OpenAIResponsesConfig,
 } from "./openai-responses-config.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
-import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
+import type { OpenAIResponseRewriteRequestBody } from "./openai-responses-request.js";
 
 export function createOpenAIResponseRewriteRequestBody(
   request: ResponseRewriteRequest,
@@ -61,7 +61,7 @@ export function createOpenAIResponseRewriteRequestBody(
         type: "json_schema",
       },
     },
-  } satisfies OpenAIResponsesRequestBody;
+  } satisfies OpenAIResponseRewriteRequestBody;
 }
 
 const responseRewriteSchema = {

@@ -4,6 +4,7 @@ import {
   type OpenAIIntentOutputField,
   type OpenAIIntentOutputKind,
 } from "./openai-intent-output-contract.js";
+import type { OpenAIResponsesJsonValue } from "./openai-responses-request.js";
 
 export function createOpenAIIntentOutputSchema(
   capabilityCatalog: readonly CapabilityCatalogEntry[],
@@ -109,7 +110,7 @@ function createVariantPropertySchema(
   field: OpenAIIntentOutputField,
   kind: OpenAIIntentOutputKind,
   capabilityNames: readonly string[],
-): unknown {
+): OpenAIResponsesJsonValue {
   if (field === "kind") {
     return { enum: [kind], type: "string" };
   }

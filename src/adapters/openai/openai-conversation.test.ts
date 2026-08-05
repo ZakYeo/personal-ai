@@ -16,7 +16,7 @@ import {
   OpenAIConversationResponder,
 } from "./openai-conversation.js";
 import { OpenAIConversationError } from "./openai-conversation-error.js";
-import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
+import type { OpenAIConversationRequestBody } from "./openai-responses-request.js";
 
 const context = {
   clock: {
@@ -397,15 +397,8 @@ function createOptions(options: CreateConversationOptions = {}) {
   };
 }
 
-interface RequestBody extends OpenAIResponsesRequestBody {
-  reasoning?: { effort: string };
-  text: {
-    format: {
-      schema: unknown;
-    };
-  };
-}
-
-function readRequestBody(fetch: typeof globalThis.fetch): RequestBody {
-  return readJsonRequestBody<RequestBody>(fetch);
+function readRequestBody(
+  fetch: typeof globalThis.fetch,
+): OpenAIConversationRequestBody {
+  return readJsonRequestBody<OpenAIConversationRequestBody>(fetch);
 }

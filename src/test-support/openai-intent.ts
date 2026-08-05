@@ -1,7 +1,7 @@
 import type { AssistantContext } from "../ports/assistant.js";
 import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
 import type { OpenAIIntentCapability } from "../adapters/openai/openai-intent-interpreter.js";
-import type { OpenAIResponsesRequestBody } from "../adapters/openai/openai-responses-request.js";
+import type { OpenAIIntentRequestBody } from "../adapters/openai/openai-responses-request.js";
 import {
   createProviderCredentialEnv,
   readJsonRequestBody,
@@ -50,15 +50,6 @@ export function createOpenAIIntentInterpreter(
       createProviderCredentialEnv("OPENAI_API_KEY", "test-api-key"),
     fetch: options.fetch ?? vi.fn(),
   });
-}
-
-interface OpenAIIntentRequestBody extends OpenAIResponsesRequestBody {
-  reasoning?: { effort: string };
-  text: {
-    format: {
-      schema: unknown;
-    };
-  };
 }
 
 export function readOpenAIIntentRequestBody(

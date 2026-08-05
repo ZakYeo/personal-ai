@@ -5,6 +5,7 @@ import {
   type OpenAIResponsesConfig,
 } from "./openai-responses-config.js";
 import { requestOpenAIResponse } from "./openai-responses-client.js";
+import type { OpenAIWebSearchRequestBody } from "./openai-responses-request.js";
 import { OpenAIWebSearchError } from "./openai-web-search-error.js";
 import { parseOpenAIWebSearchResponse } from "./openai-web-search-parser.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
@@ -27,7 +28,7 @@ export function createOpenAIWebSearch(
           ...createOpenAIReasoningRequestConfig(options.config),
           tool_choice: "required",
           tools: [{ search_context_size: "low", type: "web_search" }],
-        },
+        } satisfies OpenAIWebSearchRequestBody,
         cancelledMessage: "OpenAI web search request was cancelled.",
         config: options.config,
         createError: ({ cause, message, responseBody, status }) =>

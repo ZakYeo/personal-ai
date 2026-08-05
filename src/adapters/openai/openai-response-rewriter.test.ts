@@ -12,7 +12,7 @@ import {
 import { deterministicTestNow } from "../../test-support/primitives.js";
 import { OpenAIResponseRewriter } from "./openai-response-rewriter.js";
 import type { OpenAIResponseRewriterError } from "./openai-response-rewriter.js";
-import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
+import type { OpenAIResponseRewriteRequestBody } from "./openai-responses-request.js";
 
 const context = {
   clock: {
@@ -220,11 +220,6 @@ function createRewriter(options: CreateRewriterOptions = {}) {
       createProviderCredentialEnv("OPENAI_API_KEY", "test-openai-api-key"),
     fetch: options.fetch ?? vi.fn(),
   });
-}
-
-interface OpenAIResponseRewriteRequestBody extends OpenAIResponsesRequestBody {
-  reasoning?: { effort: string };
-  text: { format: { schema: unknown } };
 }
 
 function readRequestBody(

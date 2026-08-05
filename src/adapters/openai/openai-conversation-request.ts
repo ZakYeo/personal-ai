@@ -10,7 +10,7 @@ import {
 } from "./openai-responses-config.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 import { formatOpenAIConversationStateMessages } from "./openai-conversation-state.js";
-import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
+import type { OpenAIConversationRequestBody } from "./openai-responses-request.js";
 
 export function createOpenAIConversationRequestBody(
   input: string,
@@ -65,7 +65,7 @@ export function createOpenAIConversationRequestBody(
         type: "json_schema",
       },
     },
-  } satisfies OpenAIResponsesRequestBody;
+  } satisfies OpenAIConversationRequestBody;
 }
 
 export function createOpenAIConversationCompactionRequestBody(
@@ -101,7 +101,7 @@ export function createOpenAIConversationCompactionRequestBody(
         type: "json_schema",
       },
     },
-  } satisfies OpenAIResponsesRequestBody;
+  } satisfies OpenAIConversationRequestBody;
 }
 
 const conversationResponseSchema = {
