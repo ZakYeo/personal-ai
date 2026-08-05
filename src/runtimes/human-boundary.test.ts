@@ -49,4 +49,33 @@ describe("assistant diagnostic logging", () => {
       "Unexpected assistant failure: unexpected failure\n",
     ]);
   });
+
+  it("logs bounded provider fields from assistant diagnostic causes", () => {
+    const stderr = createCapturedWriter();
+    const responseBody = `provider details ${"x".repeat(2_100)}`;
+    const providerError = Object.assign(new Error("OpenAI intent failed."), {
+      responseBody,
+      status: 400,
+    });
+
+    logAssistantDiagnostics(
+      [
+        {
+          category: "unexpected",
+          cause: providerError,
+          message: "OpenAI intent request failed with status 400.",
+        },
+      ],
+      { stderr },
+    );
+
+    expect(stderr.writes).toEqual([
+      "Unexpected assistant failure: OpenAI intent request failed with status 400.\n",
+      expect.stringContaining(
+        "Unexpected assistant failure cause: Error: OpenAI intent failed.",
+      ),
+      "Unexpected assistant failure cause status: 400\n",
+      `Unexpected assistant failure cause response body: ${responseBody.slice(0, 2_000)}...\n`,
+    ]);
+  });
 });

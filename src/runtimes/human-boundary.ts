@@ -36,9 +36,16 @@ export function logAssistantDiagnostics(
     io.stderr?.write(`${label}${capability}: ${diagnostic.message}\n`);
 
     if (diagnostic.cause !== undefined) {
+      const causePrefix = `${label} cause${capability}`;
       io.stderr?.write(
-        `${label} cause${capability}: ${formatDiagnosticCause(diagnostic.cause)}\n`,
+        `${causePrefix}: ${formatDiagnosticCause(diagnostic.cause)}\n`,
       );
+      for (const causeDiagnostic of formatDiagnosticFields(
+        diagnostic.cause,
+        causePrefix,
+      )) {
+        io.stderr?.write(causeDiagnostic);
+      }
     }
   }
 }
@@ -48,7 +55,7 @@ export function logRuntimeFailure(error: unknown, io: HumanBoundaryIo): void {
 
   io.stderr?.write(`Runtime failure: ${message}\n`);
 
-  for (const diagnostic of formatRuntimeDiagnosticFields(error)) {
+  for (const diagnostic of formatDiagnosticFields(error, "Runtime failure")) {
     io.stderr?.write(diagnostic);
   }
 }
@@ -61,21 +68,22 @@ function formatDiagnosticCause(cause: unknown): string {
   return String(cause);
 }
 
-function formatRuntimeDiagnosticFields(error: unknown): string[] {
+function formatDiagnosticFields(error: unknown, prefix: string): string[] {
   if (!isRecord(error)) {
     return [];
   }
 
   return [
-    ...formatRuntimeDiagnosticNumberField("status", error.status),
-    ...formatRuntimeDiagnosticField("response body", error.responseBody),
-    ...formatRuntimeDiagnosticJsonField("event", error.event),
-    ...formatRuntimeDiagnosticField("stderr", error.stderr),
-    ...formatRuntimeDiagnosticField("stdout", error.stdout),
+    ...formatDiagnosticNumberField(prefix, "status", error.status),
+    ...formatDiagnosticField(prefix, "response body", error.responseBody),
+    ...formatDiagnosticJsonField(prefix, "event", error.event),
+    ...formatDiagnosticField(prefix, "stderr", error.stderr),
+    ...formatDiagnosticField(prefix, "stdout", error.stdout),
   ];
 }
 
-function formatRuntimeDiagnosticNumberField(
+function formatDiagnosticNumberField(
+  prefix: string,
   label: string,
   value: unknown,
 ): string[] {
@@ -83,10 +91,11 @@ function formatRuntimeDiagnosticNumberField(
     return [];
   }
 
-  return [`Runtime failure ${label}: ${value}\n`];
+  return [`${prefix} ${label}: ${value}\n`];
 }
 
-function formatRuntimeDiagnosticJsonField(
+function formatDiagnosticJsonField(
+  prefix: string,
   label: string,
   value: unknown,
 ): string[] {
@@ -95,7 +104,7 @@ function formatRuntimeDiagnosticJsonField(
   }
 
   return [
-    `Runtime failure ${label}: ${truncateDiagnostic(formatDiagnosticJson(value))}\n`,
+    `${prefix} ${label}: ${truncateDiagnostic(formatDiagnosticJson(value))}\n`,
   ];
 }
 
@@ -107,7 +116,8 @@ function formatDiagnosticJson(value: unknown): string {
   }
 }
 
-function formatRuntimeDiagnosticField(
+function formatDiagnosticField(
+  prefix: string,
   label: "response body" | "stderr" | "stdout",
   value: unknown,
 ): string[] {
@@ -115,7 +125,7 @@ function formatRuntimeDiagnosticField(
     return [];
   }
 
-  return [`Runtime failure ${label}: ${truncateDiagnostic(value.trim())}\n`];
+  return [`${prefix} ${label}: ${truncateDiagnostic(value.trim())}\n`];
 }
 
 function truncateDiagnostic(value: string): string {
