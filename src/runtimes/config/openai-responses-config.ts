@@ -1,4 +1,7 @@
-import type { OpenAIResponsesConfig } from "../../adapters/openai/openai-responses-config.js";
+import {
+  isOpenAIReasoningEffort,
+  type OpenAIResponsesConfig,
+} from "../../adapters/openai/openai-responses-config.js";
 import {
   isRecord,
   parseOptionalNonEmptyString,
@@ -21,6 +24,11 @@ export function parseOptionalOpenAIResponsesConfig(
     throw new Error(`${configPath}.model must be a non-empty string.`);
   }
 
+  const reasoningEffort = parseReasoningEffort(
+    value.reasoningEffort,
+    configPath,
+  );
+
   return {
     apiKeyEnv: parseOptionalNonEmptyString(
       value.apiKeyEnv,
@@ -33,12 +41,30 @@ export function parseOptionalOpenAIResponsesConfig(
       "https://api.openai.com/v1",
     ),
     model: value.model,
+    ...(reasoningEffort ? { reasoningEffort } : {}),
     timeoutMs: parseOptionalPositiveInteger(
       value.timeoutMs,
       `${configPath}.timeoutMs must be a positive integer.`,
       30_000,
     ),
   };
+}
+
+function parseReasoningEffort(
+  value: unknown,
+  configPath: string,
+): OpenAIResponsesConfig["reasoningEffort"] {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!isOpenAIReasoningEffort(value)) {
+    throw new Error(
+      `${configPath}.reasoningEffort must be one of "none", "low", "medium", "high", "xhigh", or "max".`,
+    );
+  }
+
+  return value;
 }
 
 export function parseOpenAIResponsesConfig(

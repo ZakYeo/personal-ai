@@ -70,6 +70,7 @@ describe("OpenAIResponseRewriter", () => {
     });
 
     const body = readRequestBody(fetch);
+    expect(body.reasoning).toEqual({ effort: "none" });
     expect(body.text.format.schema).toEqual({
       additionalProperties: false,
       properties: {
@@ -203,6 +204,7 @@ function createRewriter(options: CreateRewriterOptions = {}) {
       apiKeyEnv: "OPENAI_API_KEY",
       baseUrl: "https://api.openai.test/v1",
       model: "gpt-test",
+      reasoningEffort: "none" as const,
       timeoutMs: 30_000,
     },
     env:
@@ -214,6 +216,7 @@ function createRewriter(options: CreateRewriterOptions = {}) {
 
 function readRequestBody(fetch: typeof globalThis.fetch): {
   input: unknown;
+  reasoning?: { effort: string };
   text: { format: { schema: unknown } };
 } {
   return readJsonRequestBody(fetch);

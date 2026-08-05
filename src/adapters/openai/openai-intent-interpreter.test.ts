@@ -52,6 +52,7 @@ describe("OpenAIIntentInterpreter", () => {
     await interpretOnce(interpreter, "How old is he?", context, history);
 
     const body = readRequestBody(fetch);
+    expect(body.reasoning).toEqual({ effort: "none" });
     expect(JSON.stringify(body.input)).toContain("June 14, 1946");
     expect(JSON.stringify(body.input)).toContain("untrusted context only");
   });

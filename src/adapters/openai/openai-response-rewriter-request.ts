@@ -1,6 +1,9 @@
 import type { AssistantContext } from "../../ports/assistant.js";
 import type { ResponseRewriteRequest } from "../../ports/response-rewriter.js";
-import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
+import {
+  createOpenAIReasoningRequestConfig,
+  type OpenAIResponsesConfig,
+} from "./openai-responses-config.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 
 export function createOpenAIResponseRewriteRequestBody(
@@ -48,6 +51,7 @@ export function createOpenAIResponseRewriteRequestBody(
       },
     ],
     model: config.model,
+    ...createOpenAIReasoningRequestConfig(config),
     text: {
       format: {
         name: "response_rewrite",

@@ -61,6 +61,7 @@ describe("OpenAIConversationResponder", () => {
 
     const body = readRequestBody(fetch);
 
+    expect(body.reasoning).toEqual({ effort: "none" });
     expect(body.text.format.schema).toMatchObject({
       additionalProperties: false,
       properties: {
@@ -374,6 +375,7 @@ function createOptions(options: CreateConversationOptions = {}) {
       apiKeyEnv: "OPENAI_API_KEY",
       baseUrl: "https://api.openai.test/v1",
       model: "gpt-5.5",
+      reasoningEffort: "none" as const,
       timeoutMs: options.timeoutMs ?? 30_000,
     },
     ...(options.capabilityCatalog
@@ -388,6 +390,7 @@ function createOptions(options: CreateConversationOptions = {}) {
 
 interface RequestBody {
   input: unknown;
+  reasoning?: { effort: string };
   text: {
     format: {
       schema: unknown;

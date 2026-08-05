@@ -4,7 +4,10 @@ import {
   formatOpenAICapabilities,
   type OpenAIIntentCapability,
 } from "./openai-intent-request.js";
-import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
+import {
+  createOpenAIReasoningRequestConfig,
+  type OpenAIResponsesConfig,
+} from "./openai-responses-config.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
 import { formatOpenAIConversationStateMessages } from "./openai-conversation-state.js";
 
@@ -52,6 +55,7 @@ export function createOpenAIConversationRequestBody(
       },
     ],
     model: config.model,
+    ...createOpenAIReasoningRequestConfig(config),
     text: {
       format: {
         name: "conversation_response",
@@ -87,6 +91,7 @@ export function createOpenAIConversationCompactionRequestBody(
       ...formatOpenAIConversationStateMessages(state),
     ],
     model: config.model,
+    ...createOpenAIReasoningRequestConfig(config),
     text: {
       format: {
         name: "conversation_summary",

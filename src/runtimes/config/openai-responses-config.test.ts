@@ -24,6 +24,29 @@ describe("OpenAI Responses config parsing", () => {
     ).toBeUndefined();
   });
 
+  it("parses an explicit reasoning effort", () => {
+    expect(
+      parseOptionalOpenAIResponsesConfig(
+        { model: "gpt-5.6-luna", reasoningEffort: "none" },
+        "Config intent.openai",
+      ),
+    ).toMatchObject({
+      model: "gpt-5.6-luna",
+      reasoningEffort: "none",
+    });
+  });
+
+  it("rejects an unsupported reasoning effort", () => {
+    expect(() =>
+      parseOptionalOpenAIResponsesConfig(
+        { model: "gpt-5.6-luna", reasoningEffort: "minimal" },
+        "Config intent.openai",
+      ),
+    ).toThrow(
+      'Config intent.openai.reasoningEffort must be one of "none", "low", "medium", "high", "xhigh", or "max".',
+    );
+  });
+
   it("uses the caller-owned path in validation failures", () => {
     expect(() =>
       parseOptionalOpenAIResponsesConfig({}, "Config intent.openai"),

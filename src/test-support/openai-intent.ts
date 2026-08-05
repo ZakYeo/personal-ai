@@ -41,6 +41,7 @@ export function createOpenAIIntentInterpreter(
       apiKeyEnv: "OPENAI_API_KEY",
       baseUrl: "https://api.openai.test/v1",
       model: "gpt-5.5",
+      reasoningEffort: "none" as const,
       timeoutMs: options.timeoutMs ?? 30_000,
     },
     env:
@@ -52,6 +53,7 @@ export function createOpenAIIntentInterpreter(
 
 interface OpenAIIntentRequestBody {
   input: unknown;
+  reasoning?: { effort: string };
   text: {
     format: {
       schema: unknown;

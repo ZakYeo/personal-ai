@@ -3,7 +3,10 @@ import type { CapabilityCatalogEntry } from "../../ports/capability-catalog.js";
 import type { IntentClarificationContext } from "../../ports/intent.js";
 import type { ConversationState } from "../../ports/conversation.js";
 import type { AssistantResultReference } from "../../ports/result-reference.js";
-import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
+import {
+  createOpenAIReasoningRequestConfig,
+  type OpenAIResponsesConfig,
+} from "./openai-responses-config.js";
 import { createOpenAIIntentVariantInstructions } from "./openai-intent-output-contract.js";
 import { createOpenAIIntentOutputSchema } from "./openai-intent-output-schema.js";
 import { openAISpokenStyleInstruction } from "./openai-spoken-style.js";
@@ -48,6 +51,7 @@ export function createOpenAIIntentRequestBody(
       },
     ],
     model: config.model,
+    ...createOpenAIReasoningRequestConfig(config),
     ...(tools.length > 0 ? { parallel_tool_calls: false, tools } : {}),
     text: {
       format: {
@@ -164,6 +168,7 @@ export function createOpenAIIntentContinuationRequestBody(
         : undefined,
     ),
     model: config.model,
+    ...createOpenAIReasoningRequestConfig(config),
     parallel_tool_calls: false,
     previous_response_id: previousResponseId,
     text: {

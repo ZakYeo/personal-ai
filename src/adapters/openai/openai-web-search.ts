@@ -1,6 +1,9 @@
 import { internetSearchLimits } from "../../application/internet-search-policy.js";
 import type { InternetSearchPort } from "../../ports/internet-search.js";
-import type { OpenAIResponsesConfig } from "./openai-responses-config.js";
+import {
+  createOpenAIReasoningRequestConfig,
+  type OpenAIResponsesConfig,
+} from "./openai-responses-config.js";
 import { requestOpenAIResponse } from "./openai-responses-client.js";
 import { OpenAIWebSearchError } from "./openai-web-search-error.js";
 import { parseOpenAIWebSearchResponse } from "./openai-web-search-parser.js";
@@ -21,6 +24,7 @@ export function createOpenAIWebSearch(
         body: {
           input: createSearchInput(query.query, query.maxResults),
           model: options.config.model,
+          ...createOpenAIReasoningRequestConfig(options.config),
           tool_choice: "required",
           tools: [{ search_context_size: "low", type: "web_search" }],
         },
