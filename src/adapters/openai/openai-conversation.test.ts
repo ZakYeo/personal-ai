@@ -71,17 +71,18 @@ describe("OpenAIConversationResponder", () => {
       required: ["text", "expectsFollowUp"],
     });
     const messages = body.input as Array<{
-      content: Array<{ text: string; type: string }>;
+      content: string | Array<{ text: string; type: string }>;
       role: string;
     }>;
-    expect(messages[0]?.content[0]?.text).not.toContain("How are you?");
-    expect(messages[0]?.content[0]?.text).not.toContain(
+    const serializedInstructions = JSON.stringify(messages[0]);
+    expect(serializedInstructions).not.toContain("How are you?");
+    expect(serializedInstructions).not.toContain(
       "The user is checking in casually.",
     );
     expect(messages).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          content: [{ text: "How are you?", type: "input_text" }],
+          content: "How are you?",
           role: "user",
         }),
       ]),

@@ -23,7 +23,7 @@ export function formatOpenAIConversationStateMessages(
 
 function createInputMessage(role: ConversationTurn["role"], text: string) {
   return {
-    content: [{ text, type: "input_text" }],
+    content: text,
     role,
   };
 }
