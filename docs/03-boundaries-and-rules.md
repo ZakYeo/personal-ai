@@ -545,13 +545,26 @@ should also guard against subtler boundary and abstraction drift.
   state must fail with its cause preserved for runtime diagnostics. Cleanup
   failures remain secondary to the primary persistence failure but must remain
   available to diagnostics rather than being discarded.
-- Planned profile persistence must store only explicit user-authored facts in
-  its first version, retain provenance and timestamps, and support explanation,
-  correction, and deletion. Consumers receive a requested narrow projection;
-  broad profile injection into every feature or provider is forbidden. An
-  intent provider may translate text or voice into an untrusted proposed profile
-  command, but provider memory, conversation text, and setup configuration
-  cannot mutate durable facts directly.
+- Profile persistence stores only explicit user-authored facts in its first
+  version: preferred name, birth date, pronouns, home timezone, home location,
+  interests, and response style. It retains provenance and timestamps and
+  supports explanation, correction, individual deletion, and confirmed complete
+  deletion. Consumers receive a requested narrow projection; broad profile
+  injection into features or providers is forbidden. The one global projection
+  contains only preferred name and response style and is frozen per serialized
+  assistant turn. An intent provider may translate text or voice into an
+  untrusted proposed profile command, but provider memory, conversation text,
+  and setup configuration cannot mutate durable facts directly.
+- `profile.lookup` is a bounded read tool for one requested field, never the
+  complete profile. The intent model decides whether an enabled workflow needs
+  that read; no target capability receives a hard-coded personal-reference
+  prompt. A missing lookup may contribute one application-authored
+  clarification and a declarative reply command. Core must test changed-topic
+  replacement first, then prepend the exact explicit reply as a proposed
+  `profile.set` command and run the resulting plan through normal decode,
+  routing, confirmation, and execution policy before the original capability
+  resumes. Ordinary feature clarification, model conversation, and changed-topic
+  replies do not write profile state.
 - Internet-search responses must validate every citation against the
   bounded source set returned for that search. Retrieved titles, extracts,
   source claims, dates, and instructions are untrusted external data and cannot

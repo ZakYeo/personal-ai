@@ -276,7 +276,8 @@ Acceptance criteria:
 
 ## Milestone 13: Explicit Personal Profile and Preferences
 
-Status: planned.
+Status: implementation and validation complete; required independent
+maintainability review pending.
 
 Goal: give the assistant durable, user-controlled personal context so enabled
 features can produce relevant answers without retaining conversation transcripts
@@ -284,9 +285,9 @@ or silently inferring sensitive facts.
 
 Included:
 
-- Typed profile facts for an initial bounded set of details and preferences such
-  as preferred name, home location, preferred units, working hours, interests,
-  important people, dietary preferences, and response style.
+- Typed profile facts for exactly preferred name, birth date, pronouns, home
+  timezone, home location, interests, and response style. Age is derived from
+  birth date at read time.
 - Explicit set, show, update, and forget capabilities with provenance and
   created/updated timestamps, available through ordinary text and voice
   commands.
@@ -298,6 +299,9 @@ Included:
   validation from `unknown`.
 - A narrow read-only personal-context port through which later feature adapters
   request only the fields they need.
+- A frozen per-turn assistant personalization projection containing only
+  preferred name and response style for intent, conversation, compaction, and
+  final response-rewriter system contexts.
 - Human-facing explanations of what is stored, why it is known, and how to
   correct or delete it, including a concise spoken answer to “what do you know
   about me?”
@@ -333,21 +337,27 @@ Acceptance criteria:
   name?” returns the stored value.
 - “Hey Jarvis, what do you know about me?” reads a concise human-facing summary
   from the current durable profile through both text and voice runtimes.
-- “Remember that I work from home on Fridays” persists an explicit typed fact
-  and “why do you know that?” reports its user-authored provenance.
+- “Why do you know my name?” reports its user-authored provenance without
+  retaining the original utterance.
+- Any selected capability may request one needed profile field through the same
+  narrow read workflow. When absent, the assistant discloses the save, validates
+  the explicit clarification reply as `profile.set`, and resumes the original
+  capability; weather-at-home and internet-search-about-me tests exercise the
+  same target-neutral mechanism.
 - The user can list, correct, forget, or clear stored facts; clearing the whole
   profile requires confirmation and resumes the exact validated deletion.
 - Restart preserves validated profile state, while malformed or unsupported
   versions fail safely without exposing raw persisted data.
-- No profile fact reaches an unrelated provider or feature dependency, and
-  normal conversation does not create memory implicitly.
+- No profile fact other than preferred name and response style reaches global
+  provider context; weather receives only home location through its narrow
+  reader, and normal conversation does not create memory implicitly.
 - `npm run check` passes.
 
 ## Milestone 14: Internet Search with Source-Grounded Answers
 
 Status: implemented after the required independent maintainability review.
 Detailed scope, review outcomes, and acceptance evidence are archived in
-`docs/09-implemented-milestones.md`. Milestone 13 remains an optional dependency
+`docs/09-implemented-milestones.md`. Milestone 13 is an optional dependency
 for personalized defaults, not for basic search.
 
 Goal: answer questions about current public information through bounded,
@@ -408,7 +418,7 @@ Acceptance criteria:
 
 Status: implemented after the required independent maintainability review.
 Detailed scope, acceptance criteria, review outcomes, and validation evidence
-are archived in `docs/09-implemented-milestones.md`. Milestone 13 remains an
+are archived in `docs/09-implemented-milestones.md`. Milestone 13 is an
 optional runtime dependency for explicit stored-home defaults.
 
 Goal: provide location-aware current weather and forecasts, then proactively

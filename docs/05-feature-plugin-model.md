@@ -73,7 +73,10 @@ Examples:
 - `alarm.list`
 - `profile.show`
 - `profile.set`
+- `profile.lookup`
+- `profile.explain`
 - `profile.forget`
+- `profile.clear`
 - `internet.search`
 - `internet.follow_up`
 - `weather.coat`
@@ -198,6 +201,18 @@ Profile utterances from text or voice follow the normal intent pipeline:
 providers propose `profile.set`, core decodes and validates its typed fact, and
 only then may the profile feature update durable state. `profile.show` reads the
 same store for requests such as “what do you know about me?”
+`profile.explain` reports user-authored provenance, `profile.forget` removes one
+selected fact, and high-risk `profile.clear` requires confirmation. Profile
+results disable response rewriting so private facts are not sent through a
+second provider request.
+`profile.lookup` is a tool-chain-eligible read for exactly one bounded field. A
+feature read may return a trusted tool-clarification declaration alongside its
+safe observation. If the intent provider confirms that the missing fact is
+needed by returning a clarification, core uses the application-authored prompt
+and, after a topic-stable answer, prepends the declared reply command to the
+resolved terminal command or plan. Both steps still pass ordinary command and
+plan validation; features do not mutate one another or receive the complete
+profile.
 
 ## Feature Authoring Conventions
 

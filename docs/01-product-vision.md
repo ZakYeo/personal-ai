@@ -70,8 +70,9 @@ implementation are present after their required independent maintainability
 reviews. Milestone 16 is also implemented after its independent maintainability
 review; it adds durable named lists,
 revision-checked tasks, bounded result-reference follow-ups, and restart-safe
-reminder delivery without treating delivery as task completion. Milestones 13
-and 17 prioritize an explicit personal profile and proactive daily briefings.
+reminder delivery without treating delivery as task completion. Milestone 13's
+explicit personal profile is implemented and awaiting its required independent
+maintainability review. Milestone 17 prioritizes proactive daily briefings.
 The goal is a more personalized everyday assistant while preserving the
 existing validation, confirmation, privacy, and runtime-boundary guarantees.
 Smart-home control, a personal knowledge library, and adaptive memory remain
@@ -81,6 +82,16 @@ The profile begins empty and is managed through normal text or voice requests
 such as “set my name to Zak” and “what do you know about me?” The language model
 may interpret those requests, but validated application commands and local
 profile storage—not model memory or hardcoded configuration—own durable facts.
+The first bounded profile contains preferred name, birth date, pronouns, home
+timezone, home location, interests, and response style. Only preferred name and
+response style are projected automatically into model system context; features
+receive separate narrow readers such as weather's explicit home-location reader.
+The model may also call one narrow profile lookup when any enabled request
+depends on a personal fact. If that fact is absent, the application asks for it
+with explicit save disclosure, validates the answer through the normal profile
+command, and resumes the original capability. The mechanism is independent of
+the target feature: weather-at-home and internet-search-about-me requests follow
+the same bounded workflow, while changed-topic replies do not write state.
 Weather uses Open-Meteo's key-free non-commercial API with required attribution.
 Its current, hourly, and daily forecasts preserve exact location, timezone,
 units, period, and freshness facts. Explicit weather watches persist local state,

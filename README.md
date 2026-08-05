@@ -85,6 +85,10 @@ Implemented today:
   keeps exact telemetry that was not requested in protected data.
 - Durable precipitation, temperature, and wind watches with exact confirmation,
   restart-safe claim-before-delivery evaluation, and shared service output.
+- Explicit personal profiles for preferred name, birth date, pronouns, home
+  timezone, home location, interests, and response style, with provenance,
+  correction/deletion controls, durable local storage, and narrow runtime
+  projections.
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events
   port, with a three-month default upcoming window and refresh-token OAuth
   support.
@@ -143,12 +147,13 @@ Current roadmap position:
   Milestone 15 is implemented after its required independent maintainability
   review. It uses Open-Meteo's key-free non-commercial API, durable local watch
   state, bounded concurrent evaluation, and a narrow optional reader for the
-  explicit home location that Milestone 13 will own. Milestone 16 is implemented
+  explicit home location owned by Milestone 13. Milestone 16 is implemented
   after its required independent maintainability review, including durable
   lists, revision-checked tasks, restart-safe reminder delivery,
   text/voice/service integration, exact opaque task follow-ups, and opt-in live
-  OpenAI smoke-test support. The remaining roadmap prioritizes explicit
-  personal profiles and scheduled daily briefings. Profiles will be
+  OpenAI smoke-test support. Milestone 13's implementation and deterministic
+  smoke coverage are complete and awaiting its required independent review.
+  The remaining roadmap prioritizes scheduled daily briefings. Profiles are
   created and edited through validated text and voice commands rather than
   hardcoded setup. Smart-home control, a personal
   knowledge library, and adaptive memory remain unnumbered future considerations
@@ -213,9 +218,9 @@ placeholder fields.
 
 The default desktop OpenAI voice service config used by `npm start` selects the
 Google Calendar adapter, OpenAI internet search, the OpenAI response rewriter,
-Open-Meteo weather, and config-relative durable alarm, weather-watch, and task
-stores. This enables every currently implemented feature; explicit personal
-profiles and daily briefings remain planned milestones. Internet search reuses
+Open-Meteo weather, and config-relative durable alarm, weather-watch, task, and
+profile stores. This enables every currently implemented feature; daily
+briefings remain planned. Internet search reuses
 `OPENAI_API_KEY`; its bounded source annotations become sanitized natural source
 titles with validated HTTPS link metadata, while raw URLs and citation markup
 are excluded from initial and follow-up speech. Retrieved text remains untrusted
@@ -472,6 +477,8 @@ tests are not part of `npm run check`; normal validation remains deterministic
 and network-free.
 Run `npm run test:e2e:openai:tasks` for the focused persistent-task reminder
 smoke.
+Run `npm run test:e2e:openai:profile` for the focused live explicit-profile
+routing smoke.
 Run `npm run test:e2e:openai:plans` for the focused live compound calendar and
 alarm plan smoke.
 Run `npm run test:e2e:open-meteo` for the focused key-free live Open-Meteo
@@ -570,6 +577,24 @@ task mutations use revision checks, versioned parsing from unknown JSON,
 same-directory atomic replacement, directory synchronization, and private
 directory/file modes.
 
+Personal profiles are configured through `features.profile.adapter`. The
+checked-in default and deterministic desktop demo use `local`; the desktop
+OpenAI config persists to `state/profile.json`, and the Pi example persists to
+`/var/lib/personal-ai/profile.json`. Set or update facts with requests such as
+“set my name to Zak,” inspect them with “what do you know about me?”, explain
+their provenance, forget individual facts, or clear the complete profile after
+confirmation. Only preferred name and response style are injected into every
+model system context when present. Weather separately receives only the stored
+home location. Normal conversation never writes profile state.
+For any enabled capability whose meaning depends on a personal detail, the model
+can use one narrow `profile.lookup` read rather than receiving the whole profile.
+If that requested fact is absent, the application discloses that the answer will
+be saved, validates the explicit reply through `profile.set`, and then resumes
+the original capability. This same bounded flow supports requests such as
+weather at home or an internet search about the user without case-specific
+target-feature prompting. Changed-topic replies and ordinary feature
+clarifications do not write profile state.
+
 ## Scripts
 
 Common development commands:
@@ -584,6 +609,8 @@ Common development commands:
   persistent-task reminder smoke.
   Trusted Codex sessions load `.codex/rules/openai-task-smoke.rules`, which
   allowlists this exact command after Codex is restarted.
+- `npm run test:e2e:openai:profile` - run the focused opt-in live OpenAI
+  explicit-profile routing smoke.
 - `npm run test:e2e:openai:plans` - run the focused opt-in live OpenAI compound
   plan smoke.
 - `npm run test:e2e:openai:calendar-followup` - run the focused opt-in live

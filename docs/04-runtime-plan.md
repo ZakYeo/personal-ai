@@ -546,6 +546,28 @@ voice profile commands use
 the same assistant-owned validation and feature execution path; voice
 composition does not receive a separate hardcoded profile.
 
+Profile storage is selected through `features.profile.adapter`. The
+deterministic default and desktop demo use process-local `local` state. The
+desktop OpenAI config uses `state/profile.json` relative to its config file,
+and the Pi example uses `/var/lib/personal-ai/profile.json`. The selected
+adapter contributes the exact store plus narrow personalization and home-location
+readers before feature construction. Each assistant turn reads at most one
+frozen preferred-name/response-style snapshot inside the serialized interaction;
+read failure continues without personalization and emits an internal
+`personalization_failure` diagnostic. `src/runtimes/profile-runtime.smoke.test.ts`
+exercises durable text restart and voice composition. The opt-in
+`npm run test:e2e:openai:profile` smoke exercises live structured routing.
+The profile feature also exposes `profile.lookup` as a bounded read tool for one
+field. General intent instructions tell the model to use that tool whenever a
+selected capability depends on a personal fact, without naming target-feature
+examples. A missing lookup carries an application-authored save disclosure and
+declarative `profile.set` reply command through the neutral tool-chain outcome.
+Core checks changed-topic replacement before prepending that command to the
+provider-resolved terminal command or plan; the ordinary plan validator and
+executor then save the explicit answer before resuming the target capability.
+The configured runtime smoke covers this sequence with weather while the core
+contract covers the same mechanism with internet search.
+
 Internet search is selected through `features.internetSearch.adapter`. The
 checked-in deterministic configs use `mock`; desktop and Pi OpenAI operator
 configs select `openai`, capture typed Responses configuration during config

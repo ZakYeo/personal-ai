@@ -193,6 +193,8 @@ Deterministic and local adapters include:
 - Local/in-memory and versioned JSON-file task storage adapters implementing
   the task store port with cloned records, deterministic schema migration,
   revision checks, and atomic durable replacement.
+- Local/in-memory and versioned JSON-file profile storage adapters containing
+  only validated user-authored facts with provenance and timestamps.
 - A voice alarm-delivery adapter that composes the configured synthesis and
   audio-output path for each delivery attempt. A runtime-owned output
   coordinator serializes that path with ordinary response speech without
@@ -226,6 +228,16 @@ adapters without making features import or invoke one another:
   read-only personal-context port exposes only requested fields to composed
   consumers. Intent providers may propose profile commands from text or voice,
   but only decoded application commands can mutate the store.
+  Runtime composition projects only preferred name and response style into each
+  assistant turn's provider context. Feature-specific consumers use separate
+  typed projections; weather receives only the stored home location.
+  A `profile.lookup` capability is an eligible bounded read tool for exactly one
+  named profile field. When its safe observation reports a missing fact, the
+  read contributes an application-authored clarification declaration. Core
+  asks that question, converts the explicit answer into a validated
+  `profile.set` step, and then resumes the provider-selected terminal command or
+  plan. The mechanism is target-feature-neutral and changed-topic replies are
+  handled before any save step is constructed.
 - Implemented internet search uses a read-only provider port with deterministic
   and OpenAI Responses web-search adapters. Core retains at most ten safe opaque
   source snapshots for three subsequent completed turns without inventing or

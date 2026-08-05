@@ -3,8 +3,8 @@
 This guide deploys the built `pi-service` runtime as a long-running systemd
 service. The service runs as the locked-down `personal-ai` account, reads
 operator-owned configuration from `/etc/personal-ai`, runs application files
-from `/opt/personal-ai`, and keeps durable alarm, weather-watch, and task state
-under `/var/lib/personal-ai`.
+from `/opt/personal-ai`, and keeps durable alarm, weather-watch, task, and
+profile state under `/var/lib/personal-ai`.
 
 The committed unit and config are examples. Review audio device names, commands,
 and provider choices on the target Pi before enabling the service.
@@ -40,6 +40,13 @@ claims due reminders before spoken output and persists successful delivery
 without completing the task. Delivered or uncertain claimed attempts are not
 automatically replayed after restart. Terminal reminder details older than 30
 days are removed at startup and daily while the underlying tasks remain.
+
+The Pi profile adapter stores explicitly authored facts at
+`/var/lib/personal-ai/profile.json`. The file is created with mode `0600` in a
+`0700` state directory and replaced atomically after syncing its contents.
+Profile commands can explain, correct, forget, or clear this state; clearing the
+complete profile requires confirmation. Provider credentials never belong in
+the profile file.
 
 ## Device prerequisites
 
@@ -95,7 +102,7 @@ sudo mv -Tf /opt/personal-ai.next /opt/personal-ai
 ```
 
 Install the operator-owned config and environment directories. The example uses
-persistent alarm, weather-watch, and task paths created by the unit's
+persistent alarm, weather-watch, task, and profile paths created by the unit's
 `StateDirectory=personal-ai` setting.
 
 ```bash
