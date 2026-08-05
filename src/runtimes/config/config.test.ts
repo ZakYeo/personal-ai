@@ -157,10 +157,25 @@ describe("loadConfig", () => {
     ]);
     expect(desktopVoice?.audioOutput?.timeoutMs).toBe(60_000);
     expect(desktopVoice?.streamingAudioOutput?.timeoutMs).toBe(60_000);
-    expect(desktopVoice?.audioOutput?.args?.slice(-2)).toEqual(["pad", "0.25"]);
+    expect(desktopVoice?.audioOutput?.args?.slice(-2)).toEqual(["pad", "0.75"]);
     expect(desktopVoice?.streamingAudioOutput?.args?.slice(-2)).toEqual([
       "pad",
-      "0.25",
+      "0.75",
+    ]);
+  });
+
+  it("pre-rolls Pi playback before speech reaches a cold audio sink", async () => {
+    const config = await loadConfig({
+      configPath: "config/pi-voice-openai.example.json",
+    });
+
+    expect(config.desktopVoice?.audioOutput?.args?.slice(-2)).toEqual([
+      "pad",
+      "0.75",
+    ]);
+    expect(config.desktopVoice?.streamingAudioOutput?.args?.slice(-2)).toEqual([
+      "pad",
+      "0.75",
     ]);
   });
 

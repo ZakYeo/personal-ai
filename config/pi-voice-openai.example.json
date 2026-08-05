@@ -80,7 +80,9 @@
         "16",
         "-c",
         "1",
-        "-"
+        "-",
+        "pad",
+        "0.75"
       ],
       "timeoutMs": 30000
     },
@@ -152,7 +154,7 @@
     },
     "audioOutput": {
       "command": "play",
-      "args": ["-q", "{input}"],
+      "args": ["-q", "{input}", "pad", "0.75"],
       "timeoutMs": 10000
     }
   },

@@ -772,8 +772,9 @@ input and output devices and allowlists only `PULSE_SERVER` for those commands.
 Its batch and streaming playback commands use a 60-second deadline so valid
 longer spoken responses are not terminated at the previous 10-second batch or
 30-second streaming deadline.
-Both playback commands add 250 ms of leading silence so WSLg can activate the
-PulseAudio sink before the first speech sample.
+The checked-in desktop and Pi batch and streaming playback commands add 750 ms
+of leading silence so a cold PulseAudio or ALSA sink and attached amplifier can
+activate before the first speech sample.
 The openWakeWord sidecar selects the same source when `PULSE_SERVER` is present,
 falls back to the native SoX default recorder otherwise, and suppresses the
 known unavailable-CUDA warning when its pinned ONNX runtime is CPU-only.
