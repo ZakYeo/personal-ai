@@ -2,6 +2,7 @@ import { env } from "node:process";
 
 import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interpreter.js";
 import type { AssistantContext } from "../ports/assistant.js";
+import type { ConversationState } from "../ports/conversation.js";
 import { interpretOnce } from "../application/intent.js";
 import { enabledDeterministicConfig } from "../test-support/deterministic-runtime-fixtures.js";
 import { createConfiguredFeatures } from "./feature-adapter-selection.js";
@@ -108,6 +109,16 @@ const liveConversationScenarios = [
   "That was helpful, cheers.",
 ] as const;
 
+const priorConversation: ConversationState = {
+  recentTurns: [
+    { content: "How are you today?", role: "user" },
+    {
+      content: "I am doing well, thank you. Ready to help.",
+      role: "assistant",
+    },
+  ],
+};
+
 const runOpenAIE2E = env.PERSONAL_AI_RUN_OPENAI_E2E === "1";
 
 describe.skipIf(!runOpenAIE2E)("OpenAI intent routing live E2E", () => {
@@ -170,6 +181,23 @@ describe.skipIf(!runOpenAIE2E)("OpenAI intent routing live E2E", () => {
     },
     30_000,
   );
+
+  it("routes an intent after prior assistant conversation history", async () => {
+    const interpretation = await interpretOnce(
+      createInterpreter(),
+      "Can you check my calendar for upcoming events?",
+      context,
+      priorConversation,
+    );
+    const command =
+      interpretation.kind === "command"
+        ? interpretation.command
+        : interpretation.kind === "tool_call"
+          ? interpretation.call.command
+          : undefined;
+
+    expect(command?.capability).toBe("calendar.search_events");
+  }, 30_000);
 });
 
 function createInterpreter(): OpenAIIntentInterpreter {
