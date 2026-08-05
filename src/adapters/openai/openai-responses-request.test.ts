@@ -1,4 +1,7 @@
-import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
+import type {
+  OpenAIResponsesPlainTextMessage,
+  OpenAIResponsesRequestBody,
+} from "./openai-responses-request.js";
 
 describe("OpenAI Responses request contract", () => {
   it("models valid manually managed conversation history", () => {
@@ -11,6 +14,17 @@ describe("OpenAI Responses request contract", () => {
     };
 
     expect(request.input).toHaveLength(2);
+  });
+
+  it("models plain text independently of the message role", () => {
+    const messages: OpenAIResponsesPlainTextMessage[] = [
+      { content: "System guidance", role: "system" },
+      { content: "Developer guidance", role: "developer" },
+      { content: "User request", role: "user" },
+      { content: "Assistant answer", role: "assistant" },
+    ];
+
+    expect(messages).toHaveLength(4);
   });
 
   it("rejects input_text content on assistant history messages at compile time", () => {

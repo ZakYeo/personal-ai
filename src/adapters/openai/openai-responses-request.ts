@@ -1,15 +1,15 @@
-export interface OpenAIResponsesInputText {
+interface OpenAIResponsesInputText {
   readonly text: string;
   readonly type: "input_text";
 }
 
-export interface OpenAIResponsesAssistantMessage {
+export interface OpenAIResponsesPlainTextMessage {
   readonly content: string;
-  readonly role: "assistant";
+  readonly role: "assistant" | "developer" | "system" | "user";
 }
 
-export interface OpenAIResponsesPromptMessage {
-  readonly content: string | readonly OpenAIResponsesInputText[];
+interface OpenAIResponsesStructuredInputMessage {
+  readonly content: readonly OpenAIResponsesInputText[];
   readonly role: "developer" | "system" | "user";
 }
 
@@ -20,9 +20,9 @@ interface OpenAIResponsesFunctionCallOutput {
 }
 
 export type OpenAIResponsesInputItem =
-  | OpenAIResponsesAssistantMessage
   | OpenAIResponsesFunctionCallOutput
-  | OpenAIResponsesPromptMessage;
+  | OpenAIResponsesPlainTextMessage
+  | OpenAIResponsesStructuredInputMessage;
 
 export interface OpenAIResponsesRequestBody {
   readonly [property: string]: unknown;

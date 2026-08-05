@@ -2,18 +2,11 @@ import type {
   ConversationState,
   ConversationTurn,
 } from "../../ports/conversation.js";
-import type {
-  OpenAIResponsesAssistantMessage,
-  OpenAIResponsesPromptMessage,
-} from "./openai-responses-request.js";
-
-type OpenAIConversationStateMessage =
-  | OpenAIResponsesAssistantMessage
-  | OpenAIResponsesPromptMessage;
+import type { OpenAIResponsesPlainTextMessage } from "./openai-responses-request.js";
 
 export function formatOpenAIConversationStateMessages(
   state: ConversationState,
-): OpenAIConversationStateMessage[] {
+): OpenAIResponsesPlainTextMessage[] {
   return [
     ...(state.summary
       ? [
@@ -32,13 +25,6 @@ export function formatOpenAIConversationStateMessages(
 function createInputMessage(
   role: ConversationTurn["role"],
   text: string,
-): OpenAIConversationStateMessage {
-  if (role === "assistant") {
-    return { content: text, role };
-  }
-
-  return {
-    content: text,
-    role,
-  };
+): OpenAIResponsesPlainTextMessage {
+  return { content: text, role };
 }
