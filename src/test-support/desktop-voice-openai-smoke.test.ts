@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { loadConfig } from "../runtimes/config/config.js";
 import { createFileFedDesktopVoiceOpenAISmokeConfig } from "./desktop-voice-openai-smoke.js";
 
@@ -23,6 +25,49 @@ describe("desktop voice OpenAI smoke support", () => {
       enabled: false,
     });
   });
+
+  it.each([
+    ["desktop", "config/local-desktop-voice-openai.json", true],
+    ["Pi", "config/pi-voice-openai.example.json", false],
+  ])(
+    "pins every active OpenAI Responses workload in the %s config to Luna with Nano-compatible reasoning",
+    async (_name, configPath, hasResponseRewriter) => {
+      const rawConfig: unknown = JSON.parse(await readFile(configPath, "utf8"));
+
+      expect(rawConfig).toMatchObject({
+        conversation: {
+          openai: {
+            model: "gpt-5.6-luna",
+            reasoningEffort: "none",
+          },
+        },
+        features: {
+          internetSearch: {
+            openai: {
+              model: "gpt-5.6-luna",
+              reasoningEffort: "none",
+            },
+          },
+        },
+        intent: {
+          openai: {
+            model: "gpt-5.6-luna",
+            reasoningEffort: "none",
+          },
+        },
+        ...(hasResponseRewriter
+          ? {
+              responseRewriter: {
+                openai: {
+                  model: "gpt-5.6-luna",
+                  reasoningEffort: "none",
+                },
+              },
+            }
+          : {}),
+      });
+    },
+  );
 });
 
 function commandCaptureEffects(

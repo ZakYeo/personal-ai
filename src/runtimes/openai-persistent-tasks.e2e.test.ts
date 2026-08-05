@@ -270,7 +270,10 @@ describe.skipIf(!runOpenAIE2E)(
   () => {
     it("routes and durably confirms a natural-language task reminder", async () => {
       const { configPath, statePath } = await writePersistentTaskRuntimeConfig(
-        createTaskConfig({ model: "gpt-5.4-nano" }),
+        createTaskConfig({
+          model: "gpt-5.6-luna",
+          reasoningEffort: "none",
+        }),
       );
       const assistant = await createConfiguredTextRuntime({
         configPath,

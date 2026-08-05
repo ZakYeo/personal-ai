@@ -178,7 +178,8 @@ function createInterpreter(): OpenAIIntentInterpreter {
     config: {
       apiKeyEnv: openAIApiKeyEnv,
       baseUrl: "https://api.openai.com/v1",
-      model: "gpt-5.4-nano",
+      model: "gpt-5.6-luna",
+      reasoningEffort: "none",
       timeoutMs: 30_000,
     },
     env: {

@@ -466,7 +466,7 @@ npm run test:e2e:openai
 This command is opt-in, calls the live OpenAI Responses API, covers casual
 conversation classification and routing for the currently enabled feature
 capabilities plus confirmed persistent alarm and task-reminder flows through
-configured assistants, uses `gpt-5.4-nano`, and may consume API quota.
+configured assistants, uses `gpt-5.6-luna`, and may consume API quota.
 Run `npm run test:e2e:openai:alarms` for only the persistent-alarm smoke. These
 tests are not part of `npm run check`; normal validation remains deterministic
 and network-free.

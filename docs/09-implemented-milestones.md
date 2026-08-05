@@ -828,7 +828,7 @@ Implemented structure:
   remains deterministic.
 - `npm run test:e2e:openai` provides opt-in live Responses API routing coverage
   for currently enabled feature capabilities using `OPENAI_API_KEY` from `.env`
-  and `gpt-5.4-nano`; it is excluded from normal deterministic validation.
+  and `gpt-5.6-luna`; it is excluded from normal deterministic validation.
 
 Completed implementation slices:
 

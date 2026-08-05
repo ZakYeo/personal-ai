@@ -72,11 +72,15 @@ function createLiveSearchConfig() {
         adapter: "openai",
         enabled: true,
         maxResults: 5,
-        openai: { model: "gpt-5.4-nano", timeoutMs: 45_000 },
+        openai: {
+          model: "gpt-5.6-luna",
+          reasoningEffort: "none",
+          timeoutMs: 45_000,
+        },
       },
     },
     intent: {
-      openai: { model: "gpt-5.4-nano" },
+      openai: { model: "gpt-5.6-luna", reasoningEffort: "none" },
       provider: "openai",
     },
     responseRewriter: { provider: "disabled" },

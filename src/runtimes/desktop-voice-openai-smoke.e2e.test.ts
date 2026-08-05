@@ -93,7 +93,9 @@ describe.skipIf(!runDesktopVoiceOpenAISmoke)(
         expect.arrayContaining([
           line('Now listening for wake word "hey jarvis".'),
           line("Wake word detected, now listening..."),
-          line("Assistant: There are no alarms set."),
+          expect.stringMatching(
+            /^Assistant: (?=.*\balarms?\b)(?=.*(?:\bno\b|don't|don’t)).*\n$/iu,
+          ),
         ]),
       );
       expect(progressOutput.writes.join("")).toMatch(

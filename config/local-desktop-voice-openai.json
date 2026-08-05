@@ -7,7 +7,8 @@
   "intent": {
     "provider": "openai",
     "openai": {
-      "model": "gpt-5.4-nano"
+      "model": "gpt-5.6-luna",
+      "reasoningEffort": "none"
     }
   },
   "conversation": {
@@ -16,13 +17,15 @@
       "maxTurnsBeforeCompaction": 5
     },
     "openai": {
-      "model": "gpt-5.4-nano"
+      "model": "gpt-5.6-luna",
+      "reasoningEffort": "none"
     }
   },
   "responseRewriter": {
     "provider": "openai",
     "openai": {
-      "model": "gpt-5.4-nano"
+      "model": "gpt-5.6-luna",
+      "reasoningEffort": "none"
     }
   },
   "voice": {
@@ -190,7 +193,8 @@
       "adapter": "openai",
       "maxResults": 5,
       "openai": {
-        "model": "gpt-5.4-nano"
+        "model": "gpt-5.6-luna",
+        "reasoningEffort": "none"
       }
     },
     "weather": {

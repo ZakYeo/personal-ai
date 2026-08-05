@@ -79,7 +79,7 @@ function createLiveAlarmConfig() {
       },
     },
     intent: {
-      openai: { model: "gpt-5.4-nano" },
+      openai: { model: "gpt-5.6-luna", reasoningEffort: "none" },
       provider: "openai",
     },
     responseRewriter: { provider: "disabled" },
