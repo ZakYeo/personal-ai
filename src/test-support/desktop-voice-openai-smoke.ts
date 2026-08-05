@@ -17,6 +17,14 @@ export function createFileFedDesktopVoiceOpenAISmokeConfig(
     );
   }
 
+  const calendar = config.features.calendar;
+
+  if (!calendar) {
+    throw new Error(
+      "Desktop voice OpenAI smoke config requires the calendar feature config.",
+    );
+  }
+
   return {
     ...config,
     desktopVoice: {
@@ -44,6 +52,29 @@ export function createFileFedDesktopVoiceOpenAISmokeConfig(
         timeoutMs: 30_000,
       },
     },
+    features: {
+      ...config.features,
+      calendar: disableFeature(calendar),
+    },
+  };
+}
+
+function disableFeature(
+  feature: LoadedRuntimeConfig["features"][string],
+): LoadedRuntimeConfig["features"][string] {
+  if (!feature.enabled) {
+    return feature;
+  }
+
+  return {
+    adapter: feature.adapter,
+    ...(feature.confirmationRequiredCapabilities
+      ? {
+          confirmationRequiredCapabilities:
+            feature.confirmationRequiredCapabilities,
+        }
+      : {}),
+    enabled: false,
   };
 }
 

@@ -18,6 +18,10 @@ describe("desktop voice OpenAI smoke support", () => {
     expect(streamingAudioInput?.args?.slice(-configuredEffects.length)).toEqual(
       configuredEffects,
     );
+    expect(config.features.calendar).toEqual({
+      adapter: "google",
+      enabled: false,
+    });
   });
 });
 

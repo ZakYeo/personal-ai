@@ -1,5 +1,5 @@
 import { env, stdout } from "node:process";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import { createFileFedDesktopVoiceOpenAISmokeConfig } from "../test-support/desktop-voice-openai-smoke.js";
 import { createCapturedWriter, line } from "../test-support/primitives.js";
@@ -54,6 +54,7 @@ describe.skipIf(!runDesktopVoiceOpenAISmoke)(
 
       const result = await runDesktopVoiceServiceRuntime({
         config,
+        configDirectory: resolve(dirname(desktopVoiceOpenAIConfigPath)),
         env: { [openAIApiKeyEnv]: env[openAIApiKeyEnv] },
         io: { fallbackOutput, progressOutput, stderr },
         now: () => new Date("2026-06-26T09:00:00.000Z"),
