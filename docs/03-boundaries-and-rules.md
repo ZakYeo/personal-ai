@@ -631,6 +631,17 @@ should also guard against subtler boundary and abstraction drift.
   Exact precipitation and wind are included only when decoded request flags say
   they were explicitly requested; fetch and all other exact facts remain in
   protected structured data.
+- Weather clothing advice has no category enum. The typed goal either assesses
+  one bounded arbitrary item or requests one outfit of at most four distinct
+  items, with an optional bounded occasion. The adviser sees only selected
+  normalized conditions, explicit metric units, and that narrow goal; its
+  structured output is parsed from `unknown`, checked for goal agreement and
+  spoken-text safety, and never supplies weather facts or final prose.
+- Clothing response construction and attribution remain application owned and
+  bypass the general response rewriter. An adviser or adviser-output failure
+  produces a safe temporary-unavailability response that retains the validated
+  weather facts and attribution, while the cause remains an internal feature
+  diagnostic. It does not retry through the retired category policy.
 - Internet search is terminal-only rather than an intent tool-chain read.
   Later intent interpretation may receive only opaque source ordinals and
   references, never retrieved titles, URLs, extracts, dates, or synthesized

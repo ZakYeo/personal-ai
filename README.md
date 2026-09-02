@@ -78,8 +78,9 @@ Implemented today:
   process-local source follow-ups.
 - Provider-neutral current and forecast weather with deterministic and
   key-free Open-Meteo adapters, protected location/timezone/unit/freshness
-  facts, explicit-home coat guidance, required source attribution, and
-  rank-aware place resolution that keeps persistent watches strict.
+  facts, provider-backed arbitrary-item and open-outfit guidance, required
+  source attribution, and rank-aware place resolution that keeps persistent
+  watches strict.
 - Concise weather speech that reports notable rain or wind naturally with
   current-versus-forecast wording, gives relative observation freshness, and
   keeps exact telemetry that was not requested in protected data.
@@ -219,8 +220,9 @@ placeholder fields.
 
 The default desktop OpenAI voice service config used by `npm start` selects the
 Google Calendar adapter, OpenAI internet search, the OpenAI response rewriter,
-Open-Meteo weather, and config-relative durable alarm, weather-watch, task, and
-profile stores. This enables every currently implemented feature; daily
+Open-Meteo weather, the narrow OpenAI weather-clothing adviser, and
+config-relative durable alarm, weather-watch, task, and profile stores. This
+enables every currently implemented feature; daily
 briefings remain planned. Internet search reuses
 `OPENAI_API_KEY`; its bounded source annotations become sanitized natural source
 titles with validated HTTPS link metadata, while raw URLs and citation markup
@@ -483,8 +485,8 @@ routing smoke.
 Run `npm run test:e2e:openai:plans` for the focused live compound calendar and
 alarm plan smoke.
 Run `npm run test:e2e:open-meteo` for the focused key-free live Open-Meteo
-adapter smoke, and `npm run test:e2e:openai:weather` for the focused live
-OpenAI-to-weather routing smoke.
+adapter smoke, and `npm run test:e2e:openai:weather` for live OpenAI weather
+routing, arbitrary-item clothing assessment, and open-outfit follow-up smoke.
 Run `npm run test:e2e:openai:pi` for the focused live alarm flow through Pi
 service composition. It does not validate physical audio hardware.
 
@@ -625,7 +627,7 @@ Common development commands:
 - `npm run test:e2e:open-meteo` - run the focused opt-in live key-free
   Open-Meteo adapter smoke.
 - `npm run test:e2e:openai:weather` - run the focused opt-in live OpenAI
-  weather-routing and Open-Meteo ranked-location smoke; requires
+  weather-routing, clothing-adviser, and Open-Meteo ranked-location smoke; requires
   `OPENAI_API_KEY`.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
 - `npm run lint` - run ESLint.

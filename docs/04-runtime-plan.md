@@ -525,7 +525,10 @@ The selected weather provider is Open-Meteo's free non-commercial forecast and
 geocoding service. Runtime config may select endpoint and timeout policy but has
 no weather API-key field or weather credential preflight. Checked-in
 deterministic config selects the mock provider and local watch state. Desktop
-and Pi OpenAI operator configs select Open-Meteo. The desktop config persists
+and Pi OpenAI operator configs select Open-Meteo. Weather config also requires
+an independent `clothingAdvisor.provider`: checked-in deterministic config uses
+the configless mock adviser, while OpenAI operator configs use a nested OpenAI
+Responses configuration and the normal `OPENAI_API_KEY` preflight. The desktop config persists
 watches to `state/weather-watches.json` relative to its config directory, while
 Pi uses `/var/lib/personal-ai/weather-watches.json`. The opt-in
 `npm run test:e2e:open-meteo` smoke exercises a live key-free current forecast.
@@ -548,7 +551,9 @@ topics. Compound plans and intermediate reads fail closed on this result.
 `expectsFollowUp` alone remains a human/voice capture hint, not the owner of
 continuation state.
 The opt-in `npm run test:e2e:openai:weather` smoke exercises live OpenAI routing
-through ranked, key-free Open-Meteo geocoding and weather retrieval. Text and
+through ranked weather retrieval plus arbitrary named-item and open-outfit
+clothing advice, including the contextual weather, hoodie, then fresh outfit
+sequence. Text and
 voice profile commands use
 the same assistant-owned validation and feature execution path; voice
 composition does not receive a separate hardcoded profile.
@@ -631,8 +636,9 @@ open rephrase followed by a fresh request and a changed-topic reply replacing a
 specific pending clarification. It is also excluded from the default gate.
 The opt-in `npm run test:e2e:open-meteo` smoke validates the key-free live
 adapter path independently. The opt-in `npm run test:e2e:openai:weather` smoke
-validates live intent routing to ranked Open-Meteo weather resolution; both remain
-outside the default validation gate.
+validates live intent routing, ranked Open-Meteo weather resolution, and the
+separately selected OpenAI clothing adviser; both remain outside the default
+validation gate.
 The OpenAI adapter keeps request construction, Responses API transport,
 provider-output text extraction, and assistant intent-output parsing in separate
 adapter-local modules, with the interpreter class only orchestrating those

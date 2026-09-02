@@ -209,6 +209,8 @@ Implemented real-provider adapters include:
 - OpenAI response rewriting, realtime transcription, and streaming speech
   adapters.
 - OpenAI hosted web-search adapter with bounded citation validation.
+- OpenAI weather-clothing adviser behind a narrow provider-neutral structured
+  advice port.
 - Key-free Open-Meteo geocoding and forecast adapter for non-commercial use;
   provider-neutral candidates retain ranking and safe place metadata separately
   from the selected forecast location.
@@ -251,7 +253,10 @@ adapters without making features import or invoke one another:
 - Weather uses provider-neutral current and forecast ports with Open-Meteo as
   the selected key-free non-commercial adapter. Durable weather watches are
   owned by the weather adapter, which contributes a neutral background task
-  closing over the same watch store and provider instance.
+  closing over the same watch store and provider instance. Clothing guidance
+  uses a separately selected adviser port: the feature supplies only bounded
+  normalized conditions, units, and the item-or-outfit goal, then validates the
+  structured result before constructing the human response.
 - Core applies one application-owned human-text policy after model rewriting
   and at tool-observation and runtime-output boundaries. OpenAI prompts request
   natural spoken dates, times, timezones, and source titles first; the shared

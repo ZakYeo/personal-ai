@@ -469,10 +469,10 @@ Thin slices:
    shutdown coverage, text/voice integration, operator documentation, and the
    required independent maintainability review.
 6. Generalize clothing advice around a validated current instant, future
-   instant, or inclusive period; bounded clothing categories; conservative
-   application-owned policy; and retained weather-location context. Keep
-   `weather.coat` as a compatibility route rather than a phrase-specific
-   contract.
+   instant, or inclusive period; arbitrary named-item and open-outfit goals; a
+   separately selected narrow adviser provider; and retained weather-location
+   context. Keep `weather.coat` as a compatibility route rather than a
+   phrase-specific contract.
 
 Acceptance criteria:
 
@@ -486,6 +486,10 @@ Acceptance criteria:
   enumerating those phrases in the capability contract. It preserves the
   requested/query periods, selected measurements, location, units, timezone,
   freshness, and attribution in structured result data.
+- Open outfit requests omit the optional item and return one bounded outfit;
+  arbitrary item names require no category classification. Adviser output is
+  structurally validated, final weather wording stays application owned, and
+  adviser failure is diagnostic-aware and safe for the user.
 - An explicit weather watch survives restart, evaluates on an injected clock,
   and notifies at most once for the same qualifying forecast window.
 - Stale, unavailable, malformed, or ambiguous forecasts are identified rather

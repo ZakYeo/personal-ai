@@ -195,9 +195,12 @@ receives only an explicit home-location reader. Current, forecast, and clothing
 reads resolve location in this order: an explicit place or explicit `home`, the
 latest retained weather location when location is omitted, then explicitly
 stored home. The compatibility `weather.coat` route maps into the generalized
-`weather.clothing` policy, whose bounded categories cover rain protection,
-outerwear, layers, tops, legwear, cold-weather accessories, and an explicit
-limited fallback. Weather-watch adapters
+`weather.clothing` capability. Its required goal distinguishes arbitrary
+named-item assessment from an open outfit recommendation; an item is required
+only for assessment, so a broad “what should I wear?” follow-up does not reopen
+an item clarification. The feature invokes a separately configured narrow
+adviser port and owns validation, weather facts, attribution, and final wording.
+Weather-watch adapters
 contribute background tasks that close over their exact provider and store;
 task-reminder adapters follow the same ownership rule around their exact task
 store. Briefings

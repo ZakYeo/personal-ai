@@ -176,14 +176,16 @@ Included:
   weather-location reference for three subsequent completed turns; omitted
   locations use that reference before stored home, while explicit places and
   explicit home remain authoritative.
-- Generalized weather clothing advice uses one semantic capability for a named
-  item, bounded category, optional resolved location, and optional exact instant
-  or inclusive period. The legacy `weather.coat` name is a compatibility route,
-  not a fixed “tomorrow morning” contract.
-- Application-owned clothing policy makes conservative decisions from current
-  or selected hourly temperature, precipitation, terminology, and notable wind;
-  it returns a bounded limitation for unclassified items and preserves every
-  deciding measurement in structured result data.
+- Generalized weather clothing advice uses one semantic capability with a
+  required item-assessment or outfit-recommendation goal, optional resolved
+  location, and optional exact instant or inclusive period. Item assessment
+  accepts arbitrary bounded names; open outfit requests do not require an item.
+  The legacy `weather.coat` name remains a compatibility route.
+- A separately configured provider-neutral clothing adviser receives only
+  bounded selected conditions, explicit metric units, and the narrow goal. The
+  mock and OpenAI Responses adapters return validated structured decisions;
+  application code retains weather facts, attribution, condition summaries,
+  and final wording while limiting outfits to four distinct spoken-safe items.
 - Provider clarifications carry a partial command and requested parameter.
   Semantic validation executes an otherwise complete command when the requested
   value is optional and clarifies only genuinely absent required values.
@@ -267,6 +269,13 @@ Outcomes:
   response construction are separate from capability orchestration. Failure
   responses therefore retain the same exact location, units, query period,
   freshness, and attribution facts as successful weather responses.
+- The category classifier and fixed recommendation matrix were retired. Intent
+  metadata and provider instructions now distinguish a named item from a fresh
+  broad outfit request, and deterministic dialogue coverage reproduces the
+  weather, hoodie, then “What would you recommend I wear?” sequence without a
+  generic detail prompt. Adviser failures retain weather citations and facts in
+  a safe response plus an internal feature diagnostic, and skip response
+  rewriting.
 
 Acceptance criteria:
 
@@ -281,6 +290,9 @@ Acceptance criteria:
   ambiguous forecasts fail through diagnostic-aware safe outcomes.
 - Required attribution and the convenience-not-emergency limitation are
   present in human-facing behavior.
+- Arbitrary clothing items and open outfit requests are provider-backed without
+  category enumeration; the explicit opt-in OpenAI weather smoke covers both
+  paths and the contextual three-turn regression.
 - The final full `npm run check` passed with 1,440 tests passing and 34 opt-in
   tests skipped. Live OpenAI and Open-Meteo weather smokes remain explicit
   opt-in checks and were not used as completion evidence for the generalized
