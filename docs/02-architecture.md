@@ -295,13 +295,17 @@ Plans compose existing capabilities through the immutable routing index.
 Feature plugins will continue to execute one validated command at a time and
 will not import or call one another. The first plan boundary will not bind one
 step's output into another step's arguments or run a provider-directed tool
-loop. Implemented calendar result references remain opaque and
-assistant-session-owned: one latest set capped at ten events, replaced by a new
-calendar result and cleared after three subsequent completed assistant turns or
-a later conversation compaction. A result set created by the compacting turn is
-preserved. Intent providers receive only ordinals, opaque
-references, and safe displayed facts; feature execution resolves private
-provider IDs through the assistant-owned session.
+loop. Implemented calendar and weather result references remain opaque and
+assistant-session-owned. Calendar retains one latest set capped at ten events;
+weather retains the selected location from a successful weather read. A new
+result of the same kind replaces the prior set, and references clear after
+three subsequent completed assistant turns or a later conversation compaction.
+A result set created by the compacting turn is preserved. Intent providers
+receive only opaque references and safe displayed facts; feature execution
+resolves private event IDs and full weather coordinates through the
+assistant-owned session. This deterministic context bridge, rather than broad
+chat-history access, lets an omitted weather location mean the unambiguous
+location used by the preceding weather answer.
 
 Bounded intent orchestration lives in a core-owned `IntentWorkflow`
 transaction. It accumulates diagnostic-safe read metadata across provider

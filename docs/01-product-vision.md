@@ -14,7 +14,8 @@ The assistant should support natural voice commands such as:
 - "Hey Jarvis, check my upcoming events and set an alarm for 10 minutes to
   remind me to ask you again."
 - "Hey Jarvis, remind me ten minutes before the second event."
-- "Hey Jarvis, will I need a coat at home tomorrow morning?"
+- "Hey Jarvis, check the weather for my home."
+- "Hey Jarvis, could I wear a coat if I left now?"
 - "Hey Jarvis, watch for rain in Bristol tomorrow."
 - "Hey Jarvis, add submit the form to my to-do list."
 - "Hey Jarvis, remind me tomorrow at 9 to submit the form."
@@ -61,6 +62,9 @@ The assistant should support natural voice commands such as:
   strict yes/no interactions. The application retains only safe clarification
   context and remains authoritative when provider continuation state conflicts
   with a validated workflow transition.
+- Capability contracts model semantic goals and normalized domain values, so
+  one example phrase does not become an accidental restriction on equivalent
+  terminology, times, or contextual references.
 
 ## Near-Term Direction
 

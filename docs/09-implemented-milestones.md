@@ -172,7 +172,21 @@ Included:
   low-risk reads choose the best exact result while persistent watches require
   one unique result.
 - Explicit locations plus one narrow optional reader for an explicitly stored
-  profile home location; missing or unusable locations produce clarification.
+  profile home location. Successful weather reads retain one opaque recent
+  weather-location reference for three subsequent completed turns; omitted
+  locations use that reference before stored home, while explicit places and
+  explicit home remain authoritative.
+- Generalized weather clothing advice uses one semantic capability for a named
+  item, bounded category, optional resolved location, and optional exact instant
+  or inclusive period. The legacy `weather.coat` name is a compatibility route,
+  not a fixed “tomorrow morning” contract.
+- Application-owned clothing policy makes conservative decisions from current
+  or selected hourly temperature, precipitation, terminology, and notable wind;
+  it returns a bounded limitation for unclassified items and preserves every
+  deciding measurement in structured result data.
+- Provider clarifications carry a partial command and requested parameter.
+  Semantic validation executes an otherwise complete command when the requested
+  value is optional and clarifies only genuinely absent required values.
 - Protected observation and forecast facts covering timestamps, timezone,
   units, temperature, precipitation, wind, forecast period, attribution, and
   freshness.

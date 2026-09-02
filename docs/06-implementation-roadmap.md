@@ -458,8 +458,8 @@ Thin slices:
 
 1. Define typed locations, units, forecast periods, freshness, and deterministic
    weather contracts.
-2. Implement current and forecast capabilities with explicit-location
-   clarification and narrow profile-default resolution.
+2. Implement current and forecast capabilities with explicit, recent-result,
+   and narrow profile-default location resolution.
 3. Add the Open-Meteo forecast and geocoding adapter with endpoint/timeout
    config, no credential config, transport contracts, attribution,
    malformed-data rejection, and an opt-in live read smoke.
@@ -468,14 +468,24 @@ Thin slices:
 5. Add deterministic background evaluation, deduplicated delivery, restart and
    shutdown coverage, text/voice integration, operator documentation, and the
    required independent maintainability review.
+6. Generalize clothing advice around a validated current instant, future
+   instant, or inclusive period; bounded clothing categories; conservative
+   application-owned policy; and retained weather-location context. Keep
+   `weather.coat` as a compatibility route rather than a phrase-specific
+   contract.
 
 Acceptance criteria:
 
 - Personal non-commercial Open-Meteo composition starts and serves forecasts
   without any weather API key or weather credential environment variable.
-- “Will I need a coat at home tomorrow morning?” uses only an explicitly stored
-  home location, reports the forecast period and freshness, and preserves exact
-  provider facts internally.
+- A weather follow-up such as “Could I wear a coat if I left now?” reuses the
+  immediately retained weather location without reopening the microphone or
+  rereading home, while an explicit new place or explicit home overrides it.
+- Clothing advice accepts current conditions, arbitrary validated future
+  instants such as “in ten minutes”, and bounded inclusive periods without
+  enumerating those phrases in the capability contract. It preserves the
+  requested/query periods, selected measurements, location, units, timezone,
+  freshness, and attribution in structured result data.
 - An explicit weather watch survives restart, evaluates on an injected clock,
   and notifies at most once for the same qualifying forecast window.
 - Stale, unavailable, malformed, or ambiguous forecasts are identified rather

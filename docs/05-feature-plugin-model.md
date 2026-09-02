@@ -79,6 +79,7 @@ Examples:
 - `profile.clear`
 - `internet.search`
 - `internet.follow_up`
+- `weather.clothing`
 - `weather.coat`
 - `weather.current`
 - `weather.forecast`
@@ -190,8 +191,13 @@ first-cited sources and rebuilds retained offsets before the feature sees them.
 Profile, weather, task, and briefing composition does not relax feature
 ownership. A feature that needs personal defaults receives a narrow
 personal-context reader during composition. The implemented weather feature
-requests only an explicit home location for `weather.coat`; explicit-location
-weather commands do not receive profile context. Weather-watch adapters
+receives only an explicit home-location reader. Current, forecast, and clothing
+reads resolve location in this order: an explicit place or explicit `home`, the
+latest retained weather location when location is omitted, then explicitly
+stored home. The compatibility `weather.coat` route maps into the generalized
+`weather.clothing` policy, whose bounded categories cover rain protection,
+outerwear, layers, tops, legwear, cold-weather accessories, and an explicit
+limited fallback. Weather-watch adapters
 contribute background tasks that close over their exact provider and store;
 task-reminder adapters follow the same ownership rule around their exact task
 store. Briefings

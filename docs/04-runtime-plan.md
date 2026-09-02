@@ -249,6 +249,13 @@ opaque reference through the assistant session, then the read-only calendar port
 fetches current event details by its private stable provider ID. Ambiguous,
 missing, and expired references request clarification instead of guessing.
 
+Successful weather reads retain one opaque selected location under the same
+three-subsequent-turn and compaction lifetime. Provider prompts receive only its
+safe public facts, while the next weather feature execution may resolve an
+omitted location to the private validated target. This makes weather follow-ups
+deterministic without treating the broad transcript as executable feature
+context or keeping voice follow-up capture open.
+
 The opt-in desktop voice OpenAI smoke command is:
 
 ```bash

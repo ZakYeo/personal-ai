@@ -124,6 +124,12 @@ turns or a later conversation compaction. Compaction does not erase references
 first displayed by that same turn. Intent providers receive only those opaque
 references and safe displayed facts. Provider event IDs remain behind the
 feature execution resolver and must not enter prompts or user-facing responses.
+Weather location references use the same process-local lifetime and replacement
+policy but retain one location rather than an event list. Intent context exposes
+only its safe name, country code, and timezone; the full validated coordinates
+remain private to feature execution. An omitted location may resolve through
+that recent reference, while an explicit new place or explicit `home` always
+overrides it.
 The broader process-local conversation window records safe completed exchanges
 from both capability and general-conversation turns. Intent providers receive a
 frozen snapshot through their narrow port argument and must treat earlier text
@@ -225,7 +231,13 @@ clarification ends the old workflow with a safe open rephrase response rather
 than entering an unbounded loop.
 Provider instructions distinguish required from optional capability parameters:
 missing required information may produce one clarification, while absent
-optional values are omitted without an extra user turn.
+optional values are omitted without an extra user turn. A provider-authored
+clarification carries its selected capability, partial command parameters, and
+the exact requested parameter. Core promotes the partial command when the
+requested parameter is optional, and permits a clarification only when the
+named required value is genuinely absent. Bounded string domains cross
+capability metadata as explicit allowed values and are validated again by core;
+free-form model wording never selects an unrecognized policy category.
 
 Capability contracts must describe the semantic operation and its normalized
 domain inputs rather than one example utterance. **Capability contract
