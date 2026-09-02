@@ -71,7 +71,12 @@ function freezeCapability(capability: FeatureCapability): FeatureCapability {
         Object.fromEntries(
           Object.entries(capability.parameters).map(([name, parameter]) => [
             name,
-            Object.freeze({ ...parameter }),
+            Object.freeze({
+              ...parameter,
+              ...(parameter.type === "string" && parameter.allowedValues
+                ? { allowedValues: Object.freeze([...parameter.allowedValues]) }
+                : {}),
+            }),
           ]),
         ),
       )
@@ -95,10 +100,15 @@ function formatCapabilityParameters(capability: FeatureCapability): string {
     .map(([name, parameter]) => {
       const constraints = [
         parameter.required ? "required" : "optional",
-        parameter.minimum === undefined
+        parameter.type !== "number" || parameter.minimum === undefined
           ? undefined
           : `minimum ${parameter.minimum}`,
-        parameter.positive ? "positive" : undefined,
+        parameter.type === "number" && parameter.positive
+          ? "positive"
+          : undefined,
+        parameter.type === "string" && parameter.allowedValues
+          ? `allowed ${parameter.allowedValues.join(" | ")}`
+          : undefined,
       ].filter((constraint): constraint is string => constraint !== undefined);
 
       const details = [constraints.join(", "), parameter.description].filter(

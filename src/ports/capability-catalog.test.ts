@@ -11,7 +11,13 @@ describe("createCapabilityRoutingIndex", () => {
         capabilities: [
           {
             name: "notes.list",
-            parameters: { query: { required: true, type: "string" } },
+            parameters: {
+              query: {
+                allowedValues: ["active", "archived"],
+                required: true,
+                type: "string",
+              },
+            },
             risk: "low",
           },
         ],
@@ -29,10 +35,17 @@ describe("createCapabilityRoutingIndex", () => {
       // @ts-expect-error Compiled capability parameters are readonly.
       route.capability.parameters!.query!.required = false;
     }).toThrow(TypeError);
+    const queryParameter = route.capability.parameters!.query!;
+    expect(queryParameter.type).toBe("string");
+    if (queryParameter.type !== "string") throw new Error("unreachable");
+    expect(Reflect.set(queryParameter.allowedValues!, "2", "all")).toBe(false);
     expect(() => {
       // @ts-expect-error Compiled feature capability arrays are readonly.
       route.feature.capabilities.push(route.capability);
     }).toThrow(TypeError);
+    expect(routing.catalog[0]?.parameterText).toContain(
+      "allowed active | archived",
+    );
   });
 
   it("exposes deeply readonly catalog types", () => {

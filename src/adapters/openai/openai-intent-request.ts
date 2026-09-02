@@ -252,6 +252,13 @@ function createOpenAIIntentTools(
                 ...(parameter.description
                   ? { description: parameter.description }
                   : {}),
+                ...(parameter.type === "string" && parameter.allowedValues
+                  ? {
+                      enum: parameter.required
+                        ? parameter.allowedValues
+                        : [...parameter.allowedValues, null],
+                    }
+                  : {}),
                 type: parameter.required
                   ? parameter.type
                   : [parameter.type, "null"],

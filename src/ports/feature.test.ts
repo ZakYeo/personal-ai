@@ -62,11 +62,18 @@ describe("defineFeature", () => {
           spokenSummary: "repeat messages",
           toolChain: "read",
           parameters: {
+            category: {
+              allowedValues: ["warm_layer", "rain_protection"],
+              required: true,
+              type: "string",
+            },
             loud: { type: "boolean" },
             message: { type: "string", required: true },
             repeat: { type: "number", minimum: 1 },
           } as const,
           execute: (request) => {
+            const category: "warm_layer" | "rain_protection" =
+              request.args.category;
             const message: string = request.args.message;
             const repeat: number | undefined = request.args.repeat;
             const loud: boolean | undefined = request.args.loud;
@@ -77,7 +84,7 @@ describe("defineFeature", () => {
             const invalidRepeat: number = request.args.repeat;
 
             return {
-              text: `${loud ? message.toUpperCase() : message}:${repeat ?? 1}:${invalidMessage}:${invalidRepeat}`,
+              text: `${category}:${loud ? message.toUpperCase() : message}:${repeat ?? 1}:${invalidMessage}:${invalidRepeat}`,
             };
           },
         }),
@@ -91,18 +98,20 @@ describe("defineFeature", () => {
           command: {
             capability: "test.echo",
             parameters: {
+              category: "warm_layer",
               message: "hello",
             },
             rawText: "hello",
           },
           args: {
+            category: "warm_layer",
             message: "hello",
           },
         },
         context,
       ),
     ).resolves.toMatchObject({
-      text: "hello:1:hello:undefined",
+      text: "warm_layer:hello:1:hello:undefined",
     });
     expect(feature.capabilities).toEqual([
       {
@@ -111,6 +120,11 @@ describe("defineFeature", () => {
         spokenSummary: "repeat messages",
         toolChain: "read",
         parameters: {
+          category: {
+            allowedValues: ["warm_layer", "rain_protection"],
+            required: true,
+            type: "string",
+          },
           loud: { type: "boolean" },
           message: { type: "string", required: true },
           repeat: { type: "number", minimum: 1 },

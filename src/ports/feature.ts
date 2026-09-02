@@ -106,11 +106,16 @@ export interface FeaturePlugin<
 }
 
 type FeatureParameterValue<TParameter extends FeatureCapabilityParameter> =
-  TParameter["type"] extends "string"
-    ? string
-    : TParameter["type"] extends "number"
-      ? number
-      : boolean;
+  TParameter extends {
+    readonly type: "string";
+    readonly allowedValues: readonly (infer TValue extends string)[];
+  }
+    ? TValue
+    : TParameter["type"] extends "string"
+      ? string
+      : TParameter["type"] extends "number"
+        ? number
+        : boolean;
 
 type RequiredFeatureParameterKeys<
   TParameters extends FeatureCapabilityParameters,

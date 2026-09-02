@@ -130,6 +130,16 @@ function parseToolArguments(
         `OpenAI intent function argument "${name}" must be ${declaration.type}.`,
       );
     }
+    if (
+      declaration.type === "string" &&
+      typeof argument === "string" &&
+      declaration.allowedValues !== undefined &&
+      !declaration.allowedValues.includes(argument)
+    ) {
+      throw new OpenAIIntentError(
+        `OpenAI intent function argument "${name}" must be one of ${declaration.allowedValues.join(", ")}.`,
+      );
+    }
     parameters[name] = argument as string | number | boolean;
   }
   return parameters;

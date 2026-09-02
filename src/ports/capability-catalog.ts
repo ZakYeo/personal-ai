@@ -24,13 +24,30 @@ export interface FeatureCapability {
   ) => AssistantResponse | undefined;
 }
 
-export interface FeatureCapabilityParameter {
-  readonly type: "string" | "number" | "boolean";
+interface FeatureCapabilityParameterBase {
   readonly description?: string;
   readonly required?: boolean;
+}
+
+interface StringFeatureCapabilityParameter extends FeatureCapabilityParameterBase {
+  readonly type: "string";
+  readonly allowedValues?: readonly string[];
+}
+
+interface NumberFeatureCapabilityParameter extends FeatureCapabilityParameterBase {
+  readonly type: "number";
   readonly minimum?: number;
   readonly positive?: boolean;
 }
+
+interface BooleanFeatureCapabilityParameter extends FeatureCapabilityParameterBase {
+  readonly type: "boolean";
+}
+
+export type FeatureCapabilityParameter =
+  | StringFeatureCapabilityParameter
+  | NumberFeatureCapabilityParameter
+  | BooleanFeatureCapabilityParameter;
 
 export interface CapabilityCatalogFeature {
   readonly capabilities: readonly FeatureCapability[];

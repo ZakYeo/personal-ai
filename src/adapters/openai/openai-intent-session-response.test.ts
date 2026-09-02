@@ -5,7 +5,12 @@ import { openAIIntentOutput } from "../../test-support/openai-intent.js";
 const capability: OpenAIIntentCapability = {
   capability: {
     name: "calendar.search_events",
-    parameters: { query: { type: "string" } },
+    parameters: {
+      query: {
+        allowedValues: ["today", "tomorrow"],
+        type: "string",
+      },
+    },
     risk: "low",
     toolChain: "read",
   },
@@ -124,6 +129,26 @@ describe("parseOpenAIIntentSessionResponse", () => {
         "search",
       ),
     ).toThrow('contain unknown parameter "privateTarget"');
+  });
+
+  it("rejects tool arguments outside declared string values", () => {
+    expect(() =>
+      parseOpenAIIntentSessionResponse(
+        {
+          id: "response-1",
+          output: [
+            {
+              ...functionCall("call-1"),
+              arguments: '{"query":"next week"}',
+            },
+          ],
+        },
+        tools,
+        "search",
+      ),
+    ).toThrow(
+      'OpenAI intent function argument "query" must be one of today, tomorrow.',
+    );
   });
 });
 

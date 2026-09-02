@@ -38,6 +38,7 @@ const profileLookupCapability: OpenAIIntentCapability = {
     name: "profile.lookup",
     parameters: {
       field: {
+        allowedValues: ["name", "homeLocation"],
         description: "The one bounded profile field required by the request.",
         required: true,
         type: "string",
@@ -484,6 +485,13 @@ describe("OpenAIIntentInterpreter", () => {
           description: expect.stringContaining(
             "Read one explicitly stored personal profile fact",
           ) as string,
+          parameters: expect.objectContaining({
+            properties: {
+              field: expect.objectContaining({
+                enum: ["name", "homeLocation"],
+              }) as unknown,
+            },
+          }) as unknown,
         }),
       ]),
     );

@@ -10,6 +10,10 @@ const capability: FeatureCapability = {
   name: "alarm.create",
   risk: "high",
   parameters: {
+    category: {
+      allowedValues: ["warm_layer", "rain_protection"],
+      type: "string",
+    },
     label: { type: "string" },
     minutesFromNow: { type: "number", required: true, positive: true },
   },
@@ -75,6 +79,19 @@ describe("validateCommandForCapability", () => {
     ).toMatchObject({
       category: "validation",
       message: "alarm.create parameter minutesFromNow must be a number.",
+    });
+  });
+
+  it("rejects string parameters outside their declared values", () => {
+    expect(
+      validateCommandForCapability(
+        createCommand({ category: "other", minutesFromNow: 10 }),
+        capability,
+      ),
+    ).toMatchObject({
+      category: "validation",
+      message:
+        "alarm.create parameter category must be one of warm_layer, rain_protection.",
     });
   });
 

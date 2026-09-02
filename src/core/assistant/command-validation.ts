@@ -80,6 +80,22 @@ export function decodeCommandForCapability(
     }
 
     if (
+      definition.type === "string" &&
+      typeof value === "string" &&
+      definition.allowedValues !== undefined &&
+      !definition.allowedValues.includes(value)
+    ) {
+      return {
+        ok: false,
+        error: createAppError({
+          category: "validation",
+          capability: command.capability,
+          message: `${command.capability} parameter ${parameterName} must be one of ${definition.allowedValues.join(", ")}.`,
+        }),
+      };
+    }
+
+    if (
       definition.type === "number" &&
       typeof value === "number" &&
       definition.positive === true &&
