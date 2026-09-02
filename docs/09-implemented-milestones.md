@@ -254,6 +254,19 @@ Outcomes:
   was centralized; and evaluation gained an active-watch bound, request
   grouping, concurrency control, shutdown handling, and per-group/per-watch
   failure isolation.
+- A fresh review of generalized weather dialogue was also fully remediated.
+  Provider clarification metadata is now a typed invariant and cannot bypass
+  missing required arguments; application-declared profile lookups remain an
+  explicit narrow exception. Result references are isolated by kind, and
+  weather location selection disables ordinal parsing so phrases such as
+  “the second half of the day” cannot select a location accidentally.
+- Clothing periods are bounded by inclusive local calendar dates in the
+  resolved weather timezone, matching the Open-Meteo request boundary across
+  offset changes. Current, forecast, stale, and clothing results share one
+  canonical weather-fact envelope, while clothing condition selection and
+  response construction are separate from capability orchestration. Failure
+  responses therefore retain the same exact location, units, query period,
+  freshness, and attribution facts as successful weather responses.
 
 Acceptance criteria:
 
@@ -268,10 +281,10 @@ Acceptance criteria:
   ambiguous forecasts fail through diagnostic-aware safe outcomes.
 - Required attribution and the convenience-not-emergency limitation are
   present in human-facing behavior.
-- The final full `npm run check` passed with 929 tests passing and 15 opt-in
-  tests skipped. The live OpenAI weather routing smoke remains explicit opt-in
-  and was not used as completion evidence because its external execution
-  approval did not complete.
+- The final full `npm run check` passed with 1,440 tests passing and 34 opt-in
+  tests skipped. Live OpenAI and Open-Meteo weather smokes remain explicit
+  opt-in checks and were not used as completion evidence for the generalized
+  dialogue slice.
 
 ## Milestone 14: Internet Search with Source-Grounded Answers
 
