@@ -4,10 +4,7 @@ import {
 } from "../../adapters/local/file-weather-watch-store.js";
 import { createInMemoryWeatherWatchStore } from "../../adapters/local/in-memory-weather-watch-store.js";
 import { createMockWeatherProvider } from "../../adapters/mock/mock-weather.js";
-import { createMockWeatherClothingAdvisor } from "../../adapters/mock/mock-weather-clothing-advisor.js";
 import { createOpenMeteoWeatherProvider } from "../../adapters/open-meteo/open-meteo-weather.js";
-import { OpenAIWeatherClothingAdvisor } from "../../adapters/openai/openai-weather-clothing-advisor.js";
-import { resolveOpenAIApiKey } from "../../adapters/openai/openai-client.js";
 import { createWeatherFeature } from "../../features/weather/weather-feature.js";
 import type { PersonalContextReaderPort } from "../../ports/personal-context.js";
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
@@ -27,8 +24,8 @@ import {
   parseWeatherFeatureConfig,
   parseWeatherOpenMeteoAdapterConfig,
   type WeatherWatchStoreConfig,
-  type WeatherClothingAdvisorConfig,
 } from "./weather-feature-adapter-config.js";
+import type { ResolvedWeatherClothingAdvisorProvider } from "./weather-clothing-advisor-provider.js";
 
 interface WeatherFeatureRegistryDependencies {
   configDirectory?: string;
@@ -49,6 +46,13 @@ const openMeteoWeatherAdapter = defineFeatureAdapter({
 export function createWeatherFeatureRegistryEntry(
   registryDependencies: WeatherFeatureRegistryDependencies,
 ): FeatureRegistryEntry {
+  const resolveClothingAdvisor = (
+    provider: ResolvedWeatherClothingAdvisorProvider,
+  ) =>
+    provider.create({
+      env: registryDependencies.env,
+      fetch: registryDependencies.fetch,
+    });
   return {
     adapters: {
       mock: mockWeatherAdapter.bind({
@@ -63,19 +67,15 @@ export function createWeatherFeatureRegistryEntry(
               registryDependencies.watchStore ?? {},
             ),
             featureConfig.maxForecastAgeMinutes,
-            createClothingAdviser(
-              featureConfig.clothingAdvisor,
-              registryDependencies,
-            ),
+            resolveClothingAdvisor(featureConfig.clothingAdvisor).adviser,
             registryDependencies.notificationDelivery,
             resolvePersonalContext(registryDependencies, services),
           );
         },
         validateStartup: (adapterConfig) =>
-          validateClothingAdviserStartup(
+          resolveClothingAdvisor(
             adapterConfig.clothingAdvisor,
-            registryDependencies.env,
-          ),
+          ).validateStartup(),
       }),
       openMeteo: openMeteoWeatherAdapter.bind({
         create: ({ adapterConfig, runtime }, services) => {
@@ -93,19 +93,15 @@ export function createWeatherFeatureRegistryEntry(
               registryDependencies.watchStore ?? {},
             ),
             featureConfig.maxForecastAgeMinutes,
-            createClothingAdviser(
-              featureConfig.clothingAdvisor,
-              registryDependencies,
-            ),
+            resolveClothingAdvisor(featureConfig.clothingAdvisor).adviser,
             registryDependencies.notificationDelivery,
             resolvePersonalContext(registryDependencies, services),
           );
         },
         validateStartup: (adapterConfig) =>
-          validateClothingAdviserStartup(
+          resolveClothingAdvisor(
             adapterConfig.clothingAdvisor,
-            registryDependencies.env,
-          ),
+          ).validateStartup(),
       }),
     },
   };
@@ -160,37 +156,6 @@ function createWeatherComposition(
     ],
     feature,
   };
-}
-
-function createClothingAdviser(
-  config: WeatherClothingAdvisorConfig,
-  dependencies: Pick<WeatherFeatureRegistryDependencies, "env" | "fetch">,
-): WeatherClothingAdvisorPort {
-  return config.provider === "mock"
-    ? createMockWeatherClothingAdvisor()
-    : new OpenAIWeatherClothingAdvisor({
-        config: config.openai,
-        env: dependencies.env,
-        fetch: dependencies.fetch,
-      });
-}
-
-function validateClothingAdviserStartup(
-  config: WeatherClothingAdvisorConfig,
-  env: Record<string, string | undefined>,
-): void {
-  if (config.provider === "mock") return;
-  resolveOpenAIApiKey(
-    config.openai,
-    env,
-    (message) =>
-      new Error(
-        message.replace(
-          "OpenAI API key environment variable",
-          "OpenAI weather clothing adviser is selected but",
-        ),
-      ),
-  );
 }
 
 function createWeatherWatchStore(

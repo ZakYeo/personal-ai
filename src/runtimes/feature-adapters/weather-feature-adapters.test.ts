@@ -212,7 +212,7 @@ describe("weather feature adapters", () => {
         }),
       ),
     ).toThrow(
-      'Config feature "weather".clothingAdvisor provider "rules" is not registered.',
+      'Config feature "weather".clothingAdvisor.provider "rules" is not registered.',
     );
   });
 
