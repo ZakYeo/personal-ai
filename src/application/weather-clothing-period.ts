@@ -1,4 +1,5 @@
 import type { WeatherPeriod } from "../ports/weather.js";
+import { weatherLocalDate } from "./weather-policy.js";
 
 const hourMs = 60 * 60_000;
 const maximumForecastMs = 16 * 24 * hourMs;
@@ -6,6 +7,7 @@ const maximumForecastMs = 16 * 24 * hourMs;
 export function createWeatherClothingPeriodPlan(
   args: { endAt?: string; startAt?: string },
   now: Date,
+  timeZone: string,
 ): {
   mode: "current" | "period" | "point";
   queryPeriod: WeatherPeriod;
@@ -44,14 +46,34 @@ export function createWeatherClothingPeriodPlan(
   if (queryEnd.getTime() - queryStart.getTime() > maximumForecastMs) {
     queryStart.setTime(queryEnd.getTime() - maximumForecastMs);
   }
+  const queryPeriod = {
+    endAt: queryEnd.toISOString(),
+    startAt: queryStart.toISOString(),
+  };
+  if (localCalendarDateCount(queryPeriod, timeZone) > 16) {
+    throw new Error(
+      "Weather clothing requests may span at most 16 local calendar dates.",
+    );
+  }
   return {
     mode: args.endAt === undefined ? "point" : "period",
-    queryPeriod: {
-      endAt: queryEnd.toISOString(),
-      startAt: queryStart.toISOString(),
-    },
+    queryPeriod,
     requestedPeriod,
   };
+}
+
+function localCalendarDateCount(
+  period: WeatherPeriod,
+  timeZone: string,
+): number {
+  const startDate = weatherLocalDate(period.startAt, timeZone);
+  const endDate = weatherLocalDate(period.endAt, timeZone);
+  return (
+    (Date.parse(`${endDate}T00:00:00.000Z`) -
+      Date.parse(`${startDate}T00:00:00.000Z`)) /
+      (24 * hourMs) +
+    1
+  );
 }
 
 function parseTimestamp(value: string, label: string): Date {

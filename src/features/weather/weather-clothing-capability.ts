@@ -123,7 +123,11 @@ async function executeWeatherClothing(
   );
   if ("result" in resolution) return resolution.result;
 
-  const plan = createWeatherClothingPeriodPlan(args, context.clock.now());
+  const plan = createWeatherClothingPeriodPlan(
+    args,
+    context.clock.now(),
+    resolution.location.timezone,
+  );
   const forecast = await provider.getForecast(
     {
       location: resolution.location,

@@ -247,6 +247,13 @@ describe("weather clothing capability", () => {
       "must be ordered",
     ],
     [{ startAt: "2026-08-14T12:00:00.001Z" }, "within 16 days"],
+    [
+      {
+        endAt: "2026-08-13T12:00:00.000Z",
+        startAt: "2026-07-28T12:00:00.000Z",
+      },
+      "at most 16 local calendar dates",
+    ],
   ])("rejects an invalid clothing period", async (period, message) => {
     await expect(
       executeFeature(
