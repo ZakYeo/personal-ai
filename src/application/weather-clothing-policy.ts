@@ -9,16 +9,17 @@ export const weatherClothingCategories = Object.freeze([
   "other",
 ] as const);
 
-type WeatherClothingCategory = (typeof weatherClothingCategories)[number];
+export type WeatherClothingCategory =
+  (typeof weatherClothingCategories)[number];
 
-interface WeatherClothingSample {
+export interface WeatherClothingSample {
   readonly precipitation: number;
   readonly temperature: number;
   readonly weather: string;
   readonly windSpeed: number;
 }
 
-interface WeatherClothingAssessment {
+export interface WeatherClothingAssessment {
   readonly decidingMeasurements: {
     readonly maximumPrecipitation: number;
     readonly maximumWindSpeed: number;

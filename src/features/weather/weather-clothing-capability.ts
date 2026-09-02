@@ -16,13 +16,13 @@ import {
   type FeatureResult,
 } from "../../application/feature.js";
 import type { PersonalContextReaderPort } from "../../ports/personal-context.js";
-import type {
-  CurrentWeatherObservation,
-  HourlyWeatherForecast,
-  WeatherForecast,
-  WeatherPeriod,
-  WeatherProviderPort,
-} from "../../ports/weather.js";
+import type { WeatherProviderPort } from "../../ports/weather.js";
+import {
+  availableClothingResult,
+  clothingArticle,
+  unavailableClothingResult,
+} from "./weather-clothing-response.js";
+import { selectClothingConditions } from "./weather-clothing-selection.js";
 import { resolveWeatherLocation } from "./weather-location-resolution.js";
 import { withWeatherLocationReference } from "./weather-result-reference.js";
 
@@ -145,13 +145,13 @@ async function executeWeatherClothing(
     )
   ) {
     return withWeatherLocationReference(
-      unavailableClothingResult(
+      unavailableClothingResult({
+        category: args.category,
         forecast,
-        args.category,
         item,
-        plan.requestedPeriod,
-        "The available weather observation is stale, so I cannot make a current clothing recommendation.",
-      ),
+        requestedPeriod: plan.requestedPeriod,
+        text: "The available weather observation is stale, so I cannot make a current clothing recommendation.",
+      }),
       forecast.location,
     );
   }
@@ -163,215 +163,28 @@ async function executeWeatherClothing(
   );
   if (selected.length === 0) {
     return withWeatherLocationReference(
-      unavailableClothingResult(
+      unavailableClothingResult({
+        category: args.category,
         forecast,
-        args.category,
         item,
-        plan.requestedPeriod,
-        `I cannot assess ${articleFor(item)} ${item} because no weather interval is available close enough to the requested time.`,
-      ),
+        requestedPeriod: plan.requestedPeriod,
+        text: `I cannot assess ${clothingArticle(item)} ${item} because no weather interval is available close enough to the requested time.`,
+      }),
       forecast.location,
     );
   }
 
   const assessment = assessWeatherClothing(args.category, selected);
   return withWeatherLocationReference(
-    {
-      citations: [weatherCitation(forecast)],
-      data: {
-        attributionName: forecast.attribution.name,
-        attributionUrl: forecast.attribution.url,
-        clothingCategory: args.category,
-        clothingItem: item,
-        clothingRecommendation: assessment.recommendation,
-        clothingRecommendationAvailable:
-          assessment.recommendation !== "limited",
-        currentObservedAt: forecast.current.observedAt,
-        decidingMaximumPrecipitation:
-          assessment.decidingMeasurements.maximumPrecipitation,
-        decidingMaximumWindSpeed:
-          assessment.decidingMeasurements.maximumWindSpeed,
-        decidingMinimumTemperature:
-          assessment.decidingMeasurements.minimumTemperature,
-        decidingSnowy: assessment.decidingMeasurements.snowy,
-        decidingWet: assessment.decidingMeasurements.wet,
-        decidingWindy: assessment.decidingMeasurements.windy,
-        fetchedAt: forecast.fetchedAt,
-        latitude: forecast.location.latitude,
-        location: forecast.location.name,
-        longitude: forecast.location.longitude,
-        precipitationUnit: forecast.units.precipitation,
-        queryPeriodEndAt: forecast.period.endAt,
-        queryPeriodStartAt: forecast.period.startAt,
-        requestedPeriodEndAt: plan.requestedPeriod.endAt,
-        requestedPeriodStartAt: plan.requestedPeriod.startAt,
-        ...flattenSelectedConditions(selected),
-        temperatureUnit: forecast.units.temperature,
-        timezone: forecast.location.timezone,
-        windSpeedUnit: forecast.units.windSpeed,
-      },
-      spokenText: {
-        dateStyle: "contextual",
-        timeZone: forecast.location.timezone,
-      },
-      text: clothingRecommendationText(
-        assessment.recommendation,
-        assessment.reason,
-        item,
-        forecast,
-        plan.mode,
-        plan.requestedPeriod,
-      ),
-    },
+    availableClothingResult({
+      assessment,
+      category: args.category,
+      forecast,
+      item,
+      mode: plan.mode,
+      requestedPeriod: plan.requestedPeriod,
+      selected,
+    }),
     forecast.location,
   );
-}
-
-interface SelectedClothingConditions {
-  readonly at: string;
-  readonly precipitation: number;
-  readonly temperature: number;
-  readonly weather: string;
-  readonly windSpeed: number;
-}
-
-function selectClothingConditions(
-  forecast: WeatherForecast,
-  mode: "current" | "period" | "point",
-  requestedPeriod: WeatherPeriod,
-): SelectedClothingConditions[] {
-  if (mode === "current") {
-    return [selectedCurrent(forecast.current)];
-  }
-  if (mode === "point") {
-    const target = new Date(requestedPeriod.startAt).getTime();
-    const nearest = [...forecast.hourly].sort((left, right) => {
-      const distance =
-        Math.abs(new Date(left.forecastAt).getTime() - target) -
-        Math.abs(new Date(right.forecastAt).getTime() - target);
-      return distance === 0
-        ? left.forecastAt.localeCompare(right.forecastAt)
-        : distance;
-    })[0];
-    return nearest &&
-      Math.abs(new Date(nearest.forecastAt).getTime() - target) <= 60 * 60_000
-      ? [selectedHourly(nearest)]
-      : [];
-  }
-
-  const inside = forecast.hourly.filter(
-    (item) =>
-      item.forecastAt >= requestedPeriod.startAt &&
-      item.forecastAt <= requestedPeriod.endAt,
-  );
-  if (inside.length > 0) return inside.map(selectedHourly);
-  const midpoint =
-    (new Date(requestedPeriod.startAt).getTime() +
-      new Date(requestedPeriod.endAt).getTime()) /
-    2;
-  const nearest = [...forecast.hourly].sort(
-    (left, right) =>
-      Math.abs(new Date(left.forecastAt).getTime() - midpoint) -
-        Math.abs(new Date(right.forecastAt).getTime() - midpoint) ||
-      left.forecastAt.localeCompare(right.forecastAt),
-  )[0];
-  return nearest &&
-    Math.abs(new Date(nearest.forecastAt).getTime() - midpoint) <= 60 * 60_000
-    ? [selectedHourly(nearest)]
-    : [];
-}
-
-function selectedCurrent(
-  observation: CurrentWeatherObservation,
-): SelectedClothingConditions {
-  return { ...observation, at: observation.observedAt };
-}
-
-function selectedHourly(
-  forecast: HourlyWeatherForecast,
-): SelectedClothingConditions {
-  return { ...forecast, at: forecast.forecastAt };
-}
-
-function flattenSelectedConditions(
-  selected: readonly SelectedClothingConditions[],
-) {
-  return selected.reduce<Record<string, string | number>>(
-    (facts, item, index) => ({
-      ...facts,
-      [`selected${index}At`]: item.at,
-      [`selected${index}Precipitation`]: item.precipitation,
-      [`selected${index}Temperature`]: item.temperature,
-      [`selected${index}Weather`]: item.weather,
-      [`selected${index}WindSpeed`]: item.windSpeed,
-    }),
-    { selectedCount: selected.length },
-  );
-}
-
-function unavailableClothingResult(
-  forecast: WeatherForecast,
-  category: ClothingArgs["category"],
-  item: string,
-  requestedPeriod: WeatherPeriod,
-  text: string,
-): FeatureResult {
-  return {
-    citations: [weatherCitation(forecast)],
-    data: {
-      attributionName: forecast.attribution.name,
-      attributionUrl: forecast.attribution.url,
-      clothingCategory: category,
-      clothingItem: item,
-      clothingRecommendationAvailable: false,
-      currentObservedAt: forecast.current.observedAt,
-      fetchedAt: forecast.fetchedAt,
-      location: forecast.location.name,
-      requestedPeriodEndAt: requestedPeriod.endAt,
-      requestedPeriodStartAt: requestedPeriod.startAt,
-      timezone: forecast.location.timezone,
-    },
-    spokenText: {
-      dateStyle: "contextual",
-      timeZone: forecast.location.timezone,
-    },
-    text: `${text} Source: ${forecast.attribution.name}.`,
-  };
-}
-
-function clothingRecommendationText(
-  recommendation: "limited" | "not_recommended" | "recommended",
-  reason: string,
-  item: string,
-  forecast: WeatherForecast,
-  mode: "current" | "period" | "point",
-  requestedPeriod: WeatherPeriod,
-): string {
-  const subject = `${articleFor(item)} ${item}`;
-  const timing =
-    mode === "current"
-      ? "right now"
-      : mode === "point"
-        ? `at ${requestedPeriod.startAt}`
-        : `from ${requestedPeriod.startAt} to ${requestedPeriod.endAt}`;
-  const advice =
-    recommendation === "recommended"
-      ? `Yes, I recommend ${subject}`
-      : recommendation === "not_recommended"
-        ? `I would not recommend ${subject}`
-        : `I cannot make a dependable recommendation for ${subject}`;
-  return `${advice} in ${forecast.location.name} ${timing} because ${reason}. Source: ${forecast.attribution.name}.`;
-}
-
-function articleFor(item: string): "a" | "an" {
-  return ["a", "e", "i", "o", "u"].includes(item[0]?.toLowerCase() ?? "")
-    ? "an"
-    : "a";
-}
-
-function weatherCitation(forecast: WeatherForecast) {
-  return {
-    title: forecast.attribution.name,
-    url: forecast.attribution.url,
-  };
 }

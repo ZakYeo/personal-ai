@@ -477,10 +477,26 @@ describe("createWeatherFeature", () => {
         staleContext,
       ),
     ).resolves.toMatchObject({
+      citations: [
+        {
+          title: "Deterministic weather fixture",
+          url: "https://example.test/weather-source",
+        },
+      ],
       data: {
+        attributionName: "Deterministic weather fixture",
+        attributionUrl: "https://example.test/weather-source",
+        currentObservedAt: "2026-07-28T12:00:00.000Z",
         fetchedAt: "2026-07-28T12:00:05.000Z",
+        latitude: 51.5074,
         location: "London",
+        longitude: -0.1278,
+        precipitationUnit: "mm",
+        periodEndAt: "2026-07-28T18:01:00.000Z",
+        periodStartAt: "2026-07-28T18:01:00.000Z",
+        temperatureUnit: "celsius",
         timezone: "Europe/London",
+        windSpeedUnit: "km/h",
       },
       spokenText: {
         dateStyle: "contextual",

@@ -210,6 +210,48 @@ describe("weather clothing capability", () => {
     });
   });
 
+  it("preserves canonical weather facts when no suitable interval is available", async () => {
+    const result = await executeFeature(
+      createTestFeature(providerWithHourly([])),
+      "weather.clothing",
+      {
+        category: "warm_layer",
+        item: "jumper",
+        location: "London",
+        startAt: "2026-07-29T09:00:00.000Z",
+      },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      citations: [
+        {
+          title: "Deterministic weather fixture",
+          url: "https://example.test/weather-source",
+        },
+      ],
+      data: {
+        attributionName: "Deterministic weather fixture",
+        attributionUrl: "https://example.test/weather-source",
+        currentObservedAt: "2026-07-28T12:00:00.000Z",
+        fetchedAt: "2026-07-28T12:00:05.000Z",
+        latitude: 51.5074,
+        location: "London",
+        longitude: -0.1278,
+        precipitationUnit: "mm",
+        queryPeriodEndAt: "2026-07-29T10:00:00.000Z",
+        queryPeriodStartAt: "2026-07-29T08:00:00.000Z",
+        temperatureUnit: "celsius",
+        timezone: "Europe/London",
+        windSpeedUnit: "km/h",
+      },
+      spokenText: {
+        dateStyle: "contextual",
+        timeZone: "Europe/London",
+      },
+    });
+  });
+
   it("handles exact instants across a daylight-saving transition", async () => {
     const provider = createWeatherProviderFixture();
     const getForecast = vi.spyOn(provider, "getForecast");

@@ -3,6 +3,10 @@ import {
   qualitativeWeatherDetails,
   type WeatherTemporalMode,
 } from "./weather-condition-summary.js";
+import {
+  weatherAttributionText,
+  weatherResultEnvelope,
+} from "./weather-result-envelope.js";
 
 interface WeatherResponseOptions {
   includePrecipitation: boolean;
@@ -16,30 +20,16 @@ export function currentWeatherResult(
 ) {
   const { current, location, units } = forecast;
   const details = formatWeatherDetails(current, units, options, "current");
-  return {
-    citations: [weatherAttributionCitation(forecast)],
+  return weatherResultEnvelope(forecast, {
     data: {
-      attributionName: forecast.attribution.name,
-      attributionUrl: forecast.attribution.url,
-      fetchedAt: forecast.fetchedAt,
-      latitude: location.latitude,
-      location: location.name,
-      longitude: location.longitude,
       observedAt: current.observedAt,
-      periodEndAt: forecast.period.endAt,
-      periodStartAt: forecast.period.startAt,
       precipitation: current.precipitation,
-      precipitationUnit: units.precipitation,
       temperature: current.temperature,
-      temperatureUnit: units.temperature,
-      timezone: location.timezone,
       weather: current.weather,
       windSpeed: current.windSpeed,
-      windSpeedUnit: units.windSpeed,
     },
-    spokenText: weatherSpokenText(location.timezone),
-    text: `In ${location.name}, it is ${current.temperature}${formatTemperatureUnit(units.temperature)} and ${current.weather} ${formatObservationAge(current.observedAt, options.now)}.${details} ${formatAttribution(forecast)}`,
-  };
+    text: `In ${location.name}, it is ${current.temperature}${formatTemperatureUnit(units.temperature)} and ${current.weather} ${formatObservationAge(current.observedAt, options.now)}.${details} ${weatherAttributionText(forecast)}`,
+  });
 }
 
 export function forecastWeatherResult(
@@ -58,31 +48,13 @@ export function forecastWeatherResult(
   ]
     .filter((value): value is string => value !== undefined)
     .join(" ");
-  return {
-    citations: [weatherAttributionCitation(forecast)],
+  return weatherResultEnvelope(forecast, {
     data: {
-      attributionName: forecast.attribution.name,
-      attributionUrl: forecast.attribution.url,
       ...flattenDaily(forecast),
       ...flattenHourly(forecast),
-      fetchedAt: forecast.fetchedAt,
-      latitude: forecast.location.latitude,
-      location: forecast.location.name,
-      longitude: forecast.location.longitude,
-      periodEndAt: forecast.period.endAt,
-      periodStartAt: forecast.period.startAt,
-      precipitationUnit: forecast.units.precipitation,
-      temperatureUnit: forecast.units.temperature,
-      timezone: forecast.location.timezone,
-      windSpeedUnit: forecast.units.windSpeed,
     },
-    spokenText: weatherSpokenText(forecast.location.timezone),
-    text: `${forecast.location.name}'s forecast: ${summary || "No forecast intervals are available."} ${formatAttribution(forecast)}`,
-  };
-}
-
-function weatherSpokenText(timeZone: string) {
-  return { dateStyle: "contextual" as const, timeZone };
+    text: `${forecast.location.name}'s forecast: ${summary || "No forecast intervals are available."} ${weatherAttributionText(forecast)}`,
+  });
 }
 
 function flattenHourly(forecast: WeatherForecast) {
@@ -118,10 +90,6 @@ function formatTemperatureUnit(unit: WeatherUnits["temperature"]): string {
   return unit === "celsius" ? "°C" : "°F";
 }
 
-function formatAttribution(forecast: WeatherForecast): string {
-  return `Source: ${forecast.attribution.name}.`;
-}
-
 function formatWeatherDetails(
   conditions: {
     precipitation: number;
@@ -153,11 +121,4 @@ function formatObservationAge(observedAt: string, now: Date): string {
   if (ageMinutes < 45) return `about ${ageMinutes} minutes ago`;
   if (ageMinutes < 90) return "about an hour ago";
   return `about ${Math.round(ageMinutes / 60)} hours ago`;
-}
-
-function weatherAttributionCitation(forecast: WeatherForecast) {
-  return {
-    title: forecast.attribution.name,
-    url: forecast.attribution.url,
-  };
 }

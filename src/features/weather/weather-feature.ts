@@ -21,6 +21,7 @@ import {
   currentWeatherResult,
   forecastWeatherResult,
 } from "./weather-response.js";
+import { weatherResultEnvelope } from "./weather-result-envelope.js";
 import {
   createCurrentWeatherPeriod,
   createForecastWeatherPeriod,
@@ -198,18 +199,9 @@ async function executeWeatherRequest(
 
   if (weatherForecastIsStale(forecast, context.clock.now(), maxForecastAgeMs)) {
     return withWeatherLocationReference(
-      {
-        data: {
-          fetchedAt: forecast.fetchedAt,
-          location: forecast.location.name,
-          timezone: forecast.location.timezone,
-        },
-        spokenText: {
-          dateStyle: "contextual" as const,
-          timeZone: forecast.location.timezone,
-        },
+      weatherResultEnvelope(forecast, {
         text: `The available weather data for ${forecast.location.name} is stale, so I will not present it as current.`,
-      },
+      }),
       forecast.location,
     );
   }
