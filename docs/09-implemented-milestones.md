@@ -276,6 +276,13 @@ Outcomes:
   generic detail prompt. Adviser failures retain weather citations and facts in
   a safe response plus an internal feature diagnostic, and skip response
   rewriting.
+- The fresh provider-backed clothing-advice thermonuclear review was fully
+  remediated. Clothing-adviser config now resolves once through the canonical
+  runtime-provider abstraction; failed feature results are discriminated from
+  successful continuation results; and goal-correlated response contexts use
+  noun-phrase-neutral item verdicts with regression coverage for bare nouns,
+  plurals, and phrases containing determiners. A final wording regression found
+  during closure review was fixed and covered before approval.
 
 Acceptance criteria:
 
@@ -293,7 +300,7 @@ Acceptance criteria:
 - Arbitrary clothing items and open outfit requests are provider-backed without
   category enumeration; the explicit opt-in OpenAI weather smoke covers both
   paths and the contextual three-turn regression.
-- The final full `npm run check` passed with 1,440 tests passing and 34 opt-in
+- The final full `npm run check` passed with 1,458 tests passing and 36 opt-in
   tests skipped. Live OpenAI and Open-Meteo weather smokes remain explicit
   opt-in checks and were not used as completion evidence for the generalized
   dialogue slice.
