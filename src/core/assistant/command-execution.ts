@@ -256,7 +256,7 @@ async function executeFeatureCommand(
     const response: AssistantResponse = {
       ...(result.citations ? { citations: result.citations } : {}),
       ...(result.expectsFollowUp ? { expectsFollowUp: true } : {}),
-      status: "ok",
+      status: result.failure ? "error" : "ok",
       text: result.text,
     };
     let toolObservationReferences:
@@ -270,7 +270,19 @@ async function executeFeatureCommand(
     return {
       ...(result.data ? { data: Object.freeze({ ...result.data }) } : {}),
       kind: "completed",
-      outcome: { response },
+      outcome: result.failure
+        ? outcomeFromError(
+            createAppError({
+              capability: input.command.capability,
+              category: "feature_failure",
+              ...(result.failure.cause === undefined
+                ? {}
+                : { cause: result.failure.cause }),
+              message: result.failure.message,
+            }),
+            response,
+          )
+        : { response },
       ...(result.responseRewrite
         ? { responseRewrite: result.responseRewrite }
         : {}),

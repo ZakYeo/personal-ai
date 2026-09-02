@@ -31,11 +31,17 @@ interface CompletedFeatureResult {
   citations?: readonly AssistantCitation[];
   data?: AssistantCommandParameters;
   expectsFollowUp?: boolean;
+  failure?: FeatureFailure;
   resultReferences?: FeatureResultReferenceSet;
   responseRewrite?: "disabled";
   spokenText?: FeatureSpokenTextContext;
   toolClarification?: FeatureToolClarification;
   toolObservationData?: AssistantCommandParameters;
+}
+
+interface FeatureFailure {
+  readonly cause?: unknown;
+  readonly message: string;
 }
 
 export interface FeatureSpokenTextContext {

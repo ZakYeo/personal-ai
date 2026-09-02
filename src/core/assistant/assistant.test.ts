@@ -215,6 +215,59 @@ describe("createAssistant", () => {
     );
   });
 
+  it("preserves safe feature failure results and their internal diagnostics", async () => {
+    const cause = new Error("clothing adviser provider secret failure");
+    const rewrite = vi.fn();
+    const failingFeature = createFeature({
+      execute: () =>
+        Promise.resolve({
+          citations: [
+            {
+              title: "Deterministic weather fixture",
+              url: "https://example.test/weather-source",
+            },
+          ],
+          data: { location: "Eastbourne", temperature: 19.8 },
+          failure: {
+            cause,
+            message: "Clothing adviser request failed.",
+          },
+          text: "I found the weather for Eastbourne, but clothing advice is temporarily unavailable.",
+        }),
+    });
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [failingFeature],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+      responseRewriter: { rewrite },
+    });
+
+    await expect(assistant.handleTextWithDiagnostics("hello")).resolves.toEqual(
+      {
+        response: {
+          citations: [
+            {
+              title: "Deterministic weather fixture",
+              url: "https://example.test/weather-source",
+            },
+          ],
+          status: "error",
+          text: "I found the weather for Eastbourne, but clothing advice is temporarily unavailable.",
+        },
+        diagnostics: [
+          {
+            capability: "test.echo",
+            category: "feature_failure",
+            cause,
+            message: "Clothing adviser request failed.",
+          },
+        ],
+      },
+    );
+    expect(rewrite).not.toHaveBeenCalled();
+  });
+
   it("returns an invalid response without executing a malformed command", async () => {
     const execute = vi.fn(() => Promise.resolve({ text: "Should not run." }));
     const feature = createFeature({
