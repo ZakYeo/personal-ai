@@ -12,7 +12,7 @@ export const weatherClothingCategories = Object.freeze([
 export type WeatherClothingCategory =
   (typeof weatherClothingCategories)[number];
 
-export interface WeatherClothingSample {
+interface WeatherClothingSample {
   readonly precipitation: number;
   readonly temperature: number;
   readonly weather: string;
