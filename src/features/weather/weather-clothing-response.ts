@@ -62,7 +62,7 @@ export function unavailableClothingResult(
     readonly text: string;
   },
 ): FeatureResult {
-  return {
+  const result = {
     ...weatherResultEnvelope(context.forecast, {
       data: {
         clothingAdviceGoal: context.goal,
@@ -79,9 +79,9 @@ export function unavailableClothingResult(
       },
       text: `${context.text} ${weatherAttributionText(context.forecast)}`,
     }),
-    ...(context.failure ? { failure: context.failure } : {}),
-    responseRewrite: "disabled",
+    responseRewrite: "disabled" as const,
   };
+  return context.failure ? { ...result, failure: context.failure } : result;
 }
 
 export function clothingArticle(item: string): "a" | "an" {

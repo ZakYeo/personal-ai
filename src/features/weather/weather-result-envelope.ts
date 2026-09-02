@@ -1,5 +1,4 @@
-import type { AssistantCommandParameters } from "../../ports/assistant.js";
-import type { FeatureResult } from "../../ports/feature.js";
+import type { AssistantCommandParameters, AssistantCitation  } from "../../ports/assistant.js";
 import type { WeatherForecast } from "../../ports/weather.js";
 
 interface WeatherResultContent {
@@ -7,15 +6,20 @@ interface WeatherResultContent {
   readonly text: string;
 }
 
-type CompletedWeatherResult = Exclude<
-  FeatureResult,
-  { readonly kind: "resumable_clarification" }
->;
+interface WeatherResultEnvelope {
+  readonly citations: readonly AssistantCitation[];
+  readonly data: AssistantCommandParameters;
+  readonly spokenText: {
+    readonly dateStyle: "contextual";
+    readonly timeZone: string;
+  };
+  readonly text: string;
+}
 
 export function weatherResultEnvelope(
   forecast: WeatherForecast,
   content: WeatherResultContent,
-): CompletedWeatherResult {
+): WeatherResultEnvelope {
   return {
     citations: [
       {

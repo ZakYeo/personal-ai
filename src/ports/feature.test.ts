@@ -4,6 +4,7 @@ import type {
   FeatureExecutionContext,
   FeatureExecutionRequest,
   FeaturePlugin,
+  FeatureResult,
 } from "./feature.js";
 import { defineDeterministicFeatureRules } from "../application/deterministic-feature-rules.js";
 
@@ -28,6 +29,17 @@ const context: FeatureExecutionContext = {
 };
 
 describe("defineFeature", () => {
+  it("keeps failed feature results incompatible with continuation metadata", () => {
+    const invalidFailure: FeatureResult = {
+      expectsFollowUp: true,
+      // @ts-expect-error failed results cannot also request a follow-up.
+      failure: { message: "failed" },
+      text: "safe failure",
+    };
+
+    expect(invalidFailure.text).toBe("safe failure");
+  });
+
   it("ties deterministic rules to declared feature capabilities", () => {
     const feature = defineFeature({
       id: "test",

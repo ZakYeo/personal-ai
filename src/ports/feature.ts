@@ -26,18 +26,30 @@ export type FeatureCapabilityParameters = Readonly<
   Record<string, FeatureCapabilityParameter>
 >;
 
-interface CompletedFeatureResult {
+interface CompletedFeatureResultContent {
   text: string;
   citations?: readonly AssistantCitation[];
   data?: AssistantCommandParameters;
-  expectsFollowUp?: boolean;
-  failure?: FeatureFailure;
   resultReferences?: FeatureResultReferenceSet;
   responseRewrite?: "disabled";
   spokenText?: FeatureSpokenTextContext;
+}
+
+interface SuccessfulFeatureResult extends CompletedFeatureResultContent {
+  expectsFollowUp?: boolean;
+  failure?: never;
   toolClarification?: FeatureToolClarification;
   toolObservationData?: AssistantCommandParameters;
 }
+
+interface FailedFeatureResult extends CompletedFeatureResultContent {
+  expectsFollowUp?: never;
+  failure: FeatureFailure;
+  toolClarification?: never;
+  toolObservationData?: never;
+}
+
+type CompletedFeatureResult = SuccessfulFeatureResult | FailedFeatureResult;
 
 interface FeatureFailure {
   readonly cause?: unknown;
