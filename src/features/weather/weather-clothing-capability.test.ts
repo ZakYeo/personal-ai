@@ -102,7 +102,7 @@ describe("weather clothing capability", () => {
       },
       {},
     );
-    expect(result.text).toContain("recommend a T-shirt");
+    expect(result.text).toContain("recommend wearing T-shirt");
     expect(result.data).toMatchObject({
       clothingAdviceGoal: "assess_item",
       clothingItem: "T-shirt",
@@ -141,7 +141,7 @@ describe("weather clothing capability", () => {
       }),
       {},
     );
-    expect(result.text).toContain("recommend an umbrella");
+    expect(result.text).toContain("recommend wearing umbrella");
     expect(result.data).toMatchObject({
       clothingRecommendation: "recommended",
       requestedPeriodEndAt: "2026-07-29T09:00:00.000Z",
@@ -351,10 +351,23 @@ describe("weather clothing capability", () => {
     );
 
     expect(result.data).toMatchObject({ clothingRecommendation: "uncertain" });
-    expect(result.text).toContain(
-      "cannot confidently assess a ceremonial sash",
-    );
+    expect(result.text).toContain("cannot confidently assess ceremonial sash");
   });
+
+  it.each(["shorts", "trousers", "my coat", "a hoodie"])(
+    "phrases the arbitrary item %s without guessing an article",
+    async (item) => {
+      const result = await executeFeature(
+        createTestFeature(),
+        "weather.clothing",
+        { goal: "assess_item", item, location: "London" },
+        context,
+      );
+
+      expect(result.text).toContain(`I recommend wearing ${item}`);
+      expect(result.text).not.toContain(`recommend a ${item}`);
+    },
+  );
 
   it("recommends one bounded outfit without requiring an item", async () => {
     const adviser = createAdviser({

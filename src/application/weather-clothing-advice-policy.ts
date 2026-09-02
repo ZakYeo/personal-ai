@@ -17,6 +17,18 @@ const itemRecommendations = new Set([
 
 export function parseWeatherClothingAdvice(
   value: unknown,
+  goal: "assess_item",
+): Extract<WeatherClothingAdvice, { kind: "item_assessment" }>;
+export function parseWeatherClothingAdvice(
+  value: unknown,
+  goal: "recommend_outfit",
+): Extract<WeatherClothingAdvice, { kind: "outfit_recommendation" }>;
+export function parseWeatherClothingAdvice(
+  value: unknown,
+  goal: WeatherClothingAdviceGoal["kind"],
+): WeatherClothingAdvice;
+export function parseWeatherClothingAdvice(
+  value: unknown,
   goal: WeatherClothingAdviceGoal["kind"],
 ): WeatherClothingAdvice {
   if (!isRecord(value) || typeof value.kind !== "string") {

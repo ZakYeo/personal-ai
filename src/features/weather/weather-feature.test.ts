@@ -85,7 +85,7 @@ describe("createWeatherFeature", () => {
     expect(result.text).toContain("cannot confidently assess a coat");
     expect(result.data).toMatchObject({
       clothingAdviceGoal: "assess_item",
-      clothingItem: "coat",
+      clothingItem: "a coat",
       clothingRecommendation: "uncertain",
       fetchedAt: "2026-07-28T12:00:05.000Z",
       location: "London",

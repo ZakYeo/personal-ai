@@ -8,20 +8,42 @@ import {
   weatherResultEnvelope,
 } from "./weather-result-envelope.js";
 
-interface ClothingResultContext {
+interface ClothingResultBase {
   readonly forecast: WeatherForecast;
-  readonly goal: "assess_item" | "recommend_outfit";
-  readonly item?: string;
-  readonly occasion?: string;
   readonly requestedPeriod: WeatherPeriod;
 }
 
-interface AvailableClothingResultContext extends ClothingResultContext {
-  readonly advice: WeatherClothingAdvice;
+type ClothingResultContext = ClothingResultBase &
+  (
+    | { readonly goal: "assess_item"; readonly item: string }
+    | {
+        readonly goal: "recommend_outfit";
+        readonly occasion?: string;
+      }
+  );
+
+type AvailableClothingResultContext = ClothingResultBase & {
   readonly conditionSummary: WeatherClothingConditionSummary;
   readonly mode: "current" | "period" | "point";
   readonly selected: readonly SelectedClothingConditions[];
-}
+} & (
+    | {
+        readonly advice: Extract<
+          WeatherClothingAdvice,
+          { kind: "item_assessment" }
+        >;
+        readonly goal: "assess_item";
+        readonly item: string;
+      }
+    | {
+        readonly advice: Extract<
+          WeatherClothingAdvice,
+          { kind: "outfit_recommendation" }
+        >;
+        readonly goal: "recommend_outfit";
+        readonly occasion?: string;
+      }
+  );
 
 export function availableClothingResult(
   context: AvailableClothingResultContext,
@@ -31,8 +53,7 @@ export function availableClothingResult(
       data: {
         clothingAdviceGoal: context.goal,
         clothingRecommendationAvailable: true,
-        ...(context.item ? { clothingItem: context.item } : {}),
-        ...(context.occasion ? { clothingOccasion: context.occasion } : {}),
+        ...clothingGoalData(context),
         ...adviceData(context.advice),
         decidingMaximumPrecipitation:
           context.conditionSummary.maximumPrecipitation,
@@ -67,8 +88,7 @@ export function unavailableClothingResult(
       data: {
         clothingAdviceGoal: context.goal,
         clothingRecommendationAvailable: false,
-        ...(context.item ? { clothingItem: context.item } : {}),
-        ...(context.occasion ? { clothingOccasion: context.occasion } : {}),
+        ...clothingGoalData(context),
         queryPeriodEndAt: context.forecast.period.endAt,
         queryPeriodStartAt: context.forecast.period.startAt,
         requestedPeriodEndAt: context.requestedPeriod.endAt,
@@ -84,12 +104,6 @@ export function unavailableClothingResult(
   return context.failure ? { ...result, failure: context.failure } : result;
 }
 
-export function clothingArticle(item: string): "a" | "an" {
-  return ["a", "e", "i", "o", "u"].includes(item[0]?.toLowerCase() ?? "")
-    ? "an"
-    : "a";
-}
-
 function adviceData(advice: WeatherClothingAdvice) {
   return advice.kind === "item_assessment"
     ? { clothingRecommendation: advice.recommendation }
@@ -100,6 +114,14 @@ function adviceData(advice: WeatherClothingAdvice) {
         }),
         { outfitItemCount: advice.items.length },
       );
+}
+
+function clothingGoalData(context: ClothingResultContext) {
+  return context.goal === "assess_item"
+    ? { clothingItem: context.item }
+    : context.occasion
+      ? { clothingOccasion: context.occasion }
+      : {};
 }
 
 function flattenSelectedConditions(
@@ -128,12 +150,9 @@ function clothingRecommendationText(
         ? `at ${context.requestedPeriod.startAt}`
         : `from ${context.requestedPeriod.startAt} to ${context.requestedPeriod.endAt}`;
   const advice =
-    context.advice.kind === "outfit_recommendation"
+    context.goal === "recommend_outfit"
       ? `I recommend ${joinItems(context.advice.items)}`
-      : itemAssessmentText(
-          context.item ?? "item",
-          context.advice.recommendation,
-        );
+      : itemAssessmentText(context.item, context.advice.recommendation);
   return `${advice} in ${context.forecast.location.name} ${timing} for the ${context.conditionSummary.description}. ${weatherAttributionText(context.forecast)}`;
 }
 
@@ -144,12 +163,11 @@ function itemAssessmentText(
     { kind: "item_assessment" }
   >["recommendation"],
 ): string {
-  const subject = `${clothingArticle(item)} ${item}`;
-  if (recommendation === "recommended") return `I recommend ${subject}`;
+  if (recommendation === "recommended") return `I recommend wearing ${item}`;
   if (recommendation === "not_recommended") {
-    return `I would not recommend ${subject}`;
+    return `I would not recommend wearing ${item}`;
   }
-  return `I cannot confidently assess ${subject}`;
+  return `I cannot confidently assess ${item}`;
 }
 
 function joinItems(items: readonly string[]): string {

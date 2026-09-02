@@ -21,7 +21,6 @@ import type { WeatherClothingAdvisorPort } from "../../ports/weather-clothing-ad
 import type { WeatherProviderPort } from "../../ports/weather.js";
 import {
   availableClothingResult,
-  clothingArticle,
   unavailableClothingResult,
 } from "./weather-clothing-response.js";
 import { selectClothingConditions } from "./weather-clothing-selection.js";
@@ -92,7 +91,7 @@ export function createWeatherClothingCapabilities(
       execute: (request, context) =>
         executeWeatherClothing(
           provider,
-          { ...request.args, goal: "assess_item", item: "coat" },
+          { ...request.args, goal: "assess_item", item: "a coat" },
           context,
           options,
         ),
@@ -140,13 +139,20 @@ async function executeWeatherClothing(
     context.signal ? { signal: context.signal } : {},
   );
   validateWeatherForecast(forecast, resolution.location, plan.queryPeriod);
-  const resultContext = {
-    forecast,
-    goal: args.goal,
-    ...(item ? { item } : {}),
-    ...(occasion ? { occasion } : {}),
-    requestedPeriod: plan.requestedPeriod,
-  } as const;
+  const resultContext =
+    args.goal === "assess_item"
+      ? {
+          forecast,
+          goal: args.goal,
+          item,
+          requestedPeriod: plan.requestedPeriod,
+        }
+      : {
+          forecast,
+          goal: args.goal,
+          ...(occasion ? { occasion } : {}),
+          requestedPeriod: plan.requestedPeriod,
+        };
   if (
     weatherForecastIsStale(
       forecast,
@@ -169,12 +175,15 @@ async function executeWeatherClothing(
     plan.requestedPeriod,
   );
   if (selected.length === 0) {
-    const subject = item ? `${clothingArticle(item)} ${item}` : "an outfit";
+    const unavailableText =
+      resultContext.goal === "assess_item"
+        ? `I cannot assess ${resultContext.item}`
+        : "I cannot recommend an outfit";
     return withWeatherLocationReference(
       unavailableClothingResult({
         ...resultContext,
         selected,
-        text: `I cannot recommend ${subject} because no weather interval is available close enough to the requested time.`,
+        text: `${unavailableText} because no weather interval is available close enough to the requested time.`,
       }),
       forecast.location,
     );
@@ -201,17 +210,24 @@ async function executeWeatherClothing(
       { conditions, goal, units: metricWeatherUnits },
       context.signal ? { signal: context.signal } : {},
     );
-    const advice = parseWeatherClothingAdvice(rawAdvice, args.goal);
-    return withWeatherLocationReference(
-      availableClothingResult({
-        ...resultContext,
-        advice,
-        conditionSummary: summarizeWeatherClothingConditions(conditions),
-        mode: plan.mode,
-        selected,
-      }),
-      forecast.location,
-    );
+    const common = {
+      conditionSummary: summarizeWeatherClothingConditions(conditions),
+      mode: plan.mode,
+      selected,
+    } as const;
+    const result =
+      resultContext.goal === "assess_item"
+        ? availableClothingResult({
+            ...common,
+            ...resultContext,
+            advice: parseWeatherClothingAdvice(rawAdvice, "assess_item"),
+          })
+        : availableClothingResult({
+            ...common,
+            ...resultContext,
+            advice: parseWeatherClothingAdvice(rawAdvice, "recommend_outfit"),
+          });
+    return withWeatherLocationReference(result, forecast.location);
   } catch (cause) {
     return withWeatherLocationReference(
       unavailableClothingResult({
