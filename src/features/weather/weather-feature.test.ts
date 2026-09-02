@@ -235,6 +235,67 @@ describe("createWeatherFeature", () => {
     });
   });
 
+  it("reuses the latest weather location when the current request omits one", async () => {
+    const provider = createWeatherProviderFixture();
+    const findLocations = vi.spyOn(provider, "findLocations");
+    const eastbourne = {
+      countryCode: "GB",
+      latitude: 50.768,
+      longitude: 0.29,
+      name: "Eastbourne",
+      timezone: "Europe/London",
+    };
+
+    const result = await executeFeature(
+      createTestWeatherFeature(provider),
+      "weather.current",
+      {},
+      {
+        ...context,
+        selectResultReference: () => ({
+          publicReference: {
+            facts: {
+              countryCode: "GB",
+              name: "Eastbourne",
+              timezone: "Europe/London",
+            },
+            kind: "weather_location",
+            ordinal: 1,
+            reference: "weather-location-1",
+          },
+          target: { kind: "weather_location", location: eastbourne },
+        }),
+        trustedInputText: "Could I wear a coat if I left now?",
+      },
+    );
+
+    expect(findLocations).not.toHaveBeenCalled();
+    expect(result.data).toMatchObject({ location: "Eastbourne" });
+  });
+
+  it("uses an explicitly requested home instead of the latest weather location", async () => {
+    const selectResultReference = vi.fn();
+    const readHomeLocation = vi.fn(() =>
+      Promise.resolve({
+        place: "London",
+        provenance: "user-authored" as const,
+      }),
+    );
+
+    const result = await executeFeature(
+      createTestWeatherFeature(createWeatherProviderFixture(), {
+        personalContext: { readHomeLocation },
+      }),
+      "weather.current",
+      { location: "home" },
+      { ...context, selectResultReference },
+    );
+
+    expect(selectResultReference).not.toHaveBeenCalled();
+    expect(readHomeLocation).toHaveBeenCalledOnce();
+    expect(result.data).toMatchObject({ location: "London" });
+  });
+
   it("returns current conditions with exact protected provider facts", async () => {
     const result = await executeFeature(
       createTestWeatherFeature(),
@@ -255,6 +316,28 @@ describe("createWeatherFeature", () => {
         url: "https://example.test/weather-source",
       },
     ]);
+    expect(result.resultReferences).toEqual({
+      items: [
+        {
+          facts: {
+            countryCode: "GB",
+            name: "London",
+            timezone: "Europe/London",
+          },
+          target: {
+            kind: "weather_location",
+            location: {
+              countryCode: "GB",
+              latitude: 51.5074,
+              longitude: -0.1278,
+              name: "London",
+              timezone: "Europe/London",
+            },
+          },
+        },
+      ],
+      kind: "weather_locations",
+    });
     expect(result.data).toMatchObject({
       attributionName: "Deterministic weather fixture",
       attributionUrl: "https://example.test/weather-source",
@@ -464,7 +547,7 @@ describe("createWeatherFeature", () => {
         { location: "London" },
         staleContext,
       ),
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       data: {
         fetchedAt: "2026-07-28T12:00:05.000Z",
         location: "London",
@@ -473,6 +556,15 @@ describe("createWeatherFeature", () => {
       spokenText: {
         dateStyle: "contextual",
         timeZone: "Europe/London",
+      },
+      resultReferences: {
+        items: [
+          {
+            facts: { countryCode: "GB", name: "London" },
+            target: { kind: "weather_location" },
+          },
+        ],
+        kind: "weather_locations",
       },
       text: "The available weather data for London is stale, so I will not present it as current.",
     });

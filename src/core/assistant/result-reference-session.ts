@@ -7,6 +7,7 @@ import type {
   ResultReferenceSelectionRequest,
   ResultReferenceTarget,
   TaskResultReferenceFacts,
+  WeatherLocationResultReferenceFacts,
 } from "../../ports/result-reference.js";
 import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
 
@@ -110,7 +111,8 @@ interface RetainedResultReference {
   readonly facts:
     | CalendarResultReferenceFacts
     | InternetSourceResultReferenceFacts
-    | TaskResultReferenceFacts;
+    | TaskResultReferenceFacts
+    | WeatherLocationResultReferenceFacts;
   readonly target?: ResultReferenceTarget;
 }
 
@@ -132,6 +134,10 @@ const resultReferenceDescriptors = {
     itemKind: "task_item",
     prefix: "task-item",
   },
+  weather_locations: {
+    itemKind: "weather_location",
+    prefix: "weather-location",
+  },
 } as const satisfies Record<
   FeatureResultReferenceSet["kind"],
   ResultReferenceDescriptor
@@ -150,6 +156,15 @@ function createEntry(
   }) as AssistantResultReference;
   return {
     publicReference,
-    ...(item.target ? { target: Object.freeze({ ...item.target }) } : {}),
+    ...(item.target ? { target: freezeTarget(item.target) } : {}),
   };
+}
+
+function freezeTarget(target: ResultReferenceTarget): ResultReferenceTarget {
+  return target.kind === "weather_location"
+    ? Object.freeze({
+        ...target,
+        location: Object.freeze({ ...target.location }),
+      })
+    : Object.freeze({ ...target });
 }

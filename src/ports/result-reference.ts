@@ -1,3 +1,5 @@
+import type { WeatherLocation } from "./weather.js";
+
 interface AssistantResultReferenceBase {
   readonly ordinal: number;
   readonly reference: string;
@@ -15,6 +17,10 @@ export type AssistantResultReference =
   | (AssistantResultReferenceBase & {
       readonly facts: TaskResultReferenceFacts;
       readonly kind: "task_item";
+    })
+  | (AssistantResultReferenceBase & {
+      readonly facts: WeatherLocationResultReferenceFacts;
+      readonly kind: "weather_location";
     });
 
 export type ResultReferenceTarget =
@@ -28,6 +34,10 @@ export type ResultReferenceTarget =
       readonly listRevision: number;
       readonly revision: number;
       readonly taskId: string;
+    }
+  | {
+      readonly kind: "weather_location";
+      readonly location: WeatherLocation;
     };
 
 interface CalendarFeatureResultReference {
@@ -44,6 +54,11 @@ interface TaskFeatureResultReference {
   readonly target: Extract<ResultReferenceTarget, { kind: "task_item" }>;
 }
 
+interface WeatherLocationFeatureResultReference {
+  readonly facts: WeatherLocationResultReferenceFacts;
+  readonly target: Extract<ResultReferenceTarget, { kind: "weather_location" }>;
+}
+
 export type FeatureResultReferenceSet =
   | {
       readonly items: readonly CalendarFeatureResultReference[];
@@ -56,6 +71,10 @@ export type FeatureResultReferenceSet =
   | {
       readonly items: readonly TaskFeatureResultReference[];
       readonly kind: "task_items";
+    }
+  | {
+      readonly items: readonly WeatherLocationFeatureResultReference[];
+      readonly kind: "weather_locations";
     };
 
 export interface CalendarResultReferenceFacts {
@@ -78,6 +97,12 @@ export interface TaskResultReferenceFacts {
   readonly listName: string;
   readonly reminderAt?: string;
   readonly status: "completed" | "open";
+}
+
+export interface WeatherLocationResultReferenceFacts {
+  readonly countryCode: string;
+  readonly name: string;
+  readonly timezone: string;
 }
 
 export interface ResolvedResultReference {

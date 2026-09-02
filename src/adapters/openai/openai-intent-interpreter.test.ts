@@ -55,6 +55,39 @@ const profileLookupCapability: OpenAIIntentCapability = {
 };
 
 describe("OpenAIIntentInterpreter", () => {
+  it("provides safe recent weather-location context without private coordinates", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-weather-reference",
+        output_text: JSON.stringify({
+          interpretation: { kind: "conversation" },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({ fetch });
+
+    await interpretOnce(interpreter, "Would a coat be sensible now?", {
+      ...context,
+      resultReferences: [
+        {
+          facts: {
+            countryCode: "GB",
+            name: "Eastbourne",
+            timezone: "Europe/London",
+          },
+          kind: "weather_location",
+          ordinal: 1,
+          reference: "weather-location-1",
+        },
+      ],
+    });
+
+    const input = JSON.stringify(readRequestBody(fetch).input);
+    expect(input).toContain("Eastbourne");
+    expect(input).toContain("omit location to continue");
+    expect(input).not.toContain("50.768");
+  });
+
   it("provides bounded prior conversation as untrusted routing context", async () => {
     const fetch = createFetchStub(
       jsonResponse({

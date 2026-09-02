@@ -134,6 +134,58 @@ describe("result reference session", () => {
     expect(JSON.stringify(session.publicReferences())).not.toContain("private");
   });
 
+  it("retains safe weather facts while resolving the full private location", () => {
+    const session = createResultReferenceSession();
+
+    session.retain({
+      items: [
+        {
+          facts: {
+            countryCode: "GB",
+            name: "Eastbourne",
+            timezone: "Europe/London",
+          },
+          target: {
+            kind: "weather_location",
+            location: {
+              countryCode: "GB",
+              latitude: 50.768,
+              longitude: 0.29,
+              name: "Eastbourne",
+              timezone: "Europe/London",
+            },
+          },
+        },
+      ],
+      kind: "weather_locations",
+    });
+
+    expect(session.publicReferences()).toEqual([
+      {
+        facts: {
+          countryCode: "GB",
+          name: "Eastbourne",
+          timezone: "Europe/London",
+        },
+        kind: "weather_location",
+        ordinal: 1,
+        reference: "weather-location-1",
+      },
+    ]);
+    expect(session.select({ rawText: "What about a coat?" })).toMatchObject({
+      target: {
+        kind: "weather_location",
+        location: {
+          latitude: 50.768,
+          longitude: 0.29,
+        },
+      },
+    });
+    expect(JSON.stringify(session.publicReferences())).not.toContain(
+      "latitude",
+    );
+  });
+
   it.each([
     {
       expectedKind: "calendar_event",
@@ -173,6 +225,31 @@ describe("result reference session", () => {
           },
         ],
         kind: "task_items",
+      },
+    },
+    {
+      expectedKind: "weather_location",
+      resultSet: {
+        items: [
+          {
+            facts: {
+              countryCode: "GB",
+              name: "Eastbourne",
+              timezone: "Europe/London",
+            },
+            target: {
+              kind: "weather_location",
+              location: {
+                countryCode: "GB",
+                latitude: 50.768,
+                longitude: 0.29,
+                name: "Eastbourne",
+                timezone: "Europe/London",
+              },
+            },
+          },
+        ],
+        kind: "weather_locations",
       },
     },
   ] satisfies readonly {

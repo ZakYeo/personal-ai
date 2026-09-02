@@ -8,8 +8,12 @@ import {
   type FeatureArgsFromParameters,
   type FeatureCapabilityParameters,
   type FeatureExecutionContext,
+  type FeatureResult,
 } from "../../application/feature.js";
-import type { WeatherProviderPort } from "../../ports/weather.js";
+import type {
+  WeatherLocation,
+  WeatherProviderPort,
+} from "../../ports/weather.js";
 import {
   metricWeatherUnits,
   validateWeatherForecast,
@@ -216,18 +220,21 @@ async function executeWeatherRequest(
   validateWeatherForecast(forecast, location, period);
 
   if (weatherForecastIsStale(forecast, context.clock.now(), maxForecastAgeMs)) {
-    return {
-      data: {
-        fetchedAt: forecast.fetchedAt,
-        location: forecast.location.name,
-        timezone: forecast.location.timezone,
+    return withWeatherLocationReference(
+      {
+        data: {
+          fetchedAt: forecast.fetchedAt,
+          location: forecast.location.name,
+          timezone: forecast.location.timezone,
+        },
+        spokenText: {
+          dateStyle: "contextual" as const,
+          timeZone: forecast.location.timezone,
+        },
+        text: `The available weather data for ${forecast.location.name} is stale, so I will not present it as current.`,
       },
-      spokenText: {
-        dateStyle: "contextual" as const,
-        timeZone: forecast.location.timezone,
-      },
-      text: `The available weather data for ${forecast.location.name} is stale, so I will not present it as current.`,
-    };
+      forecast.location,
+    );
   }
 
   const responseOptions = {
@@ -236,22 +243,29 @@ async function executeWeatherRequest(
     now: context.clock.now(),
   };
   if (mode === "current")
-    return currentWeatherResult(forecast, responseOptions);
+    return withWeatherLocationReference(
+      currentWeatherResult(forecast, responseOptions),
+      forecast.location,
+    );
   const forecastResult = forecastWeatherResult(forecast, responseOptions);
-  if (mode === "forecast") return forecastResult;
+  if (mode === "forecast")
+    return withWeatherLocationReference(forecastResult, forecast.location);
   const hourlyForPeriod = forecast.hourly.filter(
     (item) =>
       item.forecastAt >= period.startAt && item.forecastAt <= period.endAt,
   );
   if (hourlyForPeriod.length === 0) {
-    return {
-      ...forecastResult,
-      data: {
-        ...forecastResult.data,
-        coatRecommendationAvailable: false,
+    return withWeatherLocationReference(
+      {
+        ...forecastResult,
+        data: {
+          ...forecastResult.data,
+          coatRecommendationAvailable: false,
+        },
+        text: `I cannot determine whether you need a coat because no hourly forecast is available for that period. ${forecastResult.text}`,
       },
-      text: `I cannot determine whether you need a coat because no hourly forecast is available for that period. ${forecastResult.text}`,
-    };
+      forecast.location,
+    );
   }
   const coatRecommended = hourlyForPeriod.some(
     (item) =>
@@ -259,18 +273,47 @@ async function executeWeatherRequest(
       item.temperature <= 12 ||
       /\b(?:rain|sleet|snow)\b/iu.test(item.weather),
   );
-  return {
-    ...forecastResult,
-    data: {
-      ...forecastResult.data,
-      coatRecommendationAvailable: true,
-      coatRecommended,
+  return withWeatherLocationReference(
+    {
+      ...forecastResult,
+      data: {
+        ...forecastResult.data,
+        coatRecommendationAvailable: true,
+        coatRecommended,
+      },
+      text: `${
+        coatRecommended
+          ? "Yes, take a coat: the forecast includes rain or cool conditions."
+          : "No coat is indicated by the available forecast."
+      } ${forecastResult.text}`,
     },
-    text: `${
-      coatRecommended
-        ? "Yes, take a coat: the forecast includes rain or cool conditions."
-        : "No coat is indicated by the available forecast."
-    } ${forecastResult.text}`,
+    forecast.location,
+  );
+}
+
+function withWeatherLocationReference(
+  result: FeatureResult,
+  location: WeatherLocation,
+): FeatureResult {
+  if (result.kind === "resumable_clarification") return result;
+  return {
+    ...result,
+    resultReferences: {
+      items: [
+        {
+          facts: {
+            countryCode: location.countryCode,
+            name: location.name,
+            timezone: location.timezone,
+          },
+          target: {
+            kind: "weather_location",
+            location: { ...location },
+          },
+        },
+      ],
+      kind: "weather_locations",
+    },
   };
 }
 

@@ -26,6 +26,15 @@ export async function resolveWeatherLocation(
   },
 ): Promise<WeatherLocationResolution> {
   const requestedPlace = location?.trim();
+  const recentLocation =
+    requestedPlace === undefined
+      ? context.selectResultReference?.({
+          rawText: context.trustedInputText ?? "",
+        })
+      : undefined;
+  if (recentLocation?.target?.kind === "weather_location") {
+    return { location: recentLocation.target.location };
+  }
   const requestsHome =
     requestedPlace === undefined || requestedPlace.toLowerCase() === "home";
   const explicitHome = requestsHome
