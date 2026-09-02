@@ -62,11 +62,13 @@ describe("weather clothing policy", () => {
   });
 
   it("treats weather terminology as precipitation evidence even at zero amount", () => {
-    expect(
-      assessWeatherClothing("rain_protection", [
-        { ...mild, precipitation: 0, weather: "thunder showers" },
-      ]),
-    ).toMatchObject({ recommendation: "recommended" });
+    for (const weather of ["showers", "thunderstorms"]) {
+      expect(
+        assessWeatherClothing("rain_protection", [
+          { ...mild, precipitation: 0, weather },
+        ]),
+      ).toMatchObject({ recommendation: "recommended" });
+    }
   });
 });
 

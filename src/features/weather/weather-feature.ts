@@ -8,12 +8,8 @@ import {
   type FeatureArgsFromParameters,
   type FeatureCapabilityParameters,
   type FeatureExecutionContext,
-  type FeatureResult,
 } from "../../application/feature.js";
-import type {
-  WeatherLocation,
-  WeatherProviderPort,
-} from "../../ports/weather.js";
+import type { WeatherProviderPort } from "../../ports/weather.js";
 import {
   metricWeatherUnits,
   validateWeatherForecast,
@@ -21,10 +17,6 @@ import {
 } from "../../application/weather-policy.js";
 import type { WeatherWatchStore } from "../../ports/weather-watch-store.js";
 import type { PersonalContextReaderPort } from "../../ports/personal-context.js";
-import {
-  resolveLocalDateTime,
-  zonedParts,
-} from "../../application/local-date-time.js";
 import {
   currentWeatherResult,
   forecastWeatherResult,
@@ -34,6 +26,8 @@ import {
   createForecastWeatherPeriod,
 } from "./weather-validation.js";
 import { resolveWeatherLocation } from "./weather-location-resolution.js";
+import { withWeatherLocationReference } from "./weather-result-reference.js";
+import { createWeatherClothingCapabilities } from "./weather-clothing-capability.js";
 import {
   createWeatherWatchCapabilities,
   weatherWatchDeterministicRules,
@@ -77,21 +71,16 @@ interface WeatherFeatureOptions {
   watchStore: WeatherWatchStore;
 }
 
-const coatParameters = {
-  ...weatherDetailParameters,
-  location: { type: "string" },
-} as const satisfies FeatureCapabilityParameters;
-type CoatArgs = FeatureArgsFromParameters<typeof coatParameters>;
-
 const deterministicRules = [
   {
     capability: "weather.coat",
-    match: (text) =>
-      /^(?:will i need|do i need) a coat at home tomorrow morning\??$/u.test(
-        text,
-      )
-        ? { location: "home" }
-        : undefined,
+    match: (text) => {
+      const match =
+        /^(?:will i need|do i need) a coat(?: at (.+?))? (?:right )?now\??$/u.exec(
+          text,
+        );
+      return match ? (match[1] ? { location: match[1] } : {}) : undefined;
+    },
   },
   {
     capability: "weather.forecast",
@@ -123,30 +112,20 @@ export function createWeatherFeature(
     provider,
     options.watchStore,
   );
+  const clothingCapabilities = createWeatherClothingCapabilities(provider, {
+    maxForecastAgeMs,
+    ...(options.personalContext
+      ? { personalContext: options.personalContext }
+      : {}),
+  });
 
   return defineDeterministicFeatureRules(
     defineFeature({
       capabilities: {
-        "weather.coat": defineCapability({
-          description:
-            "Advise whether to take a coat for tomorrow morning at an explicit place or explicitly stored home location.",
-          execute: (request, context) =>
-            executeWeatherRequest(
-              provider,
-              request.args,
-              context,
-              maxForecastAgeMs,
-              "coat",
-              options.personalContext,
-            ),
-          parameters: coatParameters,
-          risk: "low",
-          spokenSummary: "check whether a coat is needed tomorrow morning",
-          summary: "Check whether tomorrow morning's forecast suggests a coat.",
-        }),
+        ...clothingCapabilities,
         "weather.current": defineCapability({
           description:
-            "Read current weather for an explicit place. Never infer a location.",
+            "Read current weather for an explicit place, the recent weather location, or explicitly stored home. Omit optional location when the dialogue context resolves it.",
           execute: (request, context) =>
             executeWeatherRequest(
               provider,
@@ -159,11 +138,11 @@ export function createWeatherFeature(
           parameters: currentParameters,
           risk: "low",
           spokenSummary: "check current weather for a location",
-          summary: "Check current weather for an explicit location.",
+          summary: "Check current weather for a resolved location.",
         }),
         "weather.forecast": defineCapability({
           description:
-            "Read a bounded forecast for an explicit place and optional exact ISO time window.",
+            "Read a bounded forecast for an explicit place, the recent weather location, or explicitly stored home, with an optional exact ISO time window.",
           execute: (request, context) =>
             executeWeatherRequest(
               provider,
@@ -176,7 +155,7 @@ export function createWeatherFeature(
           parameters: forecastParameters,
           risk: "low",
           spokenSummary: "check a forecast for a location",
-          summary: "Check a bounded forecast for an explicit location.",
+          summary: "Check a bounded forecast for a resolved location.",
         }),
         ...watchCapabilities,
       },
@@ -190,10 +169,10 @@ export function createWeatherFeature(
 
 async function executeWeatherRequest(
   provider: WeatherProviderPort,
-  args: CoatArgs | CurrentArgs | ForecastArgs,
+  args: CurrentArgs | ForecastArgs,
   context: FeatureExecutionContext,
   maxForecastAgeMs: number,
-  mode: "coat" | "current" | "forecast",
+  mode: "current" | "forecast",
   personalContext?: PersonalContextReaderPort,
 ) {
   const resolution = await resolveWeatherLocation(
@@ -210,9 +189,7 @@ async function executeWeatherRequest(
   const period =
     mode === "current"
       ? createCurrentWeatherPeriod(context.clock.now())
-      : mode === "coat"
-        ? createTomorrowMorningPeriod(context.clock.now(), location.timezone)
-        : createForecastWeatherPeriod(args, context.clock.now());
+      : createForecastWeatherPeriod(args, context.clock.now());
   const forecast = await provider.getForecast(
     { location, period, units: metricWeatherUnits },
     context.signal ? { signal: context.signal } : {},
@@ -248,108 +225,5 @@ async function executeWeatherRequest(
       forecast.location,
     );
   const forecastResult = forecastWeatherResult(forecast, responseOptions);
-  if (mode === "forecast")
-    return withWeatherLocationReference(forecastResult, forecast.location);
-  const hourlyForPeriod = forecast.hourly.filter(
-    (item) =>
-      item.forecastAt >= period.startAt && item.forecastAt <= period.endAt,
-  );
-  if (hourlyForPeriod.length === 0) {
-    return withWeatherLocationReference(
-      {
-        ...forecastResult,
-        data: {
-          ...forecastResult.data,
-          coatRecommendationAvailable: false,
-        },
-        text: `I cannot determine whether you need a coat because no hourly forecast is available for that period. ${forecastResult.text}`,
-      },
-      forecast.location,
-    );
-  }
-  const coatRecommended = hourlyForPeriod.some(
-    (item) =>
-      item.precipitation > 0 ||
-      item.temperature <= 12 ||
-      /\b(?:rain|sleet|snow)\b/iu.test(item.weather),
-  );
-  return withWeatherLocationReference(
-    {
-      ...forecastResult,
-      data: {
-        ...forecastResult.data,
-        coatRecommendationAvailable: true,
-        coatRecommended,
-      },
-      text: `${
-        coatRecommended
-          ? "Yes, take a coat: the forecast includes rain or cool conditions."
-          : "No coat is indicated by the available forecast."
-      } ${forecastResult.text}`,
-    },
-    forecast.location,
-  );
-}
-
-function withWeatherLocationReference(
-  result: FeatureResult,
-  location: WeatherLocation,
-): FeatureResult {
-  if (result.kind === "resumable_clarification") return result;
-  return {
-    ...result,
-    resultReferences: {
-      items: [
-        {
-          facts: {
-            countryCode: location.countryCode,
-            name: location.name,
-            timezone: location.timezone,
-          },
-          target: {
-            kind: "weather_location",
-            location: { ...location },
-          },
-        },
-      ],
-      kind: "weather_locations",
-    },
-  };
-}
-
-function createTomorrowMorningPeriod(
-  now: Date,
-  timeZone: string,
-): { endAt: string; startAt: string } {
-  const today = zonedParts(now, timeZone);
-  const tomorrow = new Date(
-    Date.UTC(today.year, today.month - 1, today.day + 1),
-  );
-  const date = {
-    day: tomorrow.getUTCDate(),
-    month: tomorrow.getUTCMonth() + 1,
-    year: tomorrow.getUTCFullYear(),
-  };
-  return {
-    endAt: resolveLocalDateTime(
-      {
-        ...date,
-        hour: 12,
-        millisecond: 0,
-        minute: 0,
-        second: 0,
-      },
-      timeZone,
-    ).toISOString(),
-    startAt: resolveLocalDateTime(
-      {
-        ...date,
-        hour: 6,
-        millisecond: 0,
-        minute: 0,
-        second: 0,
-      },
-      timeZone,
-    ).toISOString(),
-  };
+  return withWeatherLocationReference(forecastResult, forecast.location);
 }

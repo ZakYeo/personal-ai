@@ -36,23 +36,6 @@ describe("createWeatherFeature", () => {
       risk: "low",
     });
     expectCapabilityMetadata(feature, {
-      name: "weather.coat",
-      parameters: {
-        includePrecipitation: {
-          description:
-            "Include the exact precipitation amount only when explicitly requested.",
-          type: "boolean",
-        },
-        includeWind: {
-          description:
-            "Include the exact wind speed only when explicitly requested.",
-          type: "boolean",
-        },
-        location: { type: "string" },
-      },
-      risk: "low",
-    });
-    expectCapabilityMetadata(feature, {
       name: "weather.forecast",
       parameters: {
         endAt: {
@@ -80,7 +63,7 @@ describe("createWeatherFeature", () => {
     });
   });
 
-  it("uses only an explicitly authored home location for tomorrow morning coat advice", async () => {
+  it("uses only an explicitly authored home location for current coat advice", async () => {
     const readHomeLocation = vi.fn(() =>
       Promise.resolve({
         place: "London",
@@ -98,74 +81,18 @@ describe("createWeatherFeature", () => {
     );
 
     expect(readHomeLocation).toHaveBeenCalledOnce();
-    expect(result.text).toContain(
-      "Yes, take a coat: the forecast includes rain or cool conditions.",
-    );
-    expect(result.text).toContain("London's forecast:");
-    expect(result.text).not.toContain("Fetched at");
+    expect(result.text).toContain("would not recommend a coat");
     expect(result.data).toMatchObject({
-      coatRecommendationAvailable: true,
-      coatRecommended: true,
+      clothingCategory: "insulating_outerwear",
+      clothingItem: "coat",
+      clothingRecommendation: "not_recommended",
       fetchedAt: "2026-07-28T12:00:05.000Z",
-      hourly0ForecastAt: "2026-07-29T09:00:00.000Z",
-      hourly0Precipitation: 0.4,
-      hourly0Temperature: 17,
       location: "London",
-      periodEndAt: "2026-07-29T11:00:00.000Z",
-      periodStartAt: "2026-07-29T05:00:00.000Z",
+      requestedPeriodEndAt: "2026-07-28T12:00:00.000Z",
+      requestedPeriodStartAt: "2026-07-28T12:00:00.000Z",
+      selected0Temperature: 21,
       timezone: "Europe/London",
     });
-  });
-
-  it("uses the resolved location's calendar day for tomorrow morning coat advice", async () => {
-    const backingProvider = createWeatherProviderFixture();
-    const getForecast = vi.fn(
-      (...args: Parameters<typeof backingProvider.getForecast>) =>
-        backingProvider.getForecast(...args),
-    );
-    const provider = {
-      ...backingProvider,
-      findLocations: vi.fn(() =>
-        Promise.resolve([
-          {
-            countryName: "United States",
-            featureCode: "PPLA2",
-            location: {
-              countryCode: "US",
-              latitude: 34.0522,
-              longitude: -118.2437,
-              name: "Los Angeles",
-              timezone: "America/Los_Angeles",
-            },
-            population: 3_898_747,
-            providerRank: 1,
-            searchName: "Los Angeles",
-          },
-        ]),
-      ),
-      getForecast,
-    };
-    const crossDateBoundaryContext = {
-      ...context,
-      clock: { now: () => new Date("2026-07-29T00:30:00.000Z") },
-    };
-
-    await executeFeature(
-      createTestWeatherFeature(provider),
-      "weather.coat",
-      { location: "Los Angeles" },
-      crossDateBoundaryContext,
-    );
-
-    expect(getForecast).toHaveBeenCalledWith(
-      expect.objectContaining({
-        period: {
-          endAt: "2026-07-29T19:00:00.000Z",
-          startAt: "2026-07-29T13:00:00.000Z",
-        },
-      }),
-      {},
-    );
   });
 
   it("clarifies a home request when no explicitly authored location exists", async () => {
@@ -204,20 +131,22 @@ describe("createWeatherFeature", () => {
     const result = await executeFeature(
       createTestWeatherFeature(provider),
       "weather.coat",
-      { location: "London" },
+      {
+        location: "London",
+        startAt: "2026-07-29T09:00:00.000Z",
+      },
       context,
     );
 
     expect(result.text).toContain(
-      "I cannot determine whether you need a coat because no hourly forecast is available for that period.",
+      "no weather interval is available close enough to the requested time",
     );
     expect(result.data).toMatchObject({
-      coatRecommendationAvailable: false,
-      hourlyCount: 0,
-      periodEndAt: "2026-07-29T11:00:00.000Z",
-      periodStartAt: "2026-07-29T05:00:00.000Z",
+      clothingRecommendationAvailable: false,
+      requestedPeriodEndAt: "2026-07-29T09:00:00.000Z",
+      requestedPeriodStartAt: "2026-07-29T09:00:00.000Z",
     });
-    expect(result.data).not.toHaveProperty("coatRecommended");
+    expect(result.data).not.toHaveProperty("clothingRecommendation");
   });
 
   it("clarifies rather than inferring a missing location", async () => {

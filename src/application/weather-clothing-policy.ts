@@ -172,7 +172,9 @@ function assessment(
 function isWet(sample: WeatherClothingSample): boolean {
   return (
     sample.precipitation > 0 ||
-    /\b(?:rain|sleet|snow|shower|thunder)\b/iu.test(sample.weather)
+    /\b(?:rain|sleet|snow|showers?|thunder(?:storms?)?)\b/iu.test(
+      sample.weather,
+    )
   );
 }
 

@@ -12,19 +12,20 @@ const runOpenAIE2E = env.PERSONAL_AI_RUN_OPENAI_E2E === "1";
 const fixtureNow = new Date("2026-07-28T12:00:05.000Z");
 
 describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
-  it("preserves current-condition and coat routing through deterministic weather", async () => {
+  it("reuses the previous weather location for generalized coat advice", async () => {
     const assistant = await createConfiguredTextRuntime({
-      config: createLiveWeatherConfig("mock"),
+      config: createLiveWeatherConfig("mock", true),
       env: { OPENAI_API_KEY: env.OPENAI_API_KEY },
       fetch: globalThis.fetch,
       now: () => fixtureNow,
     });
 
+    await assistant.handleText("Set my home location to London");
     const current = await assistant.handleText(
-      "Hey Jarvis, what is the current weather in London?",
+      "Check the weather for my home please",
     );
     const coat = await assistant.handleText(
-      "Hey Jarvis, will I need a coat tomorrow morning in London?",
+      "Could I wear a coat if I left now?",
     );
 
     expect(current).toMatchObject({
@@ -43,11 +44,10 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
     expect(coat).toMatchObject({
       status: "ok",
       text: expect.stringContaining(
-        "Yes, take a coat: the forecast includes rain or cool conditions.",
+        "I would not recommend a coat in London right now",
       ) as string,
     });
-    expect(coat.text).toContain("from 6am tomorrow to noon tomorrow");
-    expect(coat.text).toContain("Fetched at 1pm today");
+    expect(coat.text).not.toContain("Which location");
   }, 60_000);
 
   it("resolves bare London to the ranked capital through live Open-Meteo", async () => {
@@ -99,7 +99,10 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
   }, 60_000);
 });
 
-function createLiveWeatherConfig(adapter: "mock" | "openMeteo") {
+function createLiveWeatherConfig(
+  adapter: "mock" | "openMeteo",
+  includeProfile = false,
+) {
   return parseAssistantConfig({
     assistant: {
       name: "Jarvis",
@@ -108,6 +111,9 @@ function createLiveWeatherConfig(adapter: "mock" | "openMeteo") {
     },
     conversation: { provider: "disabled" },
     features: {
+      ...(includeProfile
+        ? { profile: { adapter: "local", enabled: true } }
+        : {}),
       weather: {
         adapter,
         enabled: true,

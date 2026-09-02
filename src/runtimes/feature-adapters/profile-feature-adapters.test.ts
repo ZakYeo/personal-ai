@@ -64,11 +64,11 @@ describe("profile feature adapters", () => {
     await assistant.handleText("Hey Jarvis, set my home location to London");
 
     const response = await assistant.handleText(
-      "Hey Jarvis, will I need a coat at home tomorrow morning?",
+      "Hey Jarvis, will I need a coat at home now?",
     );
 
     expect(response.status).toBe("ok");
-    expect(response.text).toContain("London's forecast");
+    expect(response.text).toContain("would not recommend a coat in London");
     expect(response.text).not.toContain("Which location should I check?");
   });
 

@@ -66,14 +66,12 @@ describe("weather feature adapters", () => {
     });
 
     const response = await assistant.handleText(
-      "Hey Jarvis, will I need a coat at home tomorrow morning?",
+      "Hey Jarvis, will I need a coat at home now?",
     );
 
     expect(response.status).toBe("ok");
-    expect(response.text).toContain(
-      "Yes, take a coat: the forecast includes rain or cool conditions.",
-    );
-    expect(response.text).toContain("At 10am tomorrow");
+    expect(response.text).toContain("would not recommend a coat");
+    expect(response.text).toContain("right now");
     expect(response.text).not.toContain("Fetched at");
     expect(readHomeLocation).toHaveBeenCalledOnce();
   });

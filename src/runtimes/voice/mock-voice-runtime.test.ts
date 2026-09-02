@@ -141,17 +141,15 @@ describe("mock voice runtime", () => {
     const runtime = await createMockVoiceRuntime({
       config,
       now: () => new Date("2026-07-28T12:00:05.000Z"),
-      utterance: "Hey Jarvis, will I need a coat at home tomorrow morning?",
+      utterance: "Hey Jarvis, will I need a coat at home now?",
     });
 
     await expect(runtime.runOnce()).resolves.toMatchObject({
       response: {
         status: "ok",
-        text: expect.stringContaining(
-          "Yes, take a coat: the forecast includes rain or cool conditions.",
-        ) as string,
+        text: expect.stringContaining("would not recommend a coat") as string,
       },
-      spokenText: expect.stringContaining("At 10am tomorrow") as string,
+      spokenText: expect.stringContaining("right now") as string,
       status: "spoken",
     });
   });

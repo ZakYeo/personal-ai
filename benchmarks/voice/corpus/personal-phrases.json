@@ -185,8 +185,15 @@
     },
     {
       "id": "weather-coat-home-v1",
-      "text": "Will I need a coat at home tomorrow morning",
+      "text": "Will I need a coat at home now",
       "capabilities": ["weather.coat"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "weather-clothing-v1",
+      "text": "Could I wear a T-shirt in London now",
+      "capabilities": ["weather.clothing"],
       "captureTier": "core",
       "active": true
     },
