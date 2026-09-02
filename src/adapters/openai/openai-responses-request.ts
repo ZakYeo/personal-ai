@@ -75,6 +75,11 @@ export type OpenAIResponseRewriteRequestBody = OpenAIResponsesRequestBase<
 > &
   OpenAIResponsesJsonSchemaOutput;
 
+export type OpenAIWeatherClothingAdviceRequestBody = OpenAIResponsesRequestBase<
+  readonly OpenAIResponsesInputItem[]
+> &
+  OpenAIResponsesJsonSchemaOutput;
+
 export type OpenAIIntentRequestBody = OpenAIResponsesRequestBase<
   readonly OpenAIResponsesInputItem[]
 > &
@@ -106,4 +111,5 @@ export type OpenAIResponsesRequestBody =
   | OpenAIIntentContinuationRequestBody
   | OpenAIIntentRequestBody
   | OpenAIResponseRewriteRequestBody
+  | OpenAIWeatherClothingAdviceRequestBody
   | OpenAIWebSearchRequestBody;
