@@ -224,10 +224,18 @@ describe("OpenAIIntentInterpreter", () => {
             enum: ["calendar.search_events"],
             type: "string",
           },
+          clarificationCommand: { $ref: "#/$defs/command" },
+          clarificationParameter: { type: "string" },
           kind: { enum: ["clarification"], type: "string" },
           response: { $ref: "#/$defs/response" },
         },
-        required: ["kind", "clarificationCapability", "response"],
+        required: [
+          "kind",
+          "clarificationCapability",
+          "clarificationCommand",
+          "clarificationParameter",
+          "response",
+        ],
       }),
       expect.objectContaining({
         properties: {
@@ -403,6 +411,12 @@ describe("OpenAIIntentInterpreter", () => {
         output_text: JSON.stringify({
           interpretation: {
             clarificationCapability: "internet.search",
+            clarificationCommand: {
+              capability: "internet.search",
+              parameters: [],
+              rawText: "Can you search?",
+            },
+            clarificationParameter: "query",
             kind: "clarification",
             response: {
               status: "ok",

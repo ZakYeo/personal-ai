@@ -101,6 +101,12 @@ describe("configured clarification transitions", () => {
       .mockResolvedValueOnce(
         intentResponse("clarification", {
           clarificationCapability: "alarm.create",
+          clarificationCommand: {
+            capability: "alarm.create",
+            parameters: [],
+            rawText: "Set an alarm",
+          },
+          clarificationParameter: "minutesFromNow",
           kind: "clarification",
           response: { status: "ok", text: "What time?" },
         }),

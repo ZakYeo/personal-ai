@@ -117,6 +117,12 @@ describe("OpenAIIntentInterpreter", () => {
           id: "resp_clarification",
           output_text: openAIIntentOutput({
             clarificationCapability: "alarm.create",
+            clarificationCommand: {
+              capability: "alarm.create",
+              parameters: [],
+              rawText: "Set an alarm",
+            },
+            clarificationParameter: "scheduledFor",
             kind: "clarification",
             response: { status: "ok", text: "What time?" },
           }),
@@ -168,7 +174,7 @@ describe("OpenAIIntentInterpreter", () => {
     );
   });
 
-  it("does not invent a parameter for a provider-selected clarification", async () => {
+  it("uses the provider-selected clarification parameter", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()
       .mockResolvedValueOnce(
@@ -176,6 +182,12 @@ describe("OpenAIIntentInterpreter", () => {
           id: "resp_clarification",
           output_text: openAIIntentOutput({
             clarificationCapability: "internet.search",
+            clarificationCommand: {
+              capability: "internet.search",
+              parameters: [],
+              rawText: "Search the internet for myself",
+            },
+            clarificationParameter: "query",
             kind: "clarification",
             response: { status: "ok", text: "What should I search for?" },
           }),
@@ -205,6 +217,7 @@ describe("OpenAIIntentInterpreter", () => {
         capability: "internet.search",
         origin: "intent_interpreter",
         originalText: "Search the internet for myself",
+        parameter: "query",
         prompt: "What is your preferred name?",
         session: "resume",
       },
@@ -213,7 +226,7 @@ describe("OpenAIIntentInterpreter", () => {
     });
 
     const continuation = readJsonRequestBody<Record<string, unknown>>(fetch, 1);
-    expect(String(continuation.instructions)).not.toContain('"parameter":');
+    expect(String(continuation.instructions)).toContain('"parameter":"query"');
   });
   it("provides only safe opaque calendar references to the provider", async () => {
     const unsafeFacts = {

@@ -24,7 +24,11 @@ export function createSemanticallyValidatedIntentSession(
       const interpretation = await options.session.next(input);
       return validateIntentSemantics(
         interpretation,
-        { activeUserText, originalText: options.originalText },
+        {
+          activeUserText,
+          originalText: options.originalText,
+          preserveProviderClarification: input?.kind === "tool_result",
+        },
         options.capabilityCatalog,
       );
     },
@@ -33,13 +37,27 @@ export function createSemanticallyValidatedIntentSession(
 
 function validateIntentSemantics(
   interpretation: IntentInterpretation,
-  text: { activeUserText: string; originalText: string },
+  text: {
+    activeUserText: string;
+    originalText: string;
+    preserveProviderClarification: boolean;
+  },
   capabilityCatalog: CapabilityCatalog,
 ): IntentInterpretation {
   if (
     interpretation.kind === "clarification" ||
     interpretation.kind === "rephrase"
   ) {
+    if (
+      interpretation.kind === "clarification" &&
+      interpretation.clarification.origin === "intent_interpreter" &&
+      !text.preserveProviderClarification &&
+      interpretation.clarification.capability &&
+      interpretation.clarification.parameter &&
+      interpretation.clarification.partialCommand
+    ) {
+      return validateProviderClarification(interpretation, capabilityCatalog);
+    }
     return {
       ...interpretation,
       response: { ...interpretation.response, status: "ok" },
@@ -61,6 +79,53 @@ function validateIntentSemantics(
         interpretation.kind === "tool_call" ? "restart" : "resume",
       )
     : interpretation;
+}
+
+function validateProviderClarification(
+  interpretation: Extract<IntentInterpretation, { kind: "clarification" }>,
+  capabilityCatalog: CapabilityCatalog,
+): IntentInterpretation {
+  const { capability, parameter, partialCommand, session } =
+    interpretation.clarification;
+  if (!capability || !parameter || !partialCommand) {
+    return interpretation;
+  }
+  const declaration = capabilityCatalog.find(
+    (entry) => entry.capability.name === capability,
+  )?.capability;
+  const parameterDeclaration = declaration?.parameters?.[parameter];
+
+  if (
+    !declaration ||
+    partialCommand.capability !== capability ||
+    !parameterDeclaration
+  ) {
+    return createCanonicalClarification(capability, session);
+  }
+
+  if (parameterDeclaration.required !== true) {
+    return { command: partialCommand, kind: "command" };
+  }
+
+  const suppliedValue = partialCommand.parameters[parameter];
+  if (suppliedValue !== undefined && suppliedValue !== null) {
+    const hasAnotherMissingRequiredParameter = Object.entries(
+      declaration.parameters ?? {},
+    ).some(
+      ([name, candidate]) =>
+        candidate.required === true &&
+        (partialCommand.parameters[name] === undefined ||
+          partialCommand.parameters[name] === null),
+    );
+    return hasAnotherMissingRequiredParameter
+      ? createCanonicalClarification(capability, session)
+      : { command: partialCommand, kind: "command" };
+  }
+
+  return {
+    ...interpretation,
+    response: { ...interpretation.response, status: "ok" },
+  };
 }
 
 function createCanonicalClarification(

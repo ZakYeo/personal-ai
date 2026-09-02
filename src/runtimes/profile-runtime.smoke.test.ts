@@ -133,6 +133,13 @@ describe("personal profile runtime smoke", () => {
               output_text: JSON.stringify({
                 interpretation: {
                   clarificationCapability: "weather.current",
+                  clarificationCommand: {
+                    capability: "weather.current",
+                    parameters: [],
+                    rawText:
+                      "Can you check what the weather's like at home please?",
+                  },
+                  clarificationParameter: "location",
                   kind: "clarification",
                   response: {
                     status: "ok",

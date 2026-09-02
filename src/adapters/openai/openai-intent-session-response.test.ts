@@ -47,6 +47,12 @@ describe("parseOpenAIIntentSessionResponse", () => {
           id: "response-1",
           output_text: openAIIntentOutput({
             clarificationCapability: "alarm.create",
+            clarificationCommand: {
+              capability: "alarm.create",
+              parameters: [],
+              rawText: "remind me before the event",
+            },
+            clarificationParameter: "startAt",
             kind: "clarification",
             response: { status: "ok", text: "What time should I use?" },
           }),
@@ -59,6 +65,12 @@ describe("parseOpenAIIntentSessionResponse", () => {
         clarification: {
           capability: "alarm.create",
           origin: "intent_interpreter",
+          parameter: "startAt",
+          partialCommand: {
+            capability: "alarm.create",
+            parameters: {},
+            rawText: "remind me before the event",
+          },
           session: "resume",
         },
         kind: "clarification",
@@ -82,7 +94,7 @@ describe("parseOpenAIIntentSessionResponse", () => {
         "choose one",
       ),
     ).toThrow(
-      "OpenAI intent clarification response fields must be clarificationCapability, kind, response.",
+      "OpenAI intent clarification response fields must be clarificationCapability, clarificationCommand, clarificationParameter, kind, response.",
     );
   });
 

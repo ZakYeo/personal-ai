@@ -62,6 +62,8 @@ export interface IntentInterpreterSession {
 export interface IntentClarificationMetadata {
   readonly capability?: string;
   readonly origin: "intent_interpreter" | "semantic_validation";
+  readonly parameter?: string;
+  readonly partialCommand?: AssistantCommand;
   readonly session: "restart" | "resume";
 }
 

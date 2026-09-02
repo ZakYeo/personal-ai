@@ -75,10 +75,26 @@ function parseIntentInterpretation(value: unknown): IntentInterpretation {
         "OpenAI intent clarification must identify a non-empty capability.",
       );
     }
+    const partialCommand = parseCommand(value.clarificationCommand);
+    if (partialCommand.capability !== value.clarificationCapability) {
+      throw new OpenAIIntentError(
+        "OpenAI intent clarification command must match its selected capability.",
+      );
+    }
+    if (
+      typeof value.clarificationParameter !== "string" ||
+      value.clarificationParameter.length === 0
+    ) {
+      throw new OpenAIIntentError(
+        "OpenAI intent clarification must identify a non-empty parameter.",
+      );
+    }
     return {
       clarification: {
         capability: value.clarificationCapability,
         origin: "intent_interpreter",
+        parameter: value.clarificationParameter,
+        partialCommand,
         session: "resume",
       },
       kind: "clarification",

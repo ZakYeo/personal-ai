@@ -13,6 +13,7 @@ const capabilityCatalog: CapabilityCatalog = [
     capability: {
       name: "internet.search",
       parameters: {
+        location: { type: "string" },
         query: { required: true, type: "string" },
       },
       risk: "low",
@@ -191,7 +192,10 @@ describe("intent semantic validation", () => {
       originalText: "Search for something",
       session: fixedSession({
         clarification: {
+          capability: "internet.search",
           origin: "intent_interpreter",
+          parameter: "query",
+          partialCommand: command("internet.search"),
           session: "resume",
         },
         kind: "clarification",
@@ -201,12 +205,111 @@ describe("intent semantic validation", () => {
 
     await expect(session.next()).resolves.toEqual({
       clarification: {
+        capability: "internet.search",
         origin: "intent_interpreter",
+        parameter: "query",
+        partialCommand: command("internet.search"),
         session: "resume",
       },
       kind: "clarification",
       response: { status: "ok", text: "What should I search for?" },
     });
+  });
+
+  it("promotes a provider clarification for an optional parameter to a command", async () => {
+    const partialCommand = command("internet.search", {
+      query: "weather tomorrow",
+    });
+    const session = createSemanticallyValidatedIntentSession({
+      capabilityCatalog,
+      originalText: "Search for weather tomorrow",
+      session: fixedSession({
+        clarification: {
+          capability: "internet.search",
+          origin: "intent_interpreter",
+          parameter: "location",
+          partialCommand,
+          session: "resume",
+        },
+        kind: "clarification",
+        response: { status: "ok", text: "Which location should I use?" },
+      }),
+    });
+
+    await expect(session.next()).resolves.toEqual({
+      command: partialCommand,
+      kind: "command",
+    });
+  });
+
+  it("preserves provider clarification after an application read reports a missing value", async () => {
+    const clarification: IntentInterpretation = {
+      clarification: {
+        capability: "internet.search",
+        origin: "intent_interpreter",
+        parameter: "location",
+        partialCommand: command("internet.search", {
+          query: "weather tomorrow",
+        }),
+        session: "resume",
+      },
+      kind: "clarification",
+      response: { status: "unknown", text: "Which location should I use?" },
+    };
+    const next = vi
+      .fn()
+      .mockResolvedValueOnce({
+        call: {
+          command: command("internet.search", {
+            query: "weather tomorrow",
+          }),
+          id: "call-1",
+        },
+        kind: "tool_call",
+      })
+      .mockResolvedValueOnce(clarification);
+    const session = createSemanticallyValidatedIntentSession({
+      capabilityCatalog,
+      originalText: "Search for weather tomorrow",
+      session: { next },
+    });
+
+    await session.next();
+    await expect(
+      session.next({
+        callId: "call-1",
+        kind: "tool_result",
+        observation: {
+          capability: "internet.search",
+          text: "A required application value is missing.",
+        },
+      }),
+    ).resolves.toEqual({
+      ...clarification,
+      response: { status: "ok", text: "Which location should I use?" },
+    });
+  });
+
+  it("replaces an invalid provider clarification target with the canonical prompt", async () => {
+    const session = createSemanticallyValidatedIntentSession({
+      capabilityCatalog,
+      originalText: "Search for weather tomorrow",
+      session: fixedSession({
+        clarification: {
+          capability: "internet.search",
+          origin: "intent_interpreter",
+          parameter: "missing",
+          partialCommand: command("internet.search"),
+          session: "resume",
+        },
+        kind: "clarification",
+        response: { status: "ok", text: "What should I use?" },
+      }),
+    });
+
+    await expect(session.next()).resolves.toEqual(
+      canonicalClarification("internet.search", "resume"),
+    );
   });
 
   it("preserves a semantically resolved compound plan", async () => {

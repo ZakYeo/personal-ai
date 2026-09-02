@@ -123,5 +123,11 @@ function createVariantPropertySchema(
   if (field === "clarificationCapability") {
     return { enum: capabilityNames, type: "string" };
   }
+  if (field === "clarificationCommand") {
+    return { $ref: "#/$defs/command" };
+  }
+  if (field === "clarificationParameter") {
+    return { type: "string" };
+  }
   return { $ref: "#/$defs/response" };
 }

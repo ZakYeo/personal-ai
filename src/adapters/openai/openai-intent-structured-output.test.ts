@@ -167,7 +167,15 @@ describe("OpenAIIntentInterpreter", () => {
         id: "response-1",
         output_text: openAIIntentOutput({
           ...(kind === "clarification"
-            ? { clarificationCapability: "test.choose" }
+            ? {
+                clarificationCapability: "test.choose",
+                clarificationCommand: {
+                  capability: "test.choose",
+                  parameters: [],
+                  rawText: "Can you help?",
+                },
+                clarificationParameter: "choice",
+              }
             : {}),
           kind,
           response: { status: "unknown", text },

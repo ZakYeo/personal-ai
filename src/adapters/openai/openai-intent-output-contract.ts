@@ -10,6 +10,8 @@ export type OpenAIIntentOutputField =
   | "command"
   | "plan"
   | "clarificationCapability"
+  | "clarificationCommand"
+  | "clarificationParameter"
   | "response";
 
 interface OpenAIIntentOutputVariantContract {
@@ -38,9 +40,15 @@ const openAIIntentOutputContract = {
   },
   clarification: {
     availability: "capability_catalog",
-    fields: ["kind", "clarificationCapability", "response"],
+    fields: [
+      "kind",
+      "clarificationCapability",
+      "clarificationCommand",
+      "clarificationParameter",
+      "response",
+    ],
     instruction:
-      "Use kind clarification with an ok response and clarificationCapability set to the exact enabled capability only when a specific workflow is selected and one user answer is required to resolve it.",
+      "Use kind clarification with an ok response, clarificationCapability set to the exact enabled capability, clarificationCommand containing every parameter already resolved from the request, and clarificationParameter naming the one genuinely missing required parameter. Never clarify for an optional parameter.",
   },
   rephrase: {
     availability: "always",
