@@ -227,6 +227,22 @@ Provider instructions distinguish required from optional capability parameters:
 missing required information may produce one clarification, while absent
 optional values are omitted without an extra user turn.
 
+Capability contracts must describe the semantic operation and its normalized
+domain inputs rather than one example utterance. **Capability contract
+overfitting** occurs when an illustrative phrase such as "tomorrow morning"
+leaks into capability metadata, parameters, deterministic matching, or tests
+and becomes an accidental product restriction. That creates an enumeration
+treadmill in which equivalent expressions such as "now", "in ten minutes",
+"this evening", or "when I leave work" each appear to require a new branch.
+Examples in product documentation and prompts are non-exhaustive unless they
+state a deliberate product constraint. Intent adapters may interpret varied
+terminology, but they must resolve it into application-owned concepts such as a
+validated instant, bounded period, location, person, or opaque result reference
+before execution. Prefer extending those normalized concepts over adding
+phrase-specific capability variants or matcher conditions. Tests should cover
+representative paraphrases, relative expressions, and unambiguous contextual
+follow-ups while asserting the same normalized command contract.
+
 Every confirmation-required capability must deterministically render its exact
 decoded action through an application-owned declaration. Aggregate prompts must
 include every risky step's protected recipient, destination, content, label,

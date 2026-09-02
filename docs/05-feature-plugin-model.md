@@ -218,6 +218,27 @@ profile.
 
 Each feature should make its command contract explicit in `capabilities`.
 
+Avoid **capability contract overfitting**: capability metadata and parameters
+should model the general user goal, not freeze the wording or circumstances of
+one acceptance example into the feature boundary. For example, a time-sensitive
+recommendation should accept a normalized requested instant or period rather
+than define its contract as "tomorrow morning"; the same model can then support
+"now", "in ten minutes", "this evening", and other resolvable expressions.
+Likewise, use normalized locations, people, and opaque prior-result references
+instead of enumerating phrases that might identify them. Examples remain useful
+for discovery and tests, but they are representative rather than exhaustive
+unless the product intentionally declares a fixed limitation.
+
+The warning sign is an enumeration treadmill: every natural paraphrase or
+relative expression adds another deterministic regex, prompt exception,
+capability variant, or test-only branch. Fix the abstraction at the contract
+boundary instead. Let intent providers translate varied language, let
+application policy validate and normalize the resulting domain value, and keep
+feature execution independent of the original phrasing. Include multi-turn
+tests where an unambiguous prior result or explicit profile fact supplies
+context, so access to chat history is not mistaken for deterministic contextual
+resolution.
+
 For each capability:
 
 - Use a stable capability name such as `alarm.create`.

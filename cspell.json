@@ -73,6 +73,7 @@
     "onnx",
     "onnxruntime",
     "openwakeword",
+    "overfitting",
     "pathvalidate",
     "pathlib",
     "personal-ai",
