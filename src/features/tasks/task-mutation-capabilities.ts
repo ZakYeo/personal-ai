@@ -112,7 +112,9 @@ function removeTaskConfirmation(
   context: AssistantContext,
 ) {
   const selected = context.selectResultReference?.({
+    expectedKind: "task_item",
     ...(args.ordinal === undefined ? {} : { ordinal: args.ordinal }),
+    ordinalParsing: "enabled",
     rawText: context.trustedInputText ?? "",
     ...(args.reference === undefined ? {} : { reference: args.reference }),
   });

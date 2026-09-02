@@ -183,8 +183,10 @@ async function answerCalendarFollowUp(
   context: FeatureExecutionContext,
 ) {
   const selected = context.selectResultReference?.({
+    expectedKind: "calendar_event",
     ...(args.detail === "next" ? { next: true } : {}),
     ...(args.ordinal === undefined ? {} : { ordinal: args.ordinal }),
+    ordinalParsing: "enabled",
     rawText: context.trustedInputText ?? "",
     ...(args.reference === undefined ? {} : { reference: args.reference }),
   });

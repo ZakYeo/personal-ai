@@ -18,54 +18,54 @@ export interface ResultReferenceSession {
   select(
     request: ResultReferenceSelectionRequest,
   ): ResolvedResultReference | undefined;
-  retain(resultSet: FeatureResultReferenceSet): void;
+  retain(
+    resultSet: FeatureResultReferenceSet,
+  ): readonly AssistantResultReference[];
 }
 
 export function createResultReferenceSession(): ResultReferenceSession {
-  let entries: readonly Entry[] = [];
-  let subsequentTurns = 0;
-  let focusedReference: string | undefined;
-  let retainedSinceLastCompletion = false;
-  const clear = (): void => {
-    entries = [];
-    subsequentTurns = 0;
-    focusedReference = undefined;
-    retainedSinceLastCompletion = false;
-  };
+  const states = new Map<AssistantResultReference["kind"], RetainedState>();
 
   return {
     completeTurn() {
-      if (entries.length === 0) return;
-      if (retainedSinceLastCompletion) {
-        retainedSinceLastCompletion = false;
-        return;
-      }
-      subsequentTurns += 1;
-      if (subsequentTurns >= 3) {
-        entries = [];
-        focusedReference = undefined;
+      for (const [kind, state] of states) {
+        if (state.retainedSinceLastCompletion) {
+          state.retainedSinceLastCompletion = false;
+          continue;
+        }
+        state.subsequentTurns += 1;
+        if (state.subsequentTurns >= 3) states.delete(kind);
       }
     },
     invalidateForCompaction() {
-      if (!retainedSinceLastCompletion) clear();
+      for (const [kind, state] of states) {
+        if (!state.retainedSinceLastCompletion) states.delete(kind);
+      }
     },
     publicReferences: () =>
-      entries.map(({ publicReference }) => publicReference),
+      [...states.values()].flatMap(({ entries }) =>
+        entries.map(({ publicReference }) => publicReference),
+      ),
     select(request) {
-      const spokenOrdinal = parseSpokenOrdinal(request.rawText);
+      const state = states.get(request.expectedKind);
+      if (!state) return;
+      const spokenOrdinal =
+        request.ordinalParsing === "enabled"
+          ? parseSpokenOrdinal(request.rawText)
+          : undefined;
       if (request.ordinal !== undefined && request.ordinal !== spokenOrdinal) {
         return;
       }
 
       let entry = spokenOrdinal
-        ? entries.find(
+        ? state.entries.find(
             (candidate) => candidate.publicReference.ordinal === spokenOrdinal,
           )
-        : entries.length === 1
-          ? entries[0]
-          : entries.find(
+        : state.entries.length === 1
+          ? state.entries[0]
+          : state.entries.find(
               (candidate) =>
-                candidate.publicReference.reference === focusedReference,
+                candidate.publicReference.reference === state.focusedReference,
             );
       if (
         !entry ||
@@ -76,7 +76,7 @@ export function createResultReferenceSession(): ResultReferenceSession {
       }
 
       if (request.next) {
-        entry = entries.find(
+        entry = state.entries.find(
           (candidate) =>
             candidate.publicReference.ordinal ===
             entry!.publicReference.ordinal + 1,
@@ -84,7 +84,7 @@ export function createResultReferenceSession(): ResultReferenceSession {
         if (!entry) return;
       }
 
-      focusedReference = entry.publicReference.reference;
+      state.focusedReference = entry.publicReference.reference;
       return {
         publicReference: entry.publicReference,
         ...(entry.target ? { target: entry.target } : {}),
@@ -92,14 +92,28 @@ export function createResultReferenceSession(): ResultReferenceSession {
     },
     retain(resultSet) {
       const descriptor = resultReferenceDescriptors[resultSet.kind];
-      entries = resultSet.items
+      const entries = resultSet.items
         .slice(0, 10)
         .map((item, index) => createEntry(item, descriptor, index));
-      subsequentTurns = 0;
-      focusedReference = undefined;
-      retainedSinceLastCompletion = true;
+      if (entries.length === 0) {
+        states.delete(descriptor.itemKind);
+        return [];
+      }
+      states.set(descriptor.itemKind, {
+        entries,
+        retainedSinceLastCompletion: true,
+        subsequentTurns: 0,
+      });
+      return entries.map(({ publicReference }) => publicReference);
     },
   };
+}
+
+interface RetainedState {
+  readonly entries: readonly Entry[];
+  focusedReference?: string;
+  retainedSinceLastCompletion: boolean;
+  subsequentTurns: number;
 }
 
 interface Entry {

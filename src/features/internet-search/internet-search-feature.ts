@@ -212,7 +212,9 @@ function answerSearchFollowUp(
   context: FeatureExecutionContext,
 ) {
   const selected = context.selectResultReference?.({
+    expectedKind: "internet_source",
     ...(args.ordinal === undefined ? {} : { ordinal: args.ordinal }),
+    ordinalParsing: "enabled",
     rawText: context.trustedInputText ?? "",
     ...(args.reference === undefined ? {} : { reference: args.reference }),
   });

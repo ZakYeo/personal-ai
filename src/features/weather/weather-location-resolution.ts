@@ -29,6 +29,8 @@ export async function resolveWeatherLocation(
   const recentLocation =
     requestedPlace === undefined
       ? context.selectResultReference?.({
+          expectedKind: "weather_location",
+          ordinalParsing: "disabled",
           rawText: context.trustedInputText ?? "",
         })
       : undefined;

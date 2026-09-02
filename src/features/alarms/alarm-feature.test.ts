@@ -160,6 +160,8 @@ describe("createAlarmFeature", () => {
       text: "set the Dentist reminder alarm for 2026-07-17T09:50:00.000Z, 10 minutes before Dentist",
     });
     expect(calendarContext.selectResultReference).toHaveBeenCalledWith({
+      expectedKind: "calendar_event",
+      ordinalParsing: "enabled",
       rawText: "remind me before the second event",
       reference: "calendar-event-2",
     });

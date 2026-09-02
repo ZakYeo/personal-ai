@@ -86,6 +86,8 @@ function selectCalendarEvent(
   context: AssistantContext,
 ) {
   return context.selectResultReference?.({
+    expectedKind: "calendar_event",
+    ordinalParsing: "enabled",
     rawText: context.trustedInputText ?? "",
     reference: args.reference,
   });

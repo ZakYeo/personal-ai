@@ -111,8 +111,10 @@ export interface ResolvedResultReference {
 }
 
 export interface ResultReferenceSelectionRequest {
+  readonly expectedKind: AssistantResultReference["kind"];
   readonly next?: boolean;
   readonly ordinal?: number;
+  readonly ordinalParsing: "disabled" | "enabled";
   readonly rawText: string;
   readonly reference?: string;
 }

@@ -263,8 +263,9 @@ async function executeFeatureCommand(
       | readonly AssistantResultReference[]
       | undefined;
     if (result.resultReferences) {
-      input.resultReferences.retain(result.resultReferences);
-      toolObservationReferences = input.resultReferences.publicReferences();
+      toolObservationReferences = input.resultReferences.retain(
+        result.resultReferences,
+      );
     }
     return {
       ...(result.data ? { data: Object.freeze({ ...result.data }) } : {}),

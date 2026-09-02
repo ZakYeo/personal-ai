@@ -27,7 +27,13 @@ describe("result reference session", () => {
       ordinal: 1,
       reference: "calendar-event-1",
     });
-    expect(session.select({ rawText: "the first one" })).toMatchObject({
+    expect(
+      session.select({
+        expectedKind: "calendar_event",
+        ordinalParsing: "enabled",
+        rawText: "the first one",
+      }),
+    ).toMatchObject({
       target: { kind: "calendar_event", providerEventId: "id-1" },
     });
   });
@@ -37,7 +43,13 @@ describe("result reference session", () => {
     session.retain(resultSet("old"));
     session.retain(resultSet("new"));
 
-    expect(session.select({ rawText: "the first one" })).toMatchObject({
+    expect(
+      session.select({
+        expectedKind: "calendar_event",
+        ordinalParsing: "enabled",
+        rawText: "the first one",
+      }),
+    ).toMatchObject({
       target: { providerEventId: "new" },
     });
     session.completeTurn();
@@ -72,7 +84,13 @@ describe("result reference session", () => {
       kind: "internet_sources",
     });
 
-    expect(session.select({ rawText: "the first source" })).toEqual({
+    expect(
+      session.select({
+        expectedKind: "internet_source",
+        ordinalParsing: "enabled",
+        rawText: "the first source",
+      }),
+    ).toEqual({
       publicReference: {
         facts: {
           title: "Current source",
@@ -120,17 +138,21 @@ describe("result reference session", () => {
         reference: "task-item-1",
       },
     ]);
-    expect(session.select({ rawText: "complete the first one" })).toMatchObject(
-      {
-        target: {
-          kind: "task_item",
-          listId: "private-list-id",
-          listRevision: 2,
-          revision: 3,
-          taskId: "private-task-id",
-        },
+    expect(
+      session.select({
+        expectedKind: "task_item",
+        ordinalParsing: "enabled",
+        rawText: "complete the first one",
+      }),
+    ).toMatchObject({
+      target: {
+        kind: "task_item",
+        listId: "private-list-id",
+        listRevision: 2,
+        revision: 3,
+        taskId: "private-task-id",
       },
-    );
+    });
     expect(JSON.stringify(session.publicReferences())).not.toContain("private");
   });
 
@@ -172,7 +194,13 @@ describe("result reference session", () => {
         reference: "weather-location-1",
       },
     ]);
-    expect(session.select({ rawText: "What about a coat?" })).toMatchObject({
+    expect(
+      session.select({
+        expectedKind: "weather_location",
+        ordinalParsing: "disabled",
+        rawText: "What about the second half of tomorrow?",
+      }),
+    ).toMatchObject({
       target: {
         kind: "weather_location",
         location: {
@@ -184,6 +212,34 @@ describe("result reference session", () => {
     expect(JSON.stringify(session.publicReferences())).not.toContain(
       "latitude",
     );
+  });
+
+  it("retains and ages result sets independently by kind", () => {
+    const session = createResultReferenceSession();
+    session.retain(weatherResultSet("Eastbourne"));
+    session.completeTurn();
+    session.retain(resultSet("event"));
+    session.completeTurn();
+
+    expect(session.publicReferences()).toMatchObject([
+      { kind: "weather_location" },
+      { kind: "calendar_event" },
+    ]);
+    expect(
+      session.select({
+        expectedKind: "weather_location",
+        ordinalParsing: "disabled",
+        rawText: "Would I need a coat for the first hour tomorrow?",
+      }),
+    ).toMatchObject({
+      target: { kind: "weather_location", location: { name: "Eastbourne" } },
+    });
+
+    session.completeTurn();
+    session.completeTurn();
+    expect(session.publicReferences()).toMatchObject([
+      { kind: "calendar_event" },
+    ]);
   });
 
   it.each([
@@ -284,16 +340,28 @@ describe("result reference session", () => {
 
     expect(
       session.select({
+        expectedKind: "calendar_event",
         ordinal: 2,
+        ordinalParsing: "enabled",
         rawText: "Tell me about the second one",
         reference: "calendar-event-1",
       }),
     ).toBeUndefined();
     expect(
-      session.select({ ordinal: 2, rawText: "Tell me about the second one" }),
+      session.select({
+        expectedKind: "calendar_event",
+        ordinal: 2,
+        ordinalParsing: "enabled",
+        rawText: "Tell me about the second one",
+      }),
     ).toMatchObject({ target: { providerEventId: "second" } });
     expect(
-      session.select({ next: true, rawText: "What comes after it?" }),
+      session.select({
+        expectedKind: "calendar_event",
+        next: true,
+        ordinalParsing: "enabled",
+        rawText: "What comes after it?",
+      }),
     ).toMatchObject({ target: { providerEventId: "third" } });
   });
 
@@ -309,6 +377,8 @@ describe("result reference session", () => {
 
     expect(
       session.select({
+        expectedKind: "calendar_event",
+        ordinalParsing: "enabled",
         rawText: "Where is that?",
         reference: "calendar-event-2",
       }),
@@ -325,5 +395,26 @@ function resultSet(providerEventId: string) {
       },
     ],
     kind: "calendar_events" as const,
+  };
+}
+
+function weatherResultSet(name: string) {
+  return {
+    items: [
+      {
+        facts: { countryCode: "GB", name, timezone: "Europe/London" },
+        target: {
+          kind: "weather_location" as const,
+          location: {
+            countryCode: "GB",
+            latitude: 50.768,
+            longitude: 0.29,
+            name,
+            timezone: "Europe/London",
+          },
+        },
+      },
+    ],
+    kind: "weather_locations" as const,
   };
 }

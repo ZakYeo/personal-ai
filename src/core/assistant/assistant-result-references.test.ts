@@ -314,10 +314,12 @@ function createForgedReferenceFeature(): FeaturePlugin {
       }
 
       const selected = context.selectResultReference?.({
+        expectedKind: "calendar_event",
         ...(typeof request.args.ordinal === "number"
           ? { ordinal: request.args.ordinal }
           : {}),
         rawText: context.trustedInputText ?? "",
+        ordinalParsing: "enabled",
         ...(typeof request.args.reference === "string"
           ? { reference: request.args.reference }
           : {}),
