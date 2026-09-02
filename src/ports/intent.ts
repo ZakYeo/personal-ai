@@ -59,13 +59,19 @@ export interface IntentInterpreterSession {
   next(input?: IntentSessionContinuation): Promise<IntentInterpretation>;
 }
 
-export interface IntentClarificationMetadata {
-  readonly capability?: string;
-  readonly origin: "intent_interpreter" | "semantic_validation";
-  readonly parameter?: string;
-  readonly partialCommand?: AssistantCommand;
-  readonly session: "restart" | "resume";
-}
+export type IntentClarificationMetadata =
+  | {
+      readonly capability: string;
+      readonly origin: "intent_interpreter";
+      readonly parameter: string;
+      readonly partialCommand: AssistantCommand;
+      readonly session: "restart" | "resume";
+    }
+  | {
+      readonly capability: string;
+      readonly origin: "semantic_validation";
+      readonly session: "restart" | "resume";
+    };
 
 export interface IntentClarificationContext {
   readonly capability?: string;
@@ -94,6 +100,11 @@ export interface AssistantToolObservation {
 export type IntentSessionContinuation =
   | {
       readonly callId: string;
+      readonly expectedClarification?: {
+        readonly kind: "application_declared";
+        readonly replyCapability: string;
+        readonly replyParameter: string;
+      };
       readonly kind: "tool_result";
       readonly observation: AssistantToolObservation;
     }

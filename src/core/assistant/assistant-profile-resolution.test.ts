@@ -37,6 +37,11 @@ describe("assistant profile resolution", () => {
     expect(harness.continuations).toEqual([
       {
         callId: "profile-read",
+        expectedClarification: {
+          kind: "application_declared",
+          replyCapability: "profile.set",
+          replyParameter: "value",
+        },
         kind: "tool_result",
         observation: {
           capability: "profile.lookup",
@@ -49,6 +54,7 @@ describe("assistant profile resolution", () => {
           capability: "internet.search",
           origin: "intent_interpreter",
           originalText: "Search the internet for myself",
+          parameter: "query",
           prompt:
             "What is your preferred name? I’ll save it to your profile and then continue.",
           session: "resume",
@@ -291,6 +297,8 @@ function targetClarification(): IntentInterpretation {
     clarification: {
       capability: "internet.search",
       origin: "intent_interpreter",
+      parameter: "query",
+      partialCommand: command("internet.search", {}),
       session: "resume",
     },
     kind: "clarification",

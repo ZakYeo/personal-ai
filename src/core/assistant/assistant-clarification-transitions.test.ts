@@ -249,7 +249,8 @@ describe("assistant clarification transitions", () => {
                 started = true;
                 return Promise.resolve({
                   clarification: {
-                    origin: "intent_interpreter" as const,
+                    capability: "assistant.capabilities.list",
+                    origin: "semantic_validation" as const,
                     session: "resume" as const,
                   },
                   kind: "clarification" as const,
@@ -295,7 +296,8 @@ describe("assistant clarification transitions", () => {
     expect(continuations).toEqual([
       {
         clarification: {
-          origin: "intent_interpreter",
+          capability: "assistant.capabilities.list",
+          origin: "semantic_validation",
           originalText: "Set an alarm",
           prompt: "What time?",
           session: "resume",
@@ -311,7 +313,8 @@ describe("assistant clarification transitions", () => {
     const steps: IntentInterpretation[] = [
       {
         clarification: {
-          origin: "intent_interpreter",
+          capability: "assistant.capabilities.list",
+          origin: "semantic_validation",
           session: "resume",
         },
         kind: "clarification",

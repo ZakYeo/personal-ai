@@ -153,6 +153,15 @@ export async function resolveToolCalls(input: {
 
     interpretation = await input.session.next({
       callId: call.id,
+      ...(declaration
+        ? {
+            expectedClarification: {
+              kind: "application_declared" as const,
+              replyCapability: declaration.replyCommand.capability,
+              replyParameter: declaration.replyCommand.replyParameter,
+            },
+          }
+        : {}),
       kind: "tool_result",
       observation,
     });

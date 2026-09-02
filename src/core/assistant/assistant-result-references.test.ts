@@ -104,7 +104,8 @@ describe("assistant result references", () => {
     const initialSteps = [
       {
         clarification: {
-          origin: "intent_interpreter" as const,
+          capability: "calendar.search",
+          origin: "semantic_validation" as const,
           session: "resume" as const,
         },
         kind: "clarification" as const,

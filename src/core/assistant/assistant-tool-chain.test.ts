@@ -211,7 +211,8 @@ describe("assistant bounded tool chains", () => {
             return nextCall === 1
               ? Promise.resolve({
                   clarification: {
-                    origin: "intent_interpreter" as const,
+                    capability: "test.clarification",
+                    origin: "semantic_validation" as const,
                     session: "resume" as const,
                   },
                   kind: "clarification" as const,
@@ -489,7 +490,10 @@ describe("assistant bounded tool chains", () => {
     const steps: IntentInterpretation[] = [
       {
         clarification: {
+          capability: "alarm.create",
           origin: "intent_interpreter",
+          parameter: "scheduledFor",
+          partialCommand: command("alarm.create", {}),
           session: "resume",
         },
         kind: "clarification",
@@ -548,8 +552,10 @@ describe("assistant bounded tool chains", () => {
     expect(continuations).toEqual([
       {
         clarification: {
+          capability: "alarm.create",
           origin: "intent_interpreter",
           originalText: "remind me before it",
+          parameter: "scheduledFor",
           prompt: "What time should I use?",
           session: "resume",
         },
@@ -563,7 +569,8 @@ describe("assistant bounded tool chains", () => {
     const steps: IntentInterpretation[] = [
       {
         clarification: {
-          origin: "intent_interpreter",
+          capability: "test.clarification",
+          origin: "semantic_validation",
           session: "resume",
         },
         kind: "clarification",
@@ -571,7 +578,8 @@ describe("assistant bounded tool chains", () => {
       },
       {
         clarification: {
-          origin: "intent_interpreter",
+          capability: "test.clarification",
+          origin: "semantic_validation",
           session: "resume",
         },
         kind: "clarification",

@@ -26,8 +26,10 @@ export function createSemanticallyValidatedIntentSession(
         interpretation,
         {
           activeUserText,
+          allowOptionalClarification:
+            input?.kind === "tool_result" &&
+            input.expectedClarification?.kind === "application_declared",
           originalText: options.originalText,
-          preserveProviderClarification: input?.kind === "tool_result",
         },
         options.capabilityCatalog,
       );
@@ -39,8 +41,8 @@ function validateIntentSemantics(
   interpretation: IntentInterpretation,
   text: {
     activeUserText: string;
+    allowOptionalClarification: boolean;
     originalText: string;
-    preserveProviderClarification: boolean;
   },
   capabilityCatalog: CapabilityCatalog,
 ): IntentInterpretation {
@@ -50,13 +52,13 @@ function validateIntentSemantics(
   ) {
     if (
       interpretation.kind === "clarification" &&
-      interpretation.clarification.origin === "intent_interpreter" &&
-      !text.preserveProviderClarification &&
-      interpretation.clarification.capability &&
-      interpretation.clarification.parameter &&
-      interpretation.clarification.partialCommand
+      interpretation.clarification.origin === "intent_interpreter"
     ) {
-      return validateProviderClarification(interpretation, capabilityCatalog);
+      return validateProviderClarification(
+        interpretation,
+        capabilityCatalog,
+        text.allowOptionalClarification,
+      );
     }
     return {
       ...interpretation,
@@ -84,12 +86,11 @@ function validateIntentSemantics(
 function validateProviderClarification(
   interpretation: Extract<IntentInterpretation, { kind: "clarification" }>,
   capabilityCatalog: CapabilityCatalog,
+  allowOptionalClarification: boolean,
 ): IntentInterpretation {
-  const { capability, parameter, partialCommand, session } =
-    interpretation.clarification;
-  if (!capability || !parameter || !partialCommand) {
-    return interpretation;
-  }
+  const clarification = interpretation.clarification;
+  if (clarification.origin !== "intent_interpreter") return interpretation;
+  const { capability, parameter, partialCommand, session } = clarification;
   const declaration = capabilityCatalog.find(
     (entry) => entry.capability.name === capability,
   )?.capability;
@@ -103,23 +104,35 @@ function validateProviderClarification(
     return createCanonicalClarification(capability, session);
   }
 
-  if (parameterDeclaration.required !== true) {
-    return { command: partialCommand, kind: "command" };
-  }
-
-  const suppliedValue = partialCommand.parameters[parameter];
-  if (suppliedValue !== undefined && suppliedValue !== null) {
-    const hasAnotherMissingRequiredParameter = Object.entries(
-      declaration.parameters ?? {},
-    ).some(
+  const missingRequiredParameters = Object.entries(declaration.parameters ?? {})
+    .filter(
       ([name, candidate]) =>
         candidate.required === true &&
         (partialCommand.parameters[name] === undefined ||
           partialCommand.parameters[name] === null),
-    );
-    return hasAnotherMissingRequiredParameter
-      ? createCanonicalClarification(capability, session)
-      : { command: partialCommand, kind: "command" };
+    )
+    .map(([name]) => name);
+
+  if (missingRequiredParameters.length === 0) {
+    if (
+      allowOptionalClarification &&
+      parameterDeclaration.required !== true &&
+      (partialCommand.parameters[parameter] === undefined ||
+        partialCommand.parameters[parameter] === null)
+    ) {
+      return {
+        ...interpretation,
+        response: { ...interpretation.response, status: "ok" },
+      };
+    }
+    return { command: partialCommand, kind: "command" };
+  }
+  if (
+    parameterDeclaration.required !== true ||
+    missingRequiredParameters.length !== 1 ||
+    missingRequiredParameters[0] !== parameter
+  ) {
+    return createCanonicalClarification(capability, session);
   }
 
   return {

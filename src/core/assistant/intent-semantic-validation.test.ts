@@ -242,15 +242,13 @@ describe("intent semantic validation", () => {
     });
   });
 
-  it("preserves provider clarification after an application read reports a missing value", async () => {
+  it("validates a provider clarification after an application read reports a missing value", async () => {
     const clarification: IntentInterpretation = {
       clarification: {
         capability: "internet.search",
         origin: "intent_interpreter",
-        parameter: "location",
-        partialCommand: command("internet.search", {
-          query: "weather tomorrow",
-        }),
+        parameter: "query",
+        partialCommand: command("internet.search"),
         session: "resume",
       },
       kind: "clarification",
@@ -288,6 +286,122 @@ describe("intent semantic validation", () => {
       ...clarification,
       response: { status: "ok", text: "Which location should I use?" },
     });
+  });
+
+  it("promotes an optional clarification after an ordinary tool result", async () => {
+    const partialCommand = command("internet.search", {
+      query: "weather tomorrow",
+    });
+    const next = vi
+      .fn()
+      .mockResolvedValueOnce({
+        call: {
+          command: command("internet.search", { query: "forecast" }),
+          id: "call-1",
+        },
+        kind: "tool_call",
+      })
+      .mockResolvedValueOnce({
+        clarification: {
+          capability: "internet.search",
+          origin: "intent_interpreter",
+          parameter: "location",
+          partialCommand,
+          session: "resume",
+        },
+        kind: "clarification",
+        response: { status: "ok", text: "Which location?" },
+      });
+    const session = createSemanticallyValidatedIntentSession({
+      capabilityCatalog,
+      originalText: "Search for weather tomorrow",
+      session: { next },
+    });
+
+    await session.next();
+    await expect(
+      session.next({
+        callId: "call-1",
+        kind: "tool_result",
+        observation: {
+          capability: "internet.search",
+          text: "Forecast result.",
+        },
+      }),
+    ).resolves.toEqual({ command: partialCommand, kind: "command" });
+  });
+
+  it("preserves an absent optional clarification explicitly declared by an application read", async () => {
+    const clarification: IntentInterpretation = {
+      clarification: {
+        capability: "internet.search",
+        origin: "intent_interpreter",
+        parameter: "location",
+        partialCommand: command("internet.search", {
+          query: "weather tomorrow",
+        }),
+        session: "resume",
+      },
+      kind: "clarification",
+      response: { status: "unknown", text: "Which location?" },
+    };
+    const next = vi
+      .fn()
+      .mockResolvedValueOnce({
+        call: {
+          command: command("internet.search", { query: "forecast" }),
+          id: "call-1",
+        },
+        kind: "tool_call",
+      })
+      .mockResolvedValueOnce(clarification);
+    const session = createSemanticallyValidatedIntentSession({
+      capabilityCatalog,
+      originalText: "Search for weather tomorrow",
+      session: { next },
+    });
+
+    await session.next();
+    await expect(
+      session.next({
+        callId: "call-1",
+        expectedClarification: {
+          kind: "application_declared",
+          replyCapability: "profile.set",
+          replyParameter: "value",
+        },
+        kind: "tool_result",
+        observation: {
+          capability: "internet.search",
+          text: "A required application value is missing.",
+        },
+      }),
+    ).resolves.toEqual({
+      ...clarification,
+      response: { status: "ok", text: "Which location?" },
+    });
+  });
+
+  it("does not promote an optional clarification while a required value is absent", async () => {
+    const session = createSemanticallyValidatedIntentSession({
+      capabilityCatalog,
+      originalText: "Search the internet",
+      session: fixedSession({
+        clarification: {
+          capability: "internet.search",
+          origin: "intent_interpreter",
+          parameter: "location",
+          partialCommand: command("internet.search"),
+          session: "resume",
+        },
+        kind: "clarification",
+        response: { status: "ok", text: "Which location?" },
+      }),
+    });
+
+    await expect(session.next()).resolves.toEqual(
+      canonicalClarification("internet.search", "resume"),
+    );
   });
 
   it("replaces an invalid provider clarification target with the canonical prompt", async () => {

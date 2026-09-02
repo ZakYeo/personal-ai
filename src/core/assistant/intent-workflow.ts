@@ -276,7 +276,13 @@ export function createIntentWorkflow(input: {
       async (reply) => {
         try {
           activeUserText = reply.trim();
-          const { replyCommand, ...clarificationMetadata } = metadata;
+          const replyCommand = metadata.replyCommand;
+          const clarificationMetadata = {
+            capability: metadata.capability,
+            origin: metadata.origin,
+            ...(metadata.parameter ? { parameter: metadata.parameter } : {}),
+            session: metadata.session,
+          };
           const interpretation = await requireSession().next({
             clarification: {
               ...clarificationMetadata,
