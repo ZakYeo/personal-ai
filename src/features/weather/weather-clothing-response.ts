@@ -153,7 +153,7 @@ function clothingRecommendationText(
     return `I recommend ${joinItems(context.advice.items)} in ${context.forecast.location.name} ${timing} for the ${context.conditionSummary.description}. ${weatherAttributionText(context.forecast)}`;
   }
 
-  return `Weather recommendation for ${context.item}: ${itemAssessmentVerdict(context.advice.recommendation)}, based on the ${context.conditionSummary.description} conditions in ${context.forecast.location.name} ${timing}. ${weatherAttributionText(context.forecast)}`;
+  return `Weather recommendation for ${context.item}: ${itemAssessmentVerdict(context.advice.recommendation)}, based on the ${context.conditionSummary.description} in ${context.forecast.location.name} ${timing}. ${weatherAttributionText(context.forecast)}`;
 }
 
 function itemAssessmentVerdict(

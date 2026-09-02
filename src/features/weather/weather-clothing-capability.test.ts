@@ -382,6 +382,7 @@ describe("weather clothing capability", () => {
         `Weather recommendation for ${item}: recommended`,
       );
       expect(result.text).not.toContain(`recommend a ${item}`);
+      expect(result.text).not.toContain("conditions conditions");
     },
   );
 
