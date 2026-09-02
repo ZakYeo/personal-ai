@@ -42,6 +42,9 @@ describe("committed voice benchmark corpus", () => {
     ).toHaveLength(42);
     expect(recordingIndex.schemaVersion).toBe(1);
     expect(recordingIndex.recordings).toHaveLength(22);
+    expect(
+      manifest.phrases.find(({ id }) => id === "weather-clothing-v1")?.text,
+    ).toBe("What would you recommend I wear in London now");
     expect(findUncoveredCapabilities(capabilityNames, manifest)).toEqual([]);
     expect(
       findUncoveredCapabilities(capabilityNames, manifest, "core"),

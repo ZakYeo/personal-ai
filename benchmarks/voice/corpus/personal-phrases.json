@@ -192,7 +192,7 @@
     },
     {
       "id": "weather-clothing-v1",
-      "text": "Could I wear a T-shirt in London now",
+      "text": "What would you recommend I wear in London now",
       "capabilities": ["weather.clothing"],
       "captureTier": "core",
       "active": true
