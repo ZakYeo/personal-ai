@@ -43,7 +43,9 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
     ]);
     expect(coat).toMatchObject({
       status: "ok",
-      text: expect.stringContaining("a coat in London right now") as string,
+      text: expect.stringContaining(
+        "Weather recommendation for a coat",
+      ) as string,
     });
     expect(coat.text).not.toContain("Which location");
   }, 60_000);
@@ -67,7 +69,9 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
     expect(current).toMatchObject({ status: "ok" });
     expect(hoodie).toMatchObject({
       status: "ok",
-      text: expect.stringContaining("hoodie in Eastbourne right now") as string,
+      text: expect.stringContaining(
+        "Weather recommendation for hoodie",
+      ) as string,
     });
     expect(outfit).toMatchObject({
       status: "ok",
@@ -92,9 +96,10 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
     expect(response).toMatchObject({
       status: "ok",
       text: expect.stringContaining(
-        "ceremonial sash in London right now",
+        "Weather recommendation for ceremonial sash",
       ) as string,
     });
+    expect(response.text).toContain("in London right now");
     expect(response.text).not.toContain("Which clothing category");
   }, 60_000);
 

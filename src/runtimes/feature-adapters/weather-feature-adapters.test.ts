@@ -70,7 +70,9 @@ describe("weather feature adapters", () => {
     );
 
     expect(response.status).toBe("ok");
-    expect(response.text).toContain("cannot confidently assess a coat");
+    expect(response.text).toContain(
+      "Weather recommendation for a coat: uncertain",
+    );
     expect(response.text).toContain("right now");
     expect(response.text).not.toContain("Fetched at");
     expect(readHomeLocation).toHaveBeenCalledOnce();

@@ -152,7 +152,7 @@ describe("mock voice runtime", () => {
       response: {
         status: "ok",
         text: expect.stringContaining(
-          "cannot confidently assess a coat",
+          "Weather recommendation for a coat: uncertain",
         ) as string,
       },
       spokenText: expect.stringContaining("right now") as string,

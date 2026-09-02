@@ -149,25 +149,22 @@ function clothingRecommendationText(
       : context.mode === "point"
         ? `at ${context.requestedPeriod.startAt}`
         : `from ${context.requestedPeriod.startAt} to ${context.requestedPeriod.endAt}`;
-  const advice =
-    context.goal === "recommend_outfit"
-      ? `I recommend ${joinItems(context.advice.items)}`
-      : itemAssessmentText(context.item, context.advice.recommendation);
-  return `${advice} in ${context.forecast.location.name} ${timing} for the ${context.conditionSummary.description}. ${weatherAttributionText(context.forecast)}`;
+  if (context.goal === "recommend_outfit") {
+    return `I recommend ${joinItems(context.advice.items)} in ${context.forecast.location.name} ${timing} for the ${context.conditionSummary.description}. ${weatherAttributionText(context.forecast)}`;
+  }
+
+  return `Weather recommendation for ${context.item}: ${itemAssessmentVerdict(context.advice.recommendation)}, based on the ${context.conditionSummary.description} conditions in ${context.forecast.location.name} ${timing}. ${weatherAttributionText(context.forecast)}`;
 }
 
-function itemAssessmentText(
-  item: string,
+function itemAssessmentVerdict(
   recommendation: Extract<
     WeatherClothingAdvice,
     { kind: "item_assessment" }
   >["recommendation"],
 ): string {
-  if (recommendation === "recommended") return `I recommend wearing ${item}`;
-  if (recommendation === "not_recommended") {
-    return `I would not recommend wearing ${item}`;
-  }
-  return `I cannot confidently assess ${item}`;
+  if (recommendation === "recommended") return "recommended";
+  if (recommendation === "not_recommended") return "not recommended";
+  return "uncertain";
 }
 
 function joinItems(items: readonly string[]): string {

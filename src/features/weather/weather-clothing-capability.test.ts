@@ -102,7 +102,9 @@ describe("weather clothing capability", () => {
       },
       {},
     );
-    expect(result.text).toContain("recommend wearing T-shirt");
+    expect(result.text).toContain(
+      "Weather recommendation for T-shirt: recommended",
+    );
     expect(result.data).toMatchObject({
       clothingAdviceGoal: "assess_item",
       clothingItem: "T-shirt",
@@ -141,7 +143,9 @@ describe("weather clothing capability", () => {
       }),
       {},
     );
-    expect(result.text).toContain("recommend wearing umbrella");
+    expect(result.text).toContain(
+      "Weather recommendation for umbrella: recommended",
+    );
     expect(result.data).toMatchObject({
       clothingRecommendation: "recommended",
       requestedPeriodEndAt: "2026-07-29T09:00:00.000Z",
@@ -351,10 +355,20 @@ describe("weather clothing capability", () => {
     );
 
     expect(result.data).toMatchObject({ clothingRecommendation: "uncertain" });
-    expect(result.text).toContain("cannot confidently assess ceremonial sash");
+    expect(result.text).toContain(
+      "Weather recommendation for ceremonial sash: uncertain",
+    );
   });
 
-  it.each(["shorts", "trousers", "my coat", "a hoodie"])(
+  it.each([
+    "hoodie",
+    "T-shirt",
+    "umbrella",
+    "shorts",
+    "trousers",
+    "my coat",
+    "a hoodie",
+  ])(
     "phrases the arbitrary item %s without guessing an article",
     async (item) => {
       const result = await executeFeature(
@@ -364,7 +378,9 @@ describe("weather clothing capability", () => {
         context,
       );
 
-      expect(result.text).toContain(`I recommend wearing ${item}`);
+      expect(result.text).toContain(
+        `Weather recommendation for ${item}: recommended`,
+      );
       expect(result.text).not.toContain(`recommend a ${item}`);
     },
   );

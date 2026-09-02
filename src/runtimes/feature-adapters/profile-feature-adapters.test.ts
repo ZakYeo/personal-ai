@@ -69,8 +69,9 @@ describe("profile feature adapters", () => {
 
     expect(response.status).toBe("ok");
     expect(response.text).toContain(
-      "cannot confidently assess a coat in London",
+      "Weather recommendation for a coat: uncertain",
     );
+    expect(response.text).toContain("in London right now");
     expect(response.text).not.toContain("Which location should I check?");
   });
 

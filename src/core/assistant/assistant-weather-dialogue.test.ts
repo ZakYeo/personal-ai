@@ -81,7 +81,9 @@ describe("assistant weather dialogue", () => {
       assistant.handleText("Could I wear a coat if I left now?"),
     ).resolves.toMatchObject({
       status: "ok",
-      text: expect.stringContaining("a coat in Eastbourne right now") as string,
+      text: expect.stringContaining(
+        "Weather recommendation for a coat: uncertain",
+      ) as string,
     });
     expect(readHomeLocation).toHaveBeenCalledOnce();
   });
