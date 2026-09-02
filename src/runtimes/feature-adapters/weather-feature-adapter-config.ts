@@ -1,15 +1,22 @@
 import type { OpenMeteoWeatherConfig } from "../../adapters/open-meteo/open-meteo-client.js";
+import type { OpenAIResponsesConfig } from "../../adapters/openai/openai-responses-config.js";
 import {
   isRecord,
   parseOptionalPositiveInteger,
 } from "../config/config-parse-utils.js";
 import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
+import { parseOpenAIResponsesConfig } from "../config/openai-responses-config.js";
 
 export type WeatherWatchStoreConfig =
   | { adapter: "file"; filePath: string }
   | { adapter: "local" };
 
+export type WeatherClothingAdvisorConfig =
+  | { provider: "mock" }
+  | { openai: OpenAIResponsesConfig; provider: "openai" };
+
 interface WeatherFeatureConfig {
+  clothingAdvisor: WeatherClothingAdvisorConfig;
   maxForecastAgeMinutes: number;
   watchStore: WeatherWatchStoreConfig;
 }
@@ -41,15 +48,54 @@ export function parseWeatherFeatureConfig(
     );
   }
   return {
+    clothingAdvisor: parseWeatherClothingAdvisorConfig(
+      featureConfig.clothingAdvisor,
+    ),
     maxForecastAgeMinutes: maxAge,
     watchStore: parseWeatherWatchStoreConfig(featureConfig.watches),
   };
 }
 
+function parseWeatherClothingAdvisorConfig(
+  value: unknown,
+): WeatherClothingAdvisorConfig {
+  if (!isRecord(value)) {
+    throw new Error(
+      'Config feature "weather".clothingAdvisor must be a JSON object.',
+    );
+  }
+  const parser = selectConfiguredRuntimeEntry({
+    configuredId:
+      typeof value.provider === "string" ? value.provider : undefined,
+    missingMessage:
+      'Config feature "weather".clothingAdvisor.provider must be a non-empty string.',
+    registry: weatherClothingAdvisorParsers,
+    unknownMessage: (provider) =>
+      `Config feature "weather".clothingAdvisor provider "${provider}" is not registered.`,
+  });
+  return parser(value);
+}
+
+const weatherClothingAdvisorParsers: Record<
+  string,
+  (config: Record<string, unknown>) => WeatherClothingAdvisorConfig
+> = {
+  mock: () => ({ provider: "mock" }),
+  openai: (config) => ({
+    openai: parseOpenAIResponsesConfig(
+      config.openai,
+      'Config feature "weather".clothingAdvisor.openai',
+    ),
+    provider: "openai",
+  }),
+};
+
 export function parseWeatherOpenMeteoAdapterConfig(
   featureConfig: Record<string, unknown>,
 ): WeatherOpenMeteoAdapterConfig {
-  rejectCredentialFields(featureConfig);
+  const weatherProviderConfig = { ...featureConfig };
+  delete weatherProviderConfig.clothingAdvisor;
+  rejectCredentialFields(weatherProviderConfig);
   return {
     ...parseWeatherFeatureConfig(featureConfig),
     openMeteo: parseOpenMeteoConfig(featureConfig.openMeteo),

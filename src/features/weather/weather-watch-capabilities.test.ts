@@ -10,6 +10,7 @@ import {
   createWeatherWatchStoreFixture,
 } from "../../test-support/weather-watch-store.js";
 import { createWeatherFeature } from "./weather-feature.js";
+import { createWeatherClothingAdvisorFixture } from "../../test-support/weather-clothing-advisor.js";
 
 const now = new Date("2026-07-28T12:00:00.000Z");
 const context = {
@@ -94,6 +95,7 @@ describe("weather watch capabilities", () => {
   it("persists a resolved explicit-location snapshot with protected facts", async () => {
     const store = createStore();
     const feature = createWeatherFeature(createWeatherProviderFixture(), {
+      clothingAdviser: createWeatherClothingAdvisorFixture(),
       watchStore: store,
     });
 
@@ -158,6 +160,7 @@ describe("weather watch capabilities", () => {
     await expect(
       executeFeature(
         createWeatherFeature(createWeatherProviderFixture(), {
+          clothingAdviser: createWeatherClothingAdvisorFixture(),
           watchStore: store,
         }),
         "weather.watch.create",
@@ -208,7 +211,10 @@ describe("weather watch capabilities", () => {
 
     await expect(
       executeFeature(
-        createWeatherFeature(provider, { watchStore: store }),
+        createWeatherFeature(provider, {
+          clothingAdviser: createWeatherClothingAdvisorFixture(),
+          watchStore: store,
+        }),
         "weather.watch.create",
         createWatchArgs(),
         context,
@@ -224,6 +230,7 @@ describe("weather watch capabilities", () => {
   it("lists exact watch state and cancels the latest eligible revision", async () => {
     const store = createStore();
     const feature = createWeatherFeature(createWeatherProviderFixture(), {
+      clothingAdviser: createWeatherClothingAdvisorFixture(),
       watchStore: store,
     });
     await executeFeature(
@@ -298,6 +305,7 @@ describe("weather watch capabilities", () => {
       await store.add(createNewWeatherWatch());
     }
     const feature = createWeatherFeature(createWeatherProviderFixture(), {
+      clothingAdviser: createWeatherClothingAdvisorFixture(),
       watchStore: store,
     });
 
@@ -330,6 +338,7 @@ function createStore() {
 
 function createWeatherWatchFeature() {
   return createWeatherFeature(createWeatherProviderFixture(), {
+    clothingAdviser: createWeatherClothingAdvisorFixture(),
     watchStore: createStore(),
   });
 }

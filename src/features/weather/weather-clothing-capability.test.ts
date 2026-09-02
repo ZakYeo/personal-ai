@@ -6,7 +6,7 @@ import {
 import { createWeatherProviderFixture } from "../../test-support/weather.js";
 import { createWeatherWatchStoreFixture } from "../../test-support/weather-watch-store.js";
 import type { HourlyWeatherForecast } from "../../ports/weather.js";
-import { weatherClothingCategories } from "../../application/weather-clothing-policy.js";
+import type { WeatherClothingAdvisorPort } from "../../ports/weather-clothing-advisor.js";
 import { createWeatherFeature } from "./weather-feature.js";
 
 const now = new Date("2026-07-28T12:00:00.000Z");
@@ -22,8 +22,8 @@ describe("weather clothing capability", () => {
     expectCapabilityMetadata(feature, {
       name: "weather.clothing",
       parameters: {
-        category: {
-          allowedValues: weatherClothingCategories,
+        goal: {
+          allowedValues: ["assess_item", "recommend_outfit"],
           description: expect.any(String) as string,
           required: true,
           type: "string",
@@ -31,10 +31,10 @@ describe("weather clothing capability", () => {
         endAt: { description: expect.any(String) as string, type: "string" },
         item: {
           description: expect.any(String) as string,
-          required: true,
           type: "string",
         },
         location: { type: "string" },
+        occasion: { description: expect.any(String) as string, type: "string" },
         startAt: {
           description: expect.any(String) as string,
           type: "string",
@@ -59,12 +59,14 @@ describe("weather clothing capability", () => {
   it("uses current observations when no time is supplied", async () => {
     const provider = createWeatherProviderFixture();
     const getForecast = vi.spyOn(provider, "getForecast");
+    const adviser = createAdviser();
+    const advise = vi.spyOn(adviser, "advise");
 
     const result = await executeFeature(
-      createTestFeature(provider),
+      createTestFeature(provider, adviser),
       "weather.clothing",
       {
-        category: "light_top",
+        goal: "assess_item",
         item: "T-shirt",
         location: "London",
       },
@@ -80,9 +82,29 @@ describe("weather clothing capability", () => {
       }),
       {},
     );
+    expect(advise).toHaveBeenCalledWith(
+      {
+        conditions: [
+          {
+            at: "2026-07-28T12:00:00.000Z",
+            precipitation: 0,
+            temperature: 21,
+            weather: "partly cloudy",
+            windSpeed: 12,
+          },
+        ],
+        goal: { item: "T-shirt", kind: "assess_item" },
+        units: {
+          precipitation: "mm",
+          temperature: "celsius",
+          windSpeed: "km/h",
+        },
+      },
+      {},
+    );
     expect(result.text).toContain("recommend a T-shirt");
     expect(result.data).toMatchObject({
-      clothingCategory: "light_top",
+      clothingAdviceGoal: "assess_item",
       clothingItem: "T-shirt",
       clothingRecommendation: "recommended",
       currentObservedAt: "2026-07-28T12:00:00.000Z",
@@ -102,7 +124,7 @@ describe("weather clothing capability", () => {
       createTestFeature(provider),
       "weather.clothing",
       {
-        category: "rain_protection",
+        goal: "assess_item",
         item: "umbrella",
         location: "London",
         startAt: "2026-07-29T09:00:00.000Z",
@@ -138,7 +160,7 @@ describe("weather clothing capability", () => {
       ),
       "weather.clothing",
       {
-        category: "warm_layer",
+        goal: "assess_item",
         item: "jumper",
         location: "London",
         startAt: "2026-07-29T09:00:00.000Z",
@@ -165,10 +187,14 @@ describe("weather clothing capability", () => {
           },
           hourly("2026-07-29T10:00:00.000Z", 22),
         ]),
+        createAdviser({
+          kind: "item_assessment",
+          recommendation: "not_recommended",
+        }),
       ),
       "weather.clothing",
       {
-        category: "short_legwear",
+        goal: "assess_item",
         endAt: "2026-07-29T10:00:00.000Z",
         item: "shorts",
         location: "London",
@@ -179,7 +205,6 @@ describe("weather clothing capability", () => {
 
     expect(result.data).toMatchObject({
       clothingRecommendation: "not_recommended",
-      decidingWet: true,
       selected0At: "2026-07-29T08:00:00.000Z",
       selected1At: "2026-07-29T09:00:00.000Z",
       selected2At: "2026-07-29T10:00:00.000Z",
@@ -194,7 +219,7 @@ describe("weather clothing capability", () => {
       ),
       "weather.clothing",
       {
-        category: "warm_layer",
+        goal: "assess_item",
         endAt: "2026-07-29T09:20:00.000Z",
         item: "hoodie",
         location: "London",
@@ -215,7 +240,7 @@ describe("weather clothing capability", () => {
       createTestFeature(providerWithHourly([])),
       "weather.clothing",
       {
-        category: "warm_layer",
+        goal: "assess_item",
         item: "jumper",
         location: "London",
         startAt: "2026-07-29T09:00:00.000Z",
@@ -307,27 +332,119 @@ describe("weather clothing capability", () => {
     ).rejects.toThrow(message);
   });
 
-  it("returns a bounded limitation for unclassified items", async () => {
+  it("supports arbitrary named items without classifying them", async () => {
     const result = await executeFeature(
-      createTestFeature(),
+      createTestFeature(
+        createWeatherProviderFixture(),
+        createAdviser({
+          kind: "item_assessment",
+          recommendation: "uncertain",
+        }),
+      ),
       "weather.clothing",
       {
-        category: "other",
+        goal: "assess_item",
         item: "ceremonial sash",
         location: "London",
       },
       context,
     );
 
-    expect(result.data).toMatchObject({ clothingRecommendation: "limited" });
-    expect(result.text).toContain("cannot make a dependable recommendation");
+    expect(result.data).toMatchObject({ clothingRecommendation: "uncertain" });
+    expect(result.text).toContain(
+      "cannot confidently assess a ceremonial sash",
+    );
+  });
+
+  it("recommends one bounded outfit without requiring an item", async () => {
+    const adviser = createAdviser({
+      items: ["a T-shirt", "lightweight trousers"],
+      kind: "outfit_recommendation",
+    });
+
+    const result = await executeFeature(
+      createTestFeature(createWeatherProviderFixture(), adviser),
+      "weather.clothing",
+      {
+        goal: "recommend_outfit",
+        location: "London",
+        occasion: "walking to work",
+      },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      data: {
+        clothingAdviceGoal: "recommend_outfit",
+        clothingOccasion: "walking to work",
+        outfitItem0: "a T-shirt",
+        outfitItem1: "lightweight trousers",
+        outfitItemCount: 2,
+      },
+      responseRewrite: "disabled",
+      text: expect.stringContaining(
+        "I recommend a T-shirt and lightweight trousers in London right now",
+      ) as string,
+    });
+  });
+
+  it("requests an item only for an item-assessment goal", async () => {
+    await expect(
+      executeFeature(
+        createTestFeature(),
+        "weather.clothing",
+        { goal: "assess_item", location: "London" },
+        context,
+      ),
+    ).resolves.toEqual({
+      kind: "resumable_clarification",
+      parameter: "item",
+      text: "Which clothing item would you like me to assess?",
+    });
+  });
+
+  it("returns weather facts and an internal diagnostic when advice fails", async () => {
+    const cause = new Error("provider secret failure");
+    const adviser: WeatherClothingAdvisorPort = {
+      advise: () => Promise.reject(cause),
+    };
+
+    const result = await executeFeature(
+      createTestFeature(createWeatherProviderFixture(), adviser),
+      "weather.clothing",
+      { goal: "recommend_outfit", location: "London" },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      citations: [{ title: "Deterministic weather fixture" }],
+      data: { location: "London", selectedCount: 1 },
+      failure: { cause, message: "Weather clothing adviser failed." },
+      responseRewrite: "disabled",
+      text: "I found the weather for London, but clothing advice is temporarily unavailable. Source: Deterministic weather fixture.",
+    });
   });
 });
 
-function createTestFeature(provider = createWeatherProviderFixture()) {
+function createTestFeature(
+  provider = createWeatherProviderFixture(),
+  clothingAdviser = createAdviser(),
+) {
   return createWeatherFeature(provider, {
+    clothingAdviser,
     watchStore: createWeatherWatchStoreFixture({ now: () => now }),
   });
+}
+
+function createAdviser(
+  advice:
+    | Awaited<ReturnType<WeatherClothingAdvisorPort["advise"]>>
+    | undefined = {
+    kind: "item_assessment",
+    recommendation: "recommended",
+  },
+): WeatherClothingAdvisorPort {
+  return { advise: () => Promise.resolve(advice) };
 }
 
 function hourly(

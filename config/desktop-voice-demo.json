@@ -55,6 +55,9 @@
     "weather": {
       "enabled": true,
       "adapter": "mock",
+      "clothingAdvisor": {
+        "provider": "mock"
+      },
       "watches": {
         "adapter": "local"
       }

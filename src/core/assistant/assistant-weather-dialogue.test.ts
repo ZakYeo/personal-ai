@@ -2,12 +2,15 @@ import { createCapabilityRoutingIndex } from "../../application/capability-catal
 import { createWeatherFeature } from "../../features/weather/weather-feature.js";
 import { createWeatherWatchStoreFixture } from "../../test-support/weather-watch-store.js";
 import { createWeatherProviderFixture } from "../../test-support/weather.js";
+import { createWeatherClothingAdvisorFixture } from "../../test-support/weather-clothing-advisor.js";
 import {
   createAssistantConfig,
   createCommand,
   createFixedClock,
 } from "../../test-support/core-assistant.js";
 import { createAssistant } from "./assistant.js";
+import type { AssistantContext } from "../../ports/assistant.js";
+import type { ConversationState } from "../../ports/conversation.js";
 
 describe("assistant weather dialogue", () => {
   it("reuses Eastbourne from a completed home-weather turn for immediate coat advice", async () => {
@@ -38,6 +41,7 @@ describe("assistant weather dialogue", () => {
       }),
     );
     const feature = createWeatherFeature(provider, {
+      clothingAdviser: createWeatherClothingAdvisorFixture(),
       personalContext: { readHomeLocation },
       watchStore: createWeatherWatchStoreFixture(),
     });
@@ -80,5 +84,112 @@ describe("assistant weather dialogue", () => {
       text: expect.stringContaining("a coat in Eastbourne right now") as string,
     });
     expect(readHomeLocation).toHaveBeenCalledOnce();
+  });
+
+  it("treats an open clothing follow-up as a fresh outfit recommendation", async () => {
+    const provider = createWeatherProviderFixture();
+    provider.findLocations = ({ place }) =>
+      Promise.resolve([
+        {
+          countryName: "United Kingdom",
+          location: {
+            countryCode: "GB",
+            latitude: 50.768,
+            longitude: 0.29,
+            name: place,
+            timezone: "Europe/London",
+          },
+          providerRank: 1,
+          searchName: place,
+        },
+      ]);
+    const feature = createWeatherFeature(provider, {
+      clothingAdviser: createWeatherClothingAdvisorFixture(),
+      watchStore: createWeatherWatchStoreFixture(),
+    });
+    const histories: (ConversationState | undefined)[] = [];
+    const starts = vi.fn(
+      (
+        text: string,
+        intentContext: AssistantContext,
+        history?: ConversationState,
+      ) => {
+        expect(intentContext.config.assistant.name).toBe("Jarvis");
+        histories.push(history);
+        return {
+          next: () =>
+            Promise.resolve(
+              text === "What's the weather like right now?"
+                ? {
+                    command: createCommand(
+                      "weather.current",
+                      { location: "Eastbourne" },
+                      text,
+                    ),
+                    kind: "command" as const,
+                  }
+                : text === "What would you recommend I wear?"
+                  ? {
+                      command: createCommand(
+                        "weather.clothing",
+                        { goal: "recommend_outfit" },
+                        text,
+                      ),
+                      kind: "command" as const,
+                    }
+                  : {
+                      command: createCommand(
+                        "weather.clothing",
+                        { goal: "assess_item", item: "hoodie" },
+                        text,
+                      ),
+                      kind: "command" as const,
+                    },
+            ),
+        };
+      },
+    );
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([feature]),
+      clock: createFixedClock(new Date("2026-07-28T12:00:00.000Z")),
+      config: createAssistantConfig({ weather: { enabled: true } }),
+      conversation: {
+        compactor: { compact: () => Promise.resolve("") },
+        history: { maxTurnsBeforeCompaction: 5 },
+        responder: {
+          respond: () =>
+            Promise.resolve({ status: "ok", text: "unused response" }),
+        },
+      },
+      intentInterpreter: { start: starts },
+    });
+
+    await assistant.handleText("What's the weather like right now?");
+    await assistant.handleText(
+      "Do I need a coat today or should I wear a hoodie? What should I wear?",
+    );
+    const outfit = await assistant.handleText(
+      "What would you recommend I wear?",
+    );
+
+    expect(outfit).toMatchObject({
+      status: "ok",
+      text: expect.stringContaining(
+        "I recommend a T-shirt and lightweight trousers in Eastbourne right now",
+      ) as string,
+    });
+    expect(outfit.text).not.toContain("What details should I use");
+    expect(histories[2]).toMatchObject({
+      recentTurns: [
+        { content: "What's the weather like right now?", role: "user" },
+        expect.objectContaining({ role: "assistant" }),
+        {
+          content:
+            "Do I need a coat today or should I wear a hoodie? What should I wear?",
+          role: "user",
+        },
+        expect.objectContaining({ role: "assistant" }),
+      ],
+    });
   });
 });

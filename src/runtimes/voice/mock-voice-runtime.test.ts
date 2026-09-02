@@ -131,7 +131,11 @@ describe("mock voice runtime", () => {
           wakePhrases: ["hey jarvis"],
         },
         features: {
-          weather: { adapter: "mock", enabled: true },
+          weather: {
+            adapter: "mock",
+            clothingAdvisor: { provider: "mock" },
+            enabled: true,
+          },
         },
         intent: { provider: "deterministic" },
         voice: mockVoiceConfig,
@@ -147,7 +151,9 @@ describe("mock voice runtime", () => {
     await expect(runtime.runOnce()).resolves.toMatchObject({
       response: {
         status: "ok",
-        text: expect.stringContaining("would not recommend a coat") as string,
+        text: expect.stringContaining(
+          "cannot confidently assess a coat",
+        ) as string,
       },
       spokenText: expect.stringContaining("right now") as string,
       status: "spoken",

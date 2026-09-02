@@ -19,6 +19,11 @@ const conditions = [
     windSpeed: 10,
   },
 ];
+const units = {
+  precipitation: "mm" as const,
+  temperature: "celsius" as const,
+  windSpeed: "km/h" as const,
+};
 
 describe("OpenAIWeatherClothingAdvisor", () => {
   it("returns a strict item assessment from narrow weather input", async () => {
@@ -36,6 +41,7 @@ describe("OpenAIWeatherClothingAdvisor", () => {
       advisor.advise({
         conditions,
         goal: { item: "hoodie", kind: "assess_item" },
+        units,
       }),
     ).resolves.toEqual({
       kind: "item_assessment",
@@ -79,6 +85,7 @@ describe("OpenAIWeatherClothingAdvisor", () => {
       advisor.advise({
         conditions,
         goal: { kind: "recommend_outfit", occasion: "walking to work" },
+        units,
       }),
     ).resolves.toEqual({
       items: ["a T-shirt", "lightweight trousers"],
@@ -114,6 +121,7 @@ describe("OpenAIWeatherClothingAdvisor", () => {
       advisor.advise({
         conditions,
         goal: { item: "hoodie", kind: "assess_item" },
+        units,
       }),
     ).rejects.toMatchObject({
       message: "Weather clothing advice must match the requested goal.",
@@ -134,6 +142,7 @@ describe("OpenAIWeatherClothingAdvisor", () => {
         {
           conditions,
           goal: { kind: "recommend_outfit" },
+          units,
         },
         { signal: shutdown.signal },
       ),
@@ -152,6 +161,7 @@ describe("OpenAIWeatherClothingAdvisor", () => {
       advisor.advise({
         conditions,
         goal: { kind: "recommend_outfit" },
+        units,
       }),
     ).rejects.toThrow(
       "OpenAI API key environment variable OPENAI_API_KEY is not set.",
@@ -170,6 +180,7 @@ describe("OpenAIWeatherClothingAdvisor", () => {
       advisor.advise({
         conditions,
         goal: { kind: "recommend_outfit" },
+        units,
       }),
     ).rejects.toMatchObject({
       message: "OpenAI weather clothing advice request failed with status 429.",

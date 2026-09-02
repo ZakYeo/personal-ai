@@ -1,7 +1,8 @@
 import {
-  assessWeatherClothing,
-  weatherClothingCategories,
-} from "../../application/weather-clothing-policy.js";
+  parseWeatherClothingAdvice,
+  weatherClothingAdviceLimits,
+} from "../../application/weather-clothing-advice-policy.js";
+import { summarizeWeatherClothingConditions } from "../../application/weather-clothing-condition-summary.js";
 import { createWeatherClothingPeriodPlan } from "../../application/weather-clothing-period.js";
 import {
   metricWeatherUnits,
@@ -16,6 +17,7 @@ import {
   type FeatureResult,
 } from "../../application/feature.js";
 import type { PersonalContextReaderPort } from "../../ports/personal-context.js";
+import type { WeatherClothingAdvisorPort } from "../../ports/weather-clothing-advisor.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";
 import {
   availableClothingResult,
@@ -41,16 +43,21 @@ const clothingTimeParameters = {
 } as const satisfies FeatureCapabilityParameters;
 
 const clothingParameters = {
-  category: {
-    allowedValues: weatherClothingCategories,
-    description: "The bounded clothing category that controls weather policy.",
+  goal: {
+    allowedValues: ["assess_item", "recommend_outfit"],
+    description:
+      "Assess one named item, or recommend a complete outfit without requiring an item.",
     required: true,
     type: "string",
   },
   ...clothingTimeParameters,
   item: {
-    description: "The user's specific clothing or accessory item.",
-    required: true,
+    description: "The specific item to assess; required only for assess_item.",
+    type: "string",
+  },
+  occasion: {
+    description:
+      "An optional activity or occasion for an outfit recommendation.",
     type: "string",
   },
 } as const satisfies FeatureCapabilityParameters;
@@ -58,6 +65,7 @@ const clothingParameters = {
 type ClothingArgs = FeatureArgsFromParameters<typeof clothingParameters>;
 
 interface WeatherClothingCapabilityOptions {
+  clothingAdviser: WeatherClothingAdvisorPort;
   maxForecastAgeMs: number;
   personalContext?: PersonalContextReaderPort;
 }
@@ -69,14 +77,14 @@ export function createWeatherClothingCapabilities(
   return {
     "weather.clothing": defineCapability({
       description:
-        "Advise on a user-named clothing or accessory item for current conditions, one future instant, or an inclusive future period. Location may be explicit, recent weather context, or explicitly stored home.",
+        "Assess any user-named clothing item or recommend one concise outfit for current conditions, one future instant, or an inclusive future period. Location may be explicit, recent weather context, or explicitly stored home.",
       execute: (request, context) =>
         executeWeatherClothing(provider, request.args, context, options),
       parameters: clothingParameters,
       risk: "low",
-      spokenSummary: "check whether clothing suits the weather",
+      spokenSummary: "recommend what to wear for the weather",
       summary:
-        "Check whether a clothing item suits bounded weather conditions.",
+        "Assess clothing or recommend an outfit for bounded weather conditions.",
     }),
     "weather.coat": defineCapability({
       description:
@@ -84,11 +92,7 @@ export function createWeatherClothingCapabilities(
       execute: (request, context) =>
         executeWeatherClothing(
           provider,
-          {
-            ...request.args,
-            category: "insulating_outerwear",
-            item: "coat",
-          },
+          { ...request.args, goal: "assess_item", item: "coat" },
           context,
           options,
         ),
@@ -106,10 +110,9 @@ async function executeWeatherClothing(
   context: FeatureExecutionContext,
   options: WeatherClothingCapabilityOptions,
 ): Promise<FeatureResult> {
-  const item = args.item.trim();
-  if (item.length === 0 || item.length > 80) {
-    throw new Error("Weather clothing items must contain 1 to 80 characters.");
-  }
+  const item = normalizeItem(args);
+  if (typeof item !== "string") return item;
+  const occasion = normalizeOccasion(args.occasion);
   const resolution = await resolveWeatherLocation(
     provider,
     args.location,
@@ -137,6 +140,13 @@ async function executeWeatherClothing(
     context.signal ? { signal: context.signal } : {},
   );
   validateWeatherForecast(forecast, resolution.location, plan.queryPeriod);
+  const resultContext = {
+    forecast,
+    goal: args.goal,
+    ...(item ? { item } : {}),
+    ...(occasion ? { occasion } : {}),
+    requestedPeriod: plan.requestedPeriod,
+  } as const;
   if (
     weatherForecastIsStale(
       forecast,
@@ -146,10 +156,7 @@ async function executeWeatherClothing(
   ) {
     return withWeatherLocationReference(
       unavailableClothingResult({
-        category: args.category,
-        forecast,
-        item,
-        requestedPeriod: plan.requestedPeriod,
+        ...resultContext,
         text: "The available weather observation is stale, so I cannot make a current clothing recommendation.",
       }),
       forecast.location,
@@ -162,29 +169,90 @@ async function executeWeatherClothing(
     plan.requestedPeriod,
   );
   if (selected.length === 0) {
+    const subject = item ? `${clothingArticle(item)} ${item}` : "an outfit";
     return withWeatherLocationReference(
       unavailableClothingResult({
-        category: args.category,
-        forecast,
-        item,
-        requestedPeriod: plan.requestedPeriod,
-        text: `I cannot assess ${clothingArticle(item)} ${item} because no weather interval is available close enough to the requested time.`,
+        ...resultContext,
+        selected,
+        text: `I cannot recommend ${subject} because no weather interval is available close enough to the requested time.`,
       }),
       forecast.location,
     );
   }
 
-  const assessment = assessWeatherClothing(args.category, selected);
-  return withWeatherLocationReference(
-    availableClothingResult({
-      assessment,
-      category: args.category,
-      forecast,
-      item,
-      mode: plan.mode,
-      requestedPeriod: plan.requestedPeriod,
-      selected,
+  const conditions = selected.map(
+    ({ at, precipitation, temperature, weather, windSpeed }) => ({
+      at,
+      precipitation,
+      temperature,
+      weather,
+      windSpeed,
     }),
-    forecast.location,
   );
+  const goal =
+    args.goal === "assess_item"
+      ? { kind: "assess_item" as const, item }
+      : {
+          kind: "recommend_outfit" as const,
+          ...(occasion ? { occasion } : {}),
+        };
+  try {
+    const rawAdvice = await options.clothingAdviser.advise(
+      { conditions, goal, units: metricWeatherUnits },
+      context.signal ? { signal: context.signal } : {},
+    );
+    const advice = parseWeatherClothingAdvice(rawAdvice, args.goal);
+    return withWeatherLocationReference(
+      availableClothingResult({
+        ...resultContext,
+        advice,
+        conditionSummary: summarizeWeatherClothingConditions(conditions),
+        mode: plan.mode,
+        selected,
+      }),
+      forecast.location,
+    );
+  } catch (cause) {
+    return withWeatherLocationReference(
+      unavailableClothingResult({
+        ...resultContext,
+        failure: { cause, message: "Weather clothing adviser failed." },
+        selected,
+        text: `I found the weather for ${forecast.location.name}, but clothing advice is temporarily unavailable.`,
+      }),
+      forecast.location,
+    );
+  }
+}
+
+function normalizeItem(args: ClothingArgs): string | FeatureResult {
+  if (args.goal !== "assess_item") return "";
+  if (args.item === undefined) {
+    return {
+      kind: "resumable_clarification",
+      parameter: "item",
+      text: "Which clothing item would you like me to assess?",
+    };
+  }
+  const item = args.item.trim();
+  if (
+    item.length === 0 ||
+    item.length > weatherClothingAdviceLimits.itemCharacters
+  ) {
+    throw new Error(
+      `Weather clothing items must contain 1 to ${weatherClothingAdviceLimits.itemCharacters} characters.`,
+    );
+  }
+  return item;
+}
+
+function normalizeOccasion(occasion: string | undefined): string | undefined {
+  if (occasion === undefined) return undefined;
+  const normalized = occasion.trim();
+  if (normalized.length === 0 || normalized.length > 160) {
+    throw new Error(
+      "Weather clothing occasions must contain 1 to 160 characters.",
+    );
+  }
+  return normalized;
 }

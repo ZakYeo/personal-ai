@@ -81,7 +81,17 @@ export function createLoadedRuntimeConfig(
       responseRewriter: {
         provider: "disabled",
       },
-      features,
+      features: Object.fromEntries(
+        Object.entries(features).map(([featureId, feature]) => [
+          featureId,
+          featureId === "weather" && feature.enabled === true
+            ? {
+                clothingAdvisor: { provider: "mock" },
+                ...feature,
+              }
+            : feature,
+        ]),
+      ),
     },
     featureAdapterRegistry ? { featureAdapterRegistry } : {},
   );

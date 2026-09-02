@@ -10,6 +10,11 @@ describe("mock weather clothing adviser", () => {
       windSpeed: 10,
     },
   ];
+  const units = {
+    precipitation: "mm" as const,
+    temperature: "celsius" as const,
+    windSpeed: "km/h" as const,
+  };
 
   it("returns deterministic item and outfit fixtures", async () => {
     const adviser = createMockWeatherClothingAdvisor();
@@ -18,6 +23,7 @@ describe("mock weather clothing adviser", () => {
       adviser.advise({
         conditions,
         goal: { item: "ceremonial sash", kind: "assess_item" },
+        units,
       }),
     ).resolves.toEqual({
       kind: "item_assessment",
@@ -27,6 +33,7 @@ describe("mock weather clothing adviser", () => {
       adviser.advise({
         conditions,
         goal: { kind: "recommend_outfit", occasion: "a walk" },
+        units,
       }),
     ).resolves.toEqual({
       items: ["a T-shirt", "lightweight trousers"],

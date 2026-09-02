@@ -70,7 +70,7 @@ describe("weather feature adapters", () => {
     );
 
     expect(response.status).toBe("ok");
-    expect(response.text).toContain("would not recommend a coat");
+    expect(response.text).toContain("cannot confidently assess a coat");
     expect(response.text).toContain("right now");
     expect(response.text).not.toContain("Fetched at");
     expect(readHomeLocation).toHaveBeenCalledOnce();
@@ -185,6 +185,57 @@ describe("weather feature adapters", () => {
     });
     expect(config.features.weather).not.toHaveProperty("openMeteo");
     expect(config.features.weather).not.toHaveProperty("watches");
+    expect(config.features.weather).not.toHaveProperty("clothingAdvisor");
+  });
+
+  it("requires an explicitly selected clothing adviser", () => {
+    expect(() =>
+      parseAssistantConfig(
+        createRawWeatherConfig({
+          adapter: "mock",
+          clothingAdvisor: undefined,
+          enabled: true,
+        }),
+      ),
+    ).toThrow(
+      'Config feature "weather".clothingAdvisor must be a JSON object.',
+    );
+  });
+
+  it("rejects an unregistered clothing adviser", () => {
+    expect(() =>
+      parseAssistantConfig(
+        createRawWeatherConfig({
+          adapter: "mock",
+          clothingAdvisor: { provider: "rules" },
+          enabled: true,
+        }),
+      ),
+    ).toThrow(
+      'Config feature "weather".clothingAdvisor provider "rules" is not registered.',
+    );
+  });
+
+  it("requires OpenAI clothing adviser credentials during startup validation", () => {
+    const config = parseAssistantConfig(
+      createRawWeatherConfig({
+        adapter: "mock",
+        clothingAdvisor: {
+          openai: { model: "gpt-test" },
+          provider: "openai",
+        },
+        enabled: true,
+      }),
+      {
+        featureAdapterRegistry: createDefaultFeatureAdapterRegistry({
+          weather: { env: {}, fetch: vi.fn() },
+        }),
+      },
+    );
+
+    expect(() => validateConfiguredFeatureAdapters(config)).toThrow(
+      "OpenAI weather clothing adviser is selected but OPENAI_API_KEY is not set.",
+    );
   });
 
   it("requires a state path for file-backed weather watches", () => {
@@ -361,7 +412,12 @@ function createRawWeatherConfig(
       timeZone: "Europe/London",
       wakePhrases: ["hey jarvis"],
     },
-    features: { weather },
+    features: {
+      weather: {
+        clothingAdvisor: { provider: "mock" },
+        ...weather,
+      },
+    },
     intent: { provider: "deterministic" },
   };
 }

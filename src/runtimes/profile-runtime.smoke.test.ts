@@ -177,6 +177,7 @@ describe("personal profile runtime smoke", () => {
           },
           weather: {
             adapter: "mock",
+            clothingAdvisor: { provider: "mock" },
             enabled: true,
             watches: { adapter: "local" },
           },

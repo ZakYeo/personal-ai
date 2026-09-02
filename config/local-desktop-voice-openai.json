@@ -200,6 +200,13 @@
     "weather": {
       "enabled": true,
       "adapter": "openMeteo",
+      "clothingAdvisor": {
+        "provider": "openai",
+        "openai": {
+          "model": "gpt-5.6-luna",
+          "reasoningEffort": "none"
+        }
+      },
       "watches": {
         "adapter": "file",
         "state": {

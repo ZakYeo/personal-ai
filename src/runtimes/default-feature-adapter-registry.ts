@@ -37,6 +37,7 @@ interface DefaultFeatureAdapterRegistryOptions {
   };
   weather?: {
     configDirectory?: string;
+    env?: Record<string, string | undefined>;
     fetch?: typeof fetch;
     notificationDelivery?: NotificationDeliveryPort;
     personalContextReader?: PersonalContextReaderPort;
@@ -77,6 +78,7 @@ export function createDefaultFeatureAdapterRegistry(
         : {}),
     }),
     weather: createWeatherFeatureRegistryEntry({
+      env: options.weather?.env ?? process.env,
       fetch: options.weather?.fetch ?? globalThis.fetch,
       ...(options.weather?.configDirectory
         ? { configDirectory: options.weather.configDirectory }
@@ -119,6 +121,7 @@ export function createRuntimeFeatureAdapterRegistry(dependencies: {
       : {},
     weather: {
       ...localStateDependencies,
+      env: dependencies.env,
       fetch: dependencies.fetch,
     },
   });

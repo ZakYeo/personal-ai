@@ -5,6 +5,7 @@ import {
 } from "../../test-support/feature-contract.js";
 import { createWeatherProviderFixture } from "../../test-support/weather.js";
 import { createWeatherWatchStoreFixture } from "../../test-support/weather-watch-store.js";
+import { createWeatherClothingAdvisorFixture } from "../../test-support/weather-clothing-advisor.js";
 import type { PersonalContextReaderPort } from "../../ports/personal-context.js";
 import { createWeatherFeature } from "./weather-feature.js";
 
@@ -81,11 +82,11 @@ describe("createWeatherFeature", () => {
     );
 
     expect(readHomeLocation).toHaveBeenCalledOnce();
-    expect(result.text).toContain("would not recommend a coat");
+    expect(result.text).toContain("cannot confidently assess a coat");
     expect(result.data).toMatchObject({
-      clothingCategory: "insulating_outerwear",
+      clothingAdviceGoal: "assess_item",
       clothingItem: "coat",
-      clothingRecommendation: "not_recommended",
+      clothingRecommendation: "uncertain",
       fetchedAt: "2026-07-28T12:00:05.000Z",
       location: "London",
       requestedPeriodEndAt: "2026-07-28T12:00:00.000Z",
@@ -525,6 +526,7 @@ function createTestWeatherFeature(
 ) {
   return createWeatherFeature(provider, {
     ...options,
+    clothingAdviser: createWeatherClothingAdvisorFixture(),
     watchStore: createWeatherWatchStoreFixture({ now: () => now }),
   });
 }

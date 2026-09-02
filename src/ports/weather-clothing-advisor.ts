@@ -19,6 +19,11 @@ interface WeatherClothingCondition {
 export interface WeatherClothingAdviceRequest {
   readonly conditions: readonly WeatherClothingCondition[];
   readonly goal: WeatherClothingAdviceGoal;
+  readonly units: {
+    readonly precipitation: "mm";
+    readonly temperature: "celsius";
+    readonly windSpeed: "km/h";
+  };
 }
 
 export type WeatherClothingAdvice =

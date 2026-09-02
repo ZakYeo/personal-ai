@@ -1,7 +1,5 @@
-import type {
-  WeatherClothingAssessment,
-  WeatherClothingCategory,
-} from "../../application/weather-clothing-policy.js";
+import type { WeatherClothingConditionSummary } from "../../application/weather-clothing-condition-summary.js";
+import type { WeatherClothingAdvice } from "../../ports/weather-clothing-advisor.js";
 import type { FeatureResult } from "../../ports/feature.js";
 import type { WeatherForecast, WeatherPeriod } from "../../ports/weather.js";
 import type { SelectedClothingConditions } from "./weather-clothing-selection.js";
@@ -11,14 +9,16 @@ import {
 } from "./weather-result-envelope.js";
 
 interface ClothingResultContext {
-  readonly category: WeatherClothingCategory;
   readonly forecast: WeatherForecast;
-  readonly item: string;
+  readonly goal: "assess_item" | "recommend_outfit";
+  readonly item?: string;
+  readonly occasion?: string;
   readonly requestedPeriod: WeatherPeriod;
 }
 
 interface AvailableClothingResultContext extends ClothingResultContext {
-  readonly assessment: WeatherClothingAssessment;
+  readonly advice: WeatherClothingAdvice;
+  readonly conditionSummary: WeatherClothingConditionSummary;
   readonly mode: "current" | "period" | "point";
   readonly selected: readonly SelectedClothingConditions[];
 }
@@ -26,53 +26,80 @@ interface AvailableClothingResultContext extends ClothingResultContext {
 export function availableClothingResult(
   context: AvailableClothingResultContext,
 ): FeatureResult {
-  const { assessment, forecast, selected } = context;
-  return weatherResultEnvelope(forecast, {
-    data: {
-      clothingCategory: context.category,
-      clothingItem: context.item,
-      clothingRecommendation: assessment.recommendation,
-      clothingRecommendationAvailable: assessment.recommendation !== "limited",
-      decidingMaximumPrecipitation:
-        assessment.decidingMeasurements.maximumPrecipitation,
-      decidingMaximumWindSpeed:
-        assessment.decidingMeasurements.maximumWindSpeed,
-      decidingMinimumTemperature:
-        assessment.decidingMeasurements.minimumTemperature,
-      decidingSnowy: assessment.decidingMeasurements.snowy,
-      decidingWet: assessment.decidingMeasurements.wet,
-      decidingWindy: assessment.decidingMeasurements.windy,
-      queryPeriodEndAt: forecast.period.endAt,
-      queryPeriodStartAt: forecast.period.startAt,
-      requestedPeriodEndAt: context.requestedPeriod.endAt,
-      requestedPeriodStartAt: context.requestedPeriod.startAt,
-      ...flattenSelectedConditions(selected),
-    },
-    text: clothingRecommendationText(context),
-  });
+  return {
+    ...weatherResultEnvelope(context.forecast, {
+      data: {
+        clothingAdviceGoal: context.goal,
+        clothingRecommendationAvailable: true,
+        ...(context.item ? { clothingItem: context.item } : {}),
+        ...(context.occasion ? { clothingOccasion: context.occasion } : {}),
+        ...adviceData(context.advice),
+        decidingMaximumPrecipitation:
+          context.conditionSummary.maximumPrecipitation,
+        decidingMaximumTemperature: context.conditionSummary.maximumTemperature,
+        decidingMaximumWindSpeed: context.conditionSummary.maximumWindSpeed,
+        decidingMinimumTemperature: context.conditionSummary.minimumTemperature,
+        decidingSnowy: context.conditionSummary.snowy,
+        decidingTemperatureBand: context.conditionSummary.temperatureBand,
+        decidingWet: context.conditionSummary.wet,
+        decidingWindy: context.conditionSummary.windy,
+        queryPeriodEndAt: context.forecast.period.endAt,
+        queryPeriodStartAt: context.forecast.period.startAt,
+        requestedPeriodEndAt: context.requestedPeriod.endAt,
+        requestedPeriodStartAt: context.requestedPeriod.startAt,
+        ...flattenSelectedConditions(context.selected),
+      },
+      text: clothingRecommendationText(context),
+    }),
+    responseRewrite: "disabled",
+  };
 }
 
 export function unavailableClothingResult(
-  context: ClothingResultContext & { readonly text: string },
+  context: ClothingResultContext & {
+    readonly failure?: { readonly cause?: unknown; readonly message: string };
+    readonly selected?: readonly SelectedClothingConditions[];
+    readonly text: string;
+  },
 ): FeatureResult {
-  return weatherResultEnvelope(context.forecast, {
-    data: {
-      clothingCategory: context.category,
-      clothingItem: context.item,
-      clothingRecommendationAvailable: false,
-      queryPeriodEndAt: context.forecast.period.endAt,
-      queryPeriodStartAt: context.forecast.period.startAt,
-      requestedPeriodEndAt: context.requestedPeriod.endAt,
-      requestedPeriodStartAt: context.requestedPeriod.startAt,
-    },
-    text: `${context.text} ${weatherAttributionText(context.forecast)}`,
-  });
+  return {
+    ...weatherResultEnvelope(context.forecast, {
+      data: {
+        clothingAdviceGoal: context.goal,
+        clothingRecommendationAvailable: false,
+        ...(context.item ? { clothingItem: context.item } : {}),
+        ...(context.occasion ? { clothingOccasion: context.occasion } : {}),
+        queryPeriodEndAt: context.forecast.period.endAt,
+        queryPeriodStartAt: context.forecast.period.startAt,
+        requestedPeriodEndAt: context.requestedPeriod.endAt,
+        requestedPeriodStartAt: context.requestedPeriod.startAt,
+        ...(context.selected
+          ? flattenSelectedConditions(context.selected)
+          : {}),
+      },
+      text: `${context.text} ${weatherAttributionText(context.forecast)}`,
+    }),
+    ...(context.failure ? { failure: context.failure } : {}),
+    responseRewrite: "disabled",
+  };
 }
 
 export function clothingArticle(item: string): "a" | "an" {
   return ["a", "e", "i", "o", "u"].includes(item[0]?.toLowerCase() ?? "")
     ? "an"
     : "a";
+}
+
+function adviceData(advice: WeatherClothingAdvice) {
+  return advice.kind === "item_assessment"
+    ? { clothingRecommendation: advice.recommendation }
+    : advice.items.reduce<Record<string, string | number>>(
+        (data, item, index) => ({
+          ...data,
+          [`outfitItem${index}`]: item,
+        }),
+        { outfitItemCount: advice.items.length },
+      );
 }
 
 function flattenSelectedConditions(
@@ -94,7 +121,6 @@ function flattenSelectedConditions(
 function clothingRecommendationText(
   context: AvailableClothingResultContext,
 ): string {
-  const subject = `${clothingArticle(context.item)} ${context.item}`;
   const timing =
     context.mode === "current"
       ? "right now"
@@ -102,10 +128,32 @@ function clothingRecommendationText(
         ? `at ${context.requestedPeriod.startAt}`
         : `from ${context.requestedPeriod.startAt} to ${context.requestedPeriod.endAt}`;
   const advice =
-    context.assessment.recommendation === "recommended"
-      ? `Yes, I recommend ${subject}`
-      : context.assessment.recommendation === "not_recommended"
-        ? `I would not recommend ${subject}`
-        : `I cannot make a dependable recommendation for ${subject}`;
-  return `${advice} in ${context.forecast.location.name} ${timing} because ${context.assessment.reason}. ${weatherAttributionText(context.forecast)}`;
+    context.advice.kind === "outfit_recommendation"
+      ? `I recommend ${joinItems(context.advice.items)}`
+      : itemAssessmentText(
+          context.item ?? "item",
+          context.advice.recommendation,
+        );
+  return `${advice} in ${context.forecast.location.name} ${timing} for the ${context.conditionSummary.description}. ${weatherAttributionText(context.forecast)}`;
+}
+
+function itemAssessmentText(
+  item: string,
+  recommendation: Extract<
+    WeatherClothingAdvice,
+    { kind: "item_assessment" }
+  >["recommendation"],
+): string {
+  const subject = `${clothingArticle(item)} ${item}`;
+  if (recommendation === "recommended") return `I recommend ${subject}`;
+  if (recommendation === "not_recommended") {
+    return `I would not recommend ${subject}`;
+  }
+  return `I cannot confidently assess ${subject}`;
+}
+
+function joinItems(items: readonly string[]): string {
+  if (items.length === 1) return items[0]!;
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
 }

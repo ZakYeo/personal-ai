@@ -43,11 +43,59 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
     ]);
     expect(coat).toMatchObject({
       status: "ok",
-      text: expect.stringContaining(
-        "I would not recommend a coat in London right now",
-      ) as string,
+      text: expect.stringContaining("a coat in London right now") as string,
     });
     expect(coat.text).not.toContain("Which location");
+  }, 60_000);
+
+  it("handles the reported clothing dialogue as a fresh outfit request", async () => {
+    const assistant = await createConfiguredTextRuntime({
+      config: createLiveWeatherConfig("mock"),
+      env: { OPENAI_API_KEY: env.OPENAI_API_KEY },
+      fetch: globalThis.fetch,
+      now: () => fixtureNow,
+    });
+
+    const current = await assistant.handleText(
+      "What's the weather like in Eastbourne right now?",
+    );
+    const hoodie = await assistant.handleText("Should I wear a hoodie today?");
+    const outfit = await assistant.handleText(
+      "What would you recommend I wear?",
+    );
+
+    expect(current).toMatchObject({ status: "ok" });
+    expect(hoodie).toMatchObject({
+      status: "ok",
+      text: expect.stringContaining("hoodie in Eastbourne right now") as string,
+    });
+    expect(outfit).toMatchObject({
+      status: "ok",
+      text: expect.stringContaining("I recommend") as string,
+    });
+    expect(outfit.text).toContain("in Eastbourne right now");
+    expect(outfit.text).not.toContain("What details should I use");
+  }, 60_000);
+
+  it("assesses an arbitrary named clothing item", async () => {
+    const assistant = await createConfiguredTextRuntime({
+      config: createLiveWeatherConfig("mock"),
+      env: { OPENAI_API_KEY: env.OPENAI_API_KEY },
+      fetch: globalThis.fetch,
+      now: () => fixtureNow,
+    });
+
+    const response = await assistant.handleText(
+      "Would you recommend a ceremonial sash in London right now?",
+    );
+
+    expect(response).toMatchObject({
+      status: "ok",
+      text: expect.stringContaining(
+        "ceremonial sash in London right now",
+      ) as string,
+    });
+    expect(response.text).not.toContain("Which clothing category");
   }, 60_000);
 
   it("resolves bare London to the ranked capital through live Open-Meteo", async () => {
@@ -116,6 +164,10 @@ function createLiveWeatherConfig(
         : {}),
       weather: {
         adapter,
+        clothingAdvisor: {
+          openai: { model: "gpt-5.6-luna", reasoningEffort: "none" },
+          provider: "openai",
+        },
         enabled: true,
         watches: { adapter: "local" },
       },

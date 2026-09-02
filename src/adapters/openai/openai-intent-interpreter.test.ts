@@ -55,6 +55,49 @@ const profileLookupCapability: OpenAIIntentCapability = {
 };
 
 describe("OpenAIIntentInterpreter", () => {
+  it("describes open outfit requests without requiring an optional item", async () => {
+    const fetch = createFetchStub(
+      jsonResponse({
+        id: "response-weather-clothing",
+        output_text: JSON.stringify({
+          interpretation: { kind: "conversation" },
+        }),
+      }),
+    );
+    const interpreter = createInterpreter({
+      capabilityCatalog: [
+        {
+          capability: {
+            name: "weather.clothing",
+            parameters: {
+              goal: {
+                allowedValues: ["assess_item", "recommend_outfit"],
+                required: true,
+                type: "string",
+              },
+              item: { type: "string" },
+            },
+            risk: "low",
+          },
+          featureId: "weather",
+          featureName: "Weather",
+          parameterText: "goal: string (required); item: string (optional)",
+        },
+      ],
+      fetch,
+    });
+
+    await interpretOnce(
+      interpreter,
+      "What would you recommend I wear?",
+      context,
+    );
+
+    expect(JSON.stringify(readRequestBody(fetch).input)).toContain(
+      "use goal recommend_outfit when the user broadly asks what to wear and omit the optional item",
+    );
+  });
+
   it("provides safe recent weather-location context without private coordinates", async () => {
     const fetch = createFetchStub(
       jsonResponse({

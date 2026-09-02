@@ -7,10 +7,15 @@ interface WeatherResultContent {
   readonly text: string;
 }
 
+type CompletedWeatherResult = Exclude<
+  FeatureResult,
+  { readonly kind: "resumable_clarification" }
+>;
+
 export function weatherResultEnvelope(
   forecast: WeatherForecast,
   content: WeatherResultContent,
-): FeatureResult {
+): CompletedWeatherResult {
   return {
     citations: [
       {

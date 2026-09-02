@@ -10,6 +10,7 @@ import {
   type FeatureExecutionContext,
 } from "../../application/feature.js";
 import type { WeatherProviderPort } from "../../ports/weather.js";
+import type { WeatherClothingAdvisorPort } from "../../ports/weather-clothing-advisor.js";
 import {
   metricWeatherUnits,
   validateWeatherForecast,
@@ -67,6 +68,7 @@ const forecastParameters = {
 type ForecastArgs = FeatureArgsFromParameters<typeof forecastParameters>;
 
 interface WeatherFeatureOptions {
+  clothingAdviser: WeatherClothingAdvisorPort;
   maxForecastAgeMinutes?: number;
   personalContext?: PersonalContextReaderPort;
   watchStore: WeatherWatchStore;
@@ -114,6 +116,7 @@ export function createWeatherFeature(
     options.watchStore,
   );
   const clothingCapabilities = createWeatherClothingCapabilities(provider, {
+    clothingAdviser: options.clothingAdviser,
     maxForecastAgeMs,
     ...(options.personalContext
       ? { personalContext: options.personalContext }
