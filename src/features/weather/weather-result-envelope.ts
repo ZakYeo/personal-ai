@@ -1,4 +1,7 @@
-import type { AssistantCommandParameters, AssistantCitation  } from "../../ports/assistant.js";
+import type {
+  AssistantCommandParameters,
+  AssistantCitation,
+} from "../../ports/assistant.js";
 import type { WeatherForecast } from "../../ports/weather.js";
 
 interface WeatherResultContent {
