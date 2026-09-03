@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import type { ProcessControl } from "../../ports/process-control.js";
+import type { OperatorDiagnosticProjection } from "../../ports/operator-diagnostic.js";
 import { BoundedByteTail } from "./bounded-byte-tail.js";
 
 export interface RunCommandRequest {
@@ -21,6 +22,7 @@ export interface RunCommandResult {
 }
 
 abstract class CommandDiagnosticError extends Error {
+  readonly operatorDiagnostic: OperatorDiagnosticProjection;
   readonly stderr: string;
   readonly stderrTruncated: boolean;
   readonly stdout: string;
@@ -29,6 +31,7 @@ abstract class CommandDiagnosticError extends Error {
   constructor(
     message: string,
     output: RunCommandResult,
+    metadata: { exitCode?: number | null; timeoutMs?: number } = {},
     options?: ErrorOptions,
   ) {
     super(message, options);
@@ -36,6 +39,26 @@ abstract class CommandDiagnosticError extends Error {
     this.stderrTruncated = output.stderrTruncated;
     this.stdout = output.stdout;
     this.stdoutTruncated = output.stdoutTruncated;
+    this.operatorDiagnostic = Object.freeze({
+      kind: "command" as const,
+      ...metadata,
+      ...(output.stderr.length > 0 || output.stderrTruncated
+        ? {
+            stderr: Object.freeze({
+              tail: output.stderr,
+              truncated: output.stderrTruncated,
+            }),
+          }
+        : {}),
+      ...(output.stdout.length > 0 || output.stdoutTruncated
+        ? {
+            stdout: Object.freeze({
+              tail: output.stdout,
+              truncated: output.stdoutTruncated,
+            }),
+          }
+        : {}),
+    });
   }
 }
 
@@ -45,7 +68,7 @@ export class CommandExecutionError extends CommandDiagnosticError {
     readonly code: number | null,
     output: RunCommandResult,
   ) {
-    super(message, output);
+    super(message, output, { exitCode: code });
     this.name = "CommandExecutionError";
   }
 }
@@ -57,7 +80,12 @@ export class CommandTimeoutError extends CommandDiagnosticError {
     output: RunCommandResult,
     cause?: unknown,
   ) {
-    super(message, output, cause === undefined ? undefined : { cause });
+    super(
+      message,
+      output,
+      { timeoutMs },
+      cause === undefined ? undefined : { cause },
+    );
     this.name = "CommandTimeoutError";
   }
 }
@@ -68,7 +96,7 @@ export class CommandAbortError extends CommandDiagnosticError {
     readonly reason: unknown,
     output: RunCommandResult,
   ) {
-    super(message, output, { cause: reason });
+    super(message, output, {}, { cause: reason });
     this.name = "CommandAbortError";
   }
 }
@@ -79,7 +107,7 @@ export class CommandInputError extends CommandDiagnosticError {
     readonly cause: unknown,
     output: RunCommandResult,
   ) {
-    super(message, output, { cause });
+    super(message, output, {}, { cause });
     this.name = "CommandInputError";
   }
 }
@@ -118,7 +146,7 @@ class CommandTerminationError extends CommandDiagnosticError {
     readonly cause: unknown,
     output: RunCommandResult,
   ) {
-    super(message, output, { cause });
+    super(message, output, {}, { cause });
     this.name = "CommandTerminationError";
   }
 }
