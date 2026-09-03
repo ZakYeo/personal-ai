@@ -81,7 +81,9 @@ describe.skipIf(!runOpenAIE2E)("Pi service OpenAI alarms live E2E", () => {
               assistant.handleText("Acknowledge the tea alarm."),
             ).resolves.toMatchObject({ status: "ok" });
             const response = await assistant.handleText("List my alarms.");
-            expect(response.text).toContain("2026-07-13T16:10:00.000Z (tea)");
+            expect(response.text).toContain("tea alarm");
+            expect(response.text).toContain("completed at 5:10pm today");
+            expect(response.text).not.toContain("2026-07-13");
 
             return {
               response,

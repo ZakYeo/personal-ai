@@ -81,6 +81,13 @@ function createLiveProfileConfig(includeWeather = false) {
         ? {
             weather: {
               adapter: "mock",
+              clothingAdvisor: {
+                openai: {
+                  model: "gpt-5.6-luna",
+                  reasoningEffort: "none",
+                },
+                provider: "openai",
+              },
               enabled: true,
               watches: { adapter: "local" },
             },

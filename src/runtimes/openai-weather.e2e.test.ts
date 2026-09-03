@@ -59,7 +59,7 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
     });
 
     const current = await assistant.handleText(
-      "What's the weather like in Eastbourne right now?",
+      "What's the weather like in London right now?",
     );
     const hoodie = await assistant.handleText("Should I wear a hoodie today?");
     const outfit = await assistant.handleText(
@@ -77,7 +77,7 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
       status: "ok",
       text: expect.stringContaining("I recommend") as string,
     });
-    expect(outfit.text).toContain("in Eastbourne right now");
+    expect(outfit.text).toContain("in London right now");
     expect(outfit.text).not.toContain("What details should I use");
   }, 60_000);
 

@@ -306,7 +306,8 @@ describe.skipIf(!runOpenAIE2E)(
         status: "needs_confirmation",
       });
       expect(confirmation.text).toContain("Submit the form");
-      expect(confirmation.text).toContain(reminderAt);
+      expect(confirmation.text).toContain("9am tomorrow");
+      expect(confirmation.text).not.toContain("2026-07-29");
       await expect(assistant.handleText("yes")).resolves.toMatchObject({
         status: "ok",
       });

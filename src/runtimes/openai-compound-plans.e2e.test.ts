@@ -34,7 +34,8 @@ describe.skipIf(!runOpenAIE2E)("OpenAI bounded workflows live E2E", () => {
       status: "needs_confirmation",
     });
     expect(confirmation.text).toContain("Upcoming wedding");
-    expect(confirmation.text).toContain("2026-09-12T08:50:00.000Z");
+    expect(confirmation.text).toContain("9:50am on 12 September");
+    expect(confirmation.text).not.toContain("2026-09-12");
     await expect(access(statePath)).rejects.toMatchObject({ code: "ENOENT" });
 
     const response = await assistant.handleText("yes");
