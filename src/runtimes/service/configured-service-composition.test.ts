@@ -21,6 +21,9 @@ import { parseAssistantConfig } from "../config/config.js";
 import { defineFeatureAdapter } from "../feature-adapter-registry.js";
 import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
 import { createInMemoryAlarmStore } from "../../adapters/local/in-memory-alarm-store.js";
+import { createFileWeatherWatchStore } from "../../adapters/local/file-weather-watch-store.js";
+import { createNewWeatherWatch } from "../../test-support/weather-watch-store.js";
+import { dirname, join } from "node:path";
 
 describe("runConfiguredServiceRuntime", () => {
   it("composes the configured text assistant from an injected config path", async () => {
@@ -610,5 +613,150 @@ describe("runConfiguredServiceRuntime", () => {
     expect(notifications[0]).toContain(
       "convenience notifications, not guaranteed emergency alerts",
     );
+  });
+
+  it("runs configured alarm, task reminder, and weather-watch delivery together", async () => {
+    const now = new Date("2026-07-28T12:05:00.000Z");
+    const configPath = await writeRuntimeHarnessConfig({
+      assistant: {
+        name: "Jarvis",
+        timeZone: "Europe/London",
+        wakePhrases: ["hey jarvis"],
+      },
+      conversation: { provider: "disabled" },
+      features: {
+        alarms: {
+          adapter: "file",
+          enabled: true,
+          state: { path: "state/alarms.json" },
+        },
+        tasks: {
+          adapter: "file",
+          enabled: true,
+          state: { path: "state/tasks.json" },
+        },
+        weather: {
+          adapter: "mock",
+          clothingAdvisor: { provider: "mock" },
+          enabled: true,
+          watches: {
+            adapter: "file",
+            state: { path: "state/weather-watches.json" },
+          },
+        },
+      },
+      intent: { provider: "deterministic" },
+      responseRewriter: { provider: "disabled" },
+    });
+    const stateDirectory = join(dirname(configPath), "state");
+    const alarmStore = createFileAlarmStore({
+      createId: () => "combined-alarm",
+      filePath: join(stateDirectory, "alarms.json"),
+      now: () => new Date("2026-07-28T12:00:00.000Z"),
+    });
+    const taskStore = createFileTaskStore({
+      createListId: () => "combined-list",
+      createTaskId: () => "combined-task",
+      filePath: join(stateDirectory, "tasks.json"),
+      now: () => new Date("2026-07-28T12:00:00.000Z"),
+    });
+    const weatherWatchStore = createFileWeatherWatchStore({
+      createId: () => "combined-weather-watch",
+      filePath: join(stateDirectory, "weather-watches.json"),
+      now: () => new Date("2026-07-28T12:00:00.000Z"),
+    });
+    await alarmStore.add({
+      label: "tea",
+      scheduledFor: now.toISOString(),
+    });
+    const list = await taskStore.addList({ name: "To-do" });
+    await taskStore.addTask({
+      label: "submit the form",
+      listId: list.id,
+      reminderAt: now.toISOString(),
+    });
+    await weatherWatchStore.add(createNewWeatherWatch());
+
+    const notifications = new Map<string, string>();
+    let resolveDelivered: (() => void) | undefined;
+    const delivered = new Promise<void>((resolve) => {
+      resolveDelivered = resolve;
+    });
+    const startedTasks: string[] = [];
+
+    await expect(
+      runConfiguredServiceRuntime(
+        {
+          backgroundTaskTimer: {
+            wait: (_delayMs, shutdownSignal) =>
+              new Promise<void>((resolve) => {
+                shutdownSignal.addEventListener("abort", () => resolve(), {
+                  once: true,
+                });
+              }),
+          },
+          configPath,
+          createNotificationDelivery: () => ({
+            deliver: (notification) => {
+              notifications.set(notification.id, notification.text);
+              if (notifications.size === 3) resolveDelivered?.();
+              return Promise.resolve();
+            },
+          }),
+          now: () => now,
+          runBackgroundTask: (task, context) => {
+            startedTasks.push(task.id);
+            return task.run(context);
+          },
+        },
+        {
+          validateConfig: () => {},
+          runTurn: async (context) => {
+            await delivered;
+            context.requestShutdown("combined delivery complete");
+          },
+        },
+      ),
+    ).resolves.toEqual({ status: "stopped", turnsCompleted: 1 });
+
+    expect(startedTasks.sort()).toEqual([
+      "alarms.delivery",
+      "alarms.retention",
+      "tasks.reminders.delivery",
+      "tasks.reminders.retention",
+      "weather.watches",
+    ]);
+    expect([...notifications.keys()].sort()).toEqual([
+      "combined-alarm",
+      "combined-weather-watch",
+      "task-reminder:combined-task",
+    ]);
+    expect(notifications.get("combined-alarm")).toBe("Alarm: tea.");
+    expect(notifications.get("task-reminder:combined-task")).toBe(
+      "Reminder: submit the form.",
+    );
+    expect(notifications.get("combined-weather-watch")).toContain(
+      "Weather watch combined-weather-watch matched in London",
+    );
+    await expect(alarmStore.list()).resolves.toEqual([
+      expect.objectContaining({
+        id: "combined-alarm",
+        status: "ringing",
+        successfulDeliveries: 1,
+      }),
+    ]);
+    await expect(taskStore.listTasks()).resolves.toEqual([
+      expect.objectContaining({
+        id: "combined-task",
+        reminder: expect.objectContaining({ status: "delivered" }) as object,
+        status: "open",
+      }),
+    ]);
+    await expect(weatherWatchStore.list()).resolves.toEqual([
+      expect.objectContaining({
+        id: "combined-weather-watch",
+        status: "triggered",
+      }),
+    ]);
   });
 });
