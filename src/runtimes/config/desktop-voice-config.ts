@@ -28,17 +28,6 @@ export interface ParsedDesktopVoiceConfig {
   streamingTextToSpeechProvider?: ResolvedDesktopVoiceProviderAdapter<StreamingTextToSpeechPort>;
 }
 
-interface ResolvedDesktopVoiceConfig {
-  audioInput: DesktopCommandConfig;
-  audioOutput: DesktopCommandConfig;
-  speechToText: DesktopCommandConfig;
-  streamingAudioInput?: DesktopCommandConfig;
-  streamingAudioOutput?: DesktopCommandConfig;
-  textToSpeech: DesktopTextToSpeechCommandConfig;
-  wakeActivation?: DesktopCommandConfig;
-  wakeAudioInput?: DesktopCommandConfig;
-}
-
 type ParsedDesktopVoiceCommandKey =
   | "audioInput"
   | "audioOutput"
@@ -125,29 +114,6 @@ function resolveProviderConfig<TAdapter>(
   });
 
   return entry.resolve(rawDesktopVoice);
-}
-
-export function requireDesktopVoiceConfig(config: {
-  desktopVoice?: ParsedDesktopVoiceConfig;
-}): ResolvedDesktopVoiceConfig {
-  return {
-    audioInput: requireDesktopVoiceCommand(config, "audioInput"),
-    audioOutput: requireDesktopVoiceCommand(config, "audioOutput"),
-    speechToText: requireDesktopVoiceCommand(config, "speechToText"),
-    ...(config.desktopVoice?.streamingAudioInput
-      ? { streamingAudioInput: config.desktopVoice.streamingAudioInput }
-      : {}),
-    ...(config.desktopVoice?.streamingAudioOutput
-      ? { streamingAudioOutput: config.desktopVoice.streamingAudioOutput }
-      : {}),
-    textToSpeech: requireDesktopVoiceCommand(config, "textToSpeech"),
-    ...(config.desktopVoice?.wakeActivation
-      ? { wakeActivation: config.desktopVoice.wakeActivation }
-      : {}),
-    ...(config.desktopVoice?.wakeAudioInput
-      ? { wakeAudioInput: config.desktopVoice.wakeAudioInput }
-      : {}),
-  };
 }
 
 function requireDesktopVoiceCommand<TKey extends ParsedDesktopVoiceCommandKey>(

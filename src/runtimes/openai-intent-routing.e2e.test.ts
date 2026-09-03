@@ -4,9 +4,9 @@ import { OpenAIIntentInterpreter } from "../adapters/openai/openai-intent-interp
 import type { AssistantContext } from "../ports/assistant.js";
 import type { ConversationState } from "../ports/conversation.js";
 import { interpretOnce } from "../application/intent.js";
+import { createCapabilityCatalog } from "../application/capability-catalog.js";
 import { enabledDeterministicConfig } from "../test-support/deterministic-runtime-fixtures.js";
 import { createConfiguredFeatures } from "./feature-adapter-selection.js";
-import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
 
 const openAIApiKeyEnv = "OPENAI_API_KEY";
 
@@ -28,7 +28,7 @@ const context = {
   },
 } satisfies AssistantContext;
 
-const capabilityCatalog = createProviderCapabilityCatalog(
+const capabilityCatalog = createCapabilityCatalog(
   createConfiguredFeatures(enabledDeterministicConfig, {
     runtime: { clock: { now: () => new Date() } },
   }),

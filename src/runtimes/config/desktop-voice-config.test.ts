@@ -1,5 +1,4 @@
 import { parseAssistantConfig, type LoadedRuntimeConfig } from "./config.js";
-import { requireDesktopVoiceConfig } from "./desktop-voice-config.js";
 import { parseDesktopOpenAIStreamingSpeechConfig } from "./desktop-voice-openai-config.js";
 import { requireVoiceConfig } from "./voice-config.js";
 import { resolveDesktopVoiceAdapterConfig } from "../voice/desktop-voice-adapter-registry.js";
@@ -344,44 +343,6 @@ describe("desktop voice config resolvers", () => {
     ).toThrow(
       "Config desktopVoice.openAIRealtimeTranscription.model must be gpt-realtime-whisper.",
     );
-  });
-
-  it("resolves required desktop voice command settings", () => {
-    expect(
-      requireDesktopVoiceConfig(
-        parseAssistantConfig(
-          createMinimalConfig({
-            desktopVoice: {
-              audioInput: { command: "fake-rec" },
-              audioOutput: { command: "fake-play" },
-              speechToText: { command: "fake-stt" },
-              textToSpeech: { command: "fake-tts", stdin: "{text}" },
-            },
-          }),
-        ),
-      ),
-    ).toEqual({
-      audioInput: { command: "fake-rec" },
-      audioOutput: { command: "fake-play" },
-      speechToText: { command: "fake-stt" },
-      textToSpeech: { command: "fake-tts", stdin: "{text}" },
-    });
-  });
-
-  it("rejects missing required desktop voice command settings", () => {
-    expect(() =>
-      requireDesktopVoiceConfig(
-        parseAssistantConfig(
-          createMinimalConfig({
-            desktopVoice: {
-              audioInput: { command: "fake-rec" },
-              speechToText: { command: "fake-stt" },
-              textToSpeech: { command: "fake-tts", stdin: "{text}" },
-            },
-          }),
-        ),
-      ),
-    ).toThrow("Config desktopVoice.audioOutput must be configured.");
   });
 });
 

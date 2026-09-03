@@ -1,8 +1,10 @@
 import type { FeaturePlugin } from "../ports/feature.js";
-import { createCapabilityRoutingIndex } from "../application/capability-catalog.js";
-import { createProviderCapabilityCatalog } from "./provider-capability-catalog.js";
+import {
+  createCapabilityCatalog,
+  createCapabilityRoutingIndex,
+} from "./capability-catalog.js";
 
-describe("createProviderCapabilityCatalog", () => {
+describe("capability catalog", () => {
   it("maps enabled feature metadata to provider-facing capability entries", () => {
     const features: FeaturePlugin[] = [
       {
@@ -41,7 +43,7 @@ describe("createProviderCapabilityCatalog", () => {
       },
     ];
 
-    expect(createProviderCapabilityCatalog(features)).toEqual([
+    expect(createCapabilityCatalog(features)).toEqual([
       {
         capability: features[0]?.capabilities[0],
         featureId: "calendar",
@@ -68,13 +70,13 @@ describe("createProviderCapabilityCatalog", () => {
     const first = createFeature("calendar", "shared.lookup");
     const second = createFeature("messaging", "shared.lookup");
 
-    expect(() => createProviderCapabilityCatalog([first, second])).toThrow(
+    expect(() => createCapabilityCatalog([first, second])).toThrow(
       'Capability "shared.lookup" is declared by both "calendar" and "messaging".',
     );
   });
 
   it("returns an immutable compiled catalog", () => {
-    const catalog = createProviderCapabilityCatalog([
+    const catalog = createCapabilityCatalog([
       createFeature("calendar", "calendar.list"),
     ]);
 

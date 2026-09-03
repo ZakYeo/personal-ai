@@ -17,7 +17,3 @@ export type OperatorDiagnosticProjection =
       readonly responseBodyBytes?: number;
       readonly status?: number;
     };
-
-export interface OperatorDiagnosticCarrier {
-  readonly operatorDiagnostic: OperatorDiagnosticProjection;
-}

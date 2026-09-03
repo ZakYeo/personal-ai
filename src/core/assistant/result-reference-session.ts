@@ -26,7 +26,7 @@ export interface ResultReferenceSession {
   ): readonly AssistantResultReference[];
 }
 
-export interface WorkflowResultReferenceSession extends ResultReferenceSession {
+interface WorkflowResultReferenceSession extends ResultReferenceSession {
   commitDisplayed(): void;
 }
 
