@@ -268,6 +268,45 @@ describe("createAssistant", () => {
     expect(rewrite).not.toHaveBeenCalled();
   });
 
+  it("preserves non-fatal feature diagnostics without changing success", async () => {
+    const cause = new Error("calendar grouping provider unavailable");
+    const feature = createFeature({
+      execute: () =>
+        Promise.resolve({
+          diagnostics: [
+            {
+              cause,
+              message: "Calendar event grouping failed.",
+            },
+          ],
+          text: "Two ungrouped calendar events.",
+        }),
+    });
+    const assistant = createAssistant({
+      clock,
+      config,
+      features: [feature],
+      intentInterpreter: createInterpreter(createCommand("test.echo")),
+      responseRewriter: {
+        rewrite: () => Promise.resolve({ text: "Two calendar events." }),
+      },
+    });
+
+    await expect(assistant.handleTextWithDiagnostics("hello")).resolves.toEqual(
+      {
+        diagnostics: [
+          {
+            capability: "test.echo",
+            category: "feature_failure",
+            cause,
+            message: "Calendar event grouping failed.",
+          },
+        ],
+        response: { status: "ok", text: "Two calendar events." },
+      },
+    );
+  });
+
   it("returns an invalid response without executing a malformed command", async () => {
     const execute = vi.fn(() => Promise.resolve({ text: "Should not run." }));
     const feature = createFeature({

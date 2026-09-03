@@ -36,6 +36,7 @@ interface CompletedFeatureResultContent {
 }
 
 interface SuccessfulFeatureResult extends CompletedFeatureResultContent {
+  diagnostics?: readonly FeatureDiagnostic[];
   expectsFollowUp?: boolean;
   failure?: never;
   toolClarification?: FeatureToolClarification;
@@ -43,6 +44,7 @@ interface SuccessfulFeatureResult extends CompletedFeatureResultContent {
 }
 
 interface FailedFeatureResult extends CompletedFeatureResultContent {
+  diagnostics?: never;
   expectsFollowUp?: never;
   failure: FeatureFailure;
   toolClarification?: never;
@@ -52,6 +54,11 @@ interface FailedFeatureResult extends CompletedFeatureResultContent {
 type CompletedFeatureResult = SuccessfulFeatureResult | FailedFeatureResult;
 
 interface FeatureFailure {
+  readonly cause?: unknown;
+  readonly message: string;
+}
+
+export interface FeatureDiagnostic {
   readonly cause?: unknown;
   readonly message: string;
 }

@@ -10,6 +10,7 @@ import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
 import type { CapabilityRoutingIndex } from "../../ports/capability-catalog.js";
 import type {
   FeatureArguments,
+  FeatureDiagnostic,
   FeatureExecutionContext,
   FeaturePlugin,
   FeatureSpokenTextContext,
@@ -218,17 +219,19 @@ async function executeCommand(
     };
   }
 
+  const rewrittenOutcome = await rewriteCommandResponse({
+    command: input.command,
+    context: input.context,
+    dependencies: input.dependencies,
+    facts: execution.data ?? {},
+    response: execution.outcome.response,
+    ...(execution.spokenText ? { spokenText: execution.spokenText } : {}),
+    text: input.normalizedText,
+  });
+
   return {
     ...execution,
-    outcome: await rewriteCommandResponse({
-      command: input.command,
-      context: input.context,
-      dependencies: input.dependencies,
-      facts: execution.data ?? {},
-      response: execution.outcome.response,
-      ...(execution.spokenText ? { spokenText: execution.spokenText } : {}),
-      text: input.normalizedText,
-    }),
+    outcome: combineOutcomeDiagnostics(execution.outcome, rewrittenOutcome),
   };
 }
 
@@ -293,7 +296,17 @@ async function executeFeatureCommand(
             }),
             response,
           )
-        : { response },
+        : {
+            ...(result.diagnostics?.length
+              ? {
+                  diagnostics: toAssistantDiagnostics(
+                    result.diagnostics,
+                    input.command.capability,
+                  ),
+                }
+              : {}),
+            response,
+          },
       ...(result.responseRewrite
         ? { responseRewrite: result.responseRewrite }
         : {}),
@@ -324,6 +337,33 @@ async function executeFeatureCommand(
       ),
     };
   }
+}
+
+function toAssistantDiagnostics(
+  diagnostics: readonly FeatureDiagnostic[],
+  capability: string,
+) {
+  return diagnostics.map((diagnostic) => ({
+    capability,
+    category: "feature_failure" as const,
+    ...(diagnostic.cause === undefined ? {} : { cause: diagnostic.cause }),
+    message: diagnostic.message,
+  }));
+}
+
+function combineOutcomeDiagnostics(
+  original: AssistantOutcome,
+  rewritten: AssistantOutcome,
+): AssistantOutcome {
+  const diagnostics = [
+    ...(original.diagnostics ?? []),
+    ...(rewritten.diagnostics ?? []),
+  ];
+
+  return {
+    ...rewritten,
+    ...(diagnostics.length > 0 ? { diagnostics } : {}),
+  };
 }
 
 async function rewriteCommandResponse(input: {
