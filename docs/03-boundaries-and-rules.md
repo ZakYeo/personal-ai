@@ -713,7 +713,8 @@ should also guard against subtler boundary and abstraction drift.
   policy before reaching notification delivery.
 - Planned daily briefings aggregate only a fixed configured set of narrow read
   ports. Partial source failures remain isolated and diagnostic-safe; retrieved
-  content cannot add sections, tools, or actions.
+  content cannot add sections, tools, or actions. This is prospective Milestone
+  17 policy; no briefing port, feature, or runtime exists yet.
 - Relative local state paths resolve from the selected config file's directory,
   never implicitly from a nested runtime's working directory. Runtime factories
   that pass parsed config to another factory must forward the same config-source

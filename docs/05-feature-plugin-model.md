@@ -97,7 +97,9 @@ Examples:
 - `task.remove`
 - `task.remind`
 - `task.reminder.acknowledge`
-- `briefing.get_daily`
+
+Milestone 17 may add the prospective `briefing.get_daily` capability. It is not
+currently registered or available.
 
 Capability names should be treated as part of the assistant contract. They are useful for intent routing, permission checks, logging, and future configuration.
 
@@ -188,8 +190,8 @@ snapshot facts; spoken wording contains source titles only. If a provider
 returns more valid cited sources than configured, the adapter projects the
 first-cited sources and rebuilds retained offsets before the feature sees them.
 
-Profile, weather, task, and briefing composition does not relax feature
-ownership. A feature that needs personal defaults receives a narrow
+Profile, weather, and task composition does not relax feature ownership. A
+feature that needs personal defaults receives a narrow
 personal-context reader during composition. The implemented weather feature
 receives only an explicit home-location reader. Current, forecast, and clothing
 reads resolve location in this order: an explicit place or explicit `home`, the
@@ -203,9 +205,10 @@ adviser port and owns validation, weather facts, attribution, and final wording.
 Weather-watch adapters
 contribute background tasks that close over their exact provider and store;
 task-reminder adapters follow the same ownership rule around their exact task
-store. Briefings
-aggregate fixed application read ports directly; they do not call the calendar,
-weather, alarm, task, search, or profile feature plugins.
+store. If Milestone 17 is implemented, briefings will aggregate fixed
+application read ports directly rather than call calendar, weather, alarm,
+task, search, or profile feature plugins. No briefing feature, port, or runtime
+composition exists yet.
 Profile utterances from text or voice follow the normal intent pipeline:
 providers propose `profile.set`, core decodes and validates its typed fact, and
 only then may the profile feature update durable state. `profile.show` reads the

@@ -514,12 +514,12 @@ before output, and does not replay a terminal watch after restart. Stores admit
 at most 24 active watches. Each evaluation cycle shares one forecast across
 identical location/period requests and runs at most four independent requests
 concurrently, keeping even the maximum configured provider timeout operationally
-bounded. Planned daily
-briefings contribute a separate scheduled task with durable local delivery slots
-so restart cannot repeat the same local-day briefing. On-demand briefings use
-the same fixed application-owned source aggregator as scheduled delivery. No
-background task may ask an intent provider to choose additional tools or
-actions.
+bounded. If planned Milestone 17 is implemented, daily briefings will contribute
+a separate scheduled task with durable local delivery slots so restart cannot
+repeat the same local-day briefing. On-demand briefings will use the same fixed
+application-owned source aggregator as scheduled delivery. No briefing
+background task, aggregator, or runtime wiring exists yet. A future background
+task must not ask an intent provider to choose additional tools or actions.
 
 The selected weather provider is Open-Meteo's free non-commercial forecast and
 geocoding service. Runtime config may select endpoint and timeout policy but has

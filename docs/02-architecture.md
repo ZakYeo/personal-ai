@@ -270,15 +270,18 @@ adapters without making features import or invoke one another:
 - Lists and tasks use their own revision-checked store. Reminder delivery closes
   over that exact store and remains separate from alarm state even when both use
   the neutral notification and output-coordination boundaries.
-- Daily briefings use an application-owned aggregator over fixed narrow read
-  ports for configured sources. The aggregator does not call feature plugins or
-  delegate source selection to an intent provider.
+- Prospective Milestone 17 daily briefings would use an application-owned
+  aggregator over fixed narrow read ports for configured sources. The
+  aggregator would not call feature plugins or delegate source selection to an
+  intent provider. No briefing port, plugin, scheduler, or runtime composition
+  exists yet.
 
-Profile, search-result, weather-result, task-result, and briefing contracts
-remain application-owned. Provider credentials, transport, persistence paths,
-and selected adapter configuration remain adapter/runtime concerns. Smart-home
-control, a personal knowledge library, and adaptive memory are intentionally
-uncommitted until later discovery defines their boundaries.
+Profile, search-result, weather-result, and task-result contracts remain
+application-owned. A future briefing contract would follow that same boundary.
+Provider credentials, transport, persistence paths, and selected adapter
+configuration remain adapter/runtime concerns. Smart-home control, a personal
+knowledge library, and adaptive memory are intentionally uncommitted until
+later discovery defines their boundaries.
 
 ## Compound Command Boundary
 

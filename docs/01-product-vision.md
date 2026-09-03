@@ -76,7 +76,8 @@ review; it adds durable named lists,
 revision-checked tasks, bounded result-reference follow-ups, and restart-safe
 reminder delivery without treating delivery as task completion. Milestone 13's
 explicit personal profile is implemented after its required independent
-maintainability review. Milestone 17 prioritizes proactive daily briefings.
+maintainability review. Planned Milestone 17 would add proactive daily briefings;
+no briefing capability is currently available.
 The goal is a more personalized everyday assistant while preserving the
 existing validation, confirmation, privacy, and runtime-boundary guarantees.
 Smart-home control, a personal knowledge library, and adaptive memory remain
