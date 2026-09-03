@@ -482,6 +482,8 @@ Run `npm run test:e2e:openai:tasks` for the focused persistent-task reminder
 smoke.
 Run `npm run test:e2e:openai:profile` for the focused live explicit-profile
 routing smoke.
+Run `npm run test:e2e:openai:rewriter` for the focused live configured response
+rewriter smoke with protected calendar facts.
 Run `npm run test:e2e:openai:plans` for the focused live compound calendar and
 alarm plan smoke.
 Run `npm run test:e2e:open-meteo` for the focused key-free live Open-Meteo
@@ -614,6 +616,8 @@ Common development commands:
   allowlists this exact command after Codex is restarted.
 - `npm run test:e2e:openai:profile` - run the focused opt-in live OpenAI
   explicit-profile routing smoke.
+- `npm run test:e2e:openai:rewriter` - run the focused opt-in live OpenAI
+  response-rewriter smoke with protected calendar facts.
 - `npm run test:e2e:openai:plans` - run the focused opt-in live OpenAI compound
   plan smoke.
 - `npm run test:e2e:openai:calendar-followup` - run the focused opt-in live
