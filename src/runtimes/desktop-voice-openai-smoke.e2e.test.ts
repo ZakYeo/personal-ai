@@ -1,11 +1,20 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { env, stdout } from "node:process";
 import { dirname, join, resolve } from "node:path";
 
-import { createFileFedDesktopVoiceOpenAISmokeConfig } from "../test-support/desktop-voice-openai-smoke.js";
+import { CommandStreamingAudioInput } from "../adapters/desktop/desktop-streaming-voice-adapters.js";
+import { createFileAlarmStore } from "../adapters/local/file-alarm-store.js";
+import { isRecord } from "../adapters/parsing.js";
+import {
+  createFileFedCommandStreamConfig,
+  createFileFedDesktopVoiceOpenAISmokeConfig,
+} from "../test-support/desktop-voice-openai-smoke.js";
 import { createCapturedWriter, line } from "../test-support/primitives.js";
 import { createServiceSignalController } from "../test-support/service-runtime.js";
-import { loadConfig } from "./config/config.js";
+import { loadConfig, parseAssistantConfig } from "./config/config.js";
 import type { ServiceRuntimeResult } from "./service/service-runtime.js";
+import { createDesktopVoiceServiceAdapters } from "./voice/desktop-voice-adapter-registry.js";
 import { runDesktopVoiceServiceRuntime } from "./voice/desktop-voice-service-runtime.js";
 import { runVoiceActivation } from "./voice/voice-activation.js";
 import {
@@ -21,6 +30,20 @@ const wakeFixturePath = join(audioFixtureDirectory, "hey-jarvis.wav");
 const commandFixturePath = join(
   audioFixtureDirectory,
   "list-my-alarms-24khz-mono-s16le.pcm",
+);
+const alarmCommandFixturePath = join(
+  "benchmarks",
+  "voice",
+  "corpus",
+  "personal",
+  "alarm-create-once-v1.wav",
+);
+const confirmationFixturePath = join(
+  "benchmarks",
+  "voice",
+  "corpus",
+  "personal",
+  "confirmation-yes-v1.wav",
 );
 const desktopVoiceOpenAIConfigPath = join(
   "config",
@@ -119,8 +142,142 @@ describe.skipIf(!runDesktopVoiceOpenAISmoke)(
       expect(Number.isFinite(smokeTimings.totalMs)).toBe(true);
       printSmokeTimings(smokeTimings);
     }, 60_000);
+
+    it("captures a confirmation reply without requiring another wake phrase and persists the alarm", async () => {
+      const smokeDirectory = await mkdtemp(
+        join(tmpdir(), "personal-ai-voice-confirmation-smoke-"),
+      );
+      const statePath = join(smokeDirectory, "alarms.json");
+      const signals = createServiceSignalController();
+      const progressOutput = createCapturedWriter();
+      const fallbackOutput = createCapturedWriter();
+      const stderr = createCapturedWriter();
+      let captureIndex = 0;
+
+      try {
+        const config = await createVoiceConfirmationSmokeConfig(statePath);
+        const commandFixtures = [
+          alarmCommandFixturePath,
+          confirmationFixturePath,
+        ];
+        const result = await runDesktopVoiceServiceRuntime({
+          config,
+          configDirectory: smokeDirectory,
+          createVoiceAdapters: (voice, desktopVoice, dependencies) => {
+            const adapters = createDesktopVoiceServiceAdapters(
+              voice,
+              desktopVoice,
+              dependencies,
+            );
+            if (!adapters.streamingInput) {
+              throw new Error(
+                "Desktop voice confirmation smoke requires streaming input.",
+              );
+            }
+            return {
+              ...adapters,
+              streamingInput: {
+                ...adapters.streamingInput,
+                audioInput: {
+                  captureStream: () => {
+                    const fixture = commandFixtures[captureIndex++];
+                    if (!fixture) {
+                      throw new Error(
+                        "Desktop voice confirmation smoke exhausted its command fixtures.",
+                      );
+                    }
+                    return new CommandStreamingAudioInput(
+                      createFileFedCommandStreamConfig(config, fixture),
+                      dependencies.processControl,
+                      dependencies.shutdownSignal,
+                      dependencies.env,
+                    ).captureStream();
+                  },
+                },
+              },
+            };
+          },
+          env: { [openAIApiKeyEnv]: env[openAIApiKeyEnv] },
+          io: { fallbackOutput, progressOutput, stderr },
+          now: () => new Date("2026-06-26T09:00:00.000Z"),
+          processSignals: signals,
+          retryAfterFailure: (context) => {
+            context.requestShutdown("smoke failure");
+            return Promise.resolve();
+          },
+          runVoiceActivation: async (dependencies, io) => {
+            const activationResult = await runVoiceActivation(dependencies, io);
+            signals.emit("SIGTERM");
+            return activationResult;
+          },
+        });
+
+        expectSuccessfulSmokeResult(result, {
+          progress: progressOutput.writes,
+          stderr: stderr.writes,
+        });
+        expect(
+          captureIndex,
+          `Unexpected voice capture sequence:\n${progressOutput.writes.join("")}`,
+        ).toBe(2);
+        expect(progressOutput.writes).toEqual(
+          expect.arrayContaining([
+            line("Listening for your reply..."),
+            expect.stringMatching(/^Assistant: Please confirm:/u),
+            expect.stringMatching(/^Assistant: Alarm set for /u),
+          ]),
+        );
+        expect(
+          progressOutput.writes.filter((entry) =>
+            entry.startsWith("Now listening for wake word"),
+          ),
+        ).toHaveLength(1);
+        expect(fallbackOutput.writes).toEqual([]);
+        expect(stderr.writes).toEqual([]);
+        await expect(
+          createFileAlarmStore({
+            filePath: statePath,
+            now: () => new Date("2026-06-26T09:00:00.000Z"),
+          }).list(),
+        ).resolves.toEqual([
+          expect.objectContaining({
+            label: "tea",
+            scheduledFor: "2026-06-26T09:10:00.000Z",
+          }),
+        ]);
+      } finally {
+        signals.emit("SIGTERM");
+        await rm(smokeDirectory, { force: true, recursive: true });
+      }
+    }, 60_000);
   },
 );
+
+async function createVoiceConfirmationSmokeConfig(statePath: string) {
+  const raw: unknown = JSON.parse(
+    await readFile(desktopVoiceOpenAIConfigPath, "utf8"),
+  );
+  if (!isRecord(raw)) {
+    throw new Error("Desktop voice smoke config must be an object.");
+  }
+  const config = parseAssistantConfig({
+    ...raw,
+    conversation: { provider: "disabled" },
+    features: {
+      alarms: {
+        adapter: "file",
+        confirmationRequiredCapabilities: ["alarm.create"],
+        enabled: true,
+        state: { path: statePath },
+      },
+    },
+    responseRewriter: { provider: "disabled" },
+  });
+  return createFileFedDesktopVoiceOpenAISmokeConfig(config, {
+    commandPcm: alarmCommandFixturePath,
+    wakeWav: wakeFixturePath,
+  });
+}
 
 function printSmokeTimings(timings: VoiceTurnTimings): void {
   stdout.write(`${formatVoiceTimings(timings).join("\n")}\n`);

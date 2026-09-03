@@ -349,43 +349,46 @@ describe("createAssistant", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
-  it("executes a pending command only after an explicit confirmation", async () => {
-    const command = createCommand("test.echo", { message: "hello" });
-    const execute = vi.fn(() =>
-      Promise.resolve({ text: "Handled after confirmation." }),
-    );
-    const interpret = vi.fn(() =>
-      Promise.resolve({ command, kind: "command" as const }),
-    );
-    const assistant = createAssistant({
-      clock,
-      config: requireConfirmationFor("test", ["test.echo"]),
-      features: [
-        createFeature({
-          capability: {
-            name: "test.echo",
-            risk: "low",
-            parameters: { message: { type: "string", required: true } },
-          },
-          confirmation: (args) => ({
-            facts: { message: args.message },
-            text: `echo ${args.message}`,
+  it.each(["yes", "Yes, confirm that."])(
+    "executes a pending command only after the explicit confirmation %j",
+    async (confirmation) => {
+      const command = createCommand("test.echo", { message: "hello" });
+      const execute = vi.fn(() =>
+        Promise.resolve({ text: "Handled after confirmation." }),
+      );
+      const interpret = vi.fn(() =>
+        Promise.resolve({ command, kind: "command" as const }),
+      );
+      const assistant = createAssistant({
+        clock,
+        config: requireConfirmationFor("test", ["test.echo"]),
+        features: [
+          createFeature({
+            capability: {
+              name: "test.echo",
+              risk: "low",
+              parameters: { message: { type: "string", required: true } },
+            },
+            confirmation: (args) => ({
+              facts: { message: args.message },
+              text: `echo ${args.message}`,
+            }),
+            execute,
           }),
-          execute,
-        }),
-      ],
-      intentInterpreter: { start: () => ({ next: interpret }) },
-    });
+        ],
+        intentInterpreter: { start: () => ({ next: interpret }) },
+      });
 
-    await assistant.handleText("do it");
+      await assistant.handleText("do it");
 
-    await expect(assistant.handleText("yes")).resolves.toEqual({
-      status: "ok",
-      text: "Handled after confirmation.",
-    });
-    expect(interpret).toHaveBeenCalledTimes(1);
-    expect(execute).toHaveBeenCalledTimes(1);
-  });
+      await expect(assistant.handleText(confirmation)).resolves.toEqual({
+        status: "ok",
+        text: "Handled after confirmation.",
+      });
+      expect(interpret).toHaveBeenCalledTimes(1);
+      expect(execute).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("cancels a pending command after an explicit rejection", async () => {
     const execute = vi.fn(() => Promise.resolve({ text: "Should not run." }));

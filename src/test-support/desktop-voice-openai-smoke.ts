@@ -1,4 +1,5 @@
 import type { LoadedRuntimeConfig } from "../runtimes/config/config.js";
+import type { DesktopCommandConfig } from "../adapters/desktop/desktop-command-config.js";
 
 interface DesktopVoiceOpenAISmokeFixturePaths {
   commandPcm: string;
@@ -19,21 +20,14 @@ export function createFileFedDesktopVoiceOpenAISmokeConfig(
 
   const calendar = config.features.calendar;
 
-  if (!calendar) {
-    throw new Error(
-      "Desktop voice OpenAI smoke config requires the calendar feature config.",
-    );
-  }
-
   return {
     ...config,
     desktopVoice: {
       ...config.desktopVoice,
-      streamingAudioInput: {
-        args: createCommandFixtureStreamArgs(config, fixtures.commandPcm),
-        command: "sox",
-        timeoutMs: 45_000,
-      },
+      streamingAudioInput: createFileFedCommandStreamConfig(
+        config,
+        fixtures.commandPcm,
+      ),
       streamingAudioOutput: {
         command: "cat",
         timeoutMs: 30_000,
@@ -54,8 +48,19 @@ export function createFileFedDesktopVoiceOpenAISmokeConfig(
     },
     features: {
       ...config.features,
-      calendar: disableFeature(calendar),
+      ...(calendar ? { calendar: disableFeature(calendar) } : {}),
     },
+  };
+}
+
+export function createFileFedCommandStreamConfig(
+  config: LoadedRuntimeConfig,
+  commandAudioPath: string,
+): DesktopCommandConfig {
+  return {
+    args: createCommandFixtureStreamArgs(config, commandAudioPath),
+    command: "sox",
+    timeoutMs: 45_000,
   };
 }
 
@@ -80,22 +85,27 @@ function disableFeature(
 
 function createCommandFixtureStreamArgs(
   config: LoadedRuntimeConfig,
-  commandPcmPath: string,
+  commandAudioPath: string,
 ): string[] {
   const effects = commandCaptureEffects(config);
+  const input = commandAudioPath.toLocaleLowerCase().endsWith(".wav")
+    ? [commandAudioPath]
+    : [
+        "-r",
+        "24000",
+        "-c",
+        "1",
+        "-b",
+        "16",
+        "-e",
+        "signed-integer",
+        "-t",
+        "raw",
+        commandAudioPath,
+      ];
 
   return [
-    "-r",
-    "24000",
-    "-c",
-    "1",
-    "-b",
-    "16",
-    "-e",
-    "signed-integer",
-    "-t",
-    "raw",
-    commandPcmPath,
+    ...input,
     "-r",
     "24000",
     "-c",

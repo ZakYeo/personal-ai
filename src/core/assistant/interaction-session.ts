@@ -109,8 +109,17 @@ export function createInteractionSession(): InteractionSession {
 function parseConfirmation(
   input: string,
 ): "confirmed" | "rejected" | "pending" {
-  const normalized = input.trim().toLowerCase();
-  if (["yes", "yes please", "confirm", "confirmed"].includes(normalized)) {
+  const normalized = normalizeDecision(input);
+  if (
+    [
+      "yes",
+      "yes please",
+      "yes confirm that",
+      "confirm",
+      "confirm that",
+      "confirmed",
+    ].includes(normalized)
+  ) {
     return "confirmed";
   }
   if (isCancellation(input)) return "rejected";
@@ -119,8 +128,16 @@ function parseConfirmation(
 
 function isCancellation(input: string): boolean {
   return ["no", "no thanks", "cancel", "stop"].includes(
-    input.trim().toLowerCase(),
+    normalizeDecision(input),
   );
+}
+
+function normalizeDecision(input: string): string {
+  return input
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
 }
 
 const cancelledOutcome: AssistantOutcome = {
