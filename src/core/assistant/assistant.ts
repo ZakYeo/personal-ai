@@ -26,7 +26,10 @@ import {
 import { executeValidatedPlan } from "./command-execution.js";
 import { createIntentWorkflow } from "./intent-workflow.js";
 import { createInteractionSession } from "./interaction-session.js";
-import { createResultReferenceSession } from "./result-reference-session.js";
+import {
+  createResultReferenceSession,
+  createWorkflowResultReferenceOverlay,
+} from "./result-reference-session.js";
 
 export interface AssistantDependencies {
   capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
@@ -109,15 +112,19 @@ export function createAssistant(
       },
       async (plan) => {
         const personalization = await loadPersonalization();
-        return executeValidatedPlan(
+        const workflowReferences =
+          createWorkflowResultReferenceOverlay(resultReferences);
+        const outcome = await executeValidatedPlan(
           plan,
           dependencies,
-          resultReferences,
+          workflowReferences,
           options.signal,
           personalization.personalization
             ? { personalization: personalization.personalization }
             : {},
         );
+        workflowReferences.commitDisplayed();
+        return outcome;
       },
       async (outcome) => {
         const personalization = await loadPersonalization();

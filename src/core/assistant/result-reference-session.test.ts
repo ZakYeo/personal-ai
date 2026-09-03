@@ -1,16 +1,21 @@
 import {
   createResultReferenceSession,
-  createWorkflowResultReferenceSession,
+  createWorkflowResultReferenceOverlay,
 } from "./result-reference-session.js";
 import type { FeatureResultReferenceSet } from "../../ports/result-reference.js";
 
 describe("result reference session", () => {
   it("keeps workflow references private until their result set is displayed", () => {
     const parent = createResultReferenceSession();
-    parent.retain(resultSet("previous"));
-    const workflow = createWorkflowResultReferenceSession(parent);
+    parent.publishDisplayed(resultSet("previous"));
+    const workflow = createWorkflowResultReferenceOverlay(parent);
 
-    workflow.retain(resultSet("private"));
+    expect(workflow).not.toHaveProperty("completeTurn");
+    expect(workflow).not.toHaveProperty("invalidateForCompaction");
+    expect(parent).not.toHaveProperty("retainPrivate");
+    expect(parent).not.toHaveProperty("stageDisplayed");
+
+    workflow.retainPrivate(resultSet("private"));
     expect(workflow.publicReferences()).toMatchObject([
       { facts: { title: "private" } },
     ]);
@@ -23,7 +28,7 @@ describe("result reference session", () => {
       { facts: { title: "previous" } },
     ]);
 
-    workflow.display(resultSet("displayed"));
+    workflow.stageDisplayed(resultSet("displayed"));
     workflow.commitDisplayed();
     expect(parent.publicReferences()).toMatchObject([
       { facts: { title: "displayed" } },
@@ -33,7 +38,7 @@ describe("result reference session", () => {
   it("retains only ten opaque references and resolves their private targets", () => {
     const session = createResultReferenceSession();
 
-    session.retain({
+    session.publishDisplayed({
       items: Array.from({ length: 12 }, (_, index) => ({
         facts: {
           date: "2026-07-17",
@@ -68,8 +73,8 @@ describe("result reference session", () => {
 
   it("replaces prior results and expires after three subsequent turns", () => {
     const session = createResultReferenceSession();
-    session.retain(resultSet("old"));
-    session.retain(resultSet("new"));
+    session.publishDisplayed(resultSet("old"));
+    session.publishDisplayed(resultSet("new"));
 
     expect(
       session.select({
@@ -90,9 +95,9 @@ describe("result reference session", () => {
 
   it("clears stale references when a newer result set is empty", () => {
     const session = createResultReferenceSession();
-    session.retain(resultSet("old"));
+    session.publishDisplayed(resultSet("old"));
 
-    session.retain({ items: [], kind: "calendar_events" });
+    session.publishDisplayed({ items: [], kind: "calendar_events" });
 
     expect(session.publicReferences()).toEqual([]);
   });
@@ -100,7 +105,7 @@ describe("result reference session", () => {
   it("retains snapshot-only internet sources without inventing private targets", () => {
     const session = createResultReferenceSession();
 
-    session.retain({
+    session.publishDisplayed({
       items: [
         {
           facts: {
@@ -134,7 +139,7 @@ describe("result reference session", () => {
   it("retains safe task facts while resolving a pinned private task target", () => {
     const session = createResultReferenceSession();
 
-    session.retain({
+    session.publishDisplayed({
       items: [
         {
           facts: {
@@ -187,7 +192,7 @@ describe("result reference session", () => {
   it("retains safe weather facts while resolving the full private location", () => {
     const session = createResultReferenceSession();
 
-    session.retain({
+    session.publishDisplayed({
       items: [
         {
           facts: {
@@ -244,9 +249,9 @@ describe("result reference session", () => {
 
   it("retains and ages result sets independently by kind", () => {
     const session = createResultReferenceSession();
-    session.retain(weatherResultSet("Eastbourne"));
+    session.publishDisplayed(weatherResultSet("Eastbourne"));
     session.completeTurn();
-    session.retain(resultSet("event"));
+    session.publishDisplayed(resultSet("event"));
     session.completeTurn();
 
     expect(session.publicReferences()).toMatchObject([
@@ -343,7 +348,7 @@ describe("result reference session", () => {
     "preserves newly retained $expectedKind references across compaction",
     ({ expectedKind, resultSet }) => {
       const session = createResultReferenceSession();
-      session.retain(resultSet);
+      session.publishDisplayed(resultSet);
 
       session.invalidateForCompaction();
 
@@ -358,7 +363,7 @@ describe("result reference session", () => {
 
   it("owns ordinal selection, rejects provider conflicts, and advances focus", () => {
     const session = createResultReferenceSession();
-    session.retain({
+    session.publishDisplayed({
       items: ["first", "second", "third"].map((title) => ({
         facts: { date: "2026-07-17", time: "11:00", title },
         target: { kind: "calendar_event" as const, providerEventId: title },
@@ -395,7 +400,7 @@ describe("result reference session", () => {
 
   it("does not accept a provider-guessed reference for an ambiguous utterance", () => {
     const session = createResultReferenceSession();
-    session.retain({
+    session.publishDisplayed({
       items: ["first", "second"].map((title) => ({
         facts: { date: "2026-07-17", time: "11:00", title },
         target: { kind: "calendar_event" as const, providerEventId: title },

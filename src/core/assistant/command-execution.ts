@@ -18,6 +18,7 @@ import type { ResponseRewriterPort } from "../../ports/response-rewriter.js";
 import type { AssistantPersonalization } from "../../ports/personal-context.js";
 import type {
   AssistantResultReference,
+  FeatureResultReferenceSet,
   ResultReferenceSelectionRequest,
 } from "../../ports/result-reference.js";
 import { humanizeSpokenText } from "../../application/human-text.js";
@@ -30,7 +31,10 @@ import {
   type CommandExecutionOutcome,
 } from "./plan-execution.js";
 import { protectResponseFacts } from "./response-fact-protection.js";
-import type { ResultReferenceSession } from "./result-reference-session.js";
+import type {
+  ResultReferenceLookup,
+  WorkflowResultReferenceOverlay,
+} from "./result-reference-session.js";
 
 interface CommandExecutionDependencies {
   capabilityRouting: CapabilityRoutingIndex<FeaturePlugin>;
@@ -47,8 +51,10 @@ interface CommandExecutionInput {
   executionContext: FeatureExecutionContext;
   feature: FeaturePlugin;
   normalizedText: string;
-  resultReferenceVisibility?: "displayed" | "private";
-  resultReferences: ResultReferenceSession;
+  retainResultReferences(
+    resultSet: FeatureResultReferenceSet,
+  ): readonly AssistantResultReference[];
+  resultReferences: WorkflowResultReferenceOverlay;
   requestClarification?: (
     response: AssistantResponse,
     metadata: {
@@ -66,7 +72,7 @@ interface ValidatedPlanExecutionOptions {
 export function executeValidatedPlan(
   plan: ValidatedAssistantPlan,
   dependencies: CommandExecutionDependencies,
-  resultReferences: ResultReferenceSession,
+  resultReferences: WorkflowResultReferenceOverlay,
   signal?: AbortSignal,
   options: ValidatedPlanExecutionOptions = {},
 ): Promise<AssistantOutcome> {
@@ -100,6 +106,8 @@ export function executeValidatedPlan(
       ),
       feature: step.route.feature,
       normalizedText: plan.originalText,
+      retainResultReferences: (resultSet) =>
+        resultReferences.stageDisplayed(resultSet),
       resultReferences,
       ...(plan.kind === "single" && options.requestClarification
         ? { requestClarification: options.requestClarification }
@@ -112,7 +120,7 @@ export async function executeWorkflowRead(input: {
   context: AssistantContext;
   dependencies: CommandExecutionDependencies;
   normalizedText: string;
-  resultReferences: ResultReferenceSession;
+  resultReferences: WorkflowResultReferenceOverlay;
   step: Parameters<typeof executeAssistantPlan>[0]["steps"][number];
 }): Promise<CommandExecutionOutcome> {
   const execution = await executeFeatureCommand({
@@ -132,7 +140,8 @@ export async function executeWorkflowRead(input: {
     ),
     feature: input.step.route.feature,
     normalizedText: input.normalizedText,
-    resultReferenceVisibility: "private",
+    retainResultReferences: (resultSet) =>
+      input.resultReferences.retainPrivate(resultSet),
     resultReferences: input.resultReferences,
   });
   if (
@@ -157,7 +166,7 @@ export async function executeWorkflowRead(input: {
 
 export function createTrustedCommandContext(
   context: AssistantContext,
-  resultReferences: ResultReferenceSession,
+  resultReferences: ResultReferenceLookup,
   trustedInputText: string,
 ): AssistantContext {
   const publicReferences = resultReferences.publicReferences();
@@ -176,7 +185,7 @@ export function createTrustedCommandContext(
 function createFeatureExecutionContext(
   context: AssistantContext,
   dependencies: CommandExecutionDependencies,
-  resultReferences: ResultReferenceSession,
+  resultReferences: ResultReferenceLookup,
   trustedInputText: string,
   validatedConfirmationFacts?: Readonly<AssistantCommand["parameters"]>,
 ): FeatureExecutionContext {
@@ -265,10 +274,9 @@ async function executeFeatureCommand(
       | readonly AssistantResultReference[]
       | undefined;
     if (result.resultReferences && !result.failure) {
-      toolObservationReferences =
-        input.resultReferenceVisibility === "private"
-          ? input.resultReferences.retain(result.resultReferences)
-          : input.resultReferences.display(result.resultReferences);
+      toolObservationReferences = input.retainResultReferences(
+        result.resultReferences,
+      );
     }
     return {
       ...(result.data ? { data: Object.freeze({ ...result.data }) } : {}),

@@ -11,23 +11,29 @@ import type {
 } from "../../ports/result-reference.js";
 import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
 
-export interface ResultReferenceSession {
-  completeTurn(): void;
-  display(
-    resultSet: FeatureResultReferenceSet,
-  ): readonly AssistantResultReference[];
-  invalidateForCompaction(): void;
+export interface ResultReferenceLookup {
   publicReferences(): readonly AssistantResultReference[];
   select(
     request: ResultReferenceSelectionRequest,
   ): ResolvedResultReference | undefined;
-  retain(
+}
+
+export interface ResultReferenceSession extends ResultReferenceLookup {
+  completeTurn(): void;
+  invalidateForCompaction(): void;
+  publishDisplayed(
     resultSet: FeatureResultReferenceSet,
   ): readonly AssistantResultReference[];
 }
 
-interface WorkflowResultReferenceSession extends ResultReferenceSession {
+export interface WorkflowResultReferenceOverlay extends ResultReferenceLookup {
   commitDisplayed(): void;
+  retainPrivate(
+    resultSet: FeatureResultReferenceSet,
+  ): readonly AssistantResultReference[];
+  stageDisplayed(
+    resultSet: FeatureResultReferenceSet,
+  ): readonly AssistantResultReference[];
 }
 
 export function createResultReferenceSession(): ResultReferenceSession {
@@ -43,9 +49,6 @@ export function createResultReferenceSession(): ResultReferenceSession {
         state.subsequentTurns += 1;
         if (state.subsequentTurns >= 3) states.delete(kind);
       }
-    },
-    display(resultSet) {
-      return retainResultSet(states, resultSet);
     },
     invalidateForCompaction() {
       for (const [kind, state] of states) {
@@ -100,15 +103,15 @@ export function createResultReferenceSession(): ResultReferenceSession {
         ...(entry.target ? { target: entry.target } : {}),
       };
     },
-    retain(resultSet) {
+    publishDisplayed(resultSet) {
       return retainResultSet(states, resultSet);
     },
   };
 }
 
-export function createWorkflowResultReferenceSession(
+export function createWorkflowResultReferenceOverlay(
   parent: ResultReferenceSession,
-): WorkflowResultReferenceSession {
+): WorkflowResultReferenceOverlay {
   const local = createResultReferenceSession();
   const displayed = new Map<
     AssistantResultReference["kind"],
@@ -116,27 +119,19 @@ export function createWorkflowResultReferenceSession(
   >();
   const shadowed = new Set<AssistantResultReference["kind"]>();
 
-  const retain = (resultSet: FeatureResultReferenceSet) => {
+  const retainPrivate = (resultSet: FeatureResultReferenceSet) => {
     const kind = resultReferenceDescriptors[resultSet.kind].itemKind;
     shadowed.add(kind);
-    return local.retain(resultSet);
+    return local.publishDisplayed(resultSet);
   };
 
   return {
     commitDisplayed() {
-      for (const resultSet of displayed.values()) parent.display(resultSet);
+      for (const resultSet of displayed.values()) {
+        parent.publishDisplayed(resultSet);
+      }
       displayed.clear();
     },
-    completeTurn() {},
-    display(resultSet) {
-      const references = retain(resultSet);
-      displayed.set(
-        resultReferenceDescriptors[resultSet.kind].itemKind,
-        resultSet,
-      );
-      return references;
-    },
-    invalidateForCompaction() {},
     publicReferences: () => [
       ...parent
         .publicReferences()
@@ -148,7 +143,15 @@ export function createWorkflowResultReferenceSession(
         ? local.select(request)
         : parent.select(request);
     },
-    retain,
+    retainPrivate,
+    stageDisplayed(resultSet) {
+      const references = retainPrivate(resultSet);
+      displayed.set(
+        resultReferenceDescriptors[resultSet.kind].itemKind,
+        resultSet,
+      );
+      return references;
+    },
   };
 }
 

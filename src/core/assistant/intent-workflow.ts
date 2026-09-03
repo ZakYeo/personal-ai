@@ -35,7 +35,7 @@ import {
 import { createSemanticallyValidatedIntentSession } from "./intent-semantic-validation.js";
 import { validateAssistantPlan } from "./plan-validation.js";
 import {
-  createWorkflowResultReferenceSession,
+  createWorkflowResultReferenceOverlay,
   type ResultReferenceSession,
 } from "./result-reference-session.js";
 import {
@@ -68,7 +68,7 @@ export function createIntentWorkflow(input: {
   const context = createContext(input.dependencies, input.signal);
   let session: IntentInterpreterSession | undefined;
   const toolChain = createToolChainState();
-  const resultReferences = createWorkflowResultReferenceSession(
+  const resultReferences = createWorkflowResultReferenceOverlay(
     input.dependencies.resultReferences,
   );
   let clarificationUsed = false;
