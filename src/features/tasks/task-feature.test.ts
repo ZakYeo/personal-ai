@@ -21,7 +21,10 @@ describe("createTaskFeature list capabilities", () => {
     expectCapabilityMetadata(feature, {
       name: "task.list.show",
       parameters: {
-        name: { type: "string" },
+        name: {
+          description: "The exact personal-list name to show.",
+          type: "string",
+        },
       },
       risk: "low",
       toolChain: "read",
@@ -204,21 +207,58 @@ describe("createTaskFeature task creation capabilities", () => {
     expectCapabilityMetadata(feature, {
       name: "task.create",
       parameters: {
-        dueDate: { type: "string" },
-        label: { required: true, type: "string" },
-        listName: { required: true, type: "string" },
-        note: { type: "string" },
+        dueDate: {
+          description: "The optional due date as an ISO calendar date.",
+          type: "string",
+        },
+        label: {
+          description:
+            "The concise task text only, excluding request wording, list name, due date, and reminder time.",
+          required: true,
+          type: "string",
+        },
+        listName: {
+          description:
+            "The exact target personal-list name, excluding possessive and list wording.",
+          required: true,
+          type: "string",
+        },
+        note: {
+          description: "Optional supporting detail supplied by the user.",
+          type: "string",
+        },
       },
       risk: "low",
     });
     expectCapabilityMetadata(feature, {
       name: "task.remind",
       parameters: {
-        dueDate: { type: "string" },
-        label: { required: true, type: "string" },
-        listName: { required: true, type: "string" },
-        note: { type: "string" },
-        reminderAt: { required: true, type: "string" },
+        dueDate: {
+          description: "The optional due date as an ISO calendar date.",
+          type: "string",
+        },
+        label: {
+          description:
+            "The concise task text only, excluding request wording, list name, due date, and reminder time.",
+          required: true,
+          type: "string",
+        },
+        listName: {
+          description:
+            "The exact target personal-list name, excluding possessive and list wording.",
+          required: true,
+          type: "string",
+        },
+        note: {
+          description: "Optional supporting detail supplied by the user.",
+          type: "string",
+        },
+        reminderAt: {
+          description:
+            "The exact future reminder instant as a canonical UTC ISO timestamp.",
+          required: true,
+          type: "string",
+        },
       },
       requiresConfirmation: true,
       risk: "high",

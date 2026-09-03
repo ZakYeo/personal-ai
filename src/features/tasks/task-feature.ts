@@ -40,7 +40,10 @@ const createListParameters = {
 type CreateListArgs = FeatureArgsFromParameters<typeof createListParameters>;
 
 const showListParameters = {
-  name: { type: "string" },
+  name: {
+    description: "The exact personal-list name to show.",
+    type: "string",
+  },
 } as const satisfies FeatureCapabilityParameters;
 type ShowListArgs = FeatureArgsFromParameters<typeof showListParameters>;
 
@@ -51,16 +54,37 @@ const renameListParameters = {
 type RenameListArgs = FeatureArgsFromParameters<typeof renameListParameters>;
 
 const createTaskParameters = {
-  dueDate: { type: "string" },
-  label: { required: true, type: "string" },
-  listName: { required: true, type: "string" },
-  note: { type: "string" },
+  dueDate: {
+    description: "The optional due date as an ISO calendar date.",
+    type: "string",
+  },
+  label: {
+    description:
+      "The concise task text only, excluding request wording, list name, due date, and reminder time.",
+    required: true,
+    type: "string",
+  },
+  listName: {
+    description:
+      "The exact target personal-list name, excluding possessive and list wording.",
+    required: true,
+    type: "string",
+  },
+  note: {
+    description: "Optional supporting detail supplied by the user.",
+    type: "string",
+  },
 } as const satisfies FeatureCapabilityParameters;
 type CreateTaskArgs = FeatureArgsFromParameters<typeof createTaskParameters>;
 
 const remindTaskParameters = {
   ...createTaskParameters,
-  reminderAt: { required: true, type: "string" },
+  reminderAt: {
+    description:
+      "The exact future reminder instant as a canonical UTC ISO timestamp.",
+    required: true,
+    type: "string",
+  },
 } as const satisfies FeatureCapabilityParameters;
 type RemindTaskArgs = FeatureArgsFromParameters<typeof remindTaskParameters>;
 

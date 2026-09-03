@@ -124,6 +124,8 @@ function createIntentInstructions(
       : []),
     "A question about one named action is not a broad capability-catalog question; reserve the capability-list command for broad questions such as what the assistant can do.",
     "Never fill a required parameter with words that merely restate the capability request; required values must contain the user's actual subject, value, or constraint.",
+    'Parameter object names must be exact declared parameter identifiers, and their values must contain the corresponding user value. Never swap a parameter name with its value. For a declared parameter literally named name, encode {"name":"name","value":"To-do"}, never {"name":"To-do","value":"name"}.',
+    "Capability confirmation policy is application-owned. Never ask the user to confirm, name confirmation as a missing parameter, or add a confirmation parameter. Return the fully resolved command or plan and let the application request confirmation.",
     "Choose by the requested object or domain, not by a generic verb such as search, check, list, or look up. Web, online, internet, and current public-information requests belong to internet search; personal events, schedules, and calendar requests belong to calendar capabilities.",
     openAISpokenStyleInstruction,
     "Questions about the assistant's enabled capabilities must use the enabled assistant capability that lists them when one is present.",

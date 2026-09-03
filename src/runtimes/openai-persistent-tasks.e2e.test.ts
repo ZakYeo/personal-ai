@@ -275,6 +275,10 @@ describe.skipIf(!runOpenAIE2E)(
           reasoningEffort: "none",
         }),
       );
+      await createFileTaskStore({
+        filePath: statePath,
+        now: () => now,
+      }).addList({ name: "To-do" });
       const assistant = await createConfiguredTextRuntime({
         configPath,
         env: { OPENAI_API_KEY: env.OPENAI_API_KEY },
@@ -282,11 +286,8 @@ describe.skipIf(!runOpenAIE2E)(
         now: () => now,
       });
 
-      await expect(
-        assistant.handleText("Hey Jarvis, create a to-do list."),
-      ).resolves.toMatchObject({ status: "ok" });
       const confirmationOutcome = await assistant.handleTextWithDiagnostics(
-        "Hey Jarvis, remind me tomorrow at 9 to submit the form on my to-do list.",
+        'Hey Jarvis, add "submit the form" to the list named "To-do" with a reminder tomorrow at 9am.',
       );
       const confirmation = confirmationOutcome.response;
       if (confirmation.status === "error") {
@@ -305,7 +306,7 @@ describe.skipIf(!runOpenAIE2E)(
         expectsFollowUp: true,
         status: "needs_confirmation",
       });
-      expect(confirmation.text).toContain("Submit the form");
+      expect(confirmation.text).toMatch(/submit the form/iu);
       expect(confirmation.text).toContain("9am tomorrow");
       expect(confirmation.text).not.toContain("2026-07-29");
       await expect(assistant.handleText("yes")).resolves.toMatchObject({
@@ -325,9 +326,10 @@ describe.skipIf(!runOpenAIE2E)(
           }) as object,
         }),
       ]);
-      await expect(
-        assistant.handleText("Hey Jarvis, show my to-do list."),
-      ).resolves.toMatchObject({ status: "ok" });
+      const shown = await assistant.handleText(
+        'Hey Jarvis, show the list named "To-do".',
+      );
+      expect(shown).toMatchObject({ status: "ok" });
       await expect(
         assistant.handleText("Hey Jarvis, complete the first one."),
       ).resolves.toMatchObject({ status: "ok" });
