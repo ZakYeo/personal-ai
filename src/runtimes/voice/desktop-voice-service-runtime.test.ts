@@ -16,6 +16,7 @@ import {
   writeTempJsonFile,
 } from "../../test-support/primitives.js";
 import { createServiceSignalController } from "../../test-support/service-runtime.js";
+import { withRuntimeTestProviderConfig } from "../../test-support/runtime-config-file.js";
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
 
 describe("runDesktopVoiceServiceRuntime", () => {
@@ -40,7 +41,9 @@ describe("runDesktopVoiceServiceRuntime", () => {
     });
     let now = new Date("2026-07-14T09:00:00.000Z");
     const configPath = await writeTempJsonFile(
-      createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+      withRuntimeTestProviderConfig(
+        createDesktopVoiceConfig(deterministicScenarios.alarmListEmpty.text),
+      ),
     );
 
     await runDesktopVoiceServiceRuntime({

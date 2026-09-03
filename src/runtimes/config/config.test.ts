@@ -553,6 +553,7 @@ describe("parseAssistantConfig", () => {
           calendar: {
             enabled: true,
             adapter: "google",
+            eventGrouping: { provider: "mock" },
             google: {},
           },
         },
@@ -582,6 +583,7 @@ describe("parseAssistantConfig", () => {
           calendar: {
             enabled: true,
             adapter: "mock",
+            eventGrouping: { provider: "mock" },
             upcomingWindowDays: 31,
           },
         },
@@ -603,6 +605,7 @@ describe("parseAssistantConfig", () => {
             calendar: {
               enabled: true,
               adapter: "google",
+              eventGrouping: { provider: "mock" },
               google: {
                 timeoutMs: 0,
               },
@@ -623,6 +626,7 @@ describe("parseAssistantConfig", () => {
             calendar: {
               enabled: true,
               adapter: "mock",
+              eventGrouping: { provider: "mock" },
               upcomingWindowDays: 0,
             },
           },
@@ -640,6 +644,7 @@ describe("parseAssistantConfig", () => {
           calendar: {
             enabled: true,
             adapter: "mock",
+            eventGrouping: { provider: "mock" },
             google: {
               timeoutMs: 0,
             },

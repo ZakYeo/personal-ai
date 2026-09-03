@@ -84,12 +84,17 @@ export function createLoadedRuntimeConfig(
       features: Object.fromEntries(
         Object.entries(features).map(([featureId, feature]) => [
           featureId,
-          featureId === "weather" && feature.enabled === true
+          featureId === "calendar" && feature.enabled === true
             ? {
-                clothingAdvisor: { provider: "mock" },
+                eventGrouping: { provider: "mock" },
                 ...feature,
               }
-            : feature,
+            : featureId === "weather" && feature.enabled === true
+              ? {
+                  clothingAdvisor: { provider: "mock" },
+                  ...feature,
+                }
+              : feature,
         ]),
       ),
     },

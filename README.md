@@ -91,8 +91,9 @@ Implemented today:
   correction/deletion controls, durable local storage, and narrow runtime
   projections.
 - Opt-in Google Calendar adapter behind the calendar search and upcoming-events
-  port, with a three-month default upcoming window and refresh-token OAuth
-  support.
+  port, with a 14-day default upcoming window and refresh-token OAuth support.
+- Emoji-free calendar presentation with separately configured semantic grouping
+  for clearly connected same-day itinerary entries.
 - Read-only calendar result follow-ups using one assistant-owned set of up to
   ten opaque references, deterministic expiry, safe OpenAI grounding, stable
   Google event lookup, and wake-word-independent reference retention.
@@ -220,10 +221,10 @@ placeholder fields.
 
 The default desktop OpenAI voice service config used by `npm start` selects the
 Google Calendar adapter, OpenAI internet search, the OpenAI response rewriter,
-Open-Meteo weather, the narrow OpenAI weather-clothing adviser, and
-config-relative durable alarm, weather-watch, task, and profile stores. This
-enables every currently implemented feature; daily
-briefings remain planned. Internet search reuses
+the narrow OpenAI calendar event grouper, Open-Meteo weather, the narrow OpenAI
+weather-clothing adviser, and config-relative durable alarm, weather-watch,
+task, and profile stores. This enables every currently implemented feature;
+daily briefings remain planned. Internet search reuses
 `OPENAI_API_KEY`; its bounded source annotations become sanitized natural source
 titles with validated HTTPS link metadata, while raw URLs and citation markup
 are excluded from initial and follow-up speech. Retrieved text remains untrusted
@@ -242,12 +243,17 @@ Generic upcoming calendar requests default to a 14-day window through
 `features.calendar.upcomingWindowDays`, which prevents long-running recurring
 events from filling normal spoken answers. Explicit or context-derived calendar
 date ranges override that default.
-Deterministic calendar text preserves exact ISO provider dates. The optional
+Deterministic calendar text removes emoji from titles and preserves exact ISO
+provider dates. When configured, the narrow event grouper combines only clearly
+connected same-day entries and selects two to four important chronological
+milestones; unrelated entries remain separate, and a provider or validation
+failure returns the complete ungrouped result with internal diagnostics. Every
+original event remains available through its opaque reference. The optional
 response rewriter owns conversational surrounding wording, while core protects
-every displayed event title and date and restores nearby dates with deterministic
-UTC phrases such as `today`, `tomorrow`, `this Friday the 17th`, or
-`next Monday the 20th`. Protected event-local times use natural forms such as
-`11am`; date-only events are identified as `all day`.
+every displayed event title and date and restores nearby dates with
+deterministic UTC phrases such as `today`, `tomorrow`, `this Friday the 17th`,
+or `next Monday the 20th`. Protected event-local times use natural forms such
+as `11am`; date-only events are identified as `all day`.
 
 ## Quick Start
 

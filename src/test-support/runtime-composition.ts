@@ -17,6 +17,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { createDefaultFeatureAdapterRegistry } from "../runtimes/default-feature-adapter-registry.js";
 import type { FeatureAdapterRegistry } from "../runtimes/feature-adapter-registry.js";
+import { withRuntimeTestProviderConfig } from "./runtime-config-file.js";
 
 type ConfiguredTextRuntimeHarnessOptions = Partial<{
   config: LoadedRuntimeConfig;
@@ -56,7 +57,10 @@ export async function createConfiguredTextRuntimeHarness(
 export async function writeRuntimeHarnessConfig(
   config: unknown,
 ): Promise<string> {
-  return writeTempJsonFile(config, "personal-ai-runtime-");
+  return writeTempJsonFile(
+    withRuntimeTestProviderConfig(config),
+    "personal-ai-runtime-",
+  );
 }
 
 interface RuntimeConfigWithFeatures {
@@ -207,6 +211,7 @@ export function createRuntimeConfigWithGoogleCalendarAdapter(
         calendar: {
           enabled: true,
           adapter: "google",
+          eventGrouping: { provider: "mock" },
           upcomingWindowDays: 92,
           google: {
             accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
@@ -270,6 +275,7 @@ export function createGoogleCalendarRuntimeConfigInput(): Record<
     calendar: {
       adapter: "google",
       enabled: true,
+      eventGrouping: { provider: "mock" },
       google: {
         accessTokenEnv: "GOOGLE_CALENDAR_ACCESS_TOKEN",
         baseUrl: "https://calendar.example.test/v3",

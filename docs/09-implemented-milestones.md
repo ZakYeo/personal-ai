@@ -1113,6 +1113,12 @@ Implemented structure:
 - Upcoming calendar lists protect every displayed event title and date before
   rewriting; core restores nearby ISO dates with deterministic UTC calendar-week
   wording and uses spoken absolute dates farther out.
+- Generic upcoming requests use a 14-day default unless intent supplies an
+  explicit or context-derived range. Event titles are emoji-free, and a
+  separately configured narrow provider groups only clearly connected same-day
+  entries into two to four important chronological milestones. Unrelated
+  entries remain separate; grouping failure preserves the complete ungrouped
+  answer, all original result references, and an internal diagnostic.
 - Google timed starts preserve their event-local wall-clock time behind the
   calendar port; spoken responses protect and render that time naturally, while
   date-only events are explicitly identified as all day.

@@ -184,6 +184,9 @@ Deterministic and local adapters include:
 - Command-based desktop text-to-speech adapter.
 - SoX-compatible desktop audio input and output adapters.
 - Mock calendar adapter.
+- Mock and OpenAI calendar event-grouping adapters behind a narrow grouping
+  port; application policy validates connected same-day groups and retains the
+  full ungrouped result on nonfatal provider failure.
 - Mock messaging adapter.
 - Mock internet-search and weather adapters.
 - Local/in-memory and versioned JSON-file alarm storage adapters implementing

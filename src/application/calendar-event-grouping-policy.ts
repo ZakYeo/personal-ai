@@ -6,7 +6,7 @@ import type {
   CalendarEventGroupingInput,
 } from "../ports/calendar-event-grouper.js";
 
-const calendarEventGroupingLimits = Object.freeze({
+export const calendarEventGroupingLimits = Object.freeze({
   groups: 5,
   labelCharacters: 80,
   milestones: 4,

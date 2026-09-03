@@ -5,6 +5,7 @@ import type {
 } from "../ports/assistant.js";
 import { main } from "../runtimes/cli/main.js";
 import { line, writeTempJsonFile } from "./primitives.js";
+import { withRuntimeTestProviderConfig } from "./runtime-config-file.js";
 
 type CliIo = NonNullable<Parameters<typeof main>[1]>;
 
@@ -70,7 +71,10 @@ export async function runAsk(options: {
 }
 
 export async function writeTempConfig(config: unknown): Promise<string> {
-  return writeTempJsonFile(config, "personal-ai-cli-");
+  return writeTempJsonFile(
+    withRuntimeTestProviderConfig(config),
+    "personal-ai-cli-",
+  );
 }
 
 export async function runCliWithInjectedRuntime(

@@ -138,6 +138,10 @@ describe("desktop voice service startup", () => {
       features: {
         ...config.features,
         alarms: { adapter: "context-check", enabled: true },
+        calendar: {
+          ...config.features.calendar,
+          eventGrouping: { provider: "mock" },
+        },
       },
     });
     const validateStartup = vi.fn();

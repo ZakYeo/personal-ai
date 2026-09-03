@@ -11,6 +11,7 @@ import {
   parseCalendarGoogleAdapterConfig,
   type CalendarGoogleAdapterConfig,
 } from "./calendar-feature-adapter-config.js";
+import type { ResolvedCalendarEventGrouperProvider } from "./calendar-event-grouper-provider.js";
 
 interface CalendarFeatureRegistryDependencies {
   env: Record<string, string | undefined>;
@@ -31,6 +32,10 @@ export function createCalendarFeatureRegistryEntry(
     adapters: {
       google: googleCalendarAdapter.bind({
         create: (context) => {
+          const eventGrouper = context.adapterConfig.eventGrouper.create({
+            env: dependencies.env,
+            fetch: dependencies.fetch,
+          }).grouper;
           return createCalendarFeature(
             createGoogleCalendarAdapter({
               config: context.adapterConfig.google,
@@ -38,21 +43,39 @@ export function createCalendarFeatureRegistryEntry(
               fetch: dependencies.fetch,
             }),
             {
+              eventGrouper,
               upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
             },
           );
         },
-        validateStartup: (adapterConfig) =>
-          validateGoogleCalendarStartup(adapterConfig, dependencies.env),
+        validateStartup: (adapterConfig) => {
+          validateGoogleCalendarStartup(adapterConfig, dependencies.env);
+          validateEventGrouperStartup(adapterConfig, dependencies);
+        },
       }),
       mock: mockCalendarAdapter.bind({
-        create: (context) =>
-          createCalendarFeature(createMockCalendar(), {
+        create: (context) => {
+          const eventGrouper = context.adapterConfig.eventGrouper.create({
+            env: dependencies.env,
+            fetch: dependencies.fetch,
+          }).grouper;
+          return createCalendarFeature(createMockCalendar(), {
+            eventGrouper,
             upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
-          }),
+          });
+        },
+        validateStartup: (adapterConfig) =>
+          validateEventGrouperStartup(adapterConfig, dependencies),
       }),
     },
   };
+}
+
+function validateEventGrouperStartup(
+  config: { eventGrouper: ResolvedCalendarEventGrouperProvider },
+  dependencies: CalendarFeatureRegistryDependencies,
+): void {
+  config.eventGrouper.create(dependencies).validateStartup();
 }
 
 function validateGoogleCalendarStartup(

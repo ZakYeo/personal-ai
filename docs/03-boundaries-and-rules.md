@@ -643,6 +643,14 @@ should also guard against subtler boundary and abstraction drift.
   notification delivery, including injected ports, before the adapter receives
   it. Exact values remain unchanged in structured data and validated citation
   metadata.
+- Calendar presentation removes emoji from event titles before response text,
+  protected facts, or result references are built. A separately configured
+  narrow grouping provider receives only a bounded same-day candidate set and
+  may group entries only when they clearly belong to one itinerary; same-date
+  coincidence is insufficient. Application validation owns group shape,
+  membership, chronology, spoken-label safety, and the two-to-four-milestone
+  limit. Invalid output or provider failure preserves the full ungrouped answer
+  and records the cause only as an internal feature diagnostic.
 - Weather speech defaults to temperature, general conditions, relative
   observation freshness, and only materially notable precipitation or wind.
   Qualitative condition policy distinguishes current observations from

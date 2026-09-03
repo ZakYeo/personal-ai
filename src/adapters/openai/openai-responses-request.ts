@@ -80,6 +80,11 @@ export type OpenAIWeatherClothingAdviceRequestBody = OpenAIResponsesRequestBase<
 > &
   OpenAIResponsesJsonSchemaOutput;
 
+export type OpenAICalendarEventGroupingRequestBody = OpenAIResponsesRequestBase<
+  readonly OpenAIResponsesInputItem[]
+> &
+  OpenAIResponsesJsonSchemaOutput;
+
 export type OpenAIIntentRequestBody = OpenAIResponsesRequestBase<
   readonly OpenAIResponsesInputItem[]
 > &
@@ -107,6 +112,7 @@ export type OpenAIWebSearchRequestBody = OpenAIResponsesRequestBase<string> & {
 };
 
 export type OpenAIResponsesRequestBody =
+  | OpenAICalendarEventGroupingRequestBody
   | OpenAIConversationRequestBody
   | OpenAIIntentContinuationRequestBody
   | OpenAIIntentRequestBody

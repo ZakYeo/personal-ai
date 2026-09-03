@@ -4,8 +4,13 @@ import {
   parseOptionalNonEmptyString,
   parseOptionalPositiveInteger,
 } from "../config/config-parse-utils.js";
+import {
+  resolveCalendarEventGrouperProvider,
+  type ResolvedCalendarEventGrouperProvider,
+} from "./calendar-event-grouper-provider.js";
 
 interface CalendarFeatureConfig {
+  eventGrouper: ResolvedCalendarEventGrouperProvider;
   upcomingWindowDays: number;
 }
 
@@ -17,6 +22,9 @@ export function parseCalendarFeatureConfig(
   featureConfig: Record<string, unknown>,
 ): CalendarFeatureConfig {
   return {
+    eventGrouper: resolveCalendarEventGrouperProvider(
+      featureConfig.eventGrouping,
+    ),
     upcomingWindowDays: parseOptionalPositiveInteger(
       featureConfig.upcomingWindowDays,
       'Config feature "calendar".upcomingWindowDays must be a positive integer.',

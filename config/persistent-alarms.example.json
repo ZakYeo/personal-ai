@@ -24,6 +24,9 @@
     "calendar": {
       "enabled": true,
       "adapter": "mock",
+      "eventGrouping": {
+        "provider": "mock"
+      },
       "upcomingWindowDays": 14
     },
     "internetSearch": {

@@ -161,7 +161,10 @@
   "features": {
     "calendar": {
       "enabled": true,
-      "adapter": "mock"
+      "adapter": "mock",
+      "eventGrouping": {
+        "provider": "mock"
+      }
     },
     "internetSearch": {
       "enabled": true,

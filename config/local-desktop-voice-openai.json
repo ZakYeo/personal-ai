@@ -186,6 +186,13 @@
     "calendar": {
       "enabled": true,
       "adapter": "google",
+      "eventGrouping": {
+        "provider": "openai",
+        "openai": {
+          "model": "gpt-5.6-luna",
+          "reasoningEffort": "none"
+        }
+      },
       "google": {}
     },
     "internetSearch": {

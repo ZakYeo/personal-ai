@@ -495,6 +495,7 @@ describe("createConfiguredFeatures", () => {
           calendar: {
             adapter: "mock",
             enabled: true,
+            eventGrouping: { provider: "mock" },
             google: { timeoutMs: 0 },
           },
         }),
@@ -540,6 +541,7 @@ function onlyGoogleCalendarConfig(calendarOverrides: Record<string, unknown>) {
       calendar: {
         adapter: "google",
         enabled: true,
+        eventGrouping: { provider: "mock" },
         ...calendarOverrides,
       },
     }),
