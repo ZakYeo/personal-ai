@@ -12,7 +12,7 @@ import {
 const now = new Date("2026-08-05T12:00:00.000Z");
 
 describe("createFileProfileStore", () => {
-  it("returns a saved fact after reconciling a durability-unknown replacement", async () => {
+  it("reports unknown durability while leaving one profile fact process-visible", async () => {
     const store = createFileProfileStore({
       filePath: "/state/profile.json",
       fileSystem: createDurabilityUnknownStateFileSystem(),
@@ -21,8 +21,13 @@ describe("createFileProfileStore", () => {
 
     await expect(
       store.set({ field: "preferredName", value: "Zak" }),
-    ).resolves.toMatchObject({ field: "preferredName", value: "Zak" });
-    await expect(store.list()).resolves.toHaveLength(1);
+    ).rejects.toMatchObject({
+      name: "LocalJsonStateWriteOutcomeUnknownError",
+      visibleState: "intended",
+    });
+    await expect(store.list()).resolves.toMatchObject([
+      { field: "preferredName", value: "Zak" },
+    ]);
   });
 
   it("persists versioned profile state across instances with restrictive modes", async () => {

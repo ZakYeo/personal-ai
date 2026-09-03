@@ -15,7 +15,7 @@ import {
 } from "./file-weather-watch-store.js";
 
 describe("createFileWeatherWatchStore", () => {
-  it("returns a created watch after reconciling a durability-unknown replacement", async () => {
+  it("reports unknown durability while leaving one generated watch process-visible", async () => {
     const createId = vi.fn(() => "weather-watch-reconciled");
     const store = createFileWeatherWatchStore({
       createId,
@@ -24,10 +24,13 @@ describe("createFileWeatherWatchStore", () => {
       now: () => weatherWatchNow,
     });
 
-    await expect(store.add(createNewWeatherWatch())).resolves.toMatchObject({
-      id: "weather-watch-reconciled",
+    await expect(store.add(createNewWeatherWatch())).rejects.toMatchObject({
+      name: "LocalJsonStateWriteOutcomeUnknownError",
+      visibleState: "intended",
     });
-    await expect(store.list()).resolves.toHaveLength(1);
+    await expect(store.list()).resolves.toMatchObject([
+      { id: "weather-watch-reconciled" },
+    ]);
     expect(createId).toHaveBeenCalledTimes(1);
   });
 

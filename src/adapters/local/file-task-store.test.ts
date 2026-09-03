@@ -11,7 +11,7 @@ import {
 const initialTime = new Date("2026-07-28T09:00:00.000Z");
 
 describe("createFileTaskStore", () => {
-  it("returns a created list after reconciling a durability-unknown replacement", async () => {
+  it("reports unknown durability while leaving one generated list process-visible", async () => {
     const createListId = vi.fn(() => "task-list-reconciled");
     const store = createFileTaskStore({
       createListId,
@@ -20,11 +20,13 @@ describe("createFileTaskStore", () => {
       now: () => initialTime,
     });
 
-    await expect(store.addList({ name: "To-do" })).resolves.toMatchObject({
-      id: "task-list-reconciled",
-      name: "To-do",
+    await expect(store.addList({ name: "To-do" })).rejects.toMatchObject({
+      name: "LocalJsonStateWriteOutcomeUnknownError",
+      visibleState: "intended",
     });
-    await expect(store.listLists()).resolves.toHaveLength(1);
+    await expect(store.listLists()).resolves.toMatchObject([
+      { id: "task-list-reconciled", name: "To-do" },
+    ]);
     expect(createListId).toHaveBeenCalledTimes(1);
   });
 

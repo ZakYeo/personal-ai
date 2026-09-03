@@ -6,7 +6,7 @@ import {
 } from "./json-state-file.js";
 
 describe("writeLocalJsonState", () => {
-  it("reconciles an exact process-visible document after durability becomes unknown", async () => {
+  it("reports unknown durability even when the intended document is process-visible", async () => {
     const readFile = vi.fn(() => Promise.resolve('{"value":"saved"}\n'));
     const fileSystem = createFileSystem({ readFile });
 
@@ -17,7 +17,12 @@ describe("writeLocalJsonState", () => {
         persistenceFailureMessage: "Could not persist test state.",
         state: { value: "saved" },
       }),
-    ).resolves.toBeUndefined();
+    ).rejects.toMatchObject({
+      message:
+        "Could not persist test state. The write outcome is unknown; the intended state is process-visible but durability is not confirmed.",
+      name: "LocalJsonStateWriteOutcomeUnknownError",
+      visibleState: "intended",
+    });
 
     expect(readFile).toHaveBeenCalledWith("/state/document.json", {
       maxBytes: 19,
@@ -41,6 +46,25 @@ describe("writeLocalJsonState", () => {
       message: "Could not persist test state. The write outcome is unknown.",
       name: "LocalJsonStateWriteOutcomeUnknownError",
       replacementCause,
+      visibleState: "different",
+    } satisfies Partial<LocalJsonStateWriteOutcomeUnknownError>);
+  });
+
+  it("reports an unreadable visible state without hiding the replacement failure", async () => {
+    const replacementCause = durabilityUnknownFailure();
+
+    await expect(
+      writeLocalJsonState({
+        filePath: "/state/document.json",
+        fileSystem: createFileSystem({ replacementCause }),
+        persistenceFailureMessage: "Could not persist test state.",
+        state: { value: "saved" },
+      }),
+    ).rejects.toMatchObject({
+      message: "Could not persist test state. The write outcome is unknown.",
+      name: "LocalJsonStateWriteOutcomeUnknownError",
+      replacementCause,
+      visibleState: "unreadable",
     } satisfies Partial<LocalJsonStateWriteOutcomeUnknownError>);
   });
 

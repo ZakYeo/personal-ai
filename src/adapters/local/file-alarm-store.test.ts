@@ -22,7 +22,7 @@ function createFileAlarmStore(options: TestFileAlarmStoreOptions) {
 }
 
 describe("createFileAlarmStore", () => {
-  it("returns a created alarm after reconciling a durability-unknown replacement", async () => {
+  it("reports unknown durability while leaving one generated alarm process-visible", async () => {
     const createId = vi.fn(() => "alarm-reconciled");
     const store = createFileAlarmStore({
       createId,
@@ -35,8 +35,13 @@ describe("createFileAlarmStore", () => {
         label: "tea",
         scheduledFor: "2026-07-13T17:00:00.000Z",
       }),
-    ).resolves.toMatchObject({ id: "alarm-reconciled", label: "tea" });
-    await expect(store.list()).resolves.toHaveLength(1);
+    ).rejects.toMatchObject({
+      name: "LocalJsonStateWriteOutcomeUnknownError",
+      visibleState: "intended",
+    });
+    await expect(store.list()).resolves.toMatchObject([
+      { id: "alarm-reconciled", label: "tea" },
+    ]);
     expect(createId).toHaveBeenCalledTimes(1);
   });
 

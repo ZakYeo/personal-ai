@@ -37,23 +37,43 @@ interface WriteLocalJsonStateOptions<TState> {
 }
 
 export class LocalJsonStateWriteOutcomeUnknownError extends Error {
-  readonly reconciliationCause: unknown;
+  readonly reconciliationCause?: unknown;
   readonly replacementCause: AtomicFileReplacementError;
+  readonly visibleState: "different" | "intended" | "unreadable";
 
   constructor(
     message: string,
     replacementCause: AtomicFileReplacementError,
-    reconciliationCause: unknown,
+    reconciliation: {
+      cause?: unknown;
+      visibleState: "different" | "intended" | "unreadable";
+    },
   ) {
-    super(`${message} The write outcome is unknown.`, {
-      cause: new AggregateError(
-        [replacementCause, reconciliationCause],
-        "Replacement and reconciliation both failed.",
-      ),
-    });
+    const intendedStateVisible = reconciliation.visibleState === "intended";
+    super(
+      `${message} The write outcome is unknown${
+        intendedStateVisible
+          ? "; the intended state is process-visible but durability is not confirmed."
+          : "."
+      }`,
+      {
+        cause: new AggregateError(
+          [
+            replacementCause,
+            ...(reconciliation.cause === undefined
+              ? []
+              : [reconciliation.cause]),
+          ],
+          "Replacement durability could not be confirmed.",
+        ),
+      },
+    );
     this.name = "LocalJsonStateWriteOutcomeUnknownError";
-    this.reconciliationCause = reconciliationCause;
+    if (reconciliation.cause !== undefined) {
+      this.reconciliationCause = reconciliation.cause;
+    }
     this.replacementCause = replacementCause;
+    this.visibleState = reconciliation.visibleState;
   }
 }
 
@@ -105,23 +125,33 @@ export async function writeLocalJsonState<TState>(
       cause instanceof AtomicFileReplacementError &&
       cause.outcome === "durability_unknown"
     ) {
-      let reconciliationCause: unknown;
+      let reconciliation:
+        | {
+            cause?: unknown;
+            visibleState: "different" | "intended" | "unreadable";
+          }
+        | undefined;
       try {
         const visibleContents = await options.fileSystem.readFile(
           options.filePath,
           { maxBytes: new TextEncoder().encode(contents).byteLength + 1 },
         );
-        if (visibleContents === contents) return;
-        reconciliationCause = new Error(
-          "Process-visible state did not match the intended document.",
-        );
+        reconciliation =
+          visibleContents === contents
+            ? { visibleState: "intended" }
+            : {
+                cause: new Error(
+                  "Process-visible state did not match the intended document.",
+                ),
+                visibleState: "different",
+              };
       } catch (error) {
-        reconciliationCause = error;
+        reconciliation = { cause: error, visibleState: "unreadable" };
       }
       throw new LocalJsonStateWriteOutcomeUnknownError(
         options.persistenceFailureMessage,
         cause,
-        reconciliationCause,
+        reconciliation,
       );
     }
     throw new Error(options.persistenceFailureMessage, { cause });

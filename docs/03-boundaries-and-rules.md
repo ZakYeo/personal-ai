@@ -580,9 +580,10 @@ should also guard against subtler boundary and abstraction drift.
   replacement and syncing the parent directory afterward. Parent-directory
   synchronization is retried three times after replacement. Exhausted retries
   classify the write as durability-unknown rather than not applied; JSON state
-  stores reconcile the exact intended document against the process-visible
-  target before reporting success. A mismatch or unreadable target remains an
-  explicit outcome-unknown failure. Missing state may initialize an empty store,
+  stores inspect the process-visible target to describe whether it contains the
+  exact intended document. Readback cannot prove crash durability, so a match,
+  mismatch, or unreadable target remains an explicit outcome-unknown failure.
+  Missing state may initialize an empty store,
   but malformed, unreadable, or unsupported existing state must fail with its
   cause preserved for runtime diagnostics. Cleanup failures remain secondary to
   the primary persistence failure but must remain available to diagnostics
