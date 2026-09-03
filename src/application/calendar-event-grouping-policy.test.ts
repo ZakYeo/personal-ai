@@ -25,6 +25,33 @@ const events = [
 ] as const satisfies CalendarEventGroupingInput["events"];
 
 describe("calendar event grouping policy", () => {
+  it("resolves non-contiguous original event indexes", () => {
+    const candidates = [
+      { ...events[0], index: 1 },
+      { ...events[1], index: 3 },
+    ];
+
+    expect(
+      parseCalendarEventGrouping(
+        {
+          groups: [
+            {
+              eventIndexes: [1, 3],
+              milestones: [
+                { eventIndex: 1, label: "guest arrival" },
+                { eventIndex: 3, label: "the ceremony" },
+              ],
+              theme: "the wedding",
+            },
+          ],
+        },
+        candidates,
+      ),
+    ).toMatchObject({
+      groups: [{ eventIndexes: [1, 3], theme: "the wedding" }],
+    });
+  });
+
   it("accepts bounded same-day groups with chronological milestones", () => {
     expect(
       parseCalendarEventGrouping(

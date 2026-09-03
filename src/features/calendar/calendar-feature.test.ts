@@ -376,6 +376,64 @@ describe("createCalendarFeature", () => {
     );
   });
 
+  it("projects only duplicate-date candidates with their original indexes", async () => {
+    const events = [
+      {
+        ...calendarEvent("dentist", "10:00", "Dentist"),
+        startDate: "2026-11-12",
+      },
+      calendarEvent("arrival", "12:30", "Guest arrival"),
+      calendarEvent("ceremony", "13:00", "Ceremony"),
+      {
+        ...calendarEvent("concert", "19:00", "Concert"),
+        startDate: "2026-11-14",
+      },
+    ];
+    const group = vi.fn(() =>
+      Promise.resolve({
+        groups: [
+          {
+            eventIndexes: [1, 2],
+            milestones: [
+              { eventIndex: 1, label: "guest arrival" },
+              { eventIndex: 2, label: "the ceremony" },
+            ],
+            theme: "the wedding",
+          },
+        ],
+      }),
+    );
+
+    const result = await executeCalendarSearch(
+      createCalendarFeature(createFakeCalendar(undefined, events), {
+        eventGrouper: { group },
+      }),
+    );
+
+    expect(group).toHaveBeenCalledWith(
+      {
+        events: [
+          {
+            index: 1,
+            startDate: "2026-11-13",
+            startTime: "12:30",
+            title: "Guest arrival",
+          },
+          {
+            index: 2,
+            startDate: "2026-11-13",
+            startTime: "13:00",
+            title: "Ceremony",
+          },
+        ],
+      },
+      {},
+    );
+    expect(result.text).toBe(
+      "Your upcoming calendar includes Dentist on 2026-11-12 at 10:00, the wedding on 2026-11-13: guest arrival at 12:30 and the ceremony at 13:00, and Concert on 2026-11-14 at 19:00.",
+    );
+  });
+
   it("falls back to complete ungrouped results with a non-fatal diagnostic", async () => {
     const events = [
       calendarEvent("arrival", "12:30", "Guest arrival"),

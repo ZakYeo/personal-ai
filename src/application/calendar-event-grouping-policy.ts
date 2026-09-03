@@ -28,16 +28,20 @@ export function parseCalendarEventGrouping(
     );
   }
 
+  const eventsByIndex = indexCandidates(events);
   const usedIndexes = new Set<number>();
   const groups = value.groups.map((group) =>
-    parseGroup(group, events, usedIndexes),
+    parseGroup(group, eventsByIndex, usedIndexes),
   );
   return Object.freeze({ groups: Object.freeze(groups) });
 }
 
 function parseGroup(
   value: unknown,
-  events: CalendarEventGroupingInput["events"],
+  eventsByIndex: ReadonlyMap<
+    number,
+    CalendarEventGroupingInput["events"][number]
+  >,
   usedIndexes: Set<number>,
 ): CalendarEventGroup {
   if (
@@ -46,11 +50,13 @@ function parseGroup(
   ) {
     throw new Error("Calendar event group has an invalid shape.");
   }
-  const eventIndexes = parseIndexes(value.eventIndexes, events.length);
+  const eventIndexes = parseIndexes(value.eventIndexes, eventsByIndex);
   if (eventIndexes.length < 2) {
     throw new Error("Calendar event groups must contain at least two events.");
   }
-  const dates = new Set(eventIndexes.map((index) => events[index]?.startDate));
+  const dates = new Set(
+    eventIndexes.map((index) => eventsByIndex.get(index)?.startDate),
+  );
   if (dates.size !== 1 || dates.has(undefined)) {
     throw new Error("Calendar event groups must contain one calendar date.");
   }
@@ -100,11 +106,14 @@ function parseGroup(
   });
 }
 
-function parseIndexes(value: unknown, eventCount: number): number[] {
+function parseIndexes(
+  value: unknown,
+  eventsByIndex: ReadonlyMap<number, unknown>,
+): number[] {
   if (
     !Array.isArray(value) ||
     !value.every(
-      (index) => Number.isInteger(index) && index >= 0 && index < eventCount,
+      (index) => Number.isInteger(index) && eventsByIndex.has(index as number),
     )
   ) {
     throw new Error("Calendar event group indexes are invalid.");
@@ -118,6 +127,22 @@ function parseIndexes(value: unknown, eventCount: number): number[] {
     "Calendar event group indexes must be chronological.",
   );
   return [...indexes];
+}
+
+function indexCandidates(
+  events: CalendarEventGroupingInput["events"],
+): ReadonlyMap<number, CalendarEventGroupingInput["events"][number]> {
+  const eventsByIndex = new Map<
+    number,
+    CalendarEventGroupingInput["events"][number]
+  >();
+  for (const event of events) {
+    if (!Number.isInteger(event.index) || eventsByIndex.has(event.index)) {
+      throw new Error("Calendar event grouping candidate indexes are invalid.");
+    }
+    eventsByIndex.set(event.index, event);
+  }
+  return eventsByIndex;
 }
 
 function parseSafeLabel(value: unknown, field: string): string {

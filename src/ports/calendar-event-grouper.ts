@@ -28,5 +28,5 @@ export interface CalendarEventGrouperPort {
   group(
     input: CalendarEventGroupingInput,
     options?: { readonly signal?: AbortSignal },
-  ): Promise<unknown>;
+  ): Promise<CalendarEventGrouping>;
 }

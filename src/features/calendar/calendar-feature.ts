@@ -20,7 +20,6 @@ import {
 } from "../../application/deterministic-feature-rules.js";
 import { defineCapability, defineFeature } from "../../application/feature.js";
 import { sanitizeCalendarEventTitle } from "../../application/calendar-presentation-policy.js";
-import { parseCalendarEventGrouping } from "../../application/calendar-event-grouping-policy.js";
 import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
 
 const calendarSearchEventsParameters = {
@@ -195,18 +194,18 @@ async function presentUpcomingEvents(
     resultReferences: createResultReferences(events),
     toolObservationData: { eventCount: events.length },
   };
-  if (!eventGrouper || !hasSameDateCandidates(events)) {
+  if (!eventGrouper) {
     return { ...baseResult, text: formatUngroupedEventList(events) };
   }
 
   const input = createGroupingInput(events);
+  if (input.events.length < 2) {
+    return { ...baseResult, text: formatUngroupedEventList(events) };
+  }
   try {
-    const grouping = parseCalendarEventGrouping(
-      await eventGrouper.group(
-        input,
-        context.signal ? { signal: context.signal } : {},
-      ),
-      input.events,
+    const grouping = await eventGrouper.group(
+      input,
+      context.signal ? { signal: context.signal } : {},
     );
     if (grouping.groups.length === 0) {
       return { ...baseResult, text: formatUngroupedEventList(events) };
@@ -329,13 +328,23 @@ function createUpcomingEventFacts(
 function createGroupingInput(
   events: readonly CalendarEvent[],
 ): CalendarEventGroupingInput {
+  const dateCounts = new Map<string, number>();
+  for (const event of events) {
+    dateCounts.set(event.startDate, (dateCounts.get(event.startDate) ?? 0) + 1);
+  }
   return {
-    events: events.map((event, index) => ({
-      index,
-      startDate: event.startDate,
-      ...(event.startTime ? { startTime: event.startTime } : {}),
-      title: event.title,
-    })),
+    events: events.flatMap((event, index) =>
+      dateCounts.get(event.startDate) === 1
+        ? []
+        : [
+            {
+              index,
+              startDate: event.startDate,
+              ...(event.startTime ? { startTime: event.startTime } : {}),
+              title: event.title,
+            },
+          ],
+    ),
   };
 }
 
@@ -419,15 +428,6 @@ function formatNaturalList(values: readonly string[]): string {
   if (values.length < 2) return values[0] ?? "";
   if (values.length === 2) return `${values[0]} and ${values[1]}`;
   return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
-}
-
-function hasSameDateCandidates(events: readonly CalendarEvent[]): boolean {
-  const seenDates = new Set<string>();
-  return events.some((event) => {
-    if (seenDates.has(event.startDate)) return true;
-    seenDates.add(event.startDate);
-    return false;
-  });
 }
 
 function formatEventStart(event: CalendarEvent): string {
