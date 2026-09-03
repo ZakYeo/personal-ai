@@ -75,6 +75,10 @@ describe("assistant result references", () => {
                   time: "11:00",
                   title: "Dentist",
                 },
+                target: {
+                  kind: "calendar_event" as const,
+                  providerEventId: "private-event",
+                },
               },
             ],
             kind: "calendar_events" as const,
