@@ -25,12 +25,12 @@ interface AtomicReplaceFileOptions {
 
 export class AtomicFileReplacementError extends Error {
   readonly cleanupCauses: readonly unknown[];
-  readonly outcome: "durability_unknown" | "not_applied";
+  readonly outcome: "durability_unknown" | "durable" | "not_applied";
 
   constructor(
     cause: unknown,
     cleanupCauses: readonly unknown[],
-    outcome: "durability_unknown" | "not_applied" = "not_applied",
+    outcome: "durability_unknown" | "durable" | "not_applied" = "not_applied",
   ) {
     super("Atomic file replacement failed.", { cause });
     this.name = "AtomicFileReplacementError";
@@ -70,10 +70,16 @@ export async function atomicReplaceFile(
       temporaryPath: options.temporaryPath,
     });
 
+    const parentCleanupCauses =
+      cause instanceof ParentDirectoryError ? cause.cleanupCauses : [];
     throw new AtomicFileReplacementError(
       cause,
-      cleanupCauses,
-      renamed ? "durability_unknown" : "not_applied",
+      [...parentCleanupCauses, ...cleanupCauses],
+      !renamed
+        ? "not_applied"
+        : cause instanceof ParentDirectoryCleanupError
+          ? "durable"
+          : "durability_unknown",
     );
   }
 }
@@ -84,35 +90,85 @@ async function syncParentDirectory(
   fileSystem: AtomicFileSystem,
   directory: string,
 ): Promise<void> {
-  const causes: unknown[] = [];
+  const syncCauses: unknown[] = [];
+  const cleanupCauses: unknown[] = [];
 
   for (let attempt = 0; attempt < parentDirectorySyncAttempts; attempt += 1) {
     let handle: AtomicFileHandle | undefined;
-    let failed = false;
     try {
       handle = await fileSystem.open(directory, "r");
-      await handle.sync();
     } catch (cause) {
-      failed = true;
-      causes.push(cause);
+      syncCauses.push(cause);
+      continue;
     }
 
-    if (handle) {
-      try {
-        await handle.close();
-      } catch (cause) {
-        failed = true;
-        causes.push(cause);
+    let synchronized = false;
+    try {
+      await handle.sync();
+      synchronized = true;
+    } catch (cause) {
+      syncCauses.push(cause);
+    }
+
+    await collectFailure(() => handle.close(), cleanupCauses);
+
+    if (synchronized) {
+      if (cleanupCauses.length > 0) {
+        throw new ParentDirectoryCleanupError(cleanupCauses);
       }
+      return;
     }
-
-    if (!failed) return;
   }
 
-  throw new AggregateError(
-    causes,
-    `Parent directory synchronization failed after ${parentDirectorySyncAttempts} attempts.`,
+  throw new ParentDirectorySyncError(
+    syncCauses,
+    cleanupCauses,
+    parentDirectorySyncAttempts,
   );
+}
+
+abstract class ParentDirectoryError extends Error {
+  constructor(
+    message: string,
+    readonly cleanupCauses: readonly unknown[],
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+  }
+}
+
+class ParentDirectoryCleanupError extends ParentDirectoryError {
+  constructor(cleanupCauses: readonly unknown[]) {
+    super(
+      "Parent directory handle cleanup failed after successful synchronization.",
+      cleanupCauses,
+      {
+        cause: new AggregateError(
+          cleanupCauses,
+          "Parent directory handle cleanup failed.",
+        ),
+      },
+    );
+  }
+}
+
+class ParentDirectorySyncError extends ParentDirectoryError {
+  constructor(
+    syncCauses: readonly unknown[],
+    cleanupCauses: readonly unknown[],
+    attempts: number,
+  ) {
+    super(
+      `Parent directory synchronization failed after ${attempts} attempts.`,
+      cleanupCauses,
+      {
+        cause: new AggregateError(
+          syncCauses,
+          "Parent directory synchronization attempts failed.",
+        ),
+      },
+    );
+  }
 }
 
 interface CleanupOptions {

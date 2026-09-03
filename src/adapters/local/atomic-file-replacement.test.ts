@@ -86,6 +86,80 @@ describe("atomicReplaceFile", () => {
     );
   });
 
+  it("retries parent directory open failures before synchronization", async () => {
+    const events: string[] = [];
+    const fileSystem = createFileSystem(events, {
+      directoryOpenFailures: 2,
+    });
+
+    await atomicReplaceFile({
+      contents: "state",
+      fileSystem,
+      targetPath: "/state/alarms.json",
+      temporaryPath: "/state/.alarms.json.tmp",
+    });
+
+    expect(events.filter((event) => event === "open /state r")).toHaveLength(3);
+    expect(events.filter((event) => event === "directory sync")).toHaveLength(
+      1,
+    );
+    expect(events.filter((event) => event === "directory close")).toHaveLength(
+      1,
+    );
+  });
+
+  it("classifies exhausted parent directory open retries as durability unknown", async () => {
+    const events: string[] = [];
+    const fileSystem = createFileSystem(events, {
+      directoryOpenFailures: 3,
+    });
+
+    const error = await atomicReplaceFile({
+      contents: "state",
+      fileSystem,
+      targetPath: "/state/alarms.json",
+      temporaryPath: "/state/.alarms.json.tmp",
+    }).catch((cause: unknown) => cause);
+
+    expectAtomicFailure(
+      error,
+      "Parent directory synchronization failed after 3 attempts.",
+    );
+    expect(error).toMatchObject({ outcome: "durability_unknown" });
+    expect(events.filter((event) => event === "open /state r")).toHaveLength(3);
+    expect(events).not.toContain("directory sync");
+    expect(events).not.toContain("directory close");
+  });
+
+  it("classifies close cleanup after a successful directory sync as durable", async () => {
+    const events: string[] = [];
+    const fileSystem = createFileSystem(events, {
+      directoryCloseFailures: 1,
+    });
+
+    const error = await atomicReplaceFile({
+      contents: "state",
+      fileSystem,
+      targetPath: "/state/alarms.json",
+      temporaryPath: "/state/.alarms.json.tmp",
+    }).catch((cause: unknown) => cause);
+
+    expectAtomicFailure(
+      error,
+      "Parent directory handle cleanup failed after successful synchronization.",
+    );
+    expect(error).toMatchObject({ outcome: "durable" });
+    if (!(error instanceof AtomicFileReplacementError)) {
+      throw new TypeError("Expected an atomic replacement failure.");
+    }
+    expect(error.cleanupCauses).toHaveLength(1);
+    expect(error.cleanupCauses[0]).toMatchObject({ message: "close failed" });
+    expect(events.filter((event) => event === "open /state r")).toHaveLength(1);
+    expect(events.filter((event) => event === "directory sync")).toHaveLength(
+      1,
+    );
+  });
+
   it("classifies exhausted post-rename sync retries as durability unknown", async () => {
     const events: string[] = [];
     const fileSystem = createFileSystem(events, {
@@ -135,6 +209,8 @@ describe("atomicReplaceFile", () => {
 });
 
 interface FailureOptions {
+  directoryCloseFailures?: number;
+  directoryOpenFailures?: number;
   directorySyncFailures?: number;
   fileFailure?: "close" | "sync" | "write";
   renameFailure?: boolean;
@@ -146,14 +222,20 @@ function createFileSystem(
   failures: FailureOptions = {},
 ): AtomicFileSystem {
   let directorySyncFailures = failures.directorySyncFailures ?? 0;
+  let directoryCloseFailures = failures.directoryCloseFailures ?? 0;
+  let directoryOpenFailures = failures.directoryOpenFailures ?? 0;
   return {
     open: (path, flags, mode) => {
       events.push(
         `open ${path} ${flags}${mode === undefined ? "" : ` ${mode.toString(8)}`}`,
       );
+      if (path === "/state" && directoryOpenFailures-- > 0) {
+        return Promise.reject(new Error("open failed"));
+      }
       return Promise.resolve(
         path === "/state"
           ? createHandle("directory", events, {
+              close: directoryCloseFailures-- > 0,
               sync: directorySyncFailures-- > 0,
             })
           : createHandle("file", events, {

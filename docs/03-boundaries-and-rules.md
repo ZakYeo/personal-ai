@@ -587,7 +587,9 @@ should also guard against subtler boundary and abstraction drift.
   but malformed, unreadable, or unsupported existing state must fail with its
   cause preserved for runtime diagnostics. Cleanup failures remain secondary to
   the primary persistence failure but must remain available to diagnostics
-  rather than being discarded.
+  rather than being discarded. Directory-handle close failure after a
+  successful sync is classified as durable cleanup failure, not synchronization
+  uncertainty.
 - Profile persistence stores only explicit user-authored facts in its first
   version: preferred name, birth date, pronouns, home timezone, home location,
   interests, and response style. It retains provenance and timestamps and
