@@ -13,6 +13,10 @@ describe("calendar presentation policy", () => {
     ["🇬🇧 UK planning", "UK planning"],
     ["1️⃣ First appointment", "First appointment"],
     ["👍🏽 - Confirm details", "Confirm details"],
+    [
+      "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F} Match",
+      "Match",
+    ],
     [".CLAY Studios: Gents Haircut", ".CLAY Studios: Gents Haircut"],
   ])("removes emoji from %s", (title, expected) => {
     expect(sanitizeCalendarEventTitle(title)).toBe(expected);
@@ -20,5 +24,10 @@ describe("calendar presentation policy", () => {
 
   it("uses a safe fallback when a title contains only emoji", () => {
     expect(sanitizeCalendarEventTitle("🎉 💒")).toBe("Untitled event");
+    expect(
+      sanitizeCalendarEventTitle(
+        "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}",
+      ),
+    ).toBe("Untitled event");
   });
 });
