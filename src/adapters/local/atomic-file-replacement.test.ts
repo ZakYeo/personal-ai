@@ -43,6 +43,7 @@ describe("atomicReplaceFile", () => {
       }).catch((cause: unknown) => cause);
 
       expectAtomicFailure(error, `${failure} failed`);
+      expect(error).toMatchObject({ outcome: "not_applied" });
       expect(events).toContain("unlink /state/.alarms.json.tmp");
       expect(events).not.toContain(
         "rename /state/.alarms.json.tmp /state/alarms.json",
@@ -62,12 +63,34 @@ describe("atomicReplaceFile", () => {
     }).catch((cause: unknown) => cause);
 
     expectAtomicFailure(error, "rename failed");
+    expect(error).toMatchObject({ outcome: "not_applied" });
     expect(events.at(-1)).toBe("unlink /state/.alarms.json.tmp");
   });
 
-  it("syncs and closes the directory even when directory sync fails", async () => {
+  it("retries parent directory synchronization with a fresh handle", async () => {
     const events: string[] = [];
-    const fileSystem = createFileSystem(events, { directorySyncFailure: true });
+    const fileSystem = createFileSystem(events, {
+      directorySyncFailures: 2,
+    });
+
+    await atomicReplaceFile({
+      contents: "state",
+      fileSystem,
+      targetPath: "/state/alarms.json",
+      temporaryPath: "/state/.alarms.json.tmp",
+    });
+
+    expect(events.filter((event) => event === "open /state r")).toHaveLength(3);
+    expect(events.filter((event) => event === "directory close")).toHaveLength(
+      3,
+    );
+  });
+
+  it("classifies exhausted post-rename sync retries as durability unknown", async () => {
+    const events: string[] = [];
+    const fileSystem = createFileSystem(events, {
+      directorySyncFailures: 3,
+    });
 
     const error = await atomicReplaceFile({
       contents: "state",
@@ -76,8 +99,15 @@ describe("atomicReplaceFile", () => {
       temporaryPath: "/state/.alarms.json.tmp",
     }).catch((cause: unknown) => cause);
 
-    expectAtomicFailure(error, "sync failed");
+    expectAtomicFailure(
+      error,
+      "Parent directory synchronization failed after 3 attempts.",
+    );
+    expect(error).toMatchObject({ outcome: "durability_unknown" });
     expect(events.at(-1)).toBe("directory close");
+    expect(events.filter((event) => event === "directory sync")).toHaveLength(
+      3,
+    );
     expect(events).not.toContain("unlink /state/.alarms.json.tmp");
   });
 
@@ -105,7 +135,7 @@ describe("atomicReplaceFile", () => {
 });
 
 interface FailureOptions {
-  directorySyncFailure?: boolean;
+  directorySyncFailures?: number;
   fileFailure?: "close" | "sync" | "write";
   renameFailure?: boolean;
   unlinkFailure?: boolean;
@@ -115,6 +145,7 @@ function createFileSystem(
   events: string[],
   failures: FailureOptions = {},
 ): AtomicFileSystem {
+  let directorySyncFailures = failures.directorySyncFailures ?? 0;
   return {
     open: (path, flags, mode) => {
       events.push(
@@ -123,7 +154,7 @@ function createFileSystem(
       return Promise.resolve(
         path === "/state"
           ? createHandle("directory", events, {
-              sync: failures.directorySyncFailure,
+              sync: directorySyncFailures-- > 0,
             })
           : createHandle("file", events, {
               [failures.fileFailure ?? "none"]: true,

@@ -568,11 +568,13 @@ should also guard against subtler boundary and abstraction drift.
 - File-backed state adapters should parse persisted JSON from `unknown`,
   serialize in-process mutations, and replace state through a same-directory
   temporary file. Durable success requires syncing temporary contents before
-  replacement and syncing the parent directory afterward. Missing state may
-  initialize an empty store, but malformed, unreadable, or unsupported existing
-  state must fail with its cause preserved for runtime diagnostics. Cleanup
-  failures remain secondary to the primary persistence failure but must remain
-  available to diagnostics rather than being discarded.
+  replacement and syncing the parent directory afterward. Parent-directory
+  synchronization is retried three times after replacement. Exhausted retries
+  classify the write as durability-unknown rather than not applied. Missing
+  state may initialize an empty store, but malformed, unreadable, or unsupported
+  existing state must fail with its cause preserved for runtime diagnostics.
+  Cleanup failures remain secondary to the primary persistence failure but must
+  remain available to diagnostics rather than being discarded.
 - Profile persistence stores only explicit user-authored facts in its first
   version: preferred name, birth date, pronouns, home timezone, home location,
   interests, and response style. It retains provenance and timestamps and

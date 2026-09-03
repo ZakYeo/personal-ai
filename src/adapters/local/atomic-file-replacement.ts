@@ -25,18 +25,23 @@ interface AtomicReplaceFileOptions {
 
 export class AtomicFileReplacementError extends Error {
   readonly cleanupCauses: readonly unknown[];
+  readonly outcome: "durability_unknown" | "not_applied";
 
-  constructor(cause: unknown, cleanupCauses: readonly unknown[]) {
+  constructor(
+    cause: unknown,
+    cleanupCauses: readonly unknown[],
+    outcome: "durability_unknown" | "not_applied" = "not_applied",
+  ) {
     super("Atomic file replacement failed.", { cause });
     this.name = "AtomicFileReplacementError";
     this.cleanupCauses = cleanupCauses;
+    this.outcome = outcome;
   }
 }
 
 export async function atomicReplaceFile(
   options: AtomicReplaceFileOptions,
 ): Promise<void> {
-  let directoryHandle: AtomicFileHandle | undefined;
   let temporaryHandle: AtomicFileHandle | undefined;
   let temporaryCreated = false;
   let renamed = false;
@@ -56,28 +61,61 @@ export async function atomicReplaceFile(
     await options.fileSystem.rename(options.temporaryPath, options.targetPath);
     renamed = true;
 
-    directoryHandle = await options.fileSystem.open(
-      dirname(options.targetPath),
-      "r",
-    );
-    await directoryHandle.sync();
-    await directoryHandle.close();
-    directoryHandle = undefined;
+    await syncParentDirectory(options.fileSystem, dirname(options.targetPath));
   } catch (cause) {
     const cleanupCauses = await collectCleanupCauses({
-      ...(directoryHandle ? { directoryHandle } : {}),
       fileSystem: options.fileSystem,
       removeTemporaryFile: temporaryCreated && !renamed,
       ...(temporaryHandle ? { temporaryHandle } : {}),
       temporaryPath: options.temporaryPath,
     });
 
-    throw new AtomicFileReplacementError(cause, cleanupCauses);
+    throw new AtomicFileReplacementError(
+      cause,
+      cleanupCauses,
+      renamed ? "durability_unknown" : "not_applied",
+    );
   }
 }
 
+const parentDirectorySyncAttempts = 3;
+
+async function syncParentDirectory(
+  fileSystem: AtomicFileSystem,
+  directory: string,
+): Promise<void> {
+  const causes: unknown[] = [];
+
+  for (let attempt = 0; attempt < parentDirectorySyncAttempts; attempt += 1) {
+    let handle: AtomicFileHandle | undefined;
+    let failed = false;
+    try {
+      handle = await fileSystem.open(directory, "r");
+      await handle.sync();
+    } catch (cause) {
+      failed = true;
+      causes.push(cause);
+    }
+
+    if (handle) {
+      try {
+        await handle.close();
+      } catch (cause) {
+        failed = true;
+        causes.push(cause);
+      }
+    }
+
+    if (!failed) return;
+  }
+
+  throw new AggregateError(
+    causes,
+    `Parent directory synchronization failed after ${parentDirectorySyncAttempts} attempts.`,
+  );
+}
+
 interface CleanupOptions {
-  directoryHandle?: AtomicFileHandle;
   fileSystem: AtomicFileSystem;
   removeTemporaryFile: boolean;
   temporaryHandle?: AtomicFileHandle;
@@ -90,7 +128,6 @@ async function collectCleanupCauses(
   const cleanupCauses: unknown[] = [];
 
   await collectFailure(() => options.temporaryHandle?.close(), cleanupCauses);
-  await collectFailure(() => options.directoryHandle?.close(), cleanupCauses);
 
   if (options.removeTemporaryFile) {
     await collectFailure(
