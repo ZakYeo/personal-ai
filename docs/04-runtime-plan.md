@@ -442,13 +442,16 @@ voice adapter IDs during composition.
 
 Calendar event grouping is selected independently with
 `features.calendar.eventGrouping.provider`. The checked-in deterministic
-configs use the configless `mock` provider; the desktop OpenAI config selects
-`openai` with its own narrow Responses API configuration and startup credential
-preflight. The provider receives only bounded sanitized event indexes, titles,
-dates, and times. Application validation owns same-day membership, chronology,
-spoken-label safety, and the two-to-four-milestone bound. Provider or validation
-failure retains the full ungrouped calendar answer and records an internal
-diagnostic rather than failing the read.
+configs use the configless `mock` provider, which is also the deterministic
+default when this optional presentation enhancer is omitted; the desktop OpenAI
+config selects `openai` with its own narrow Responses API configuration and
+startup credential preflight. The provider receives only bounded sanitized
+events from dates with multiple results, using their original result indexes.
+Application validation owns same-day membership, chronology, spoken-label
+safety, and the two-to-four-milestone bound, and adapters expose only the typed
+validated result. Provider or validation failure retains the full ungrouped
+calendar answer and records an internal diagnostic rather than failing the
+read.
 
 Desktop voice runtimes must also reject missing desktop command settings for
 selected command-based adapters. Desktop voice command adapters replace

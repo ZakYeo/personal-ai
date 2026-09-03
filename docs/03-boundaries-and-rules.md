@@ -645,12 +645,14 @@ should also guard against subtler boundary and abstraction drift.
   metadata.
 - Calendar presentation removes emoji from event titles before response text,
   protected facts, or result references are built. A separately configured
-  narrow grouping provider receives only a bounded same-day candidate set and
-  may group entries only when they clearly belong to one itinerary; same-date
+  narrow grouping provider receives only bounded entries from dates with
+  multiple results, preserving each entry's original result index, and may
+  group entries only when they clearly belong to one itinerary; same-date
   coincidence is insufficient. Application validation owns group shape,
   membership, chronology, spoken-label safety, and the two-to-four-milestone
-  limit. Invalid output or provider failure preserves the full ungrouped answer
-  and records the cause only as an internal feature diagnostic.
+  limit, and provider adapters return only that validated typed result. Invalid
+  output or provider failure preserves the full ungrouped answer and records
+  the cause only as an internal feature diagnostic.
 - Weather speech defaults to temperature, general conditions, relative
   observation freshness, and only materially notable precipitation or wind.
   Qualitative condition policy distinguishes current observations from

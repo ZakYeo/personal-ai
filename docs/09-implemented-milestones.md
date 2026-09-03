@@ -1122,6 +1122,14 @@ Implemented structure:
 - Google timed starts preserve their event-local wall-clock time behind the
   calendar port; spoken responses protect and render that time naturally, while
   date-only events are explicitly identified as all day.
+- A fresh thermonuclear review of the calendar presentation update was completed
+  and all five findings were remediated: Unicode subdivision-tag emoji are
+  removed, bounded periods require both applicable intent bounds, grouping uses
+  one typed adapter-validated index contract over duplicate-date candidates,
+  generic test config writers no longer mutate their inputs, and configured
+  Google-to-OpenAI grouping plus diagnostic fallback has cross-layer coverage.
+- The final full `npm run check` passed with 1,528 tests passing and 38 opt-in
+  tests skipped; no live provider calls were used as completion evidence.
 
 Ongoing hardening themes to keep checking during future provider work:
 
