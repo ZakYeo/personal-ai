@@ -22,7 +22,7 @@ describe.skipIf(!runOpenAIE2E)("OpenAI weather routing live E2E", () => {
 
     await assistant.handleText("Set my home location to London");
     const current = await assistant.handleText(
-      "Check the weather for my home please",
+      "Check the current weather at my stored home location.",
     );
     const coat = await assistant.handleText(
       "Could I wear a coat if I left now?",
