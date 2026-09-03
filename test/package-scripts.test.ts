@@ -19,6 +19,17 @@ describe("package scripts", () => {
     expect(packageJson.scripts?.["test:file"]).toBe("vitest --run");
   });
 
+  it("provides a packed-artifact CLI smoke command", async () => {
+    const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+
+    expect(packageJson.scripts?.["smoke:package"]).toBe(
+      "npm run build && node scripts/smoke-package.mjs",
+    );
+    expect(packageJson.scripts?.check).toContain("npm run smoke:package");
+  });
+
   it("provides the guided incremental voice corpus capture command", async () => {
     const packageJson = JSON.parse(await readFile("package.json", "utf8")) as {
       scripts?: Record<string, string>;

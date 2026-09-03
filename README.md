@@ -660,6 +660,8 @@ Common development commands:
   stdout.
 - `npm run smoke:desktop-voice:openai` - run the opt-in file-fed desktop voice
   smoke against local openWakeWord and live OpenAI realtime transcription.
+- `npm run smoke:package` - build and pack the publishable artifact, extract it
+  in isolation, and run its declared CLI binary against a deterministic request.
 - `npm run cli -- desktop-voice-once --config config/desktop-voice-demo.json` -
   run the committed command-based desktop voice demo.
 - `npm run cli -- desktop-voice-service --config path/to/desktop-config.json` -
