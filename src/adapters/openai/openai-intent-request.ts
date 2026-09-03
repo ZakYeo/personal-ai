@@ -138,7 +138,7 @@ function createIntentInstructions(
     "Resolve relative dates and times into exact capability parameters using that current time and time zone. When a capability requires an instant, return a canonical UTC ISO timestamp with milliseconds, such as 2026-07-29T08:00:00.000Z.",
     ...(hasCalendarSearch
       ? [
-          "Calendar list requests use a short default window when date bounds are omitted. When the user or conversational context names a date, month, period, or broader horizon, supply exact startDate or endDate parameters instead of relying on that default.",
+          "Calendar list requests use a short default window when date bounds are omitted. When the user or conversational context names a date, month, period, or broader horizon, supply all applicable exact bounds instead of relying on that default: use both startDate and endDate for a bounded month or period, and one bound only for a genuinely open-ended request.",
         ]
       : []),
     "For calendar follow-ups, use calendar.follow_up with an exact opaque reference from the recent result catalog when one is available; never invent a reference.",

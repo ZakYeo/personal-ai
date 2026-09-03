@@ -232,7 +232,10 @@ describe("OpenAIIntentInterpreter", () => {
       "Calendar list requests use a short default window",
     );
     expect(JSON.stringify(body.input)).toContain(
-      "supply exact startDate or endDate parameters",
+      "supply all applicable exact bounds",
+    );
+    expect(JSON.stringify(body.input)).toContain(
+      "both startDate and endDate for a bounded month or period",
     );
 
     expect(body.text.format.schema).toMatchObject({
