@@ -31,8 +31,11 @@ export function createOpenAIWebSearch(
         } satisfies OpenAIWebSearchRequestBody,
         cancelledMessage: "OpenAI web search request was cancelled.",
         config: options.config,
-        createError: ({ cause, message, responseBody, status }) =>
-          new OpenAIWebSearchError(message, status, responseBody, { cause }),
+        createError: ({ cause, message, requestId, responseBody, status }) =>
+          new OpenAIWebSearchError(message, status, responseBody, {
+            cause,
+            ...(requestId ? { requestId } : {}),
+          }),
         env: options.env,
         fetch: options.fetch,
         maxResponseBodyBytes: internetSearchLimits.responseBodyBytes,

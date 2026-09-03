@@ -23,8 +23,11 @@ export function fetchOpenMeteoJson(
   const label = `Open-Meteo ${options.operation}`;
   return fetchProviderJson({
     cancelledMessage: `${label} request was cancelled.`,
-    createError: ({ cause, message, responseBody, status }) =>
-      new OpenMeteoWeatherError(message, status, responseBody, { cause }),
+    createError: ({ cause, message, requestId, responseBody, status }) =>
+      new OpenMeteoWeatherError(message, status, responseBody, {
+        cause,
+        ...(requestId ? { requestId } : {}),
+      }),
     fetch: options.fetch,
     invalidJsonMessage: `${label} response body was not valid JSON.`,
     maxResponseBodyBytes,

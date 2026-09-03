@@ -7,6 +7,7 @@ import {
 interface ProviderJsonErrorOptions {
   cause?: unknown;
   message: string;
+  requestId?: string;
   responseBody?: string;
   status?: number;
 }
@@ -31,6 +32,7 @@ export async function fetchProviderJson(
 ): Promise<unknown> {
   const controller = new AbortController();
   let cancelledByCaller = false;
+  let requestId: string | undefined;
   let timedOut = false;
   const cancelFromCaller = () => {
     if (controller.signal.aborted) return;
@@ -53,6 +55,7 @@ export async function fetchProviderJson(
       ...options.request,
       signal: controller.signal,
     });
+    requestId = response.headers.get("x-request-id") ?? undefined;
     const responseBody = await readBoundedResponseText(
       response,
       controller.signal,
@@ -62,6 +65,7 @@ export async function fetchProviderJson(
     if (!response.ok) {
       throw options.createError({
         message: options.nonOkMessage(response.status),
+        ...(requestId ? { requestId } : {}),
         responseBody,
         status: response.status,
       });
@@ -73,6 +77,7 @@ export async function fetchProviderJson(
       throw options.createError({
         cause: error,
         message: options.invalidJsonMessage,
+        ...(requestId ? { requestId } : {}),
         responseBody,
         status: response.status,
       });
@@ -84,6 +89,7 @@ export async function fetchProviderJson(
         message:
           options.responseBodyTooLargeMessage ??
           "Provider response body exceeded the configured byte limit.",
+        ...(requestId ? { requestId } : {}),
       });
     }
     if (

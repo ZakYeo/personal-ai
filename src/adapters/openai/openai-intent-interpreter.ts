@@ -98,8 +98,11 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
     return requestOpenAIResponse({
       body,
       config: this.options.config,
-      createError: ({ cause, message, responseBody, status }) =>
-        new OpenAIIntentError(message, status, responseBody, { cause }),
+      createError: ({ cause, message, requestId, responseBody, status }) =>
+        new OpenAIIntentError(message, status, responseBody, {
+          cause,
+          ...(requestId ? { requestId } : {}),
+        }),
       env: this.options.env,
       fetch: this.options.fetch,
       operation: "intent",

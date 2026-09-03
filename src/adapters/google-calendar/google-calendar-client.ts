@@ -15,8 +15,11 @@ export async function fetchGoogleCalendarEvents(
   options: FetchGoogleCalendarEventsOptions,
 ): Promise<unknown> {
   return fetchProviderJson({
-    createError: ({ cause, message, responseBody, status }) =>
-      new GoogleCalendarError(message, status, responseBody, { cause }),
+    createError: ({ cause, message, requestId, responseBody, status }) =>
+      new GoogleCalendarError(message, status, responseBody, {
+        cause,
+        ...(requestId ? { requestId } : {}),
+      }),
     fetch: options.fetch,
     invalidJsonMessage:
       "Google Calendar events response body was not valid JSON.",
@@ -41,8 +44,11 @@ export async function fetchGoogleCalendarEvent(options: {
   id: string;
 }): Promise<unknown> {
   return fetchProviderJson({
-    createError: ({ cause, message, responseBody, status }) =>
-      new GoogleCalendarError(message, status, responseBody, { cause }),
+    createError: ({ cause, message, requestId, responseBody, status }) =>
+      new GoogleCalendarError(message, status, responseBody, {
+        cause,
+        ...(requestId ? { requestId } : {}),
+      }),
     fetch: options.fetch,
     invalidJsonMessage:
       "Google Calendar event response body was not valid JSON.",

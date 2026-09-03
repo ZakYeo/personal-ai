@@ -53,6 +53,40 @@ describe("fetchProviderJson", () => {
     );
   });
 
+  it("projects the provider request ID into non-success errors", async () => {
+    let errorOptions: unknown;
+
+    await expect(
+      fetchProviderJson({
+        createError: (options) => {
+          errorOptions = options;
+          return new Error(options.message);
+        },
+        fetch: vi.fn(() =>
+          Promise.resolve(
+            new Response("failure", {
+              headers: { "x-request-id": "request-123" },
+              status: 429,
+            }),
+          ),
+        ),
+        invalidJsonMessage: "invalid json",
+        nonOkMessage: () => "request failed",
+        request: {},
+        timeoutMessage: "request timed out",
+        timeoutMs: 30_000,
+        url: "https://provider.test",
+      }),
+    ).rejects.toThrow("request failed");
+
+    expect(errorOptions).toEqual({
+      message: "request failed",
+      requestId: "request-123",
+      responseBody: "failure",
+      status: 429,
+    });
+  });
+
   it("does not let stalled cancellation hide a declared body limit failure", async () => {
     const cancel = vi.fn(() => new Promise<void>(() => {}));
     const pending = fetchProviderJson({

@@ -1,11 +1,16 @@
-export class OpenMeteoWeatherError extends Error {
+import {
+  ProviderDiagnosticError,
+  type ProviderDiagnosticErrorOptions,
+} from "../provider-diagnostic-error.js";
+
+export class OpenMeteoWeatherError extends ProviderDiagnosticError {
   constructor(
     message: string,
     readonly status?: number,
     readonly responseBody?: string,
-    options?: ErrorOptions,
+    options?: ProviderDiagnosticErrorOptions,
   ) {
-    super(message, options);
+    super(message, status, responseBody, options);
     this.name = "OpenMeteoWeatherError";
   }
 }

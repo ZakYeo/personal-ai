@@ -52,6 +52,7 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
         },
       );
       abortScope.disarmTimeout();
+      const requestId = response.headers.get("x-request-id") ?? undefined;
 
       if (!response.ok) {
         abortScope.armTimeout();
@@ -67,6 +68,7 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
             throw createOpenAIVoiceProviderError({
               cause: error,
               message: `OpenAI speech error response exceeded the ${maximumSpeechErrorResponseBodyBytes}-byte limit.`,
+              ...(requestId ? { requestId } : {}),
               status: response.status,
             });
           }
@@ -76,6 +78,7 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
         }
         throw createOpenAIVoiceProviderError({
           message: `OpenAI speech request failed with status ${response.status}.`,
+          ...(requestId ? { requestId } : {}),
           responseBody,
           status: response.status,
         });

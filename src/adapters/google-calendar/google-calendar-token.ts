@@ -16,8 +16,11 @@ export async function fetchGoogleCalendarAccessToken(
 ): Promise<string> {
   return parseGoogleCalendarTokenResponse(
     await fetchProviderJson({
-      createError: ({ cause, message, responseBody, status }) =>
-        new GoogleCalendarError(message, status, responseBody, { cause }),
+      createError: ({ cause, message, requestId, responseBody, status }) =>
+        new GoogleCalendarError(message, status, responseBody, {
+          cause,
+          ...(requestId ? { requestId } : {}),
+        }),
       fetch: options.fetch,
       invalidJsonMessage:
         "Google Calendar token response body was not valid JSON.",

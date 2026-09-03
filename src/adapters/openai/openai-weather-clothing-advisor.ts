@@ -30,9 +30,10 @@ export class OpenAIWeatherClothingAdvisor implements WeatherClothingAdvisorPort 
       ),
       cancelledMessage: "OpenAI weather clothing advice request was cancelled.",
       config: this.options.config,
-      createError: ({ cause, message, responseBody, status }) =>
+      createError: ({ cause, message, requestId, responseBody, status }) =>
         new OpenAIWeatherClothingAdvisorError(message, status, responseBody, {
           cause,
+          ...(requestId ? { requestId } : {}),
         }),
       env: this.options.env,
       fetch: this.options.fetch,

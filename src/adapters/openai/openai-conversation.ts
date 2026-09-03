@@ -76,8 +76,11 @@ async function fetchConversationOutputText(input: {
   const response = await requestOpenAIResponse({
     body: input.body,
     config: input.options.config,
-    createError: ({ cause, message, responseBody, status }) =>
-      new OpenAIConversationError(message, status, responseBody, { cause }),
+    createError: ({ cause, message, requestId, responseBody, status }) =>
+      new OpenAIConversationError(message, status, responseBody, {
+        cause,
+        ...(requestId ? { requestId } : {}),
+      }),
     env: input.options.env,
     fetch: input.options.fetch,
     operation: "conversation",

@@ -6,6 +6,7 @@ import type { OpenAIResponsesRequestBody } from "./openai-responses-request.js";
 interface OpenAIResponsesErrorOptions {
   cause?: unknown;
   message: string;
+  requestId?: string;
   responseBody?: string;
   status?: number;
 }
