@@ -13,6 +13,7 @@ import {
   type DeterministicFeatureRule,
 } from "../../application/deterministic-feature-rules.js";
 import { defineCapability, defineFeature } from "../../application/feature.js";
+import { sanitizeCalendarEventTitle } from "../../application/calendar-presentation-policy.js";
 import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
 
 const calendarSearchEventsParameters = {
@@ -133,7 +134,9 @@ async function searchEvents(
       },
       { now },
     )
-  ).slice(0, 10);
+  )
+    .slice(0, 10)
+    .map(withSafeCalendarTitle);
   const event = events[0];
 
   if (!event) {
@@ -203,12 +206,13 @@ async function answerCalendarFollowUp(
     );
   }
 
-  const event = await calendar.getEvent(selected.target.providerEventId, {
+  const rawEvent = await calendar.getEvent(selected.target.providerEventId, {
     now: context.clock.now(),
   });
-  if (!event) {
+  if (!rawEvent) {
     return clarify("I could not find that calendar event anymore.");
   }
+  const event = withSafeCalendarTitle(rawEvent);
 
   if (args.detail === "location") {
     const eventFacts = {
@@ -280,6 +284,10 @@ function normalizeQuery(query: string | undefined): string | undefined {
   return normalizedQuery && normalizedQuery.length > 0
     ? normalizedQuery
     : undefined;
+}
+
+function withSafeCalendarTitle(event: CalendarEvent): CalendarEvent {
+  return { ...event, title: sanitizeCalendarEventTitle(event.title) };
 }
 
 function formatEventList(events: CalendarEvent[]): string {

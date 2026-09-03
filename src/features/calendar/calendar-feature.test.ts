@@ -231,6 +231,37 @@ describe("createCalendarFeature", () => {
     );
   });
 
+  it("removes emoji from calendar titles before exposing human-facing facts", async () => {
+    const event = {
+      id: "wedding-ceremony",
+      startAt: "2026-11-13T13:00:00.000Z",
+      startDate: "2026-11-13",
+      startTime: "13:00",
+      title: "💍 Ceremony / 웨딩 세리머니",
+    };
+
+    await expectDecodedFeatureExecution(
+      createCalendarFeature(createFakeCalendar(undefined, [event])),
+      "calendar.search_events",
+      {},
+      {
+        text: "You have 1 upcoming calendar event: Ceremony / 웨딩 세리머니 on 2026-11-13 at 13:00.",
+        data: {
+          eventCount: 1,
+          event0Date: "2026-11-13",
+          event0StartAt: "2026-11-13T13:00:00.000Z",
+          event0Time: "13:00",
+          event0Title: "Ceremony / 웨딩 세리머니",
+        },
+        resultReferences: calendarResultReferences([
+          { ...event, title: "Ceremony / 웨딩 세리머니" },
+        ]),
+        toolObservationData: { eventCount: 1 },
+      },
+      context,
+    );
+  });
+
   it("returns a deterministic no-upcoming-events response", async () => {
     await expectDecodedFeatureExecution(
       createFeature(),
