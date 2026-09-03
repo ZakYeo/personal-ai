@@ -359,7 +359,8 @@ Outcomes:
   provider lookup.
 - Retrieved prompt-like text, URLs, publication times, titles, extracts, and
   answer content are withheld from subsequent intent-provider input. Search
-  capabilities are not eligible as intermediate bounded workflow reads.
+  capabilities are not eligible as intermediate bounded workflow reads, and
+  both initial answers and source follow-ups bypass response rewriting.
 - The OpenAI transport cancels both fetch and response-body reading for runtime
   shutdown, distinguishes cancellation from timeout diagnostics, and stops
   reading as soon as the configured byte limit is exceeded.

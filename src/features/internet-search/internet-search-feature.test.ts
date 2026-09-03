@@ -76,6 +76,7 @@ describe("createInternetSearchFeature", () => {
           ],
           kind: "internet_sources",
         },
+        responseRewrite: "disabled",
         text: "TypeScript 5.7 adds checks for variables that have never been initialized. Source: Announcing TypeScript 5.7.",
       },
       createFeatureContext(),
@@ -100,6 +101,7 @@ describe("createInternetSearchFeature", () => {
       { query: "current answer" },
       {
         resultReferences: { items: [], kind: "internet_sources" },
+        responseRewrite: "disabled",
         text: 'I could not find current sources for "current answer".',
       },
       { ...createFeatureContext(), signal: shutdown.signal },
@@ -118,6 +120,7 @@ describe("createInternetSearchFeature", () => {
           items: [],
           kind: "internet_sources",
         },
+        responseRewrite: "disabled",
         text: 'I could not find current sources for "no results".',
       },
     );
@@ -254,6 +257,7 @@ describe("createInternetSearchFeature", () => {
           ],
           kind: "internet_sources",
         },
+        responseRewrite: "disabled",
         text: "The answer is forty-two details Source: Current source.",
       },
     );
@@ -300,6 +304,7 @@ describe("createInternetSearchFeature", () => {
           ],
           kind: "internet_sources",
         },
+        responseRewrite: "disabled",
         text: "Current answer Source: Current source, updated 10am today in London time.",
       },
     );
@@ -351,6 +356,7 @@ describe("createInternetSearchFeature", () => {
           ],
           kind: "internet_sources",
         },
+        responseRewrite: "disabled",
         text: "First line. Second line Source: Current source.",
       },
     );
@@ -454,6 +460,7 @@ describe("createInternetSearchFeature", () => {
           title: "Announcing TypeScript 5.7",
           url: "https://devblogs.microsoft.com/typescript/announcing-typescript-5-7/",
         },
+        responseRewrite: "disabled",
         text: "Announcing TypeScript 5.7: TypeScript 5.7 adds checks for variables that have never been initialized.",
       },
       {
@@ -483,6 +490,7 @@ describe("createInternetSearchFeature", () => {
       {},
       {
         expectsFollowUp: true,
+        responseRewrite: "disabled",
         text: "I am not sure which recent internet source you mean.",
       },
     );
@@ -504,6 +512,7 @@ describe("createInternetSearchFeature", () => {
           title: "Current source",
           url: "https://example.com/current",
         },
+        responseRewrite: "disabled",
         text: "Current source was cited in the recent answer.",
       },
       {
@@ -540,6 +549,7 @@ describe("createInternetSearchFeature", () => {
           title: "Source one",
           url: "https://example.com/current",
         },
+        responseRewrite: "disabled",
         text: "Source one: Useful details.",
       },
       {

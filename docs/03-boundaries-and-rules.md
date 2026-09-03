@@ -648,6 +648,9 @@ should also guard against subtler boundary and abstraction drift.
   weather facts and attribution, while the cause remains an internal feature
   diagnostic. It does not retry through the retired category policy.
 - Internet search is terminal-only rather than an intent tool-chain read.
+  Initial search answers and source follow-ups bypass general response rewriting
+  because a second model pass cannot deterministically preserve synthesized
+  source-grounded claims.
   Later intent interpretation may receive only opaque source ordinals and
   references, never retrieved titles, URLs, extracts, dates, or synthesized
   answer text.

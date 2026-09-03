@@ -133,6 +133,7 @@ async function executeSearch(
         items: [],
         kind: "internet_sources" as const,
       },
+      responseRewrite: "disabled" as const,
       text: `I could not find current sources for "${query}".`,
     };
   }
@@ -142,6 +143,7 @@ async function executeSearch(
     citations: createAssistantCitations(humanSources),
     data: createProtectedSearchFacts(response),
     resultReferences: createResultReferences(humanSources),
+    responseRewrite: "disabled" as const,
     text: formatCitedAnswer(response, humanSources, context),
   };
 }
@@ -221,6 +223,7 @@ function answerSearchFollowUp(
   if (!selected || selected.publicReference.kind !== "internet_source") {
     return {
       expectsFollowUp: true,
+      responseRewrite: "disabled" as const,
       text: "I am not sure which recent internet source you mean.",
     };
   }
@@ -233,6 +236,7 @@ function answerSearchFollowUp(
   return {
     citations: [{ title, url: facts.url }],
     data: { ...facts, ...(extract ? { extract } : {}), title },
+    responseRewrite: "disabled" as const,
     text: extract
       ? `${title}: ${extract}`
       : `${title} was cited in the recent answer.`,
