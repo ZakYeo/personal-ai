@@ -118,6 +118,38 @@ describe("weather clothing capability", () => {
     });
   });
 
+  it("uses current observations when the exact current instant is supplied", async () => {
+    const provider = createWeatherProviderFixture();
+    const adviser = createAdviser();
+    const advise = vi.spyOn(adviser, "advise");
+
+    const result = await executeFeature(
+      createTestFeature(provider, adviser),
+      "weather.coat",
+      {
+        location: "London",
+        startAt: "2026-07-28T12:00:00.000Z",
+      },
+      context,
+    );
+
+    expect(advise).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conditions: [
+          expect.objectContaining({
+            at: "2026-07-28T12:00:00.000Z",
+            temperature: 21,
+          }),
+        ],
+      }),
+      {},
+    );
+    expect(result.data).toMatchObject({
+      requestedPeriodStartAt: "2026-07-28T12:00:00.000Z",
+      selected0At: "2026-07-28T12:00:00.000Z",
+    });
+  });
+
   it("queries around a future point and selects the nearest hourly forecast", async () => {
     const provider = createWeatherProviderFixture();
     const getForecast = vi.spyOn(provider, "getForecast");

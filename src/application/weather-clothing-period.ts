@@ -16,7 +16,10 @@ export function createWeatherClothingPeriodPlan(
   if (args.endAt !== undefined && args.startAt === undefined) {
     throw new Error("Weather clothing endAt requires startAt.");
   }
-  if (args.startAt === undefined) {
+  if (
+    args.startAt === undefined ||
+    (args.endAt === undefined && args.startAt === now.toISOString())
+  ) {
     const timestamp = now.toISOString();
     const period = { endAt: timestamp, startAt: timestamp };
     return { mode: "current", queryPeriod: period, requestedPeriod: period };
