@@ -439,8 +439,10 @@ operator diagnostics while returning safe fallback text. Adapter errors expose
 a typed operator projection rather than relying on reflective error fields.
 Command projections contain bounded stdout/stderr tails and truncation flags;
 provider projections contain only safe status, request ID, and response-body
-size metadata, never raw bodies or realtime events. Runtime logging escapes each
-tail onto one line and ignores malformed or untyped lookalike fields.
+size metadata, never raw bodies or realtime events. Runtime logging JSON-quotes
+approved strings and escapes C1 controls and Unicode line/paragraph separators
+so every projected field stays on one physical line; malformed or untyped
+lookalike fields are ignored.
 Each child receives an explicit minimal environment. Runtime composition may
 forward safe process settings such as `PATH` and may pass a credential only
 when that specific command declares it in `environmentAllowlist`; recorder,

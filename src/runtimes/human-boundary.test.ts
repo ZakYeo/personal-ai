@@ -133,4 +133,46 @@ describe("assistant diagnostic logging", () => {
     ]);
     expect(stderr.writes.join("")).not.toContain('{"private":"body"}');
   });
+
+  it("escapes Unicode line controls in approved diagnostic strings", () => {
+    const stderr = createCapturedWriter();
+    const projectedError = Object.assign(new Error("projected failure"), {
+      operatorDiagnostic: {
+        kind: "command",
+        stderr: {
+          tail: "before\u0085middle\u2028next\u2029after",
+          truncated: false,
+        },
+      },
+    });
+    const providerError = Object.assign(new Error("provider failure"), {
+      operatorDiagnostic: {
+        kind: "provider",
+        requestId: "request\u2028middle\u2029end",
+      },
+    });
+
+    logAssistantDiagnostics(
+      [
+        {
+          category: "feature_failure",
+          cause: projectedError,
+          message: "command failed",
+        },
+        {
+          category: "unexpected",
+          cause: providerError,
+          message: "provider failed",
+        },
+      ],
+      { stderr },
+    );
+
+    expect(stderr.writes).toContain(
+      'Feature failure cause command stderr tail: "before\\u0085middle\\u2028next\\u2029after"\n',
+    );
+    expect(stderr.writes).toContain(
+      'Unexpected assistant failure cause provider request ID: "request\\u2028middle\\u2029end"\n',
+    );
+  });
 });

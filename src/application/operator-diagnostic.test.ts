@@ -1,4 +1,7 @@
-import { readOperatorDiagnosticProjection } from "./operator-diagnostic.js";
+import {
+  quoteOperatorDiagnosticString,
+  readOperatorDiagnosticProjection,
+} from "./operator-diagnostic.js";
 
 describe("readOperatorDiagnosticProjection", () => {
   it("bounds command tails and preserves truncation metadata", () => {
@@ -51,5 +54,11 @@ describe("readOperatorDiagnosticProjection", () => {
         stderr: "private",
       }),
     ).toBeUndefined();
+  });
+
+  it("quotes control characters and Unicode line separators on one line", () => {
+    expect(
+      quoteOperatorDiagnosticString("before\u0085middle\u2028next\u2029after"),
+    ).toBe('"before\\u0085middle\\u2028next\\u2029after"');
   });
 });

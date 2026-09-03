@@ -3,7 +3,10 @@ import type {
   AssistantDiagnosticCategory,
   AssistantResponse,
 } from "../ports/assistant.js";
-import { readOperatorDiagnosticProjection } from "../application/operator-diagnostic.js";
+import {
+  quoteOperatorDiagnosticString,
+  readOperatorDiagnosticProjection,
+} from "../application/operator-diagnostic.js";
 
 interface HumanBoundaryIo {
   stderr?: { write(chunk: string): boolean | void };
@@ -87,7 +90,7 @@ function formatDiagnosticFields(error: unknown, prefix: string): string[] {
         : [`${prefix} provider status: ${projection.status}\n`]),
       ...(projection.requestId
         ? [
-            `${prefix} provider request ID: ${JSON.stringify(projection.requestId)}\n`,
+            `${prefix} provider request ID: ${quoteOperatorDiagnosticString(projection.requestId)}\n`,
           ]
         : []),
       ...(projection.responseBodyBytes === undefined
@@ -117,6 +120,6 @@ function formatCommandTail(
   if (!output || output.tail.length === 0) return [];
   const truncation = output.truncated ? " (truncated)" : "";
   return [
-    `${prefix} command ${label} tail${truncation}: ${JSON.stringify(output.tail)}\n`,
+    `${prefix} command ${label} tail${truncation}: ${quoteOperatorDiagnosticString(output.tail)}\n`,
   ];
 }

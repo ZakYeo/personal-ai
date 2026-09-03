@@ -7,6 +7,14 @@ import { containsControlCharacters } from "./text-safety.js";
 const maximumCommandTailCharacters = 2_000;
 const maximumRequestIdCharacters = 256;
 
+export function quoteOperatorDiagnosticString(value: string): string {
+  return JSON.stringify(value).replace(
+    /[\u007f-\u009f\u2028\u2029]/gu,
+    (character) =>
+      `\\u${character.codePointAt(0)!.toString(16).padStart(4, "0")}`,
+  );
+}
+
 export function readOperatorDiagnosticProjection(
   value: unknown,
 ): OperatorDiagnosticProjection | undefined {
