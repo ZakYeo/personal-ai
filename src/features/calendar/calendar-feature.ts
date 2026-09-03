@@ -8,12 +8,19 @@ import type {
   CalendarEvent,
   CalendarSearchPort,
 } from "../../ports/calendar.js";
+import type {
+  CalendarEventGroup,
+  CalendarEventGrouperPort,
+  CalendarEventGrouping,
+  CalendarEventGroupingInput,
+} from "../../ports/calendar-event-grouper.js";
 import {
   defineDeterministicFeatureRules,
   type DeterministicFeatureRule,
 } from "../../application/deterministic-feature-rules.js";
 import { defineCapability, defineFeature } from "../../application/feature.js";
 import { sanitizeCalendarEventTitle } from "../../application/calendar-presentation-policy.js";
+import { parseCalendarEventGrouping } from "../../application/calendar-event-grouping-policy.js";
 import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
 
 const calendarSearchEventsParameters = {
@@ -36,6 +43,7 @@ type CalendarFollowUpArgs = FeatureArgsFromParameters<
 >;
 
 interface CalendarFeatureOptions {
+  eventGrouper?: CalendarEventGrouperPort;
   upcomingWindowDays?: number;
 }
 
@@ -103,7 +111,10 @@ export function createCalendarFeature(
           toolChain: "read",
           parameters: calendarSearchEventsParameters,
           execute: async (request, context) =>
-            searchEvents(calendar, request.args, context.clock.now(), {
+            searchEvents(calendar, request.args, context, {
+              ...(options.eventGrouper
+                ? { eventGrouper: options.eventGrouper }
+                : {}),
               upcomingWindowDays,
             }),
         }),
@@ -116,9 +127,10 @@ export function createCalendarFeature(
 async function searchEvents(
   calendar: CalendarSearchPort,
   args: CalendarSearchEventsArgs,
-  now: Date,
-  options: Required<CalendarFeatureOptions>,
+  context: FeatureExecutionContext,
+  options: CalendarFeatureOptions & { upcomingWindowDays: number },
 ) {
+  const now = context.clock.now();
   const query = normalizeQuery(args.query);
   const endDate =
     args.endDate ??
@@ -156,14 +168,7 @@ async function searchEvents(
   }
 
   if (query === undefined) {
-    const eventLabel = events.length === 1 ? "event" : "events";
-
-    return {
-      text: `You have ${events.length} upcoming calendar ${eventLabel}: ${formatEventList(events)}.`,
-      data: createUpcomingEventFacts(events),
-      resultReferences: createResultReferences(events),
-      toolObservationData: { eventCount: events.length },
-    };
+    return presentUpcomingEvents(events, options.eventGrouper, context);
   }
 
   const eventFacts = {
@@ -178,6 +183,49 @@ async function searchEvents(
     resultReferences: createResultReferences([event]),
     toolObservationData: eventFacts,
   };
+}
+
+async function presentUpcomingEvents(
+  events: CalendarEvent[],
+  eventGrouper: CalendarEventGrouperPort | undefined,
+  context: FeatureExecutionContext,
+) {
+  const baseResult = {
+    data: createUpcomingEventFacts(events),
+    resultReferences: createResultReferences(events),
+    toolObservationData: { eventCount: events.length },
+  };
+  if (!eventGrouper || !hasSameDateCandidates(events)) {
+    return { ...baseResult, text: formatUngroupedEventList(events) };
+  }
+
+  const input = createGroupingInput(events);
+  try {
+    const grouping = parseCalendarEventGrouping(
+      await eventGrouper.group(
+        input,
+        context.signal ? { signal: context.signal } : {},
+      ),
+      input.events,
+    );
+    if (grouping.groups.length === 0) {
+      return { ...baseResult, text: formatUngroupedEventList(events) };
+    }
+    return {
+      ...baseResult,
+      data: {
+        ...baseResult.data,
+        ...createGroupingFacts(events, grouping),
+      },
+      text: formatGroupedEventList(events, grouping),
+    };
+  } catch (cause) {
+    return {
+      ...baseResult,
+      diagnostics: [{ cause, message: "Calendar event grouping failed." }],
+      text: formatUngroupedEventList(events),
+    };
+  }
 }
 
 async function answerCalendarFollowUp(
@@ -278,6 +326,38 @@ function createUpcomingEventFacts(
   return facts;
 }
 
+function createGroupingInput(
+  events: readonly CalendarEvent[],
+): CalendarEventGroupingInput {
+  return {
+    events: events.map((event, index) => ({
+      index,
+      startDate: event.startDate,
+      ...(event.startTime ? { startTime: event.startTime } : {}),
+      title: event.title,
+    })),
+  };
+}
+
+function createGroupingFacts(
+  events: readonly CalendarEvent[],
+  grouping: CalendarEventGrouping,
+): Record<string, string | number> {
+  const facts: Record<string, string | number> = {};
+  grouping.groups.forEach((group, groupIndex) => {
+    facts[`group${groupIndex}Date`] = events[group.eventIndexes[0]!]!.startDate;
+    facts[`group${groupIndex}Theme`] = group.theme;
+    group.milestones.forEach((milestone, milestoneIndex) => {
+      const event = events[milestone.eventIndex]!;
+      facts[`group${groupIndex}Milestone${milestoneIndex}Label`] =
+        milestone.label;
+      facts[`group${groupIndex}Milestone${milestoneIndex}Time`] =
+        event.startTime ?? "all day";
+    });
+  });
+  return facts;
+}
+
 function normalizeQuery(query: string | undefined): string | undefined {
   const normalizedQuery = query?.trim().toLowerCase();
 
@@ -294,6 +374,60 @@ function formatEventList(events: CalendarEvent[]): string {
   return events
     .map((event) => `${event.title} ${formatEventStart(event)}`)
     .join(", ");
+}
+
+function formatUngroupedEventList(events: CalendarEvent[]): string {
+  const eventLabel = events.length === 1 ? "event" : "events";
+  return `You have ${events.length} upcoming calendar ${eventLabel}: ${formatEventList(events)}.`;
+}
+
+function formatGroupedEventList(
+  events: CalendarEvent[],
+  grouping: CalendarEventGrouping,
+): string {
+  const groupByFirstIndex = new Map(
+    grouping.groups.map((group) => [group.eventIndexes[0]!, group]),
+  );
+  const groupedIndexes = new Set(
+    grouping.groups.flatMap(({ eventIndexes }) => eventIndexes),
+  );
+  const items = events.flatMap((event, index) => {
+    const group = groupByFirstIndex.get(index);
+    if (group) return [formatEventGroup(events, group)];
+    return groupedIndexes.has(index)
+      ? []
+      : [`${event.title} ${formatEventStart(event)}`];
+  });
+  return `Your upcoming calendar includes ${formatNaturalList(items)}.`;
+}
+
+function formatEventGroup(
+  events: readonly CalendarEvent[],
+  group: CalendarEventGroup,
+): string {
+  const date = events[group.eventIndexes[0]!]!.startDate;
+  const milestones = group.milestones.map((milestone) => {
+    const event = events[milestone.eventIndex]!;
+    return event.startTime
+      ? `${milestone.label} at ${event.startTime}`
+      : `${milestone.label}, all day`;
+  });
+  return `${group.theme} on ${date}: ${formatNaturalList(milestones)}`;
+}
+
+function formatNaturalList(values: readonly string[]): string {
+  if (values.length < 2) return values[0] ?? "";
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
+}
+
+function hasSameDateCandidates(events: readonly CalendarEvent[]): boolean {
+  const seenDates = new Set<string>();
+  return events.some((event) => {
+    if (seenDates.has(event.startDate)) return true;
+    seenDates.add(event.startDate);
+    return false;
+  });
 }
 
 function formatEventStart(event: CalendarEvent): string {

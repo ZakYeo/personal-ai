@@ -4,6 +4,7 @@ import type {
   CalendarSearchCriteria,
   CalendarSearchPort,
 } from "../../ports/calendar.js";
+import type { FeaturePlugin } from "../../ports/feature.js";
 import {
   createFeatureContext,
   expectDecodedFeatureExecution,
@@ -262,6 +263,160 @@ describe("createCalendarFeature", () => {
     );
   });
 
+  it("summarizes clearly connected same-day entries with key milestones", async () => {
+    const events: CalendarEvent[] = [
+      calendarEvent(
+        "arrival",
+        "12:30",
+        "💒 Guest Arrival & Welcome Drinks 하객 도착",
+      ),
+      calendarEvent("ceremony", "13:00", "💍 Ceremony / 웨딩 세리머니"),
+      calendarEvent(
+        "drinks",
+        "13:30",
+        "🥂 Drinks Reception & Canapés / 리셉션 & 카나페",
+      ),
+      calendarEvent(
+        "breakfast",
+        "15:20",
+        "🍽️ Wedding Breakfast & Speeches / 웨딩 만찬 & 축사",
+      ),
+      calendarEvent(
+        "reception",
+        "19:10",
+        "🎉 Evening Reception / 이브닝 리셉션",
+      ),
+      calendarEvent("buffet", "21:00", "🍽️ Evening Buffet / 이브닝 뷔페"),
+    ];
+    const eventGrouper = {
+      group: vi.fn(() =>
+        Promise.resolve({
+          groups: [
+            {
+              eventIndexes: [0, 1, 2, 3, 4, 5],
+              milestones: [
+                { eventIndex: 0, label: "guest arrival" },
+                { eventIndex: 1, label: "the ceremony" },
+                { eventIndex: 3, label: "the wedding breakfast" },
+                { eventIndex: 4, label: "the evening reception" },
+              ],
+              theme: "the wedding",
+            },
+          ],
+        }),
+      ),
+    };
+
+    const result = await executeCalendarSearch(
+      createCalendarFeature(createFakeCalendar(undefined, events), {
+        eventGrouper,
+      }),
+    );
+
+    expect(result).toMatchObject({
+      data: {
+        eventCount: 6,
+        group0Date: "2026-11-13",
+        group0Milestone0Label: "guest arrival",
+        group0Milestone0Time: "12:30",
+        group0Milestone1Label: "the ceremony",
+        group0Milestone1Time: "13:00",
+        group0Milestone2Label: "the wedding breakfast",
+        group0Milestone2Time: "15:20",
+        group0Milestone3Label: "the evening reception",
+        group0Milestone3Time: "19:10",
+        group0Theme: "the wedding",
+      },
+      text: "Your upcoming calendar includes the wedding on 2026-11-13: guest arrival at 12:30, the ceremony at 13:00, the wedding breakfast at 15:20, and the evening reception at 19:10.",
+    });
+    expect(eventGrouper.group).toHaveBeenCalledWith(
+      {
+        events: events.map((event, index) => ({
+          index,
+          startDate: event.startDate,
+          startTime: event.startTime,
+          title: event.title.replace(
+            /^\p{Extended_Pictographic}\uFE0F?\s*/u,
+            "",
+          ),
+        })),
+      },
+      {},
+    );
+    expect(result.resultReferences).toEqual(
+      calendarResultReferences(
+        events.map((event) => ({
+          ...event,
+          title: event.title.replace(
+            /^\p{Extended_Pictographic}\uFE0F?\s*/u,
+            "",
+          ),
+        })),
+      ),
+    );
+  });
+
+  it("leaves unrelated same-day entries separate when the grouper returns no groups", async () => {
+    const events = [
+      calendarEvent("dentist", "10:00", "Dentist"),
+      calendarEvent("concert", "19:00", "Mac DeMarco"),
+    ];
+    const eventGrouper = {
+      group: vi.fn(() => Promise.resolve({ groups: [] })),
+    };
+
+    const result = await executeCalendarSearch(
+      createCalendarFeature(createFakeCalendar(undefined, events), {
+        eventGrouper,
+      }),
+    );
+
+    expect(result.text).toBe(
+      "You have 2 upcoming calendar events: Dentist on 2026-11-13 at 10:00, Mac DeMarco on 2026-11-13 at 19:00.",
+    );
+  });
+
+  it("falls back to complete ungrouped results with a non-fatal diagnostic", async () => {
+    const events = [
+      calendarEvent("arrival", "12:30", "Guest arrival"),
+      calendarEvent("ceremony", "13:00", "Ceremony"),
+    ];
+    const cause = new Error("grouping transport failed");
+
+    const result = await executeCalendarSearch(
+      createCalendarFeature(createFakeCalendar(undefined, events), {
+        eventGrouper: {
+          group: () => Promise.reject(cause),
+        },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      diagnostics: [{ cause, message: "Calendar event grouping failed." }],
+      resultReferences: calendarResultReferences(events),
+      text: "You have 2 upcoming calendar events: Guest arrival on 2026-11-13 at 12:30, Ceremony on 2026-11-13 at 13:00.",
+    });
+  });
+
+  it("does not call the grouper without same-day candidates", async () => {
+    const group = vi.fn(() => Promise.resolve({ groups: [] }));
+    const events = [
+      calendarEvent("dentist", "10:00", "Dentist"),
+      {
+        ...calendarEvent("concert", "19:00", "Mac DeMarco"),
+        startDate: "2026-11-14",
+      },
+    ];
+
+    await executeCalendarSearch(
+      createCalendarFeature(createFakeCalendar(undefined, events), {
+        eventGrouper: { group },
+      }),
+    );
+
+    expect(group).not.toHaveBeenCalled();
+  });
+
   it("returns a deterministic no-upcoming-events response", async () => {
     await expectDecodedFeatureExecution(
       createFeature(),
@@ -456,4 +611,33 @@ function calendarResultReferences(
     })),
     kind: "calendar_events" as const,
   };
+}
+
+function calendarEvent(
+  id: string,
+  startTime: string,
+  title: string,
+): CalendarEvent {
+  return {
+    id,
+    startAt: `2026-11-13T${startTime}:00.000Z`,
+    startDate: "2026-11-13",
+    startTime,
+    title,
+  };
+}
+
+function executeCalendarSearch(feature: FeaturePlugin) {
+  return feature.execute(
+    {
+      capability: "calendar.search_events",
+      command: {
+        capability: "calendar.search_events",
+        parameters: {},
+        rawText: "check my calendar",
+      },
+      args: {},
+    },
+    context,
+  );
 }
