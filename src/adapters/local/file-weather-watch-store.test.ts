@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { createDurabilityUnknownStateFileSystem } from "../../test-support/local-json-state.js";
 
 import {
   createActiveWeatherWatch,
@@ -14,6 +15,22 @@ import {
 } from "./file-weather-watch-store.js";
 
 describe("createFileWeatherWatchStore", () => {
+  it("returns a created watch after reconciling a durability-unknown replacement", async () => {
+    const createId = vi.fn(() => "weather-watch-reconciled");
+    const store = createFileWeatherWatchStore({
+      createId,
+      filePath: "/state/weather-watches.json",
+      fileSystem: createDurabilityUnknownStateFileSystem(),
+      now: () => weatherWatchNow,
+    });
+
+    await expect(store.add(createNewWeatherWatch())).resolves.toMatchObject({
+      id: "weather-watch-reconciled",
+    });
+    await expect(store.list()).resolves.toHaveLength(1);
+    expect(createId).toHaveBeenCalledTimes(1);
+  });
+
   it("persists versioned state across instances with restrictive modes", async () => {
     const directory = await mkdtemp(
       join(tmpdir(), "personal-ai-weather-watches-"),
@@ -227,6 +244,7 @@ describe("createFileWeatherWatchStore", () => {
     const atomicFailure = new AtomicFileReplacementError(
       new Error("private primary detail"),
       [cleanupFailure],
+      "not_applied",
     );
     const store = createFileWeatherWatchStore({
       createId: () => "weather-watch-1",

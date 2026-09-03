@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { createDurabilityUnknownStateFileSystem } from "../../test-support/local-json-state.js";
 
 import { AtomicFileReplacementError } from "./atomic-file-replacement.js";
 import {
@@ -11,6 +12,19 @@ import {
 const now = new Date("2026-08-05T12:00:00.000Z");
 
 describe("createFileProfileStore", () => {
+  it("returns a saved fact after reconciling a durability-unknown replacement", async () => {
+    const store = createFileProfileStore({
+      filePath: "/state/profile.json",
+      fileSystem: createDurabilityUnknownStateFileSystem(),
+      now: () => now,
+    });
+
+    await expect(
+      store.set({ field: "preferredName", value: "Zak" }),
+    ).resolves.toMatchObject({ field: "preferredName", value: "Zak" });
+    await expect(store.list()).resolves.toHaveLength(1);
+  });
+
   it("persists versioned profile state across instances with restrictive modes", async () => {
     const directory = await mkdtemp(join(tmpdir(), "personal-ai-profile-"));
     const filePath = join(directory, "state", "profile.json");
@@ -104,6 +118,7 @@ describe("createFileProfileStore", () => {
     const atomicFailure = new AtomicFileReplacementError(
       new Error("private primary detail"),
       [cleanupFailure],
+      "not_applied",
     );
     const store = createFileProfileStore({
       filePath: "/state/profile.json",

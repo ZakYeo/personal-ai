@@ -570,11 +570,14 @@ should also guard against subtler boundary and abstraction drift.
   temporary file. Durable success requires syncing temporary contents before
   replacement and syncing the parent directory afterward. Parent-directory
   synchronization is retried three times after replacement. Exhausted retries
-  classify the write as durability-unknown rather than not applied. Missing
-  state may initialize an empty store, but malformed, unreadable, or unsupported
-  existing state must fail with its cause preserved for runtime diagnostics.
-  Cleanup failures remain secondary to the primary persistence failure but must
-  remain available to diagnostics rather than being discarded.
+  classify the write as durability-unknown rather than not applied; JSON state
+  stores reconcile the exact intended document against the process-visible
+  target before reporting success. A mismatch or unreadable target remains an
+  explicit outcome-unknown failure. Missing state may initialize an empty store,
+  but malformed, unreadable, or unsupported existing state must fail with its
+  cause preserved for runtime diagnostics. Cleanup failures remain secondary to
+  the primary persistence failure but must remain available to diagnostics
+  rather than being discarded.
 - Profile persistence stores only explicit user-authored facts in its first
   version: preferred name, birth date, pronouns, home timezone, home location,
   interests, and response style. It retains provenance and timestamps and

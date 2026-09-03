@@ -1,6 +1,7 @@
 import { mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { createDurabilityUnknownStateFileSystem } from "../../test-support/local-json-state.js";
 
 import {
   createFileTaskStore,
@@ -10,6 +11,23 @@ import {
 const initialTime = new Date("2026-07-28T09:00:00.000Z");
 
 describe("createFileTaskStore", () => {
+  it("returns a created list after reconciling a durability-unknown replacement", async () => {
+    const createListId = vi.fn(() => "task-list-reconciled");
+    const store = createFileTaskStore({
+      createListId,
+      filePath: "/state/tasks.json",
+      fileSystem: createDurabilityUnknownStateFileSystem(),
+      now: () => initialTime,
+    });
+
+    await expect(store.addList({ name: "To-do" })).resolves.toMatchObject({
+      id: "task-list-reconciled",
+      name: "To-do",
+    });
+    await expect(store.listLists()).resolves.toHaveLength(1);
+    expect(createListId).toHaveBeenCalledTimes(1);
+  });
+
   it("persists versioned task state across instances with restrictive modes", async () => {
     const directory = await mkdtemp(join(tmpdir(), "personal-ai-tasks-"));
     const filePath = join(directory, "state", "tasks.json");

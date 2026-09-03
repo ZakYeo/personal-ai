@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { basename, dirname, join } from "node:path";
 
 import { isRecord } from "../parsing.js";
+import { AtomicFileReplacementError } from "./atomic-file-replacement.js";
 
 export interface LocalJsonStateFileSystem {
   mkdir(
@@ -35,6 +36,27 @@ interface WriteLocalJsonStateOptions<TState> {
   state: TState;
 }
 
+export class LocalJsonStateWriteOutcomeUnknownError extends Error {
+  readonly reconciliationCause: unknown;
+  readonly replacementCause: AtomicFileReplacementError;
+
+  constructor(
+    message: string,
+    replacementCause: AtomicFileReplacementError,
+    reconciliationCause: unknown,
+  ) {
+    super(`${message} The write outcome is unknown.`, {
+      cause: new AggregateError(
+        [replacementCause, reconciliationCause],
+        "Replacement and reconciliation both failed.",
+      ),
+    });
+    this.name = "LocalJsonStateWriteOutcomeUnknownError";
+    this.reconciliationCause = reconciliationCause;
+    this.replacementCause = replacementCause;
+  }
+}
+
 export async function readLocalJsonState<TState>(
   options: ReadLocalJsonStateOptions<TState>,
 ): Promise<TState> {
@@ -63,6 +85,7 @@ export async function writeLocalJsonState<TState>(
   options: WriteLocalJsonStateOptions<TState>,
 ): Promise<void> {
   const directory = dirname(options.filePath);
+  const contents = `${JSON.stringify(options.state)}\n`;
   const temporaryPath = join(
     directory,
     `.${basename(options.filePath)}.${randomUUID()}.tmp`,
@@ -73,11 +96,34 @@ export async function writeLocalJsonState<TState>(
       recursive: true,
     });
     await options.fileSystem.replaceFile({
-      contents: `${JSON.stringify(options.state)}\n`,
+      contents,
       targetPath: options.filePath,
       temporaryPath,
     });
   } catch (cause) {
+    if (
+      cause instanceof AtomicFileReplacementError &&
+      cause.outcome === "durability_unknown"
+    ) {
+      let reconciliationCause: unknown;
+      try {
+        const visibleContents = await options.fileSystem.readFile(
+          options.filePath,
+          { maxBytes: new TextEncoder().encode(contents).byteLength + 1 },
+        );
+        if (visibleContents === contents) return;
+        reconciliationCause = new Error(
+          "Process-visible state did not match the intended document.",
+        );
+      } catch (error) {
+        reconciliationCause = error;
+      }
+      throw new LocalJsonStateWriteOutcomeUnknownError(
+        options.persistenceFailureMessage,
+        cause,
+        reconciliationCause,
+      );
+    }
     throw new Error(options.persistenceFailureMessage, { cause });
   }
 }
