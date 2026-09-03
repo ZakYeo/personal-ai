@@ -34,7 +34,10 @@ import {
 } from "./plan-confirmation.js";
 import { createSemanticallyValidatedIntentSession } from "./intent-semantic-validation.js";
 import { validateAssistantPlan } from "./plan-validation.js";
-import type { ResultReferenceSession } from "./result-reference-session.js";
+import {
+  createWorkflowResultReferenceSession,
+  type ResultReferenceSession,
+} from "./result-reference-session.js";
 import {
   createToolChainState,
   rejectToolChain,
@@ -65,6 +68,9 @@ export function createIntentWorkflow(input: {
   const context = createContext(input.dependencies, input.signal);
   let session: IntentInterpreterSession | undefined;
   const toolChain = createToolChainState();
+  const resultReferences = createWorkflowResultReferenceSession(
+    input.dependencies.resultReferences,
+  );
   let clarificationUsed = false;
 
   return { run };
@@ -108,7 +114,7 @@ export function createIntentWorkflow(input: {
               context,
               dependencies: input.dependencies,
               normalizedText: activeUserText,
-              resultReferences: input.dependencies.resultReferences,
+              resultReferences,
               step,
             }),
           initial: current,
@@ -197,7 +203,7 @@ export function createIntentWorkflow(input: {
       await executeValidatedPlan(
         plan,
         input.dependencies,
-        input.dependencies.resultReferences,
+        resultReferences,
         context.signal,
         {
           ...(input.dependencies.personalization
@@ -368,7 +374,7 @@ export function createIntentWorkflow(input: {
   function trustedContext(): AssistantContext {
     return createTrustedCommandContext(
       context,
-      input.dependencies.resultReferences,
+      resultReferences,
       activeUserText,
     );
   }
@@ -379,6 +385,7 @@ export function createIntentWorkflow(input: {
   }
 
   function decorate(outcome: AssistantOutcome): AssistantOutcome {
+    resultReferences.commitDisplayed();
     const withTrace = withToolChainOutcome(outcome, toolChain);
     const diagnostics = [
       ...(withTrace.diagnostics ?? []),

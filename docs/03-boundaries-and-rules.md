@@ -189,6 +189,10 @@ List reads cap displayed records and report total and visible counts.
 
 Intermediate reads are provider observations rather than final human answers,
 so they must bypass response rewriting. The core intent-workflow transaction
+keeps their result references in a private overlay for confirmation and
+clarification continuation. It commits only sets returned by a successful
+terminal response that displays them; rejected observations and hidden read
+sets cannot become later-turn assistant state. The workflow transaction also
 must retain completed-read metadata and normalize initial, continuation, and
 clarification-resume provider failures into a safe outcome with internal
 `unexpected` diagnostics. Those diagnostics stay out of tool observations and

@@ -13,6 +13,9 @@ import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
 
 export interface ResultReferenceSession {
   completeTurn(): void;
+  display(
+    resultSet: FeatureResultReferenceSet,
+  ): readonly AssistantResultReference[];
   invalidateForCompaction(): void;
   publicReferences(): readonly AssistantResultReference[];
   select(
@@ -21,6 +24,10 @@ export interface ResultReferenceSession {
   retain(
     resultSet: FeatureResultReferenceSet,
   ): readonly AssistantResultReference[];
+}
+
+export interface WorkflowResultReferenceSession extends ResultReferenceSession {
+  commitDisplayed(): void;
 }
 
 export function createResultReferenceSession(): ResultReferenceSession {
@@ -36,6 +43,9 @@ export function createResultReferenceSession(): ResultReferenceSession {
         state.subsequentTurns += 1;
         if (state.subsequentTurns >= 3) states.delete(kind);
       }
+    },
+    display(resultSet) {
+      return retainResultSet(states, resultSet);
     },
     invalidateForCompaction() {
       for (const [kind, state] of states) {
@@ -91,22 +101,75 @@ export function createResultReferenceSession(): ResultReferenceSession {
       };
     },
     retain(resultSet) {
-      const descriptor = resultReferenceDescriptors[resultSet.kind];
-      const entries = resultSet.items
-        .slice(0, 10)
-        .map((item, index) => createEntry(item, descriptor, index));
-      if (entries.length === 0) {
-        states.delete(descriptor.itemKind);
-        return [];
-      }
-      states.set(descriptor.itemKind, {
-        entries,
-        retainedSinceLastCompletion: true,
-        subsequentTurns: 0,
-      });
-      return entries.map(({ publicReference }) => publicReference);
+      return retainResultSet(states, resultSet);
     },
   };
+}
+
+export function createWorkflowResultReferenceSession(
+  parent: ResultReferenceSession,
+): WorkflowResultReferenceSession {
+  const local = createResultReferenceSession();
+  const displayed = new Map<
+    AssistantResultReference["kind"],
+    FeatureResultReferenceSet
+  >();
+  const shadowed = new Set<AssistantResultReference["kind"]>();
+
+  const retain = (resultSet: FeatureResultReferenceSet) => {
+    const kind = resultReferenceDescriptors[resultSet.kind].itemKind;
+    shadowed.add(kind);
+    return local.retain(resultSet);
+  };
+
+  return {
+    commitDisplayed() {
+      for (const resultSet of displayed.values()) parent.display(resultSet);
+      displayed.clear();
+    },
+    completeTurn() {},
+    display(resultSet) {
+      const references = retain(resultSet);
+      displayed.set(
+        resultReferenceDescriptors[resultSet.kind].itemKind,
+        resultSet,
+      );
+      return references;
+    },
+    invalidateForCompaction() {},
+    publicReferences: () => [
+      ...parent
+        .publicReferences()
+        .filter((reference) => !shadowed.has(reference.kind)),
+      ...local.publicReferences(),
+    ],
+    select(request) {
+      return shadowed.has(request.expectedKind)
+        ? local.select(request)
+        : parent.select(request);
+    },
+    retain,
+  };
+}
+
+function retainResultSet(
+  states: Map<AssistantResultReference["kind"], RetainedState>,
+  resultSet: FeatureResultReferenceSet,
+): readonly AssistantResultReference[] {
+  const descriptor = resultReferenceDescriptors[resultSet.kind];
+  const entries = resultSet.items
+    .slice(0, 10)
+    .map((item, index) => createEntry(item, descriptor, index));
+  if (entries.length === 0) {
+    states.delete(descriptor.itemKind);
+    return [];
+  }
+  states.set(descriptor.itemKind, {
+    entries,
+    retainedSinceLastCompletion: true,
+    subsequentTurns: 0,
+  });
+  return entries.map(({ publicReference }) => publicReference);
 }
 
 interface RetainedState {

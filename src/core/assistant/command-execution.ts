@@ -47,6 +47,7 @@ interface CommandExecutionInput {
   executionContext: FeatureExecutionContext;
   feature: FeaturePlugin;
   normalizedText: string;
+  resultReferenceVisibility?: "displayed" | "private";
   resultReferences: ResultReferenceSession;
   requestClarification?: (
     response: AssistantResponse,
@@ -131,6 +132,7 @@ export async function executeWorkflowRead(input: {
     ),
     feature: input.step.route.feature,
     normalizedText: input.normalizedText,
+    resultReferenceVisibility: "private",
     resultReferences: input.resultReferences,
   });
   if (
@@ -262,10 +264,11 @@ async function executeFeatureCommand(
     let toolObservationReferences:
       | readonly AssistantResultReference[]
       | undefined;
-    if (result.resultReferences) {
-      toolObservationReferences = input.resultReferences.retain(
-        result.resultReferences,
-      );
+    if (result.resultReferences && !result.failure) {
+      toolObservationReferences =
+        input.resultReferenceVisibility === "private"
+          ? input.resultReferences.retain(result.resultReferences)
+          : input.resultReferences.display(result.resultReferences);
     }
     return {
       ...(result.data ? { data: Object.freeze({ ...result.data }) } : {}),

@@ -1,7 +1,35 @@
-import { createResultReferenceSession } from "./result-reference-session.js";
+import {
+  createResultReferenceSession,
+  createWorkflowResultReferenceSession,
+} from "./result-reference-session.js";
 import type { FeatureResultReferenceSet } from "../../ports/result-reference.js";
 
 describe("result reference session", () => {
+  it("keeps workflow references private until their result set is displayed", () => {
+    const parent = createResultReferenceSession();
+    parent.retain(resultSet("previous"));
+    const workflow = createWorkflowResultReferenceSession(parent);
+
+    workflow.retain(resultSet("private"));
+    expect(workflow.publicReferences()).toMatchObject([
+      { facts: { title: "private" } },
+    ]);
+    expect(parent.publicReferences()).toMatchObject([
+      { facts: { title: "previous" } },
+    ]);
+
+    workflow.commitDisplayed();
+    expect(parent.publicReferences()).toMatchObject([
+      { facts: { title: "previous" } },
+    ]);
+
+    workflow.display(resultSet("displayed"));
+    workflow.commitDisplayed();
+    expect(parent.publicReferences()).toMatchObject([
+      { facts: { title: "displayed" } },
+    ]);
+  });
+
   it("retains only ten opaque references and resolves their private targets", () => {
     const session = createResultReferenceSession();
 

@@ -1,5 +1,6 @@
 import { createAssistant } from "./assistant.js";
 import { createCapabilityRoutingIndex } from "../../application/capability-catalog.js";
+import type { AssistantContext } from "../../ports/assistant.js";
 import type {
   IntentInterpretation,
   IntentSessionContinuation,
@@ -446,6 +447,80 @@ describe("assistant bounded tool chains", () => {
     });
     expect(executions).toBe(2);
     expect(continuations).toBe(2);
+  });
+
+  it("discards references from an oversized rejected observation", async () => {
+    const contexts: AssistantContext[] = [];
+    let starts = 0;
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([
+        createRawFeature({
+          id: "calendar",
+          capabilities: [
+            {
+              name: "calendar.search_events",
+              risk: "low",
+              toolChain: "read",
+            },
+          ],
+          execute: () =>
+            Promise.resolve({
+              resultReferences: {
+                items: [
+                  {
+                    facts: {
+                      date: "2026-07-17",
+                      time: "11:00",
+                      title: "Dentist",
+                    },
+                    target: {
+                      kind: "calendar_event" as const,
+                      providerEventId: "private-event",
+                    },
+                  },
+                ],
+                kind: "calendar_events" as const,
+              },
+              text: "x".repeat(4_001),
+            }),
+        }),
+      ]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({ calendar: { enabled: true } }),
+      intentInterpreter: {
+        start: (_text, context) => {
+          contexts.push(context);
+          starts += 1;
+          return {
+            next: () =>
+              Promise.resolve(
+                starts === 1
+                  ? {
+                      call: {
+                        command: command("calendar.search_events", {}),
+                        id: "read-1",
+                      },
+                      kind: "tool_call" as const,
+                    }
+                  : {
+                      kind: "unknown" as const,
+                      response: {
+                        status: "unknown" as const,
+                        text: "Unknown.",
+                      },
+                    },
+              ),
+          };
+        },
+      },
+    });
+
+    await expect(assistant.handleText("read then continue")).resolves.toEqual({
+      status: "unsupported",
+      text: "I cannot safely complete that chained request.",
+    });
+    await assistant.handleText("later turn");
+    expect(contexts[1]?.resultReferences).toBeUndefined();
   });
 
   it("fails closed when a provider proposes a terminal capability as a read", async () => {

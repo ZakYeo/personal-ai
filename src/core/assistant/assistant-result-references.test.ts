@@ -58,6 +58,57 @@ describe("assistant result references", () => {
     expect(secondContexts[0]?.resultReferences).toBeUndefined();
   });
 
+  it("does not retain references returned with a failed feature result", async () => {
+    const contexts: AssistantContext[] = [];
+    let call = 0;
+    const feature = createRawFeature({
+      capabilities: [{ name: "calendar.search", risk: "low" }],
+      id: "calendar",
+      execute: () =>
+        Promise.resolve({
+          failure: { message: "Calendar lookup failed." },
+          resultReferences: {
+            items: [
+              {
+                facts: {
+                  date: "2026-07-17",
+                  time: "11:00",
+                  title: "Dentist",
+                },
+              },
+            ],
+            kind: "calendar_events" as const,
+          },
+          text: "I could not finish the calendar lookup.",
+        }),
+    });
+    const assistant = createAssistant({
+      capabilityRouting: createCapabilityRoutingIndex([feature]),
+      clock: createFixedClock(),
+      config: createAssistantConfig({ calendar: { enabled: true } }),
+      intentInterpreter: {
+        start: (_text, context) => ({
+          next: () => {
+            contexts.push(context);
+            return Promise.resolve(
+              call++ === 0
+                ? {
+                    command: createCommand("calendar.search"),
+                    kind: "command" as const,
+                  }
+                : unknownInterpretation,
+            );
+          },
+        }),
+      },
+    });
+
+    await assistant.handleText("show events");
+    await assistant.handleText("later turn");
+
+    expect(contexts[1]?.resultReferences).toBeUndefined();
+  });
+
   it("serializes reference retention before a concurrent follow-up", async () => {
     const contexts: AssistantContext[] = [];
     let call = 0;
@@ -77,7 +128,7 @@ describe("assistant result references", () => {
     );
   });
 
-  it("does not age references retained while resuming a clarification", async () => {
+  it("does not expose an intermediate read result after its workflow ends", async () => {
     const contexts: AssistantContext[] = [];
     const feature = createRawFeature({
       capabilities: [
@@ -147,8 +198,8 @@ describe("assistant result references", () => {
     await assistant.handleText("expired");
 
     expect(
-      contexts.slice(1, 4).map((context) => context.resultReferences?.length),
-    ).toEqual([1, 1, 1]);
+      contexts.slice(1, 4).map((context) => context.resultReferences),
+    ).toEqual([undefined, undefined, undefined]);
     expect(contexts[4]?.resultReferences).toBeUndefined();
   });
 
