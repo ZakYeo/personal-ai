@@ -583,8 +583,8 @@ should also guard against subtler boundary and abstraction drift.
   synchronization is retried three times after replacement. Exhausted retries
   classify the write as durability-unknown rather than not applied; JSON state
   stores inspect the process-visible target to describe whether it contains the
-  exact intended document. Readback cannot prove crash durability, so a match,
-  mismatch, or unreadable target remains an explicit outcome-unknown failure.
+  exact intended document. Reading it back cannot prove crash durability, so a
+  match, mismatch, or unreadable target remains an explicit outcome-unknown failure.
   Missing state may initialize an empty store,
   but malformed, unreadable, or unsupported existing state must fail with its
   cause preserved for runtime diagnostics. Cleanup failures remain secondary to
