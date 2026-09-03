@@ -1,4 +1,6 @@
 import { createCapturedWriter } from "../test-support/primitives.js";
+import { CommandExecutionError } from "../adapters/desktop/command-process.js";
+import { OpenAIIntentError } from "../adapters/openai/openai-intent-error.js";
 import { logAssistantDiagnostics } from "./human-boundary.js";
 
 describe("assistant diagnostic logging", () => {
@@ -50,7 +52,7 @@ describe("assistant diagnostic logging", () => {
     ]);
   });
 
-  it("logs safe provider status without raw assistant cause fields", () => {
+  it("ignores reflective raw fields without a typed diagnostic projection", () => {
     const stderr = createCapturedWriter();
     const providerError = Object.assign(new Error("OpenAI intent failed."), {
       event: { detail: "private event payload" },
@@ -76,10 +78,59 @@ describe("assistant diagnostic logging", () => {
       expect.stringContaining(
         "Unexpected assistant failure cause: Error: OpenAI intent failed.",
       ),
-      "Unexpected assistant failure cause status: 400\n",
     ]);
     expect(stderr.writes.join("")).not.toMatch(
       /provider secret|injected log line|private event payload|private command stderr|private command stdout/u,
     );
+  });
+
+  it("logs typed command tails and safe provider metadata", () => {
+    const stderr = createCapturedWriter();
+    const commandError = new CommandExecutionError("command failed", 12, {
+      stderr: "first line\ninjected line",
+      stderrTruncated: false,
+      stdout: "partial output",
+      stdoutTruncated: true,
+    });
+    const providerError = new OpenAIIntentError(
+      "provider failed",
+      429,
+      '{"private":"body"}',
+      { requestId: "request-123" },
+    );
+
+    logAssistantDiagnostics(
+      [
+        {
+          category: "feature_failure",
+          cause: commandError,
+          message: "command failed",
+        },
+        {
+          category: "unexpected",
+          cause: providerError,
+          message: "provider failed",
+        },
+      ],
+      { stderr },
+    );
+
+    expect(stderr.writes).toEqual([
+      "Feature failure: command failed\n",
+      expect.stringContaining(
+        "Feature failure cause: CommandExecutionError: command failed",
+      ),
+      "Feature failure cause command exit code: 12\n",
+      'Feature failure cause command stderr tail: "first line\\ninjected line"\n',
+      'Feature failure cause command stdout tail (truncated): "partial output"\n',
+      "Unexpected assistant failure: provider failed\n",
+      expect.stringContaining(
+        "Unexpected assistant failure cause: OpenAIIntentError: provider failed",
+      ),
+      "Unexpected assistant failure cause provider status: 429\n",
+      'Unexpected assistant failure cause provider request ID: "request-123"\n',
+      "Unexpected assistant failure cause provider response body bytes: 18\n",
+    ]);
+    expect(stderr.writes.join("")).not.toContain('{"private":"body"}');
   });
 });

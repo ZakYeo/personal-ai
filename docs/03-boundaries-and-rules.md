@@ -435,7 +435,12 @@ Use a fixed `Date` only inside test helpers that intentionally freeze time.
 Command-based adapters should preserve diagnostics for every final failure
 mode. Non-zero exits, spawn failures where available, and timeouts should keep
 captured stdout/stderr internally so human-facing boundaries can log useful
-operator diagnostics while returning safe fallback text.
+operator diagnostics while returning safe fallback text. Adapter errors expose
+a typed operator projection rather than relying on reflective error fields.
+Command projections contain bounded stdout/stderr tails and truncation flags;
+provider projections contain only safe status, request ID, and response-body
+size metadata, never raw bodies or realtime events. Runtime logging escapes each
+tail onto one line and ignores malformed or untyped lookalike fields.
 Each child receives an explicit minimal environment. Runtime composition may
 forward safe process settings such as `PATH` and may pass a credential only
 when that specific command declares it in `environmentAllowlist`; recorder,

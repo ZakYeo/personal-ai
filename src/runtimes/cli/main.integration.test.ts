@@ -29,6 +29,7 @@ import {
 } from "../../test-support/desktop-voice-runtime.js";
 import { withVoiceAdapterId } from "../../test-support/runtime-composition.js";
 import { safeRuntimeFallbackResponse } from "../human-boundary.js";
+import { OpenAIIntentError } from "../../adapters/openai/openai-intent-error.js";
 
 describe("personal-ai ask CLI", () => {
   it("prints the calendar response", async () => {
@@ -321,17 +322,20 @@ describe("personal-ai ask CLI", () => {
       exitCode: 1,
       stderr: [
         'Runtime failure: Command "/bin/sh" exited with code 12.\n',
-        "Runtime failure stderr: stt provider token failure\n",
+        "Runtime failure command exit code: 12\n",
+        'Runtime failure command stderr tail: "stt provider token failure"\n',
       ],
       stdout: ["I hit a problem and could not complete that.\n"],
     });
   });
 
   it("logs runtime provider diagnostics without exposing them in stdout", async () => {
-    const providerError = Object.assign(new Error("OpenAI speech failed."), {
-      responseBody: '{"error":"provider token secret"}',
-      status: 429,
-    });
+    const providerError = new OpenAIIntentError(
+      "OpenAI speech failed.",
+      429,
+      '{"error":"provider token secret"}',
+      { requestId: "request-123" },
+    );
     const result = await runCliWithInjectedRuntime({
       args: ["ask", "fail safely"],
       runtime: createRejectingDiagnosticRuntime(providerError),
@@ -344,12 +348,13 @@ describe("personal-ai ask CLI", () => {
     expect(result.stdout.join("")).not.toContain("provider token secret");
     expect(result.stderr).toEqual([
       "Runtime failure: OpenAI speech failed.\n",
-      "Runtime failure status: 429\n",
-      'Runtime failure response body: {"error":"provider token secret"}\n',
+      "Runtime failure provider status: 429\n",
+      'Runtime failure provider request ID: "request-123"\n',
+      "Runtime failure provider response body bytes: 33\n",
     ]);
   });
 
-  it("logs non-serializable runtime provider events without throwing", async () => {
+  it("does not reflect non-serializable runtime provider events", async () => {
     const event: Record<string, unknown> = { type: "error" };
     event.self = event;
     const providerError = Object.assign(new Error("Realtime failed."), {
@@ -364,10 +369,7 @@ describe("personal-ai ask CLI", () => {
       exitCode: 1,
       stdout: stdoutLine("I hit a problem and could not complete that."),
     });
-    expect(result.stderr).toEqual([
-      "Runtime failure: Realtime failed.\n",
-      "Runtime failure event: [unserializable diagnostic]\n",
-    ]);
+    expect(result.stderr).toEqual(["Runtime failure: Realtime failed.\n"]);
   });
 
   it("prints a graceful response and diagnostics when voice setup fails", async () => {

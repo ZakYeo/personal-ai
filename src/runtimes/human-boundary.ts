@@ -3,6 +3,7 @@ import type {
   AssistantDiagnosticCategory,
   AssistantResponse,
 } from "../ports/assistant.js";
+import { readOperatorDiagnosticProjection } from "../application/operator-diagnostic.js";
 
 interface HumanBoundaryIo {
   stderr?: { write(chunk: string): boolean | void };
@@ -73,83 +74,49 @@ function formatAssistantDiagnosticFields(
   error: unknown,
   prefix: string,
 ): string[] {
-  if (!isRecord(error)) {
-    return [];
-  }
-
-  return formatDiagnosticNumberField(prefix, "status", error.status);
+  return formatDiagnosticFields(error, prefix);
 }
 
 function formatDiagnosticFields(error: unknown, prefix: string): string[] {
-  if (!isRecord(error)) {
-    return [];
+  const projection = readOperatorDiagnosticProjection(error);
+  if (!projection) return [];
+  if (projection.kind === "provider") {
+    return [
+      ...(projection.status === undefined
+        ? []
+        : [`${prefix} provider status: ${projection.status}\n`]),
+      ...(projection.requestId
+        ? [
+            `${prefix} provider request ID: ${JSON.stringify(projection.requestId)}\n`,
+          ]
+        : []),
+      ...(projection.responseBodyBytes === undefined
+        ? []
+        : [
+            `${prefix} provider response body bytes: ${projection.responseBodyBytes}\n`,
+          ]),
+    ];
   }
-
   return [
-    ...formatDiagnosticNumberField(prefix, "status", error.status),
-    ...formatDiagnosticField(prefix, "response body", error.responseBody),
-    ...formatDiagnosticJsonField(prefix, "event", error.event),
-    ...formatDiagnosticField(prefix, "stderr", error.stderr),
-    ...formatDiagnosticField(prefix, "stdout", error.stdout),
+    ...(projection.exitCode === undefined
+      ? []
+      : [`${prefix} command exit code: ${String(projection.exitCode)}\n`]),
+    ...(projection.timeoutMs === undefined
+      ? []
+      : [`${prefix} command timeout milliseconds: ${projection.timeoutMs}\n`]),
+    ...formatCommandTail(prefix, "stderr", projection.stderr),
+    ...formatCommandTail(prefix, "stdout", projection.stdout),
   ];
 }
 
-function formatDiagnosticNumberField(
+function formatCommandTail(
   prefix: string,
-  label: string,
-  value: unknown,
+  label: "stderr" | "stdout",
+  output: { readonly tail: string; readonly truncated: boolean } | undefined,
 ): string[] {
-  if (typeof value !== "number") {
-    return [];
-  }
-
-  return [`${prefix} ${label}: ${value}\n`];
-}
-
-function formatDiagnosticJsonField(
-  prefix: string,
-  label: string,
-  value: unknown,
-): string[] {
-  if (value === undefined) {
-    return [];
-  }
-
+  if (!output || output.tail.length === 0) return [];
+  const truncation = output.truncated ? " (truncated)" : "";
   return [
-    `${prefix} ${label}: ${truncateDiagnostic(formatDiagnosticJson(value))}\n`,
+    `${prefix} command ${label} tail${truncation}: ${JSON.stringify(output.tail)}\n`,
   ];
-}
-
-function formatDiagnosticJson(value: unknown): string {
-  try {
-    return JSON.stringify(value) ?? String(value);
-  } catch {
-    return "[unserializable diagnostic]";
-  }
-}
-
-function formatDiagnosticField(
-  prefix: string,
-  label: "response body" | "stderr" | "stdout",
-  value: unknown,
-): string[] {
-  if (typeof value !== "string" || value.length === 0) {
-    return [];
-  }
-
-  return [`${prefix} ${label}: ${truncateDiagnostic(value.trim())}\n`];
-}
-
-function truncateDiagnostic(value: string): string {
-  const maxDiagnosticLength = 2000;
-
-  if (value.length <= maxDiagnosticLength) {
-    return value;
-  }
-
-  return `${value.slice(0, maxDiagnosticLength)}...`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }

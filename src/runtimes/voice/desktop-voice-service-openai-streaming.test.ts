@@ -274,9 +274,6 @@ describe("desktop voice service OpenAI streaming", () => {
     ]);
     expect(stderr.writes).toEqual([
       line("Runtime failure: Realtime transcription failed."),
-      line(
-        'Runtime failure event: {"error":{"code":"invalid_request_error","message":"Bad transcription session.","type":"invalid_request_error"},"type":"error"}',
-      ),
       line("Runtime failure: OpenAI speech request was aborted."),
     ]);
   });

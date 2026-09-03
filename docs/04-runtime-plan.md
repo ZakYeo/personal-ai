@@ -789,7 +789,10 @@ argument array, not as shell-concatenated command strings. They should enforce a
 timeout, capture stdout and stderr for diagnostics, preserve captured output on
 non-zero exits, spawn failures where available, and timeout failures, and let
 the runtime boundary decide what safe response or fallback output reaches the
-human.
+human. Operator logging consumes only typed adapter projections: escaped,
+bounded command output tails with truncation flags, or safe provider status,
+request-ID, and response-size metadata. Raw provider bodies and realtime events
+remain internal and are never reflectively copied into runtime logs.
 Command subprocesses receive a minimal environment assembled from injected
 runtime state. Provider credentials are excluded unless the selected command
 configuration explicitly names them in `environmentAllowlist`; the Raspberry
