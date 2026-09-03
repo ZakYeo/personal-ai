@@ -17,7 +17,6 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { createDefaultFeatureAdapterRegistry } from "../runtimes/default-feature-adapter-registry.js";
 import type { FeatureAdapterRegistry } from "../runtimes/feature-adapter-registry.js";
-import { withRuntimeTestProviderConfig } from "./runtime-config-file.js";
 
 type ConfiguredTextRuntimeHarnessOptions = Partial<{
   config: LoadedRuntimeConfig;
@@ -57,10 +56,7 @@ export async function createConfiguredTextRuntimeHarness(
 export async function writeRuntimeHarnessConfig(
   config: unknown,
 ): Promise<string> {
-  return writeTempJsonFile(
-    withRuntimeTestProviderConfig(config),
-    "personal-ai-runtime-",
-  );
+  return writeTempJsonFile(config, "personal-ai-runtime-");
 }
 
 interface RuntimeConfigWithFeatures {

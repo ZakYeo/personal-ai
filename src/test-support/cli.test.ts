@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import {
   cliResult,
   createCliIo,
@@ -44,6 +46,17 @@ describe("CLI integration test support", () => {
       ],
       stderr: [],
     });
+  });
+
+  it("writes the exact config object supplied by its caller", async () => {
+    const config = {
+      features: { calendar: { adapter: "mock", enabled: true } },
+    };
+    const configPath = await writeTempConfig(config);
+
+    await expect(
+      readFile(configPath, "utf8").then(JSON.parse),
+    ).resolves.toEqual(config);
   });
 
   it("runs arbitrary CLI args through captured IO", async () => {

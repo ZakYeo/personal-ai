@@ -23,9 +23,13 @@ describe("calendar feature adapter config", () => {
     ).toMatchObject({ upcomingWindowDays: 31 });
   });
 
-  it("requires an event grouping provider", () => {
-    expect(() => parseCalendarFeatureConfig({})).toThrow(
-      'Config feature "calendar".eventGrouping must be a JSON object.',
-    );
+  it("defaults the optional event grouper to the deterministic mock", async () => {
+    const config = parseCalendarFeatureConfig({});
+    const binding = config.eventGrouper.create({ env: {}, fetch: vi.fn() });
+
+    expect(() => binding.validateStartup()).not.toThrow();
+    await expect(binding.grouper.group({ events: [] })).resolves.toEqual({
+      groups: [],
+    });
   });
 });

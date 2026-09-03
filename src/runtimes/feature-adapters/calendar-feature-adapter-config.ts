@@ -23,7 +23,7 @@ export function parseCalendarFeatureConfig(
 ): CalendarFeatureConfig {
   return {
     eventGrouper: resolveCalendarEventGrouperProvider(
-      featureConfig.eventGrouping,
+      featureConfig.eventGrouping ?? { provider: "mock" },
     ),
     upcomingWindowDays: parseOptionalPositiveInteger(
       featureConfig.upcomingWindowDays,
