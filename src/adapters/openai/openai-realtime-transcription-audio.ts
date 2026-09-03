@@ -1,4 +1,5 @@
 import type { SpeechTranscript } from "../../ports/voice.js";
+import { cleanupAsyncIteratorWithinDeadline } from "../async-iterator-cleanup.js";
 import type { RealtimeSocket } from "./openai-realtime-transcription-session.js";
 import { createAudioAppendMessage } from "./openai-realtime-transcription-request.js";
 import {
@@ -44,50 +45,16 @@ export async function streamAudioToSocket(
   } catch (error) {
     const primaryError = toError(error);
 
-    const cleanupError = await cleanupIteratorWithinDeadline(iterator);
+    const cleanupError = await cleanupAsyncIteratorWithinDeadline(iterator, {
+      label: "Realtime audio",
+      timeoutMs: realtimeIteratorCleanupDeadlineMs,
+    });
     if (cleanupError) {
       attachSecondaryCause(primaryError, cleanupError);
     }
 
     throw primaryError;
   }
-}
-
-function cleanupIteratorWithinDeadline(
-  iterator: AsyncIterator<Uint8Array>,
-): Promise<Error | undefined> {
-  if (!iterator.return) {
-    return Promise.resolve(undefined);
-  }
-
-  let cleanup: Promise<IteratorResult<Uint8Array>>;
-
-  try {
-    cleanup = Promise.resolve(iterator.return());
-  } catch (error) {
-    return Promise.resolve(toError(error));
-  }
-
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      resolve(
-        new Error(
-          `Realtime audio iterator cleanup timed out after ${realtimeIteratorCleanupDeadlineMs}ms.`,
-        ),
-      );
-    }, realtimeIteratorCleanupDeadlineMs);
-
-    void cleanup.then(
-      () => {
-        clearTimeout(timer);
-        resolve(undefined);
-      },
-      (error: unknown) => {
-        clearTimeout(timer);
-        resolve(toError(error));
-      },
-    );
-  });
 }
 
 async function nextAudioChunkOrTranscriptFailure(

@@ -5,6 +5,7 @@ import {
   startCommandProcess,
   toError,
 } from "./command-process.js";
+import { cleanupAsyncIteratorWithinDeadline } from "../async-iterator-cleanup.js";
 
 export function runCommandReadableStream(request: RunCommandRequest): {
   chunks: AsyncIterable<Uint8Array>;
@@ -94,7 +95,10 @@ export async function runCommandWritableStream(
 
     iteratorCleanupAttempted = !iteratorDone;
     const cleanupError = iteratorCleanupAttempted
-      ? await cleanupIteratorWithinDeadline(iterator)
+      ? await cleanupAsyncIteratorWithinDeadline(iterator, {
+          label: "Command input",
+          timeoutMs: iteratorCleanupDeadlineMs,
+        })
       : undefined;
 
     if (cleanupError) {
@@ -104,7 +108,10 @@ export async function runCommandWritableStream(
     const cleanupError =
       iteratorDone || iteratorCleanupAttempted
         ? undefined
-        : await cleanupIteratorWithinDeadline(iterator);
+        : await cleanupAsyncIteratorWithinDeadline(iterator, {
+            label: "Command input",
+            timeoutMs: iteratorCleanupDeadlineMs,
+          });
 
     if (isCommandDiagnosticError(error)) {
       throw cleanupError === undefined
@@ -139,40 +146,3 @@ function raceWithCommandCompletion<TValue>(
 }
 
 const iteratorCleanupDeadlineMs = 1_000;
-
-function cleanupIteratorWithinDeadline(
-  iterator: AsyncIterator<Uint8Array>,
-): Promise<Error | undefined> {
-  if (!iterator.return) {
-    return Promise.resolve(undefined);
-  }
-
-  let cleanup: Promise<IteratorResult<Uint8Array>>;
-
-  try {
-    cleanup = Promise.resolve(iterator.return());
-  } catch (error) {
-    return Promise.resolve(toError(error));
-  }
-
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      resolve(
-        new Error(
-          `Command input iterator cleanup timed out after ${iteratorCleanupDeadlineMs}ms.`,
-        ),
-      );
-    }, iteratorCleanupDeadlineMs);
-
-    void cleanup.then(
-      () => {
-        clearTimeout(timer);
-        resolve(undefined);
-      },
-      (error: unknown) => {
-        clearTimeout(timer);
-        resolve(toError(error));
-      },
-    );
-  });
-}
