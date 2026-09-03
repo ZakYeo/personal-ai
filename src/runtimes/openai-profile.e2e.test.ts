@@ -45,7 +45,9 @@ describe.skipIf(!runOpenAIE2E)(
       });
 
       await expect(
-        assistant.handleText("Can you check what the weather's like at home?"),
+        assistant.handleText(
+          "Check the current weather at my stored home location.",
+        ),
       ).resolves.toMatchObject({
         expectsFollowUp: true,
         status: "ok",
