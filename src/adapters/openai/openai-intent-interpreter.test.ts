@@ -525,6 +525,9 @@ describe("OpenAIIntentInterpreter", () => {
     );
     expect(input).toContain("For a declared parameter literally named name");
     expect(input).toContain(
+      "When calling a read tool, emit only that function call",
+    );
+    expect(input).toContain(
       "A user asking whether you can perform an enabled capability without supplying its required information is starting that capability",
     );
     expect(input).toContain("The subject or question to search for.");

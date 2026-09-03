@@ -90,6 +90,7 @@ function createIntentInstructions(
     `You are the intent interpreter for ${context.config.assistant.name}.`,
     ...(personalization ? [personalization] : []),
     "Return one interpretation variant matching the supplied schema unless calling one declared read tool.",
+    "When calling a read tool, emit only that function call. Do not also emit terminal text or a structured interpretation.",
     "Call at most one read tool in a response. Never call a terminal-only capability as a tool.",
     "After a tool result, either call one more read tool or return a fully resolved terminal command or plan.",
     ...createOpenAIIntentVariantInstructions(hasCapabilities),
