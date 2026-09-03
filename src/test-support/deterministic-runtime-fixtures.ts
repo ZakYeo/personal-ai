@@ -15,7 +15,7 @@ export const deterministicNow = deterministicTestNow;
 export const deterministicNowIso = deterministicTestNowIso;
 
 export const enabledDeterministicConfig = createLoadedRuntimeConfig({
-  calendar: { enabled: true, adapter: "mock", upcomingWindowDays: 92 },
+  calendar: { enabled: true, adapter: "mock", upcomingWindowDays: 14 },
   internetSearch: { enabled: true, adapter: "mock", maxResults: 5 },
   messaging: { enabled: true, adapter: "mock" },
   alarms: { enabled: true, adapter: "local" },
@@ -27,7 +27,7 @@ export const voiceEnabledDeterministicConfig: LoadedRuntimeConfig = {
 };
 
 export const defaultDeterministicConfig = createLoadedRuntimeConfig({
-  calendar: { enabled: true, adapter: "mock", upcomingWindowDays: 92 },
+  calendar: { enabled: true, adapter: "mock", upcomingWindowDays: 14 },
   internetSearch: { enabled: true, adapter: "mock", maxResults: 5 },
   messaging: { enabled: true, adapter: "mock" },
   alarms: {
@@ -39,7 +39,7 @@ export const defaultDeterministicConfig = createLoadedRuntimeConfig({
 
 export const disabledCalendarConfig: LoadedRuntimeConfig =
   createLoadedRuntimeConfig({
-    calendar: { enabled: false, upcomingWindowDays: 92 },
+    calendar: { enabled: false, upcomingWindowDays: 14 },
     internetSearch: { enabled: true, adapter: "mock", maxResults: 5 },
     messaging: { enabled: true, adapter: "mock" },
     alarms: { enabled: true, adapter: "local" },

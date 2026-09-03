@@ -391,7 +391,7 @@ features:
   calendar:
     enabled: true
     adapter: mock
-    upcomingWindowDays: 92
+    upcomingWindowDays: 14
     google:
       accessTokenEnv: GOOGLE_CALENDAR_ACCESS_TOKEN
       clientIdEnv: GOOGLE_CALENDAR_CLIENT_ID
@@ -709,8 +709,9 @@ and expose every displayed event title, date, and time or all-day marker as
 indexed facts so that all expressed values are protected.
 The `google` calendar adapter is opt-in and selected with
 `features.calendar.adapter: google`. Generic upcoming event searches default to
-`features.calendar.upcomingWindowDays: 92`, so normal list requests stay within
-roughly three months unless the user or config supplies a different date range.
+`features.calendar.upcomingWindowDays: 14`, so normal list requests stay within
+the next two weeks unless the user, conversational context, or config supplies a
+different date range.
 The adapter can use a legacy OAuth access token from
 `GOOGLE_CALENDAR_ACCESS_TOKEN`, or exchange `GOOGLE_CALENDAR_CLIENT_ID`,
 `GOOGLE_CALENDAR_CLIENT_SECRET`, and `GOOGLE_CALENDAR_REFRESH_TOKEN` for an

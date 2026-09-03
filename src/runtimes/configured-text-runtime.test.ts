@@ -41,7 +41,7 @@ describe("createConfiguredTextRuntime", () => {
     });
     await expect(assistant.handleText("yes")).resolves.toEqual({
       status: "ok",
-      text: "You have 1 upcoming calendar event: Upcoming wedding on 12 September, all day. Alarm set for 10:10am today (tea).",
+      text: "You have 1 upcoming calendar event: Dentist appointment on next Tuesday the 30th, all day. Alarm set for 10:10am today (tea).",
     });
     await expect(
       assistant.handleText("Hey Jarvis, list my alarms"),
@@ -157,7 +157,7 @@ describe("createConfiguredTextRuntime", () => {
 
     await expect(assistant.handleText("Where is that?")).resolves.toEqual({
       status: "ok",
-      text: "Upcoming wedding does not include a location.",
+      text: "Dentist appointment does not include a location.",
     });
   });
 

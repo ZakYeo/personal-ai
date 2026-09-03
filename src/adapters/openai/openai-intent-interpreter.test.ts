@@ -228,6 +228,12 @@ describe("OpenAIIntentInterpreter", () => {
     expect(JSON.stringify(body.input)).toContain(
       "Never ask for information represented only by optional capability parameters",
     );
+    expect(JSON.stringify(body.input)).toContain(
+      "Calendar list requests use a short default window",
+    );
+    expect(JSON.stringify(body.input)).toContain(
+      "supply exact startDate or endDate parameters",
+    );
 
     expect(body.text.format.schema).toMatchObject({
       $defs: {

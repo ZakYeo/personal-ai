@@ -315,6 +315,26 @@ describe("createCalendarFeature", () => {
     expect(calls).toEqual([{ endDate: "2026-09-26" }]);
   });
 
+  it("defaults generic upcoming event searches to the next 14 days", async () => {
+    const calls: CalendarSearchCriteria[] = [];
+    const feature = createCalendarFeature(createFakeCalendar(calls));
+
+    await feature.execute(
+      {
+        capability: "calendar.search_events",
+        command: {
+          capability: "calendar.search_events",
+          parameters: {},
+          rawText: "check my calendar",
+        },
+        args: {},
+      },
+      context,
+    );
+
+    expect(calls).toEqual([{ endDate: "2026-07-10" }]);
+  });
+
   it("keeps explicit upcoming search date bounds", async () => {
     const calls: CalendarSearchCriteria[] = [];
     const calendar = createFakeCalendar(calls);

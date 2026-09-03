@@ -24,7 +24,7 @@
     "calendar": {
       "enabled": true,
       "adapter": "mock",
-      "upcomingWindowDays": 92
+      "upcomingWindowDays": 14
     },
     "internetSearch": {
       "enabled": true,

@@ -6,6 +6,11 @@ import type {
 
 const calendarEvents: CalendarEvent[] = [
   {
+    id: "dentist-2026",
+    title: "Dentist appointment",
+    startDate: "2026-06-30",
+  },
+  {
     id: "wedding-2026",
     title: "Upcoming wedding",
     startDate: "2026-09-12",

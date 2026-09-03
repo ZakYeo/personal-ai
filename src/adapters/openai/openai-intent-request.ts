@@ -80,6 +80,9 @@ function createIntentInstructions(
   const hasProfileLookup = capabilityCatalog.some(
     ({ capability }) => capability.name === "profile.lookup",
   );
+  const hasCalendarSearch = capabilityCatalog.some(
+    ({ capability }) => capability.name === "calendar.search_events",
+  );
   const hasWeatherClothing = capabilityCatalog.some(
     ({ capability }) => capability.name === "weather.clothing",
   );
@@ -133,6 +136,11 @@ function createIntentInstructions(
     `Current time: ${context.clock.now().toISOString()}.`,
     `Assistant time zone: ${context.config.assistant.timeZone}.`,
     "Resolve relative dates and times into exact capability parameters using that current time and time zone. When a capability requires an instant, return a canonical UTC ISO timestamp with milliseconds, such as 2026-07-29T08:00:00.000Z.",
+    ...(hasCalendarSearch
+      ? [
+          "Calendar list requests use a short default window when date bounds are omitted. When the user or conversational context names a date, month, period, or broader horizon, supply exact startDate or endDate parameters instead of relying on that default.",
+        ]
+      : []),
     "For calendar follow-ups, use calendar.follow_up with an exact opaque reference from the recent result catalog when one is available; never invent a reference.",
     "For internet search follow-ups, use internet.follow_up with an exact opaque source reference from the recent result catalog when one is available; never invent a reference.",
     "For task follow-ups, use the exact opaque task reference from the recent result catalog when one is available; include it in the decoded task command and never invent a task reference.",

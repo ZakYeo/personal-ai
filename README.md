@@ -238,9 +238,10 @@ command. If Google shows "Access blocked" because the app has not completed
 verification, open the matching Google Cloud project, go to Google Auth
 Platform > Audience, and add your Google account under Test users before running
 the setup command again. Do not store Google tokens in repository config files.
-Generic upcoming calendar requests default to a 92-day window through
+Generic upcoming calendar requests default to a 14-day window through
 `features.calendar.upcomingWindowDays`, which prevents long-running recurring
-events from filling normal spoken answers.
+events from filling normal spoken answers. Explicit or context-derived calendar
+date ranges override that default.
 Deterministic calendar text preserves exact ISO provider dates. The optional
 response rewriter owns conversational surrounding wording, while core protects
 every displayed event title and date and restores nearby dates with deterministic

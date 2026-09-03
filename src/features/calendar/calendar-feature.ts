@@ -75,7 +75,7 @@ export function createCalendarFeature(
   calendar: CalendarSearchPort,
   options: CalendarFeatureOptions = {},
 ): FeaturePlugin {
-  const upcomingWindowDays = options.upcomingWindowDays ?? 92;
+  const upcomingWindowDays = options.upcomingWindowDays ?? 14;
 
   return defineDeterministicFeatureRules(
     defineFeature({

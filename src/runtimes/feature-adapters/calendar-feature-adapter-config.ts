@@ -20,7 +20,7 @@ export function parseCalendarFeatureConfig(
     upcomingWindowDays: parseOptionalPositiveInteger(
       featureConfig.upcomingWindowDays,
       'Config feature "calendar".upcomingWindowDays must be a positive integer.',
-      92,
+      14,
     ),
   };
 }

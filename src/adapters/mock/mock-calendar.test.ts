@@ -24,7 +24,7 @@ describe("createMockCalendar", () => {
 
     await expect(
       calendar.searchEvents(
-        { query: "dentist" },
+        { query: "optician" },
         { now: deterministicTestNow },
       ),
     ).resolves.toEqual([]);
@@ -36,6 +36,11 @@ describe("createMockCalendar", () => {
     await expect(
       calendar.searchEvents({}, { now: deterministicTestNow }),
     ).resolves.toEqual([
+      {
+        id: "dentist-2026",
+        startDate: "2026-06-30",
+        title: "Dentist appointment",
+      },
       {
         id: "wedding-2026",
         startDate: "2026-09-12",
