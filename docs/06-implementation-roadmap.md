@@ -47,11 +47,11 @@ and service composition.
 
 ## Implemented Milestone Archive
 
-Detailed acceptance criteria and outcomes for Milestones 1 through 16
+Detailed acceptance criteria and outcomes for Milestones 1 through 17
 are kept in `docs/09-implemented-milestones.md`. The earlier provider-focused
 roadmap after Milestone 12.1 was retired. Capability-focused Milestones 13
-through 16 are implemented, and the active ambient-assistant plan continues with
-Milestones 17 through 25 below.
+through 17 are implemented, and the active ambient-assistant plan continues with
+Milestones 18 through 25 below.
 
 ## Spike 9: Future Milestone Discovery
 
@@ -577,57 +577,9 @@ contextually useful through explicit bounded access, proactive through
 user-owned rules, and trustworthy because every durable memory, external
 action, source, and sensitive observation remains visible and controllable.
 
-The active post-Milestone-16 plan is Milestones 17 through 25. Each milestone
+The active post-Milestone-17 plan is Milestones 18 through 25. Each milestone
 must still pass its own evidence review, TDD slices, full validation gate, and
 fresh thermonuclear maintainability review before implementation is complete.
-
-## Milestone 17: Daily Briefings and Scheduled Delivery
-
-Status: implementation complete; independent maintainability review pending.
-
-Goal: make the assistant usefully proactive by combining personal context and
-enabled read capabilities into a concise on-demand or scheduled daily briefing.
-
-Included:
-
-- An on-demand “what does my day look like?” capability covering configured
-  profile, calendar, weather, alarm, and task sections.
-- Short, standard, and attention-only spoken modes, plus a bounded “what changed
-  since this morning?” comparison against the last delivered briefing snapshot.
-- Optional bounded internet-search topics explicitly selected by the user.
-- An application-owned aggregator over fixed narrow read ports, configurable
-  schedule, timezone, sections, quiet hours, and spoken length.
-- Durable delivery slots, restart-safe deduplication, isolated source failures,
-  and delivery through the shared output coordinator.
-
-Excluded:
-
-- Autonomous actions based on briefing content, provider-selected sources or
-  sections, open-ended planning, advertising, continuous surveillance, or
-  treating one optional source failure as failure of the complete briefing.
-
-Thin slices:
-
-1. Define typed sections, safe source projections, ordering, length modes, exact
-   facts, and deterministic aggregation contracts.
-2. Implement on-demand mock and configured briefings with partial-failure and
-   last-snapshot comparison semantics.
-3. Add user-owned scheduling, section preferences, quiet hours, and timezone
-   validation.
-4. Add durable delivery slots, restart deduplication, shutdown handling, and
-   shared voice-output coverage.
-5. Add bounded search topics, text/voice/Pi integration, documentation, and the
-   required independent review.
-
-Acceptance criteria:
-
-- On-demand and scheduled briefings combine only enabled user-selected sections
-  and identify unavailable sections without exposing diagnostics.
-- Scheduled delivery occurs at most once per local slot across restart and
-  respects timezone and quiet hours.
-- Source content cannot add tools, actions, sources, or sections, and exact
-  source facts survive final response rewriting.
-- `npm run check` passes.
 
 ## Milestone 18: Desktop Presence and Command Center
 

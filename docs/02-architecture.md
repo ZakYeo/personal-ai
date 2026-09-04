@@ -227,7 +227,7 @@ first prove one provider's account semantics before extending its narrow ports.
 
 ## Capability Expansion
 
-Implemented Milestones 13 through 16 and planned Milestones 17 through 25 extend
+Implemented Milestones 13 through 17 and planned Milestones 18 through 25 extend
 the application through new ports and feature adapters without making features
 import or invoke one another:
 

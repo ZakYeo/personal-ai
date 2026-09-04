@@ -156,8 +156,9 @@ Current roadmap position:
   OpenAI smoke-test support. Milestone 13 is implemented after its required
   independent maintainability review, with deterministic and mocked-provider
   smoke coverage for durable profile use and generic missing-detail resolution.
-  The active roadmap now commits Milestones 17 through 25: daily briefings,
-  desktop presence and command center, voice interruption and responsiveness,
+  Milestone 17 daily briefings are implemented after independent review. The
+  active roadmap now commits Milestones 18 through 25: desktop presence and
+  command center, voice interruption and responsiveness,
   proactive attention, computer context and allowlisted control, Home Assistant,
   one real communications integration, a personal knowledge library, and
   approval-based adaptive memory. Profiles are created and edited through
@@ -225,8 +226,8 @@ Google Calendar adapter, OpenAI internet search, the OpenAI response rewriter,
 the narrow OpenAI calendar event grouper, Open-Meteo weather, the narrow OpenAI
 weather-clothing adviser, and config-relative durable alarm, weather-watch,
 task, and profile stores. This enables every currently implemented feature;
-Milestones 17 through 25 remain planned, beginning with daily briefings and
-desktop presence. Internet search reuses
+Milestones 18 through 25 remain planned, beginning with desktop presence.
+Internet search reuses
 `OPENAI_API_KEY`; its bounded source annotations become sanitized natural source
 titles with validated HTTPS link metadata, while raw URLs and citation markup
 are excluded from initial and follow-up speech. Retrieved text remains untrusted

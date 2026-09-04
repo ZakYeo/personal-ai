@@ -4,6 +4,64 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 17: Daily Briefings and Scheduled Delivery
+
+Status: implemented after an independent thermonuclear maintainability review.
+
+Goal: combine explicit personal context and enabled read capabilities into a
+concise, user-owned on-demand or scheduled briefing.
+
+Included:
+
+- Fixed application-owned aggregation over narrow profile, calendar, weather,
+  alarm, task, and optional internet-search readers. Source content cannot add
+  tools, sections, permissions, or actions.
+- Short, standard, and attention-only modes; stable opaque item identities; and
+  bounded comparison with the most recent completed briefing snapshot.
+- Explicit section, length, quiet-hour, timezone, weekday, and up-to-three-topic
+  preferences, with confirmed schedule changes and deterministic text routing.
+- Versioned in-memory and atomic JSON-file state with restrictive permissions,
+  strict external-state validation, revision checks, and bounded retention.
+- Claim-before-read delivery slots, restart-safe at-most-once source work,
+  same-day quiet-hour deferral, isolated source failures, and subject-timezone
+  delivery through the shared notification and voice output path.
+- Deterministic text, service, desktop/Pi voice, failure, daylight-saving,
+  restart, persistence, and opt-in live OpenAI intent coverage.
+
+Excluded:
+
+- Autonomous actions based on briefing content, provider-selected sources or
+  sections, open-ended planning, advertising, continuous surveillance, or
+  treating one optional source failure as failure of the whole briefing.
+
+Review outcomes:
+
+- The fresh thermonuclear review found scheduler ordering, delivery identity,
+  deterministic routing, source bounds/citation association, boundary width,
+  notification timezone, comparison stability, weather-policy drift,
+  per-topic isolation, persistence validation, response completeness, coverage,
+  and documentation gaps. Every actionable finding was addressed in focused,
+  tested commits before milestone completion.
+- Provider reads now occur only after a durable claim; post-claim failures remain
+  an unknown claimed outcome and are never automatically retried.
+- Internet answers and citations are projected together into the spoken mode's
+  exact retained items, and weather uses the same validated exact-location and
+  qualitative condition policy as the normal weather capability.
+
+Acceptance criteria:
+
+- On-demand and scheduled briefings combine only enabled user-selected sections
+  and identify unavailable sections without exposing internal diagnostics.
+- Scheduled delivery occurs at most once per local slot across restart and
+  respects selected weekdays, timezone, daylight-saving changes, and quiet
+  hours.
+- Durable state rejects contradictory slots, duplicate bounded identities, and
+  malformed preferences or snapshots, while exact source facts remain in safe
+  structured data.
+- The full deterministic `npm run check` validation gate passes; live OpenAI
+  aggregation remains explicit opt-in through
+  `npm run test:e2e:openai:briefing`.
+
 ## Milestone 13: Explicit Personal Profile and Preferences
 
 Status: implemented.

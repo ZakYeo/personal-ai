@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 
 const plannedMilestones = [
-  "Milestone 17: Daily Briefings and Scheduled Delivery",
   "Milestone 18: Desktop Presence and Command Center",
   "Milestone 19: Voice Interruption and Responsiveness",
   "Milestone 20: Proactive Attention Engine",
@@ -13,8 +12,9 @@ const plannedMilestones = [
 ] as const;
 
 describe("product roadmap", () => {
-  it("documents the ordered post-Milestone-16 plan and North Star", async () => {
-    const [roadmap, vision] = await Promise.all([
+  it("documents the ordered post-Milestone-17 plan and North Star", async () => {
+    const [archive, roadmap, vision] = await Promise.all([
+      readFile("docs/09-implemented-milestones.md", "utf8"),
       readFile("docs/06-implementation-roadmap.md", "utf8"),
       readFile("docs/01-product-vision.md", "utf8"),
     ]);
@@ -31,6 +31,9 @@ describe("product roadmap", () => {
 
     expect(roadmap).toContain("## Product North Star");
     expect(vision).toContain("## Product North Star");
+    expect(archive).toContain(
+      "## Milestone 17: Daily Briefings and Scheduled Delivery",
+    );
     expect(roadmap).not.toContain("## Future Considerations");
     expect(roadmap).not.toContain("intentionally unnumbered");
   });
@@ -42,7 +45,7 @@ describe("product roadmap", () => {
     ]);
 
     for (const document of [agents, readme]) {
-      expect(document).toContain("Milestones 17 through 25");
+      expect(document).toContain("Milestones 18 through 25");
       expect(document).toContain("desktop presence");
       expect(document).toContain("adaptive memory");
     }

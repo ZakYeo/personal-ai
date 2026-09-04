@@ -98,11 +98,14 @@ Examples:
 - `task.remind`
 - `task.reminder.acknowledge`
 
-The active roadmap may add these stable capability families after their
-contracts are proven:
+The implemented capability families now also include:
 
 - Milestone 17 implements `briefing.get_daily`, briefing schedule, topic, and
   preference controls.
+
+The active roadmap may add these stable capability families after their
+contracts are proven:
+
 - Milestone 20: attention-rule create, explain, snooze, disable, and list controls.
 - Milestone 21: explicit desktop context reads and typed allowlisted actions.
 - Milestone 22: allowlisted Home Assistant state reads and device-class controls.
