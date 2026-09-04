@@ -101,12 +101,23 @@ export interface BriefingPreferencesUpdate {
   readonly updatedAt: string;
 }
 
-export interface BriefingDeliverySlot {
-  readonly claimedAt: string;
-  readonly deliveredAt?: string;
-  readonly id: string;
-  readonly status: "claimed" | "delivered" | "skipped";
-}
+export type BriefingDeliverySlot =
+  | {
+      readonly claimedAt: string;
+      readonly id: string;
+      readonly status: "claimed";
+    }
+  | {
+      readonly claimedAt: string;
+      readonly deliveredAt: string;
+      readonly id: string;
+      readonly status: "delivered";
+    }
+  | {
+      readonly id: string;
+      readonly skippedAt: string;
+      readonly status: "skipped";
+    };
 
 export interface BriefingStore {
   readonly claimDeliverySlot: (slot: {
