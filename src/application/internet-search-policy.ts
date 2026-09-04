@@ -1,3 +1,6 @@
+import type { InternetSearchResponse } from "../ports/internet-search.js";
+import { containsControlCharacters } from "./text-safety.js";
+
 export const internetSearchLimits = Object.freeze({
   answerCharacters: 4_000,
   extractCharacters: 2_000,
@@ -67,6 +70,71 @@ export function validateInternetSearchCitationIntegrity(
     input.sourceIds.some((sourceId) => !citedSourceIds.has(sourceId))
   ) {
     throw createIntegrityError(input, "source_coverage");
+  }
+}
+
+export function validateInternetSearchResponse(
+  response: InternetSearchResponse,
+  maxResults: number,
+): void {
+  if (
+    response.answer.length > internetSearchLimits.answerCharacters ||
+    containsUnsafeSearchTextControls(response.answer) ||
+    response.sources.length > maxResults ||
+    response.sources.some(
+      (source) =>
+        source.title.length === 0 ||
+        source.title.length > internetSearchLimits.titleCharacters ||
+        containsControlCharacters(source.title) ||
+        !isHttpUrl(source.url) ||
+        source.url.length > internetSearchLimits.urlCharacters ||
+        containsControlCharacters(source.url) ||
+        (source.extract?.length ?? 0) >
+          internetSearchLimits.extractCharacters ||
+        (source.extract !== undefined &&
+          containsUnsafeSearchTextControls(source.extract)),
+    )
+  ) {
+    throw new Error("Internet search returned content outside safe bounds.");
+  }
+
+  validateInternetSearchCitationIntegrity({
+    citations: response.citations,
+    createError: () =>
+      new Error(
+        "Internet search returned citations that do not resolve to its source set.",
+      ),
+    sourceIds: response.sources.map((source) => source.id),
+    textLength: response.answer.length,
+  });
+
+  const projectionCharacters =
+    response.answer.length +
+    response.sources.reduce(
+      (total, source) =>
+        total +
+        source.id.length +
+        source.title.length +
+        source.url.length +
+        (source.extract?.length ?? 0) +
+        (source.publishedAt?.length ?? 0),
+      0,
+    );
+  if (projectionCharacters > internetSearchLimits.projectionCharacters) {
+    throw new Error("Internet search returned content outside safe bounds.");
+  }
+}
+
+function containsUnsafeSearchTextControls(value: string): boolean {
+  return containsControlCharacters(value.replace(/[\t\n\r]/gu, ""));
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
   }
 }
 

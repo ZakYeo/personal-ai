@@ -135,6 +135,8 @@ describe("processBriefingScheduleCycle", () => {
       expectedRevision: preferences.revision,
       preferences: {
         ...preferences,
+        searchTopics: ["topic"],
+        sections: ["internet"],
         schedule: {
           localTime: "08:00",
           timeZone: "Europe/London",
@@ -147,12 +149,14 @@ describe("processBriefingScheduleCycle", () => {
       Promise.resolve({
         attention: [],
         facts: {},
-        items: [{ key: "task:one", text: "One task is due." }],
-        section: "tasks" as const,
+        items: [
+          { key: "internet:topic", text: `topic: ${"word ".repeat(800)}` },
+        ],
+        section: "internet" as const,
       }),
     );
     const aggregator = createDailyBriefingAggregator([
-      { read, section: "tasks" },
+      { read, section: "internet" },
     ]);
     const delivery = { deliver: vi.fn(() => Promise.resolve()) };
 
@@ -173,5 +177,9 @@ describe("processBriefingScheduleCycle", () => {
 
     expect(read).toHaveBeenCalledTimes(1);
     expect(delivery.deliver).toHaveBeenCalledTimes(1);
+    const snapshot = await createStore().getLastSnapshot();
+    expect(snapshot!.sections[0]!.items[0]!.text.length).toBeLessThanOrEqual(
+      500,
+    );
   });
 });

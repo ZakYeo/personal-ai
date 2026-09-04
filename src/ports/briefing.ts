@@ -16,6 +16,7 @@ export type BriefingSection = (typeof briefingSections)[number];
 export type BriefingLength = "short" | "standard" | "attention-only";
 
 export interface BriefingItem {
+  readonly citations?: readonly AssistantCitation[];
   readonly key: string;
   readonly text: string;
 }

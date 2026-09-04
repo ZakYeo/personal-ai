@@ -1,5 +1,8 @@
 import type { AlarmStore } from "../ports/alarm-store.js";
-import type { BriefingSourcePort } from "../ports/briefing.js";
+import type {
+  BriefingSourcePort,
+  BriefingSourceResult,
+} from "../ports/briefing.js";
 import type { CalendarSearchPort } from "../ports/calendar.js";
 import type { InternetSearchPort } from "../ports/internet-search.js";
 import type { PersonalContextReaderPort } from "../ports/personal-context.js";
@@ -9,6 +12,7 @@ import type { WeatherProviderPort } from "../ports/weather.js";
 import type { AssistantCommandParameters } from "../ports/assistant.js";
 import { zonedParts } from "./local-date-time.js";
 import { sanitizeHumanTextMarkup } from "./human-text.js";
+import { validateInternetSearchResponse } from "./internet-search-policy.js";
 import {
   metricWeatherUnits,
   validateWeatherForecast,
@@ -65,7 +69,7 @@ export function createCalendarBriefingSource(
         ]),
       );
       const attention = events
-        .map((event, index) => ({ event, key: `calendar:${index}` }))
+        .map((event) => ({ event, key: stableKey("calendar", event.id) }))
         .filter(
           ({ event }) =>
             event.startAt &&
@@ -79,8 +83,8 @@ export function createCalendarBriefingSource(
         items:
           events.length === 0
             ? [{ key: "calendar:none", text: "Your calendar is clear today." }]
-            : events.map((event, index) => ({
-                key: `calendar:${index}`,
+            : events.map((event) => ({
+                key: stableKey("calendar", event.id),
                 text: `${event.title} is ${event.startAt ? `at ${event.startAt}` : "all day"}.`,
               })),
         section: "calendar",
@@ -104,7 +108,7 @@ export function createAlarmBriefingSource(
         )
         .slice(0, 10);
       const attention = alarms
-        .map((alarm, index) => ({ alarm, key: `alarm:${index}` }))
+        .map((alarm) => ({ alarm, key: stableKey("alarms", alarm.id) }))
         .filter(
           ({ alarm }) =>
             new Date(alarm.scheduledFor).getTime() - now.getTime() <=
@@ -129,8 +133,8 @@ export function createAlarmBriefingSource(
                   text: "You have no alarms scheduled today.",
                 },
               ]
-            : alarms.map((alarm, index) => ({
-                key: `alarm:${index}`,
+            : alarms.map((alarm) => ({
+                key: stableKey("alarms", alarm.id),
                 text: `${alarm.label} is set for ${alarm.scheduledFor}.`,
               })),
         section: "alarms",
@@ -154,7 +158,7 @@ export function createTaskBriefingSource(store: TaskStore): BriefingSourcePort {
         )
         .slice(0, 10);
       return {
-        attention: tasks.map((_, index) => `task:${index}`),
+        attention: tasks.map((task) => stableKey("tasks", task.id)),
         facts: tasks.reduce<AssistantCommandParameters>(
           (facts, task, index) => ({
             ...facts,
@@ -166,8 +170,8 @@ export function createTaskBriefingSource(store: TaskStore): BriefingSourcePort {
         items:
           tasks.length === 0
             ? [{ key: "task:none", text: "You have no tasks due today." }]
-            : tasks.map((task, index) => ({
-                key: `task:${index}`,
+            : tasks.map((task) => ({
+                key: stableKey("tasks", task.id),
                 text: `${task.label} on ${lists.get(task.listId) ?? "your task list"} is ${task.dueDate! < today ? "overdue" : "due today"}.`,
               })),
         section: "tasks",
@@ -253,6 +257,7 @@ export function createInternetBriefingSource(
         { maxResults: Math.min(2, maxResults), query: topic },
         signal ? { signal } : {},
       );
+      validateInternetSearchResponse(response, Math.min(2, maxResults));
       const answer = sanitizeHumanTextMarkup(response.answer).trim();
       return {
         attention: [],
@@ -263,7 +268,11 @@ export function createInternetBriefingSource(
         facts: { internetTopic: topic },
         items: [
           {
-            key: `internet:${topic.toLocaleLowerCase()}`,
+            citations: response.sources.slice(0, 2).map(({ title, url }) => ({
+              title: sanitizeHumanTextMarkup(title),
+              url,
+            })),
+            key: stableKey("internet", topic.toLocaleLowerCase()),
             text: `${topic}: ${answer}`,
           },
         ],
@@ -276,4 +285,15 @@ export function createInternetBriefingSource(
 function localDate(date: Date, timeZone: string): string {
   const parts = zonedParts(date, timeZone);
   return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+}
+
+function stableKey(section: BriefingSourceResult["section"], identity: string) {
+  let first = 0x811c9dc5;
+  let second = 0x9e3779b9;
+  for (const character of identity) {
+    const code = character.codePointAt(0)!;
+    first = Math.imul(first ^ code, 0x01000193);
+    second = Math.imul(second ^ code, 0x85ebca6b);
+  }
+  return `${section}:${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0).toString(16).padStart(8, "0")}`;
 }

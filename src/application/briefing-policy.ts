@@ -37,29 +37,39 @@ export function createDailyBriefingAggregator(
             if (section === "internet") {
               const topics = request.topics ?? [];
               if (topics.length === 0) return unavailable(section);
-              const topicResults = await Promise.all(
-                topics.map((topic) =>
-                  source.read({
-                    now: context.now,
-                    ...(context.signal ? { signal: context.signal } : {}),
-                    timeZone: request.timeZone,
-                    topic,
+              const topicResults = (
+                await Promise.all(
+                  topics.map(async (topic) => {
+                    try {
+                      return await source.read({
+                        now: context.now,
+                        ...(context.signal ? { signal: context.signal } : {}),
+                        timeZone: request.timeZone,
+                        topic,
+                      });
+                    } catch (error) {
+                      reportBestEffort(context.reportDiagnostic, error);
+                      return;
+                    }
                   }),
-                ),
-              );
+                )
+              ).filter((result) => result !== undefined);
+              if (topicResults.length === 0) return unavailable(section);
               return {
                 available: true as const,
-                result: mergeInternetResults(topicResults),
+                result: projectSourceResult(mergeInternetResults(topicResults)),
                 section,
               };
             }
             return {
               available: true as const,
-              result: await source.read({
-                now: context.now,
-                ...(context.signal ? { signal: context.signal } : {}),
-                timeZone: request.timeZone,
-              }),
+              result: projectSourceResult(
+                await source.read({
+                  now: context.now,
+                  ...(context.signal ? { signal: context.signal } : {}),
+                  timeZone: request.timeZone,
+                }),
+              ),
               section,
             };
           } catch (error) {
@@ -72,9 +82,6 @@ export function createDailyBriefingAggregator(
       for (const entry of resolved) {
         if (entry.available) Object.assign(facts, entry.result.facts);
       }
-      const citations = resolved.flatMap((entry) =>
-        entry.available ? [...(entry.result.citations ?? [])] : [],
-      );
       const snapshotSections: BriefingSnapshotSection[] = resolved.map(
         (entry) => ({
           available: entry.available,
@@ -99,15 +106,23 @@ export function createDailyBriefingAggregator(
       const renderedItems = request.sinceLast
         ? changedItems(items, snapshotSections, context.lastSnapshot)
         : items;
+      const selectedItems = fitWithin(
+        renderedItems,
+        lengthLimits[request.length],
+      );
       return {
-        citations,
+        citations: uniqueCitations(
+          selectedItems.flatMap(({ citations }) => [...(citations ?? [])]),
+        ),
         facts,
         snapshot: {
           createdAt: context.now.toISOString(),
           sections: snapshotSections,
           timeZone: request.timeZone,
         },
-        text: renderWithin(renderedItems, lengthLimits[request.length]),
+        text:
+          selectedItems.map(({ text }) => text).join(" ") ||
+          "There is nothing that needs your attention.",
         usedInternet:
           selected.includes("internet") && (request.topics?.length ?? 0) > 0,
       };
@@ -135,9 +150,6 @@ function mergeInternetResults(
 ) {
   return {
     attention: results.flatMap(({ attention }) => [...attention]),
-    citations: results
-      .flatMap(({ citations }) => [...(citations ?? [])])
-      .slice(0, 6),
     facts: results.reduce<AssistantCommandParameters>(
       (merged, { facts }, index) => {
         for (const [key, value] of Object.entries(facts)) {
@@ -148,7 +160,15 @@ function mergeInternetResults(
       },
       {},
     ),
-    items: results.flatMap(({ items }) => [...items]),
+    items: results.flatMap(({ citations, items }) =>
+      items.map((item) => ({
+        ...(item.citations || citations
+          ? { citations: item.citations ?? citations }
+          : {}),
+        key: item.key,
+        text: item.text,
+      })),
+    ),
     section: "internet" as const,
   };
 }
@@ -183,10 +203,9 @@ function changedItems(
     ? [
         {
           key: "comparison:heading",
-          text: `Changed since your last briefing: ${differences
-            .map(({ text }) => text)
-            .join(" ")}`,
+          text: "Changed since your last briefing:",
         },
+        ...differences,
       ]
     : [
         {
@@ -228,14 +247,67 @@ function selectItems(
   return items;
 }
 
-function renderWithin(items: readonly BriefingItem[], limit: number): string {
-  const selected: string[] = [];
+function fitWithin(
+  items: readonly BriefingItem[],
+  limit: number,
+): readonly BriefingItem[] {
+  const selected: BriefingItem[] = [];
+  let used = 0;
   for (const item of items) {
-    const candidate = [...selected, item.text].join(" ");
-    if (candidate.length > limit) break;
-    selected.push(item.text);
+    const separator = selected.length > 0 ? 1 : 0;
+    const remaining = limit - used - separator;
+    if (remaining <= 0) break;
+    const text = truncateText(item.text, remaining);
+    if (text.length === 0) break;
+    selected.push({ ...item, text });
+    used += separator + text.length;
+    if (text.length < item.text.length) break;
   }
-  return selected.join(" ") || "There is nothing that needs your attention.";
+  return selected;
+}
+
+function projectSourceResult<
+  T extends {
+    readonly items: readonly BriefingItem[];
+    readonly citations?: readonly {
+      readonly title: string;
+      readonly url: string;
+    }[];
+  },
+>(result: T): T {
+  const inheritedCitations = result.citations;
+  return {
+    ...result,
+    items: result.items.map((item) => ({
+      ...(item.citations || inheritedCitations
+        ? { citations: item.citations ?? inheritedCitations }
+        : {}),
+      key: truncateText(item.key.trim(), 160),
+      text: truncateText(item.text.trim(), 500),
+    })),
+  };
+}
+
+function truncateText(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  if (limit <= 1) return text.slice(0, limit);
+  const prefix = text.slice(0, limit - 1).trimEnd();
+  const boundary = prefix.lastIndexOf(" ");
+  const safePrefix =
+    boundary >= Math.floor(limit / 2) ? prefix.slice(0, boundary) : prefix;
+  return `${safePrefix}…`;
+}
+
+function uniqueCitations(
+  citations: readonly { readonly title: string; readonly url: string }[],
+) {
+  const seen = new Set<string>();
+  return citations.filter((citation) => {
+    const key = `${citation.title}\u0000${citation.url}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function reportBestEffort(

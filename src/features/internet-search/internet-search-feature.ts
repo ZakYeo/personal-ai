@@ -5,25 +5,23 @@ import type {
 } from "../../ports/feature.js";
 import { defineCapability, defineFeature } from "../../application/feature.js";
 import type {
-  InternetSearchResponse,
   InternetSearchPort,
+  InternetSearchResponse,
   InternetSearchSource,
 } from "../../ports/internet-search.js";
 import {
   internetSearchLimits,
-  validateInternetSearchCitationIntegrity,
+  validateInternetSearchResponse,
 } from "../../application/internet-search-policy.js";
 import {
   defineDeterministicFeatureRules,
   type DeterministicFeatureRule,
 } from "../../application/deterministic-feature-rules.js";
 import { parseSpokenOrdinal } from "../../application/spoken-ordinal.js";
-import { containsControlCharacters } from "../../application/text-safety.js";
 import {
   humanizeSpokenText,
   sanitizeHumanTextMarkup,
 } from "../../application/human-text.js";
-import { containsUnsafeInternetSearchTextControls } from "./internet-search-human-text.js";
 
 const searchParameters = {
   query: {
@@ -126,7 +124,7 @@ async function executeSearch(
     { maxResults, query },
     context.signal ? { signal: context.signal } : {},
   );
-  validateSearchResponse(response, maxResults);
+  validateInternetSearchResponse(response, maxResults);
   if (response.sources.length === 0) {
     return {
       resultReferences: {
@@ -146,67 +144,6 @@ async function executeSearch(
     responseRewrite: "disabled" as const,
     text: formatCitedAnswer(response, humanSources, context),
   };
-}
-
-function validateSearchResponse(
-  response: InternetSearchResponse,
-  maxResults: number,
-): void {
-  if (
-    response.answer.length > internetSearchLimits.answerCharacters ||
-    containsUnsafeInternetSearchTextControls(response.answer) ||
-    response.sources.length > maxResults ||
-    response.sources.some(
-      (source) =>
-        source.title.length === 0 ||
-        source.title.length > internetSearchLimits.titleCharacters ||
-        containsControlCharacters(source.title) ||
-        !isHttpUrl(source.url) ||
-        source.url.length > internetSearchLimits.urlCharacters ||
-        containsControlCharacters(source.url) ||
-        (source.extract?.length ?? 0) >
-          internetSearchLimits.extractCharacters ||
-        (source.extract !== undefined &&
-          containsUnsafeInternetSearchTextControls(source.extract)),
-    )
-  ) {
-    throw new Error("Internet search returned content outside safe bounds.");
-  }
-
-  validateInternetSearchCitationIntegrity({
-    citations: response.citations,
-    createError: () =>
-      new Error(
-        "Internet search returned citations that do not resolve to its source set.",
-      ),
-    sourceIds: response.sources.map((source) => source.id),
-    textLength: response.answer.length,
-  });
-
-  const projectionCharacters =
-    response.answer.length +
-    response.sources.reduce(
-      (total, source) =>
-        total +
-        source.id.length +
-        source.title.length +
-        source.url.length +
-        (source.extract?.length ?? 0) +
-        (source.publishedAt?.length ?? 0),
-      0,
-    );
-  if (projectionCharacters > internetSearchLimits.projectionCharacters) {
-    throw new Error("Internet search returned content outside safe bounds.");
-  }
-}
-
-function isHttpUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
 }
 
 function answerSearchFollowUp(
