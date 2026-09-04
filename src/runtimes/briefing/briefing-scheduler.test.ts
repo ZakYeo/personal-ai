@@ -1,3 +1,7 @@
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createFileBriefingStore } from "../../adapters/local/file-briefing-store.js";
 import { createDailyBriefingAggregator } from "../../application/briefing-policy.js";
 import { createInMemoryBriefingStore } from "../../test-support/briefing-store.js";
 import {
@@ -53,16 +57,18 @@ describe("processBriefingScheduleCycle", () => {
       updatedAt: now.toISOString(),
     });
     const delivered: string[] = [];
+    const readSource = vi.fn(() =>
+      Promise.resolve({
+        attention: [],
+        facts: { taskCount: 1 },
+        items: [{ key: "task:one", text: "One task is due." }],
+        section: "tasks" as const,
+      }),
+    );
     const dependencies = {
       aggregator: createDailyBriefingAggregator([
         {
-          read: () =>
-            Promise.resolve({
-              attention: [],
-              facts: { taskCount: 1 },
-              items: [{ key: "task:one", text: "One task is due." }],
-              section: "tasks" as const,
-            }),
+          read: readSource,
           section: "tasks" as const,
         },
       ]),
@@ -79,10 +85,93 @@ describe("processBriefingScheduleCycle", () => {
 
     await processBriefingScheduleCycle(dependencies);
     await processBriefingScheduleCycle(dependencies);
+    const current = await store.getPreferences();
+    await store.updatePreferences({
+      expectedRevision: current.revision,
+      preferences: { ...current, length: "short" },
+      updatedAt: now.toISOString(),
+    });
+    await processBriefingScheduleCycle(dependencies);
 
-    expect(delivered).toEqual(["briefing:Europe/London:2026-09-07:08:00:2"]);
+    expect(delivered).toEqual([
+      "briefing:Europe/London:2026-09-07:08:00:monday",
+    ]);
+    expect(readSource).toHaveBeenCalledTimes(1);
     await expect(store.getLastSnapshot()).resolves.toMatchObject({
       sections: [{ section: "tasks" }],
     });
+
+    const revised = await store.getPreferences();
+    await store.updatePreferences({
+      expectedRevision: revised.revision,
+      preferences: {
+        ...revised,
+        schedule: { ...revised.schedule!, localTime: "08:01" },
+      },
+      updatedAt: now.toISOString(),
+    });
+    await processBriefingScheduleCycle(dependencies);
+
+    expect(delivered).toEqual([
+      "briefing:Europe/London:2026-09-07:08:00:monday",
+      "briefing:Europe/London:2026-09-07:08:01:monday",
+    ]);
+    expect(readSource).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not repeat source reads after a process restart", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "briefing-scheduler-"));
+    const filePath = join(directory, "briefings.json");
+    const now = new Date("2026-09-07T07:01:00.000Z");
+    const createStore = () =>
+      createFileBriefingStore({
+        filePath,
+        now: () => now,
+        timeZone: "Europe/London",
+      });
+    const firstStore = createStore();
+    const preferences = await firstStore.getPreferences();
+    await firstStore.updatePreferences({
+      expectedRevision: preferences.revision,
+      preferences: {
+        ...preferences,
+        schedule: {
+          localTime: "08:00",
+          timeZone: "Europe/London",
+          weekdays: ["monday"],
+        },
+      },
+      updatedAt: now.toISOString(),
+    });
+    const read = vi.fn(() =>
+      Promise.resolve({
+        attention: [],
+        facts: {},
+        items: [{ key: "task:one", text: "One task is due." }],
+        section: "tasks" as const,
+      }),
+    );
+    const aggregator = createDailyBriefingAggregator([
+      { read, section: "tasks" },
+    ]);
+    const delivery = { deliver: vi.fn(() => Promise.resolve()) };
+
+    await processBriefingScheduleCycle({
+      aggregator,
+      clock: { now: () => now },
+      delivery,
+      reportFailure: () => {},
+      store: firstStore,
+    });
+    await processBriefingScheduleCycle({
+      aggregator,
+      clock: { now: () => now },
+      delivery,
+      reportFailure: () => {},
+      store: createStore(),
+    });
+
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(delivery.deliver).toHaveBeenCalledTimes(1);
   });
 });

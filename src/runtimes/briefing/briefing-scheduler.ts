@@ -55,7 +55,7 @@ export async function processBriefingScheduleCycle(
   const localDate = formatDate(local);
   const weekday = weekdayAt(now, schedule.timeZone);
   if (!schedule.weekdays.includes(weekday)) return;
-  const slotId = `briefing:${schedule.timeZone}:${localDate}:${schedule.localTime}:${preferences.revision}`;
+  const slotId = `briefing:${schedule.timeZone}:${localDate}:${schedule.localTime}:${schedule.weekdays.join(",")}`;
   const timing = resolveSlotTiming(schedule, preferences, local);
   if (timing.skip) {
     if (now >= timing.scheduledAt) {
@@ -72,48 +72,54 @@ export async function processBriefingScheduleCycle(
   )
     return;
 
-  const diagnostics: unknown[] = [];
-  const result = await dependencies.aggregator.create(
-    {
-      length: preferences.length,
-      sections: preferences.sections,
-      sinceLast: false,
-      timeZone: schedule.timeZone,
-      topics: preferences.searchTopics,
-    },
-    {
-      now,
-      reportDiagnostic: (error) => diagnostics.push(error),
-      ...(dependencies.shutdownSignal
-        ? { signal: dependencies.shutdownSignal }
-        : {}),
-    },
-  );
-  for (const diagnostic of diagnostics)
-    reportBestEffort(dependencies, diagnostic);
+  if (dependencies.shutdownSignal?.aborted) return;
   const claimed = await dependencies.store.claimDeliverySlot({
     claimedAt: now.toISOString(),
     id: slotId,
   });
   if (!claimed || dependencies.shutdownSignal?.aborted) return;
-  await dependencies.delivery.deliver(
-    { id: slotId, text: result.text },
-    dependencies.shutdownSignal
-      ? { shutdownSignal: dependencies.shutdownSignal }
-      : {},
-  );
-  const completed = await dependencies.store.completeDeliverySlot({
-    deliveredAt: dependencies.clock.now().toISOString(),
-    id: slotId,
-    snapshot: result.snapshot,
-  });
-  if (!completed) {
-    reportBestEffort(
-      dependencies,
-      new Error(
-        "Briefing delivery slot changed before completion was recorded.",
-      ),
+
+  try {
+    const diagnostics: unknown[] = [];
+    const result = await dependencies.aggregator.create(
+      {
+        length: preferences.length,
+        sections: preferences.sections,
+        sinceLast: false,
+        timeZone: schedule.timeZone,
+        topics: preferences.searchTopics,
+      },
+      {
+        now,
+        reportDiagnostic: (error) => diagnostics.push(error),
+        ...(dependencies.shutdownSignal
+          ? { signal: dependencies.shutdownSignal }
+          : {}),
+      },
     );
+    for (const diagnostic of diagnostics)
+      reportBestEffort(dependencies, diagnostic);
+    await dependencies.delivery.deliver(
+      { id: slotId, text: result.text },
+      dependencies.shutdownSignal
+        ? { shutdownSignal: dependencies.shutdownSignal }
+        : {},
+    );
+    const completed = await dependencies.store.completeDeliverySlot({
+      deliveredAt: dependencies.clock.now().toISOString(),
+      id: slotId,
+      snapshot: result.snapshot,
+    });
+    if (!completed) {
+      reportBestEffort(
+        dependencies,
+        new Error(
+          "Briefing delivery slot changed before completion was recorded.",
+        ),
+      );
+    }
+  } catch (error) {
+    reportBestEffort(dependencies, error);
   }
 }
 
