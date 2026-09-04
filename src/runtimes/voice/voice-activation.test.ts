@@ -374,7 +374,7 @@ describe("voice activation", () => {
     expect(stream.snapshot().interaction?.phase).toBe("completed");
   });
 
-  it("terminalizes a capped follow-up so the next wake can start cleanly", async () => {
+  it("ends a capped follow-up so the next wake can start cleanly", async () => {
     let interactionId = 0;
     const stream = createAssistantRuntimeEventStream({
       instanceId: "service-1",

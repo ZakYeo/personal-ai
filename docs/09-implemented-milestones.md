@@ -15,12 +15,13 @@ completion, privacy, and safe-failure state visible.
 
 Included:
 
-- A frozen, bounded runtime-owned presentation state machine with replayable
+- A frozen, bounded runtime-owned presentation state machine with replay-capable
   events, sanitized narrow command-center projections, and serialized live
   projection refresh after terminal interactions and background changes.
 - Authenticated loopback WebSocket IPC with strict field-by-field protocol
   parsing, payload and rate bounds, single-client ownership, correlated control
-  results, safe reconnect/replay, and tokenless cross-window state relay.
+  results, safe reconnect/replay, and cross-window state relay without token
+  sharing.
 - A Windows-first Tauri 2 shell with hidden-at-start windows, tray,
   single-instance activation, autostart, persistent window state, global
   shortcut, HTTPS-only source opening, and an always-on-top overlay.
@@ -31,7 +32,7 @@ Included:
   activity, and settings views. Profile explanation, correction, and deletion
   use typed application-owned controls over the exact composed profile store.
 - Atomic continuation ownership across voice and UI confirmation, bounded
-  follow-up terminalization, safe control-result feedback, internal boundary
+  follow-up terminal handling, safe control-result feedback, internal boundary
   diagnostics, and explicit deferral of interruption controls to Milestone 19.
 - Desktop-specific dependency-cruiser, ESLint, duplication, Semgrep rule and
   rule-fixture gates; Vitest model, view-model, component, adapter, protocol,
@@ -55,7 +56,7 @@ Review outcomes:
   remaining implementation continued.
 - The fresh final review found a voice/UI continuation race, stale projections,
   fire-and-forget controls, misleading interruption UI, absent typed profile
-  controls, nonterminal follow-up caps, incomplete native proof, swallowed
+  controls, incomplete follow-up caps, incomplete native proof, swallowed
   boundary failures, insufficient real-path Playwright coverage, and a narrow
   Semgrep ownership matcher. Every actionable finding was remediated before
   completion.
