@@ -6,7 +6,6 @@ export type {
   AssistantPresentationSnapshot,
   PresentationControl,
   PresentationControlResult,
-  PresentationProfileItem,
 } from "./ports/presentation.js";
 
 export { presentationProtocolVersion } from "./ports/presentation.js";
