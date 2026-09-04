@@ -10,6 +10,8 @@ import {
 } from "@tauri-apps/plugin-global-shortcut";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { restoreStateCurrent } from "@tauri-apps/plugin-window-state";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { PresentationControl } from "../../../../src/presentation-contract.js";
 import type { DesktopHost } from "../ports/desktop-host.js";
 
@@ -18,14 +20,23 @@ interface TauriDesktopDependencies {
   readonly autostartEnable: () => Promise<void>;
   readonly autostartIsEnabled: () => Promise<boolean>;
   readonly isTauriRuntime: () => boolean;
+  readonly hideCurrentWindow: () => Promise<void>;
   readonly openExternalUrl: (url: string) => Promise<void>;
-  readonly registerGlobalShortcut: (shortcut: string) => Promise<void>;
+  readonly registerGlobalShortcut: (
+    shortcut: string,
+    onPressed: () => void,
+  ) => Promise<void>;
   readonly restoreWindowState: () => Promise<void>;
   readonly sendControl: (control: PresentationControl) => Promise<void>;
+  readonly showOverlayWindow: () => Promise<void>;
   readonly unregisterGlobalShortcuts: () => Promise<void>;
 }
 
-const noOperation = (): void => {};
+async function showOverlayWindow(): Promise<void> {
+  const overlay = await WebviewWindow.getByLabel("overlay");
+  await overlay?.show();
+  await overlay?.setFocus();
+}
 
 export function createTauriDesktopHost(
   sendControl: (control: PresentationControl) => Promise<void>,
@@ -34,15 +45,21 @@ export function createTauriDesktopHost(
     autostartEnable: enableAutostart,
     autostartIsEnabled: isAutostartEnabled,
     isTauriRuntime: isTauri,
+    hideCurrentWindow: () => getCurrentWindow().hide(),
     openExternalUrl: openUrl,
-    registerGlobalShortcut: (shortcut) =>
-      registerShortcut(shortcut, noOperation),
+    registerGlobalShortcut: registerShortcut,
     restoreWindowState: restoreStateCurrent,
     sendControl,
+    showOverlayWindow,
     unregisterGlobalShortcuts: unregisterShortcuts,
   },
 ): DesktopHost {
   const host: DesktopHost = {
+    hideCurrentWindow: async () => {
+      if (dependencies.isTauriRuntime()) {
+        await dependencies.hideCurrentWindow();
+      }
+    },
     initialize: async () => {
       if (dependencies.isTauriRuntime())
         await dependencies.restoreWindowState();
@@ -66,7 +83,15 @@ export function createTauriDesktopHost(
     setPushToTalkShortcut: async (shortcut) => {
       if (!dependencies.isTauriRuntime()) return;
       await dependencies.unregisterGlobalShortcuts();
-      if (shortcut) await dependencies.registerGlobalShortcut(shortcut);
+      if (shortcut)
+        await dependencies.registerGlobalShortcut(shortcut, () => {
+          void dependencies.showOverlayWindow();
+        });
+    },
+    showOverlay: async () => {
+      if (dependencies.isTauriRuntime()) {
+        await dependencies.showOverlayWindow();
+      }
     },
   };
   return Object.freeze(host);

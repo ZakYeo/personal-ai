@@ -1,0 +1,99 @@
+.overlay-shell {
+  position: relative;
+  width: min(520px, calc(100vw - 24px));
+  margin: 12px auto;
+  overflow: hidden;
+  border: 1px solid #9defff24;
+  border-radius: 22px;
+  background: #09141ee8;
+  box-shadow: 0 24px 70px #0009;
+  backdrop-filter: blur(24px);
+}
+
+.ambient-line {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #53d8e8,
+    #5b8cff,
+    transparent
+  );
+}
+
+.overlay-header,
+.overlay-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.overlay-header h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.status-orb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #55d9e8;
+  box-shadow:
+    0 0 0 6px #55d9e815,
+    0 0 24px #55d9e899;
+}
+
+.status-confirmation {
+  background: #ffc86b;
+  box-shadow:
+    0 0 0 6px #ffc86b15,
+    0 0 24px #ffc86b88;
+}
+
+.status-failed {
+  background: #ff7c91;
+}
+
+.transcript,
+.response-panel,
+.confirmation-panel,
+.failure-message {
+  margin: 0 20px 14px;
+  padding: 15px 17px;
+  border: 1px solid #bdefff14;
+  border-radius: 14px;
+  background: var(--color-panel);
+  line-height: 1.5;
+}
+
+.transcript {
+  color: #bfd1d8;
+  font-style: italic;
+}
+
+.confirmation-panel p,
+.response-panel p {
+  margin: 0;
+}
+
+.button-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.button-row button,
+.quiet-button {
+  padding: 8px 14px;
+  border: 1px solid #bdefff22;
+  border-radius: 10px;
+  background-color: #ffffff0a;
+  cursor: pointer;
+}
+
+.overlay-footer {
+  justify-content: space-between;
+  padding-top: 4px;
+}

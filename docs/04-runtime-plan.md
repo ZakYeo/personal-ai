@@ -302,6 +302,26 @@ measured wake-to-feedback, speech-end-to-transcript, and first-audio latency.
 Cancellation propagates through capture, providers, synthesis, playback, and
 bounded cleanup but never claims to roll back an accepted external action.
 
+#### Native shell decision
+
+Milestone 18 uses Tauri 2 with React and TypeScript for the Windows-first
+desktop shell. Tauri keeps the installed application small, exposes the needed
+tray, single-instance, window-state, autostart, global-shortcut, and safe URL
+opener APIs, and lets the existing Node voice service remain independently
+deployable behind authenticated loopback IPC. The UI follows MVVM:
+framework-neutral models and view models depend on typed ports, React views are
+passive, and Tauri, WebSocket, window relay, clock, and browser APIs remain
+infrastructure adapters.
+
+The command-center webview owns the only direct service connection and relays
+already-validated presentation state to the overlay webview without sharing the
+authentication token. The native shell reads
+`PERSONAL_AI_PRESENTATION_TOKEN` and optional
+`PERSONAL_AI_PRESENTATION_PORT`; absent authentication leaves the graphical
+enhancement offline without affecting CLI, voice, service, or Pi operation.
+External source targets remain hidden metadata and are revalidated as HTTPS by
+the native opener adapter immediately before use.
+
 ### Raspberry Pi Runtime
 
 The Raspberry Pi runtime runs the assistant as a long-lived service process.

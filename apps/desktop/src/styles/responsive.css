@@ -1,0 +1,28 @@
+@media (max-width: 720px) {
+  .command-center {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    border-right: 0;
+    border-bottom: 1px solid #bdefff12;
+  }
+
+  nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .status-listening {
+    animation: pulse 1.7s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    50% {
+      transform: scale(0.78);
+      opacity: 0.68;
+    }
+  }
+}

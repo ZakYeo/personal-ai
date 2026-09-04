@@ -14,5 +14,5 @@
     "target": "ES2022",
     "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["e2e", "playwright.config.ts", "src", "vite.config.ts"]
 }

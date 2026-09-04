@@ -1,0 +1,97 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: radial-gradient(
+    circle at 20% 0%,
+    #123040 0,
+    #071018 42%,
+    #04090e 100%
+  );
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: #77cddd;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.primary {
+  border: 1px solid #59cadc;
+  background: linear-gradient(135deg, #2ba6b9, #2478a1);
+  box-shadow: 0 8px 22px #0a91aa33;
+}
+
+.privacy-state {
+  margin-left: auto;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: #a6bdc6;
+  font-size: 12px;
+  background: var(--color-panel);
+}
+
+.connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.connection::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #62757d;
+  content: "";
+}
+
+.connection-connected::before {
+  background: #65d6a4;
+  box-shadow: 0 0 10px #65d6a477;
+}
+
+.connection-offline::before,
+.connection-authentication_failed::before {
+  background: #ff9c72;
+}
+
+.source-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.source-list button {
+  padding: 8px 11px;
+  border: 1px solid #6bdcea2b;
+  border-radius: 999px;
+  color: #8ee8f2;
+  background: #4dc5d412;
+  cursor: pointer;
+}

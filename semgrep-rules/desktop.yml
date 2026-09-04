@@ -65,6 +65,8 @@ rules:
     pattern-either:
       - pattern: fetch(...)
       - pattern: new WebSocket(...)
+      - pattern: new BroadcastChannel(...)
+      - pattern: JSON.parse(...)
       - pattern: localStorage.$METHOD(...)
       - pattern: sessionStorage.$METHOD(...)
       - pattern: Date.now()

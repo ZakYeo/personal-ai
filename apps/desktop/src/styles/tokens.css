@@ -1,0 +1,11 @@
+:root {
+  --color-accent: #66d9e8;
+  --color-border: #bdefff1c;
+  --color-muted: #91a9b3;
+  --color-panel: #ffffff08;
+  color: #e7f3f7;
+  background: #071018;
+  color-scheme: dark;
+  font-family: Inter, "Segoe UI Variable", "Segoe UI", sans-serif;
+  font-synthesis: none;
+}

@@ -23,6 +23,7 @@ export interface OverlayViewState {
     readonly interactionId: string;
     readonly prompt: string;
   };
+  readonly controlMessage?: string;
   readonly failure?: string;
   readonly microphoneLabel: string;
   readonly phase: AssistantPresentationPhase;
@@ -33,14 +34,17 @@ export interface OverlayViewState {
 }
 
 export interface CommandCenterViewState {
+  readonly autostartEnabled: boolean;
   readonly cards: readonly CardViewState[];
   readonly connectionLabel: string;
   readonly connectionState: DesktopConnectionState;
+  readonly controlMessage?: string;
   readonly microphoneLabel: string;
   readonly requestDraft: string;
   readonly section: DesktopSection;
   readonly sections: readonly DesktopSection[];
   readonly sources: readonly SourceViewState[];
+  readonly shortcutDraft: string;
 }
 
 export interface DesktopAppViewState {

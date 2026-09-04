@@ -1,13 +1,17 @@
 import { ConnectionBadge } from "../components/ConnectionBadge.js";
+import { SettingsPanel } from "../components/SettingsPanel.js";
 import type { DesktopSection } from "../model/navigation.js";
 import type { CommandCenterViewState } from "../view-models/desktop-view-state.js";
 import { DashboardSectionView } from "./DashboardSectionView.js";
 
 interface CommandCenterViewIntents {
+  readonly applyShortcut: () => void;
   readonly openSource: (sourceId: string) => void;
   readonly selectSection: (section: DesktopSection) => void;
+  readonly setAutostart: (enabled: boolean) => void;
   readonly submitRequest: () => void;
   readonly updateRequestDraft: (value: string) => void;
+  readonly updateShortcutDraft: (value: string) => void;
 }
 
 export function CommandCenterView(properties: {
@@ -50,7 +54,25 @@ export function CommandCenterView(properties: {
           </div>
           <span className="privacy-state">{state.microphoneLabel}</span>
         </header>
-        <DashboardSectionView onOpenSource={intents.openSource} state={state} />
+        {state.section === "Settings" ? (
+          <SettingsPanel
+            autostartEnabled={state.autostartEnabled}
+            onApplyShortcut={intents.applyShortcut}
+            onAutostartChange={intents.setAutostart}
+            onShortcutChange={intents.updateShortcutDraft}
+            shortcutDraft={state.shortcutDraft}
+          />
+        ) : (
+          <DashboardSectionView
+            onOpenSource={intents.openSource}
+            state={state}
+          />
+        )}
+        {state.controlMessage ? (
+          <p className="control-message" role="status">
+            {state.controlMessage}
+          </p>
+        ) : null}
         <form
           className="ask-bar"
           onSubmit={(event) => {

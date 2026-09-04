@@ -58,6 +58,11 @@ export function OverlayView(properties: {
       {state.failure ? (
         <p className="failure-message">{state.failure}</p>
       ) : null}
+      {state.controlMessage ? (
+        <p className="failure-message" role="status">
+          {state.controlMessage}
+        </p>
+      ) : null}
       <footer className="overlay-footer">
         <ConnectionBadge
           label={state.connectionLabel}

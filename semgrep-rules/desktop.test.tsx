@@ -14,6 +14,10 @@ import type { AssistantRuntimeEvent } from "../src/presentation-contract.js";
 export function unsafeRequest(): void {
   // ruleid: desktop-browser-api-outside-infrastructure
   void fetch("https://example.com");
+  // ruleid: desktop-browser-api-outside-infrastructure
+  void new BroadcastChannel("unsafe");
+  // ruleid: desktop-browser-api-outside-infrastructure
+  void JSON.parse("{}");
 }
 
 export function UnsafeMarkup() {

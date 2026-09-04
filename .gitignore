@@ -1,12 +1,17 @@
 node_modules/
 dist/
 apps/*/dist/
+apps/*/playwright-report/
+apps/*/test-results/
+apps/*/src-tauri/target/
 coverage/
 .venv/
 .env
 .env.*
 !.env.example
 npm-debug.log*
+playwright-report/
+test-results/
 *.tsbuildinfo
 .voice-benchmark/
 config/state/

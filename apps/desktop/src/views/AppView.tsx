@@ -27,10 +27,13 @@ export function AppView({
   ) : (
     <CommandCenterView
       intents={{
+        applyShortcut: viewModel.applyShortcut,
         openSource: viewModel.openSource,
         selectSection: viewModel.selectSection,
+        setAutostart: viewModel.setAutostart,
         submitRequest: viewModel.submitRequest,
         updateRequestDraft: viewModel.updateRequestDraft,
+        updateShortcutDraft: viewModel.updateShortcutDraft,
       }}
       state={state.commandCenter}
     />
