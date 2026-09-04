@@ -11,7 +11,7 @@ const OPEN_MENU_ID: &str = "open-command-center";
 const QUIT_MENU_ID: &str = "quit";
 const WAKE_SHORTCUT: &str = "CommandOrControl+Shift+Space";
 
-pub fn setup(app: &mut App) -> tauri::Result<()> {
+pub fn setup(app: &mut App) -> Result<(), Box<dyn std::error::Error>> {
     configure_tray(app)?;
     configure_shortcut(app)?;
     keep_command_center_available(app);
@@ -50,7 +50,7 @@ fn configure_tray(app: &App) -> tauri::Result<()> {
     Ok(())
 }
 
-fn configure_shortcut(app: &App) -> tauri::Result<()> {
+fn configure_shortcut(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     app.global_shortcut()
         .on_shortcut(WAKE_SHORTCUT, |app, _, event| {
             if event.state() == ShortcutState::Pressed {
