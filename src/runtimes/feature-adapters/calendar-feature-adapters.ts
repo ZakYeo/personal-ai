@@ -12,6 +12,8 @@ import {
   type CalendarGoogleAdapterConfig,
 } from "./calendar-feature-adapter-config.js";
 import type { ResolvedCalendarEventGrouperProvider } from "./calendar-event-grouper-provider.js";
+import { calendarSearchService } from "../briefing/briefing-source-services.js";
+import { bindRuntimeService } from "../runtime-service-registry.js";
 
 interface CalendarFeatureRegistryDependencies {
   env: Record<string, string | undefined>;
@@ -31,39 +33,51 @@ export function createCalendarFeatureRegistryEntry(
   return {
     adapters: {
       google: googleCalendarAdapter.bind({
-        create: (context) => {
+        create: (context, services) => {
           const eventGrouper = context.adapterConfig.eventGrouper.create({
             env: dependencies.env,
             fetch: dependencies.fetch,
           }).grouper;
           return createCalendarFeature(
-            createGoogleCalendarAdapter({
-              config: context.adapterConfig.google,
-              env: dependencies.env,
-              fetch: dependencies.fetch,
-            }),
+            services.require(calendarSearchService),
             {
               eventGrouper,
               upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
             },
           );
         },
+        provideServices: ({ adapterConfig }) => [
+          bindRuntimeService(
+            calendarSearchService,
+            createGoogleCalendarAdapter({
+              config: adapterConfig.google,
+              env: dependencies.env,
+              fetch: dependencies.fetch,
+            }),
+          ),
+        ],
         validateStartup: (adapterConfig) => {
           validateGoogleCalendarStartup(adapterConfig, dependencies.env);
           validateEventGrouperStartup(adapterConfig, dependencies);
         },
       }),
       mock: mockCalendarAdapter.bind({
-        create: (context) => {
+        create: (context, services) => {
           const eventGrouper = context.adapterConfig.eventGrouper.create({
             env: dependencies.env,
             fetch: dependencies.fetch,
           }).grouper;
-          return createCalendarFeature(createMockCalendar(), {
-            eventGrouper,
-            upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
-          });
+          return createCalendarFeature(
+            services.require(calendarSearchService),
+            {
+              eventGrouper,
+              upcomingWindowDays: context.adapterConfig.upcomingWindowDays,
+            },
+          );
         },
+        provideServices: () => [
+          bindRuntimeService(calendarSearchService, createMockCalendar()),
+        ],
         validateStartup: (adapterConfig) =>
           validateEventGrouperStartup(adapterConfig, dependencies),
       }),

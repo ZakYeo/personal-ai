@@ -12,8 +12,13 @@ import { createTaskFeatureRegistryEntry } from "./feature-adapters/task-feature-
 import { createProfileFeatureRegistryEntry } from "./feature-adapters/profile-feature-adapters.js";
 import type { FileProfileStoreDependencies } from "../adapters/local/file-profile-store.js";
 import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
+import { createBriefingFeatureRegistryEntry } from "./feature-adapters/briefing-feature-adapters.js";
 
 interface DefaultFeatureAdapterRegistryOptions {
+  briefing?: {
+    configDirectory?: string;
+    notificationDelivery?: NotificationDeliveryPort;
+  };
   alarms?: {
     configDirectory?: string;
     notificationDelivery?: NotificationDeliveryPort;
@@ -49,6 +54,7 @@ export function createDefaultFeatureAdapterRegistry(
   options: DefaultFeatureAdapterRegistryOptions = {},
 ): FeatureAdapterRegistry {
   return {
+    briefing: createBriefingFeatureRegistryEntry(options.briefing),
     alarms: createAlarmFeatureRegistryEntry({
       ...options.alarms?.store,
       ...(options.alarms?.configDirectory
@@ -112,6 +118,7 @@ export function createRuntimeFeatureAdapterRegistry(dependencies: {
   };
 
   return createDefaultFeatureAdapterRegistry({
+    briefing: localStateDependencies,
     alarms: localStateDependencies,
     calendar: { env: dependencies.env, fetch: dependencies.fetch },
     internetSearch: { env: dependencies.env, fetch: dependencies.fetch },

@@ -310,6 +310,55 @@
       "active": true
     },
     {
+      "id": "briefing-get-daily-v1",
+      "text": "What does my day look like",
+      "capabilities": ["briefing.get_daily"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "briefing-preferences-show-v1",
+      "text": "Show my daily briefing preferences",
+      "capabilities": ["briefing.preferences.show"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "briefing-preferences-update-v1",
+      "text": "Make my daily briefing short",
+      "capabilities": ["briefing.preferences.update"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "briefing-schedule-disable-v1",
+      "text": "Disable my scheduled daily briefing",
+      "capabilities": ["briefing.schedule.disable"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "briefing-schedule-set-v1",
+      "text": "Schedule my daily briefing for eight every weekday morning",
+      "capabilities": ["briefing.schedule.set"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "briefing-topic-add-v1",
+      "text": "Add AI safety to my daily briefing topics",
+      "capabilities": ["briefing.topic.add"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
+      "id": "briefing-topic-remove-v1",
+      "text": "Remove AI safety from my daily briefing topics",
+      "capabilities": ["briefing.topic.remove"],
+      "captureTier": "core",
+      "active": true
+    },
+    {
       "id": "compound-calendar-alarm-v1",
       "text": "Check my upcoming calendar events and set a tea alarm for ten minutes",
       "capabilities": ["calendar.search_events", "alarm.create"],

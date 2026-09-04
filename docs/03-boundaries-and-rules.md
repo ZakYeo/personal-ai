@@ -726,7 +726,7 @@ should also guard against subtler boundary and abstraction drift.
   URL is retained only in citation metadata for hyperlink-capable boundaries;
   weather-watch notifications use the same title-only and contextual-time
   policy before reaching notification delivery.
-- Planned daily briefings aggregate only a fixed configured set of narrow read
+- Daily briefings aggregate only a fixed configured set of narrow read
   ports. Partial source failures remain isolated and diagnostic-safe; retrieved
   content cannot add sections, tools, or actions.
 - Planned desktop presentation receives only bounded human-safe runtime events

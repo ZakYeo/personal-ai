@@ -27,6 +27,19 @@ import { createInMemoryAlarmStore } from "../adapters/local/in-memory-alarm-stor
 import { openAIIntentOutput } from "../test-support/openai-intent.js";
 
 describe("createConfiguredTextRuntime", () => {
+  it("aggregates enabled sources through the configured briefing feature", async () => {
+    const assistant = await createConfiguredTextRuntimeHarness({
+      useRuntimeDefaultConfig: true,
+    });
+
+    await expect(assistant.handleText("daily briefing")).resolves.toMatchObject(
+      {
+        status: "ok",
+        text: expect.stringContaining("calendar") as string,
+      },
+    );
+  });
+
   it("smoke-executes a calendar and alarm plan after one exact confirmation", async () => {
     const assistant = await createConfiguredTextRuntimeHarness();
 

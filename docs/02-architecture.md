@@ -275,7 +275,7 @@ import or invoke one another:
 - Lists and tasks use their own revision-checked store. Reminder delivery closes
   over that exact store and remains separate from alarm state even when both use
   the neutral notification and output-coordination boundaries.
-- Planned daily briefings use an application-owned aggregator over fixed narrow
+- Daily briefings use an application-owned aggregator over fixed narrow
   read ports for configured sources. The aggregator does not call feature
   plugins or delegate source selection to an intent provider.
 - Planned desktop presence consumes a frozen, bounded, human-safe runtime event

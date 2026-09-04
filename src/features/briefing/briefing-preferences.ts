@@ -166,6 +166,9 @@ async function addTopic(
   return savePreferences(store, current, context, {
     ...current,
     searchTopics: [...current.searchTopics, topic],
+    sections: current.sections.includes("internet")
+      ? current.sections
+      : [...current.sections, "internet"],
   });
 }
 
@@ -176,11 +179,16 @@ async function removeTopic(
 ) {
   const topic = normalizeTopic(args.topic);
   const current = await store.getPreferences();
+  const searchTopics = current.searchTopics.filter(
+    (item) => item.toLocaleLowerCase() !== topic.toLocaleLowerCase(),
+  );
   return savePreferences(store, current, context, {
     ...current,
-    searchTopics: current.searchTopics.filter(
-      (item) => item.toLocaleLowerCase() !== topic.toLocaleLowerCase(),
-    ),
+    searchTopics,
+    sections:
+      searchTopics.length === 0
+        ? current.sections.filter((section) => section !== "internet")
+        : current.sections,
   });
 }
 

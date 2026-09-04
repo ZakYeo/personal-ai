@@ -16,6 +16,8 @@ import {
 import { resolveLocalStatePath } from "../local-state-path.js";
 import { runTaskReminderRetention } from "../tasks/task-reminder-retention.js";
 import { runTaskReminderScheduler } from "../tasks/task-reminder-scheduler.js";
+import { taskStoreService } from "../briefing/briefing-source-services.js";
+import { bindRuntimeService } from "../runtime-service-registry.js";
 
 const fileTaskAdapter = defineFeatureAdapter({
   parseConfig: parseFileTaskStoreConfig,
@@ -44,8 +46,14 @@ function createFileTaskAdapterEntry(
   const { configDirectory, notificationDelivery, ...storeDependencies } =
     dependencies;
   return fileTaskAdapter.bind({
-    create: ({ adapterConfig, runtime }) =>
+    create: (_context, services) =>
       createTaskComposition(
+        services.require(taskStoreService),
+        notificationDelivery,
+      ),
+    provideServices: ({ adapterConfig, runtime }) => [
+      bindRuntimeService(
+        taskStoreService,
         createFileTaskStore({
           ...storeDependencies,
           filePath: resolveLocalStatePath(
@@ -54,8 +62,8 @@ function createFileTaskAdapterEntry(
           ),
           now: () => runtime.clock.now(),
         }),
-        notificationDelivery,
       ),
+    ],
   });
 }
 
@@ -63,13 +71,17 @@ function createLocalTaskAdapterEntry(
   notificationDelivery: NotificationDeliveryPort | undefined,
 ) {
   return defineConfiglessFeatureAdapterEntry({
-    create: ({ runtime }) =>
+    create: (_context, services) =>
       createTaskComposition(
-        createInMemoryTaskStore({
-          now: () => runtime.clock.now(),
-        }),
+        services.require(taskStoreService),
         notificationDelivery,
       ),
+    provideServices: ({ runtime }) => [
+      bindRuntimeService(
+        taskStoreService,
+        createInMemoryTaskStore({ now: () => runtime.clock.now() }),
+      ),
+    ],
   });
 }
 

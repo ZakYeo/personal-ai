@@ -26,6 +26,8 @@ import {
   type WeatherWatchStoreConfig,
 } from "./weather-feature-adapter-config.js";
 import type { ResolvedWeatherClothingAdvisorProvider } from "./weather-clothing-advisor-provider.js";
+import { weatherProviderService } from "../briefing/briefing-source-services.js";
+import { bindRuntimeService } from "../runtime-service-registry.js";
 
 interface WeatherFeatureRegistryDependencies {
   configDirectory?: string;
@@ -59,7 +61,7 @@ export function createWeatherFeatureRegistryEntry(
         create: ({ adapterConfig, runtime }, services) => {
           const { watchStore, ...featureConfig } = adapterConfig;
           return createWeatherComposition(
-            createMockWeatherProvider(),
+            services.require(weatherProviderService),
             createWeatherWatchStore(
               watchStore,
               runtime,
@@ -72,6 +74,12 @@ export function createWeatherFeatureRegistryEntry(
             resolvePersonalContext(registryDependencies, services),
           );
         },
+        provideServices: () => [
+          bindRuntimeService(
+            weatherProviderService,
+            createMockWeatherProvider(),
+          ),
+        ],
         validateStartup: (adapterConfig) =>
           resolveClothingAdvisor(
             adapterConfig.clothingAdvisor,
@@ -79,13 +87,14 @@ export function createWeatherFeatureRegistryEntry(
       }),
       openMeteo: openMeteoWeatherAdapter.bind({
         create: ({ adapterConfig, runtime }, services) => {
-          const { openMeteo, watchStore, ...featureConfig } = adapterConfig;
+          const {
+            openMeteo: _openMeteo,
+            watchStore,
+            ...featureConfig
+          } = adapterConfig;
+          void _openMeteo;
           return createWeatherComposition(
-            createOpenMeteoWeatherProvider({
-              config: openMeteo,
-              fetch: registryDependencies.fetch,
-              now: () => runtime.clock.now(),
-            }),
+            services.require(weatherProviderService),
             createWeatherWatchStore(
               watchStore,
               runtime,
@@ -98,6 +107,16 @@ export function createWeatherFeatureRegistryEntry(
             resolvePersonalContext(registryDependencies, services),
           );
         },
+        provideServices: ({ adapterConfig, runtime }) => [
+          bindRuntimeService(
+            weatherProviderService,
+            createOpenMeteoWeatherProvider({
+              config: adapterConfig.openMeteo,
+              fetch: registryDependencies.fetch,
+              now: () => runtime.clock.now(),
+            }),
+          ),
+        ],
         validateStartup: (adapterConfig) =>
           resolveClothingAdvisor(
             adapterConfig.clothingAdvisor,

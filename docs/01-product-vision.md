@@ -93,7 +93,8 @@ review; it adds durable named lists,
 revision-checked tasks, bounded result-reference follow-ups, and restart-safe
 reminder delivery without treating delivery as task completion. Milestone 13's
 explicit personal profile is implemented after its required independent
-maintainability review. No briefing capability is currently available.
+maintainability review. Daily briefing implementation is present and awaiting
+its independent maintainability review.
 The active post-Milestone-16 roadmap commits Milestones 17 through 25: daily
 briefings, desktop presence, voice interruption and responsiveness, proactive
 attention, computer context and allowlisted control, Home Assistant, one real

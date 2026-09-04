@@ -159,6 +159,13 @@
     }
   },
   "features": {
+    "briefing": {
+      "enabled": true,
+      "adapter": "file",
+      "state": {
+        "path": "/var/lib/personal-ai/briefings.json"
+      }
+    },
     "calendar": {
       "enabled": true,
       "adapter": "mock",

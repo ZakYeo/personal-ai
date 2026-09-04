@@ -43,6 +43,10 @@
     }
   },
   "features": {
+    "briefing": {
+      "enabled": true,
+      "adapter": "local"
+    },
     "calendar": {
       "enabled": true,
       "adapter": "mock",

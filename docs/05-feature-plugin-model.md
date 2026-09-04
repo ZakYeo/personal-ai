@@ -101,7 +101,8 @@ Examples:
 The active roadmap may add these stable capability families after their
 contracts are proven:
 
-- Milestone 17: `briefing.get_daily`, briefing schedule, and preference controls.
+- Milestone 17 implements `briefing.get_daily`, briefing schedule, topic, and
+  preference controls.
 - Milestone 20: attention-rule create, explain, snooze, disable, and list controls.
 - Milestone 21: explicit desktop context reads and typed allowlisted actions.
 - Milestone 22: allowlisted Home Assistant state reads and device-class controls.
@@ -217,7 +218,7 @@ adviser port and owns validation, weather facts, attribution, and final wording.
 Weather-watch adapters
 contribute background tasks that close over their exact provider and store;
 task-reminder adapters follow the same ownership rule around their exact task
-store. Planned briefings aggregate fixed application read ports directly rather
+store. Briefings aggregate fixed application read ports directly rather
 than call calendar, weather, alarm, task, search, or profile feature plugins.
 Planned attention evaluation follows the same fixed-read rule. Desktop context,
 Home Assistant, communications, knowledge, and adaptive memory remain separate

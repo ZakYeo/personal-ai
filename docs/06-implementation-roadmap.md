@@ -583,7 +583,7 @@ fresh thermonuclear maintainability review before implementation is complete.
 
 ## Milestone 17: Daily Briefings and Scheduled Delivery
 
-Status: planned; depends on Milestones 13 through 16.
+Status: implementation complete; independent maintainability review pending.
 
 Goal: make the assistant usefully proactive by combining personal context and
 enabled read capabilities into a concise on-demand or scheduled daily briefing.

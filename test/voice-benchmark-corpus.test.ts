@@ -34,12 +34,12 @@ describe("committed voice benchmark corpus", () => {
     );
 
     validateRecordingIndex(manifest, recordingIndex);
-    expect(manifest.phrases.filter((phrase) => phrase.active)).toHaveLength(50);
+    expect(manifest.phrases.filter((phrase) => phrase.active)).toHaveLength(57);
     expect(
       manifest.phrases.filter(
         (phrase) => phrase.active && phrase.captureTier === "core",
       ),
-    ).toHaveLength(42);
+    ).toHaveLength(49);
     expect(recordingIndex.schemaVersion).toBe(1);
     expect(recordingIndex.recordings).toHaveLength(22);
     expect(
@@ -79,6 +79,13 @@ describe("committed voice benchmark corpus", () => {
       "task-remove-v1",
       "task-remind-v1",
       "task-reminder-acknowledge-v1",
+      "briefing-get-daily-v1",
+      "briefing-preferences-show-v1",
+      "briefing-preferences-update-v1",
+      "briefing-schedule-disable-v1",
+      "briefing-schedule-set-v1",
+      "briefing-topic-add-v1",
+      "briefing-topic-remove-v1",
       "calendar-reminder-v1",
     ]);
 

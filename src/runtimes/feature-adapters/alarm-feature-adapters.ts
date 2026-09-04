@@ -16,6 +16,8 @@ import {
 import { runAlarmScheduler } from "../alarm/alarm-scheduler.js";
 import { runAlarmRetention } from "../alarm/alarm-retention.js";
 import type { RuntimeBackgroundTaskContext } from "../background-task.js";
+import { alarmStoreService } from "../briefing/briefing-source-services.js";
+import { bindRuntimeService } from "../runtime-service-registry.js";
 
 const fileAlarmAdapter = defineFeatureAdapter({
   parseConfig: parseFileAlarmStoreConfig,
@@ -44,18 +46,24 @@ function createFileAlarmAdapterEntry(
   const { configDirectory, notificationDelivery, ...storeDependencies } =
     dependencies;
   return fileAlarmAdapter.bind({
-    create: ({ adapterConfig, runtime }) => {
-      const alarmStore = createFileAlarmStore({
-        ...storeDependencies,
-        filePath: resolveLocalStatePath(
-          adapterConfig.filePath,
-          configDirectory,
-        ),
-        now: () => runtime.clock.now(),
-      });
-
-      return createAlarmComposition(alarmStore, notificationDelivery);
-    },
+    create: (_context, services) =>
+      createAlarmComposition(
+        services.require(alarmStoreService),
+        notificationDelivery,
+      ),
+    provideServices: ({ adapterConfig, runtime }) => [
+      bindRuntimeService(
+        alarmStoreService,
+        createFileAlarmStore({
+          ...storeDependencies,
+          filePath: resolveLocalStatePath(
+            adapterConfig.filePath,
+            configDirectory,
+          ),
+          now: () => runtime.clock.now(),
+        }),
+      ),
+    ],
   });
 }
 
@@ -63,13 +71,17 @@ function createLocalAlarmAdapterEntry(
   notificationDelivery: NotificationDeliveryPort | undefined,
 ) {
   return defineConfiglessFeatureAdapterEntry({
-    create: ({ runtime }) =>
+    create: (_context, services) =>
       createAlarmComposition(
-        createInMemoryAlarmStore({
-          now: () => runtime.clock.now(),
-        }),
+        services.require(alarmStoreService),
         notificationDelivery,
       ),
+    provideServices: ({ runtime }) => [
+      bindRuntimeService(
+        alarmStoreService,
+        createInMemoryAlarmStore({ now: () => runtime.clock.now() }),
+      ),
+    ],
   });
 }
 

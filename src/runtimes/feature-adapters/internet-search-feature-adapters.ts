@@ -10,6 +10,8 @@ import {
   parseInternetSearchFeatureConfig,
   parseInternetSearchOpenAIAdapterConfig,
 } from "./internet-search-feature-adapter-config.js";
+import { internetSearchService } from "../briefing/briefing-source-services.js";
+import { bindRuntimeService } from "../runtime-service-registry.js";
 
 interface InternetSearchFeatureRegistryDependencies {
   env: Record<string, string | undefined>;
@@ -29,21 +31,29 @@ export function createInternetSearchFeatureRegistryEntry(
   return {
     adapters: {
       mock: mockInternetSearchAdapter.bind({
-        create: ({ adapterConfig }) =>
-          createInternetSearchFeature(createMockInternetSearch(), {
+        create: ({ adapterConfig }, services) =>
+          createInternetSearchFeature(services.require(internetSearchService), {
             maxResults: adapterConfig.maxResults,
           }),
+        provideServices: () => [
+          bindRuntimeService(internetSearchService, createMockInternetSearch()),
+        ],
       }),
       openai: openAIInternetSearchAdapter.bind({
-        create: ({ adapterConfig }) =>
-          createInternetSearchFeature(
+        create: ({ adapterConfig }, services) =>
+          createInternetSearchFeature(services.require(internetSearchService), {
+            maxResults: adapterConfig.maxResults,
+          }),
+        provideServices: ({ adapterConfig }) => [
+          bindRuntimeService(
+            internetSearchService,
             createOpenAIWebSearch({
               config: adapterConfig.openai,
               env: dependencies.env,
               fetch: dependencies.fetch,
             }),
-            { maxResults: adapterConfig.maxResults },
           ),
+        ],
         validateStartup: (adapterConfig) => {
           resolveOpenAIApiKey(
             adapterConfig.openai,

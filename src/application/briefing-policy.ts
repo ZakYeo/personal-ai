@@ -34,6 +34,25 @@ export function createDailyBriefingAggregator(
           const source = bySection.get(section);
           if (!source) return unavailable(section);
           try {
+            if (section === "internet") {
+              const topics = request.topics ?? [];
+              if (topics.length === 0) return unavailable(section);
+              const topicResults = await Promise.all(
+                topics.map((topic) =>
+                  source.read({
+                    now: context.now,
+                    ...(context.signal ? { signal: context.signal } : {}),
+                    timeZone: request.timeZone,
+                    topic,
+                  }),
+                ),
+              );
+              return {
+                available: true as const,
+                result: mergeInternetResults(topicResults),
+                section,
+              };
+            }
             return {
               available: true as const,
               result: await source.read({
@@ -89,9 +108,48 @@ export function createDailyBriefingAggregator(
           timeZone: request.timeZone,
         },
         text: renderWithin(renderedItems, lengthLimits[request.length]),
-        usedInternet: selected.includes("internet"),
+        usedInternet:
+          selected.includes("internet") && (request.topics?.length ?? 0) > 0,
       };
     },
+  };
+}
+
+function mergeInternetResults(
+  results: readonly {
+    readonly attention: readonly string[];
+    readonly citations?: readonly {
+      readonly title: string;
+      readonly url: string;
+    }[];
+    readonly facts: Readonly<AssistantCommandParameters>;
+    readonly items: readonly BriefingItem[];
+    readonly section:
+      | "profile"
+      | "calendar"
+      | "weather"
+      | "alarms"
+      | "tasks"
+      | "internet";
+  }[],
+) {
+  return {
+    attention: results.flatMap(({ attention }) => [...attention]),
+    citations: results
+      .flatMap(({ citations }) => [...(citations ?? [])])
+      .slice(0, 6),
+    facts: results.reduce<AssistantCommandParameters>(
+      (merged, { facts }, index) => {
+        for (const [key, value] of Object.entries(facts)) {
+          merged[`internet${index}${key[0]!.toUpperCase()}${key.slice(1)}`] =
+            value;
+        }
+        return merged;
+      },
+      {},
+    ),
+    items: results.flatMap(({ items }) => [...items]),
+    section: "internet" as const,
   };
 }
 

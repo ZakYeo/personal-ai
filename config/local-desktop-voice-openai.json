@@ -183,6 +183,13 @@
     }
   },
   "features": {
+    "briefing": {
+      "enabled": true,
+      "adapter": "file",
+      "state": {
+        "path": "state/briefings.json"
+      }
+    },
     "calendar": {
       "enabled": true,
       "adapter": "google",
