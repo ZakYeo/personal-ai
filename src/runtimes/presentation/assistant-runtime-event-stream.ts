@@ -4,6 +4,7 @@ import {
   type AssistantRuntimeEvent,
   type AssistantPresentationSnapshot,
 } from "./assistant-runtime-event.js";
+import { parseAssistantRuntimeEvent } from "../../application/presentation-event-parser.js";
 
 export type { AssistantRuntimeEvent } from "./assistant-runtime-event.js";
 
@@ -58,11 +59,15 @@ export function createAssistantRuntimeEventStream(options: {
 
   return Object.freeze({
     publish(pending: PendingAssistantRuntimeEvent) {
-      const event = deepFreeze({
+      const event = parseAssistantRuntimeEvent({
         ...pending,
         occurredAt: options.now().toISOString(),
         sequence: current.sequence + 1,
-      }) as AssistantRuntimeEvent;
+      });
+      if (!event) {
+        throw new Error("Presentation event failed canonical validation.");
+      }
+      deepFreeze(event);
       current = reduceAssistantRuntimeEvent(current, event);
       events.push(event);
       if (events.length > replayLimit)

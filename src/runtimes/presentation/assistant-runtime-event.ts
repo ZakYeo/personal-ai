@@ -1,8 +1,21 @@
-import type {
-  AssistantCitation,
-  AssistantResponseStatus,
-} from "../../ports/assistant.js";
+import type { AssistantCitation } from "../../ports/assistant.js";
 import { containsControlCharacters } from "../../application/text-safety.js";
+import type {
+  AssistantMicrophoneState,
+  AssistantPresentationInteraction,
+  AssistantPresentationPhase,
+  AssistantPresentationSnapshot,
+  AssistantRuntimeEvent,
+} from "../../ports/presentation.js";
+
+export type {
+  AssistantMicrophoneState,
+  AssistantPresentationInteraction,
+  AssistantPresentationPhase,
+  AssistantPresentationResponse,
+  AssistantPresentationSnapshot,
+  AssistantRuntimeEvent,
+} from "../../ports/presentation.js";
 
 const assistantPresentationLimits = Object.freeze({
   citationCount: 20,
@@ -13,95 +26,6 @@ const assistantPresentationLimits = Object.freeze({
   responseCharacters: 4_000,
   transcriptCharacters: 2_000,
 });
-
-export type AssistantMicrophoneState =
-  | "available"
-  | "capturing"
-  | "muted"
-  | "unavailable";
-
-export type AssistantPresentationPhase =
-  | "listening"
-  | "processing"
-  | "confirmation"
-  | "response"
-  | "speaking"
-  | "cancelling"
-  | "completed"
-  | "cancelled"
-  | "failed";
-
-interface RuntimeEventMetadata {
-  readonly occurredAt: string;
-  readonly sequence: number;
-}
-
-interface InteractionEventMetadata extends RuntimeEventMetadata {
-  readonly interactionId: string;
-}
-
-export type AssistantRuntimeEvent =
-  | (RuntimeEventMetadata & {
-      readonly microphone: AssistantMicrophoneState;
-      readonly type: "microphone_changed";
-    })
-  | (RuntimeEventMetadata & { readonly type: "wake_listening" })
-  | (InteractionEventMetadata & { readonly type: "wake_detected" })
-  | (InteractionEventMetadata & {
-      readonly delta: string;
-      readonly type: "transcript_delta";
-    })
-  | (InteractionEventMetadata & { readonly type: "follow_up_listening" })
-  | (InteractionEventMetadata & {
-      readonly text: string;
-      readonly type: "transcript_final";
-    })
-  | (InteractionEventMetadata & { readonly type: "processing" })
-  | (InteractionEventMetadata & {
-      readonly prompt: string;
-      readonly type: "confirmation_required";
-    })
-  | (InteractionEventMetadata & {
-      readonly citations?: readonly AssistantCitation[];
-      readonly status: AssistantResponseStatus;
-      readonly text: string;
-      readonly type: "response_ready";
-    })
-  | (InteractionEventMetadata & { readonly type: "speaking_started" })
-  | (InteractionEventMetadata & { readonly type: "speaking_finished" })
-  | (InteractionEventMetadata & {
-      readonly type: "cancellation_requested";
-    })
-  | (InteractionEventMetadata & { readonly type: "completed" })
-  | (InteractionEventMetadata & { readonly type: "cancelled" })
-  | (InteractionEventMetadata & {
-      readonly message: string;
-      readonly type: "safe_failure";
-    });
-
-export interface AssistantPresentationResponse {
-  readonly citations: readonly AssistantCitation[];
-  readonly status: AssistantResponseStatus;
-  readonly text: string;
-}
-
-export interface AssistantPresentationInteraction {
-  readonly confirmation?: { readonly prompt: string };
-  readonly failure?: { readonly message: string };
-  readonly id: string;
-  readonly phase: AssistantPresentationPhase;
-  readonly response?: AssistantPresentationResponse;
-  readonly transcript: string;
-  readonly updatedAt: string;
-}
-
-export interface AssistantPresentationSnapshot {
-  readonly instanceId: string;
-  readonly interaction?: AssistantPresentationInteraction;
-  readonly microphone: AssistantMicrophoneState;
-  readonly sequence: number;
-  readonly wakeListening: boolean;
-}
 
 export function createInitialAssistantPresentationSnapshot(input: {
   instanceId: string;

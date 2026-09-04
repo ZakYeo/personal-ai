@@ -2,7 +2,14 @@ export type {
   AssistantMicrophoneState,
   AssistantPresentationInteraction,
   AssistantPresentationPhase,
+  AssistantPresentationProjection,
   AssistantPresentationSnapshot,
-} from "./runtimes/presentation/assistant-runtime-event.js";
+  PresentationControl,
+} from "./ports/presentation.js";
 
-export type { PresentationControl } from "./runtimes/presentation/presentation-websocket-server.js";
+export { presentationProtocolVersion } from "./ports/presentation.js";
+export {
+  parsePresentationControl,
+  parsePresentationServerMessage,
+} from "./application/presentation-protocol.js";
+export { reduceAssistantRuntimeEvent } from "./runtimes/presentation/assistant-runtime-event.js";
