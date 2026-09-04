@@ -18,6 +18,7 @@ import { validateInternetSearchResponse } from "./internet-search-policy.js";
 import { qualitativeWeatherDetails } from "./weather-condition-summary.js";
 import { selectWeatherLocation } from "./weather-location-selection.js";
 import {
+  formatWeatherObservationAge,
   metricWeatherUnits,
   validateWeatherForecast,
   validateWeatherLocationCandidates,
@@ -259,7 +260,7 @@ export function createWeatherBriefingSource(
           {
             citations,
             key: "weather:today",
-            text: `${forecast.current.temperature}°C and ${forecast.current.weather} in ${forecast.location.name}${daily ? `, with a high of ${daily.temperatureMax}°C` : ""}, observed ${formatObservationAge(forecast.current.observedAt, now)}. ${details.join(" ")}${details.length > 0 ? " " : ""}Source: ${forecast.attribution.name}.`,
+            text: `${forecast.current.temperature}°C and ${forecast.current.weather} in ${forecast.location.name}${daily ? `, with a high of ${daily.temperatureMax}°C` : ""}, observed ${formatWeatherObservationAge(forecast.current.observedAt, now)}. ${details.join(" ")}${details.length > 0 ? " " : ""}Source: ${forecast.attribution.name}.`,
           },
         ],
         section: "weather",
@@ -319,15 +320,4 @@ function stableKey(section: BriefingSourceResult["section"], identity: string) {
     second = Math.imul(second ^ code, 0x85ebca6b);
   }
   return `${section}:${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0).toString(16).padStart(8, "0")}`;
-}
-
-function formatObservationAge(observedAt: string, now: Date): string {
-  const ageMinutes = Math.max(
-    0,
-    Math.round((now.getTime() - new Date(observedAt).getTime()) / 60_000),
-  );
-  if (ageMinutes <= 10) return "right now";
-  if (ageMinutes < 45) return `about ${ageMinutes} minutes ago`;
-  if (ageMinutes < 90) return "about an hour ago";
-  return `about ${Math.round(ageMinutes / 60)} hours ago`;
 }

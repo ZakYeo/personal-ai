@@ -57,6 +57,7 @@ describe("processBriefingScheduleCycle", () => {
       updatedAt: now.toISOString(),
     });
     const delivered: string[] = [];
+    const spokenTimeZones: string[] = [];
     const readSource = vi.fn(() =>
       Promise.resolve({
         attention: [],
@@ -74,8 +75,14 @@ describe("processBriefingScheduleCycle", () => {
       ]),
       clock: { now: () => now },
       delivery: {
-        deliver: (notification: { id: string }) => {
+        deliver: (notification: {
+          id: string;
+          spokenText?: { timeZone: string };
+        }) => {
           delivered.push(notification.id);
+          if (notification.spokenText) {
+            spokenTimeZones.push(notification.spokenText.timeZone);
+          }
           return Promise.resolve();
         },
       },
@@ -97,6 +104,7 @@ describe("processBriefingScheduleCycle", () => {
       "briefing:Europe/London:2026-09-07:08:00:monday",
     ]);
     expect(readSource).toHaveBeenCalledTimes(1);
+    expect(spokenTimeZones).toEqual(["Europe/London"]);
     await expect(store.getLastSnapshot()).resolves.toMatchObject({
       sections: [{ section: "tasks" }],
     });

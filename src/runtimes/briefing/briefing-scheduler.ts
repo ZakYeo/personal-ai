@@ -100,7 +100,11 @@ export async function processBriefingScheduleCycle(
     for (const diagnostic of diagnostics)
       reportBestEffort(dependencies, diagnostic);
     await dependencies.delivery.deliver(
-      { id: slotId, text: result.text },
+      {
+        id: slotId,
+        spokenText: { dateStyle: "contextual", timeZone: schedule.timeZone },
+        text: result.text,
+      },
       dependencies.shutdownSignal
         ? { shutdownSignal: dependencies.shutdownSignal }
         : {},

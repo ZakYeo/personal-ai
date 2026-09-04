@@ -1,5 +1,9 @@
 export interface NotificationDeliveryRequest {
   id: string;
+  spokenText?: {
+    dateStyle: "calendar" | "contextual";
+    timeZone: string;
+  };
   text: string;
 }
 

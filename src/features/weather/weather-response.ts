@@ -1,4 +1,5 @@
 import type { WeatherForecast, WeatherUnits } from "../../ports/weather.js";
+import { formatWeatherObservationAge } from "../../application/weather-policy.js";
 import {
   qualitativeWeatherDetails,
   type WeatherTemporalMode,
@@ -28,7 +29,7 @@ export function currentWeatherResult(
       weather: current.weather,
       windSpeed: current.windSpeed,
     },
-    text: `In ${location.name}, it is ${current.temperature}${formatTemperatureUnit(units.temperature)} and ${current.weather} ${formatObservationAge(current.observedAt, options.now)}.${details} ${weatherAttributionText(forecast)}`,
+    text: `In ${location.name}, it is ${current.temperature}${formatTemperatureUnit(units.temperature)} and ${current.weather} ${formatWeatherObservationAge(current.observedAt, options.now)}.${details} ${weatherAttributionText(forecast)}`,
   });
 }
 
@@ -110,15 +111,4 @@ function formatWeatherDetails(
       : undefined,
   ].filter((detail): detail is string => detail !== undefined);
   return details.length === 0 ? "" : ` ${details.join(" ")}`;
-}
-
-function formatObservationAge(observedAt: string, now: Date): string {
-  const ageMinutes = Math.max(
-    0,
-    Math.round((now.getTime() - new Date(observedAt).getTime()) / 60_000),
-  );
-  if (ageMinutes <= 10) return "right now";
-  if (ageMinutes < 45) return `about ${ageMinutes} minutes ago`;
-  if (ageMinutes < 90) return "about an hour ago";
-  return `about ${Math.round(ageMinutes / 60)} hours ago`;
 }

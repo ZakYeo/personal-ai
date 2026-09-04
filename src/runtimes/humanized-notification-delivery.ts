@@ -11,17 +11,21 @@ export function createHumanizedNotificationDelivery(
   context: HumanizedNotificationDeliveryContext,
 ): NotificationDeliveryPort {
   return {
-    deliver: (notification, deliveryContext) =>
-      delivery.deliver(
+    deliver: (notification, deliveryContext) => {
+      const { spokenText, ...safeNotification } = notification;
+      const timeZone = spokenText?.timeZone ?? context.timeZone;
+      return delivery.deliver(
         {
-          ...notification,
+          ...safeNotification,
           text: humanizeSpokenText(notification.text, {
             assistantTimeZone: context.timeZone,
+            ...(spokenText ? { dateStyle: spokenText.dateStyle } : {}),
             now: context.now(),
-            timeZone: context.timeZone,
+            timeZone,
           }),
         },
         deliveryContext,
-      ),
+      );
+    },
   };
 }

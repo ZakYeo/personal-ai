@@ -134,6 +134,20 @@ export function weatherForecastIsStale(
   return age > maxForecastAgeMs;
 }
 
+export function formatWeatherObservationAge(
+  observedAt: string,
+  now: Date,
+): string {
+  const ageMinutes = Math.max(
+    0,
+    Math.round((now.getTime() - new Date(observedAt).getTime()) / 60_000),
+  );
+  if (ageMinutes <= 10) return "right now";
+  if (ageMinutes < 45) return `about ${ageMinutes} minutes ago`;
+  if (ageMinutes < 90) return "about an hour ago";
+  return `about ${Math.round(ageMinutes / 60)} hours ago`;
+}
+
 export function isCanonicalWeatherTimestamp(value: unknown): value is string {
   return isCanonicalIsoTimestamp(value);
 }
