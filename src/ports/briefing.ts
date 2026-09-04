@@ -54,7 +54,7 @@ export interface BriefingSnapshot {
   readonly timeZone: string;
 }
 
-type BriefingWeekday =
+export type BriefingWeekday =
   | "monday"
   | "tuesday"
   | "wednesday"
@@ -62,6 +62,16 @@ type BriefingWeekday =
   | "friday"
   | "saturday"
   | "sunday";
+
+export const briefingWeekdays: readonly BriefingWeekday[] = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+];
 
 export interface BriefingQuietHours {
   readonly end: string;

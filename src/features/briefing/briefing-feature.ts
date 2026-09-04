@@ -9,6 +9,7 @@ import type {
   FeatureCapabilityParameters,
   FeatureExecutionContext,
 } from "../../ports/feature.js";
+import { createBriefingPreferenceCapabilities } from "./briefing-preferences.js";
 
 const getParameters = {
   mode: {
@@ -38,6 +39,7 @@ export function createBriefingFeature(
           summary: "Get today's configured daily briefing.",
           toolChain: "read",
         }),
+        ...createBriefingPreferenceCapabilities(store),
       },
       displayName: "Daily Briefings",
       id: "briefing",

@@ -1,6 +1,9 @@
 import { createDailyBriefingAggregator } from "../../application/briefing-policy.js";
 import { createInMemoryBriefingStore } from "../../test-support/briefing-store.js";
-import { executeFeature } from "../../test-support/feature-contract.js";
+import {
+  executeFeature,
+  expectCapabilityMetadata,
+} from "../../test-support/feature-contract.js";
 import { createBriefingFeature } from "./briefing-feature.js";
 
 describe("briefing feature", () => {
@@ -55,6 +58,46 @@ describe("briefing feature", () => {
       executeFeature(feature, "briefing.get_daily", { sinceLast: true }),
     ).resolves.toMatchObject({
       text: "I do not have an earlier delivered briefing to compare with yet.",
+    });
+  });
+
+  it("updates preferences and confirms schedule mutations", async () => {
+    const store = createInMemoryBriefingStore({
+      now: () => new Date("2026-09-04T07:00:00.000Z"),
+      timeZone: "Europe/London",
+    });
+    const feature = createBriefingFeature(
+      createDailyBriefingAggregator([]),
+      store,
+    );
+
+    expectCapabilityMetadata(feature, {
+      name: "briefing.schedule.set",
+      requiresConfirmation: true,
+      risk: "high",
+    });
+    await expect(
+      executeFeature(feature, "briefing.preferences.update", {
+        mode: "short",
+        sections: "calendar,tasks",
+      }),
+    ).resolves.toMatchObject({
+      data: { length: "short", sections: "calendar,tasks" },
+    });
+    await expect(
+      executeFeature(feature, "briefing.topic.add", { topic: "AI safety" }),
+    ).resolves.toMatchObject({ data: { searchTopics: "AI safety" } });
+    await expect(
+      executeFeature(feature, "briefing.schedule.set", {
+        localTime: "08:00",
+        timeZone: "Europe/London",
+        weekdays: "monday,tuesday,wednesday,thursday,friday",
+      }),
+    ).resolves.toMatchObject({
+      data: {
+        localTime: "08:00",
+        timeZone: "Europe/London",
+      },
     });
   });
 });
