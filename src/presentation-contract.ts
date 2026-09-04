@@ -12,4 +12,5 @@ export {
   parsePresentationControl,
   parsePresentationServerMessage,
 } from "./application/presentation-protocol.js";
+export { emptyAssistantPresentationProjection } from "./application/presentation-projection.js";
 export { reduceAssistantRuntimeEvent } from "./runtimes/presentation/assistant-runtime-event.js";
