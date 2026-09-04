@@ -6,5 +6,8 @@ import {
 export function runDesktopVoiceServiceRuntime(
   options: ConfiguredVoiceServiceRuntimeOptions = {},
 ) {
-  return runConfiguredVoiceServiceRuntime(options);
+  return runConfiguredVoiceServiceRuntime({
+    ...options,
+    desktopPresentation: true,
+  });
 }

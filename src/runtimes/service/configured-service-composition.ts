@@ -29,6 +29,7 @@ import type {
 } from "../background-task.js";
 import { createDeferredNotificationDelivery } from "../deferred-notification-delivery.js";
 import { createHumanizedNotificationDelivery } from "../humanized-notification-delivery.js";
+import type { RuntimeServiceRegistry } from "../runtime-service-registry.js";
 
 interface ConfiguredServiceCompositionOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -54,6 +55,7 @@ interface ConfiguredServiceCompositionOptions extends Pick<
 
 interface ConfiguredServiceTurnContext extends ServiceTurnContext {
   config: LoadedRuntimeConfig;
+  services: RuntimeServiceRegistry;
 }
 
 interface ConfiguredServiceRuntimeCallbacks {
@@ -69,6 +71,7 @@ export async function runConfiguredServiceRuntime(
     assistant: Assistant;
     backgroundTasks: RuntimeBackgroundTask[];
     config: LoadedRuntimeConfig;
+    services: RuntimeServiceRegistry;
   };
 
   try {
@@ -107,6 +110,7 @@ export async function runConfiguredServiceRuntime(
       callbacks.runTurn({
         ...context,
         config: startup.config,
+        services: startup.services,
       }),
     ...(options.shutdownGraceMs === undefined
       ? {}
@@ -122,6 +126,7 @@ async function createConfiguredServiceStartup(
   assistant: Assistant;
   backgroundTasks: RuntimeBackgroundTask[];
   config: LoadedRuntimeConfig;
+  services: RuntimeServiceRegistry;
 }> {
   const deferredDelivery = options.createNotificationDelivery
     ? createDeferredNotificationDelivery()

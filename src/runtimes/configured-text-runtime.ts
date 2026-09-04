@@ -13,6 +13,7 @@ import type { RuntimeConfigSource } from "./config/runtime-config-source.js";
 import type { NotificationDeliveryPort } from "../ports/notification-delivery.js";
 import type { RuntimeBackgroundTask } from "./background-task.js";
 import { assistantPersonalizationReaderService } from "./profile-runtime-services.js";
+import type { RuntimeServiceRegistry } from "./runtime-service-registry.js";
 
 export interface ConfiguredTextRuntimeOptions {
   config?: LoadedRuntimeConfig;
@@ -34,6 +35,7 @@ export async function createConfiguredTextRuntime(
 interface ConfiguredTextRuntimeComposition {
   assistant: Assistant;
   backgroundTasks: RuntimeBackgroundTask[];
+  services: RuntimeServiceRegistry;
 }
 
 export async function createConfiguredTextRuntimeComposition(
@@ -97,6 +99,7 @@ export function createConfiguredTextRuntimeCompositionFromResolvedSource(
   return {
     assistant,
     backgroundTasks: featureSelection.backgroundTasks,
+    services: featureSelection.services,
   };
 }
 

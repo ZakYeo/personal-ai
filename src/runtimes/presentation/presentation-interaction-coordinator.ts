@@ -24,6 +24,7 @@ export interface PresentationInteraction {
 
 export interface PresentationInteractionCoordinator {
   beginInteraction(): PresentationInteraction;
+  continueInteraction(interactionId: string): PresentationInteraction;
   wakeListening(): void;
 }
 
@@ -53,21 +54,28 @@ export function createPresentationInteractionCoordinator(
   if (!publisher) {
     return Object.freeze({
       beginInteraction: () => noOpInteraction,
+      continueInteraction: () => noOpInteraction,
       wakeListening: noOperation,
     });
   }
 
   return Object.freeze({
     beginInteraction: () => createInteraction(publisher),
+    continueInteraction: (interactionId: string) =>
+      createInteraction(publisher, interactionId),
     wakeListening: () => publisher.publish({ type: "wake_listening" }),
   });
 }
 
 function createInteraction(
   publisher: PresentationEventPublisher,
+  existingInteractionId?: string,
 ): PresentationInteraction {
-  const interactionId = publisher.createInteractionId();
-  publisher.publish({ interactionId, type: "wake_detected" });
+  const interactionId =
+    existingInteractionId ?? publisher.createInteractionId();
+  if (!existingInteractionId) {
+    publisher.publish({ interactionId, type: "wake_detected" });
+  }
 
   const publish = (event: PendingInteractionEvent): void => {
     publisher.publish({ ...event, interactionId });

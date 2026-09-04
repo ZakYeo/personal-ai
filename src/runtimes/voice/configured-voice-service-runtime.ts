@@ -35,6 +35,8 @@ import type {
   RuntimeBackgroundTask,
   RuntimeBackgroundTaskContext,
 } from "../background-task.js";
+import { createDesktopPresentationRuntime } from "../presentation/desktop-presentation-runtime.js";
+import { logRuntimeFailure } from "../human-boundary.js";
 
 export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -72,6 +74,7 @@ export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   ) => Promise<VoiceActivationResult>;
   shutdownHooks?: Array<(context: ServiceShutdownContext) => Promise<void>>;
   desktopVoiceProviderAdapterRegistry?: DesktopVoiceProviderAdapterRegistry;
+  desktopPresentation?: boolean;
 }
 
 export function runConfiguredVoiceServiceRuntime(
@@ -82,10 +85,27 @@ export function runConfiguredVoiceServiceRuntime(
   const processControl =
     options.processControl ?? createNodeProcessControl(process);
   const outputCoordinator = createVoiceOutputCoordinator();
+  const presentationRuntime = options.desktopPresentation
+    ? createDesktopPresentationRuntime({
+        env,
+        ...(options.io ? { io: options.io } : {}),
+        now: options.now ?? (() => new Date()),
+      })
+    : undefined;
+  const voiceIo: VoiceRuntimeIo = {
+    ...options.io,
+    ...(presentationRuntime?.presentation
+      ? { presentation: presentationRuntime.presentation }
+      : {}),
+  };
 
   return runConfiguredServiceRuntime(
     {
       ...options,
+      shutdownHooks: [
+        ...(presentationRuntime ? [() => presentationRuntime.stop()] : []),
+        ...(options.shutdownHooks ?? []),
+      ],
       createNotificationDelivery: ({ config }) => {
         if (options.notificationDelivery) {
           return options.notificationDelivery;
@@ -114,7 +134,14 @@ export function runConfiguredVoiceServiceRuntime(
     },
     {
       validateConfig: (config) => validateVoiceServiceConfig(config, env),
-      runTurn: async ({ assistant, config, shutdownSignal }) => {
+      runTurn: async ({ assistant, config, services, shutdownSignal }) => {
+        if (presentationRuntime) {
+          await presentationRuntime
+            .start(assistant, { config, services })
+            .catch((error) => {
+              logRuntimeFailure(error, voiceIo);
+            });
+        }
         const voiceConfig = requireVoiceConfig(config);
         const desktopVoiceConfig = resolveDesktopVoiceServiceAdapterConfig(
           voiceConfig,
@@ -154,7 +181,7 @@ export function runConfiguredVoiceServiceRuntime(
               wakeAudioInput: adapters.wakeAudioInput,
               wakeWord: adapters.wakeWord,
             },
-            options.io,
+            voiceIo,
           );
         } finally {
           await cleanupVoiceAdapters(() => adapters.cleanup?.(), options.io);

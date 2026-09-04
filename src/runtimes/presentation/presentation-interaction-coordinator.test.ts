@@ -1,4 +1,8 @@
 import { createAssistantRuntimeEventStream } from "./assistant-runtime-event-stream.js";
+import type {
+  AssistantRuntimeEvent,
+  PendingAssistantRuntimeEvent,
+} from "./assistant-runtime-event-stream.js";
 import { createPresentationInteractionCoordinator } from "./presentation-interaction-coordinator.js";
 
 describe("presentation interaction coordinator", () => {
@@ -36,9 +40,35 @@ describe("presentation interaction coordinator", () => {
 
     expect(() => {
       coordinator.wakeListening();
+      coordinator.continueInteraction("existing").processing();
       const interaction = coordinator.beginInteraction();
       interaction.processing();
       interaction.failed("Unavailable.");
     }).not.toThrow();
+  });
+
+  it("continues an existing interaction without inventing a second wake", () => {
+    const publish = vi.fn(
+      (event: PendingAssistantRuntimeEvent): AssistantRuntimeEvent => {
+        void event;
+        return {
+          occurredAt: "2026-09-04T10:00:00.000Z",
+          sequence: 1,
+          type: "wake_listening",
+        };
+      },
+    );
+    const coordinator = createPresentationInteractionCoordinator({
+      createInteractionId: () => "new-interaction",
+      publish,
+    });
+
+    coordinator.continueInteraction("pending-interaction").processing();
+
+    expect(publish).toHaveBeenCalledTimes(1);
+    expect(publish).toHaveBeenCalledWith({
+      interactionId: "pending-interaction",
+      type: "processing",
+    });
   });
 });
