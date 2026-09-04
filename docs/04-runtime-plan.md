@@ -279,7 +279,7 @@ provider latency varies; local samples after adding the summary were roughly
 6.0s to 8.4s total across realtime transcription, intent routing, and streaming
 speech.
 
-### Planned Desktop Presence Runtime
+### Desktop Presence Runtime
 
 Milestone 18 adds presentation around the existing long-running desktop voice
 service instead of creating a second assistant implementation. A neutral
@@ -321,6 +321,15 @@ authentication token. The native shell reads
 enhancement offline without affecting CLI, voice, service, or Pi operation.
 External source targets remain hidden metadata and are revalidated as HTTPS by
 the native opener adapter immediately before use.
+
+The shell starts with both windows hidden; tray, single-instance activation,
+and the configured global shortcut make the appropriate window visible. Run
+`npm run desktop:check` for the complete UI gate. Native Rust compilation runs
+locally when `pkg-config` can resolve `gio-2.0`, `gtk+-3.0`, and
+`webkit2gtk-4.1`; otherwise the local check reports the missing host capability
+and the committed Windows workflow compiles, tests, and packages the native
+shell. `npm run desktop:native:test` and `npm run desktop:tauri:build` are the
+explicit native validation and packaging commands.
 
 ### Raspberry Pi Runtime
 

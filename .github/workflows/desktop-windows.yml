@@ -1,0 +1,22 @@
+name: Desktop Windows
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  native-shell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.86.0
+      - run: npm ci
+      - run: npm run desktop:native:test
+      - run: npm run desktop:tauri:build

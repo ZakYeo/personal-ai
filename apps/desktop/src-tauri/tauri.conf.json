@@ -19,6 +19,7 @@
         "title": "Personal AI",
         "width": 1180,
         "height": 760,
+        "visible": false,
         "minWidth": 760,
         "minHeight": 560,
         "center": true

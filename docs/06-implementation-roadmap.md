@@ -583,7 +583,9 @@ fresh thermonuclear maintainability review before implementation is complete.
 
 ## Milestone 18: Desktop Presence and Command Center
 
-Status: planned; depends on Milestone 17 only for briefing presentation.
+Status: implemented after midpoint and final independent thermonuclear
+maintainability reviews; every actionable finding was remediated and the full
+validation gate passed.
 
 Goal: give the existing always-listening service a native desktop presence that
 appears immediately on wake and makes listening, reasoning, confirmation,
@@ -597,7 +599,8 @@ Included:
 - A bounded authenticated local IPC transport and restorable snapshot so a
   presentation process can observe the service without parsing progress logs.
 - A compact wake overlay with live transcript, safe progress, confirmation,
-  stop, microphone state, result details, and automatic dismissal.
+  microphone state, result details, and automatic dismissal. Voice interruption
+  remains explicitly deferred to Milestone 19.
 - An expanded command center for today, tasks, alarms, recent safe interactions,
   sources, profile controls, integration health, and activity history through
   narrow presentation projections.

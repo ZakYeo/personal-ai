@@ -43,6 +43,12 @@ export function unsafeRuntime(io: {
 }): void {
   // ruleid: runtime-presentation-publish-only-from-coordinator
   io.presentation?.publish({ type: "wake_listening" });
+  const eventStream = io.presentation;
+  // ruleid: runtime-presentation-publish-only-from-coordinator
+  eventStream?.publish({ type: "wake_listening" });
+  const publisher = io.presentation;
+  // ruleid: runtime-presentation-publish-only-from-coordinator
+  publisher.publish({ type: "wake_listening" });
 }
 
 export function safeExamples(request: () => void): void {

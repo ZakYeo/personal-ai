@@ -4,6 +4,75 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 18: Desktop Presence and Command Center
+
+Status: implemented after midpoint and final independent thermonuclear
+maintainability reviews.
+
+Goal: give the existing always-listening service a native desktop presence that
+makes wake, transcript, processing, exact confirmation, response, speaking,
+completion, privacy, and safe-failure state visible.
+
+Included:
+
+- A frozen, bounded runtime-owned presentation state machine with replayable
+  events, sanitized narrow command-center projections, and serialized live
+  projection refresh after terminal interactions and background changes.
+- Authenticated loopback WebSocket IPC with strict field-by-field protocol
+  parsing, payload and rate bounds, single-client ownership, correlated control
+  results, safe reconnect/replay, and tokenless cross-window state relay.
+- A Windows-first Tauri 2 shell with hidden-at-start windows, tray,
+  single-instance activation, autostart, persistent window state, global
+  shortcut, HTTPS-only source opening, and an always-on-top overlay.
+- A React and TypeScript MVVM interface whose framework-neutral models and view
+  models depend on typed ports, whose passive views use shared components, and
+  whose infrastructure adapters alone own browser and native APIs.
+- Today, task, alarm, safe interaction, source, explicit profile, integration,
+  activity, and settings views. Profile explanation, correction, and deletion
+  use typed application-owned controls over the exact composed profile store.
+- Atomic continuation ownership across voice and UI confirmation, bounded
+  follow-up terminalization, safe control-result feedback, internal boundary
+  diagnostics, and explicit deferral of interruption controls to Milestone 19.
+- Desktop-specific dependency-cruiser, ESLint, duplication, Semgrep rule and
+  rule-fixture gates; Vitest model, view-model, component, adapter, protocol,
+  runtime, and race coverage; Playwright real-IPC, malformed-input, reconnect,
+  behavior, responsive-layout, auto-dismiss, and screenshot coverage; and a
+  Windows native compile/test/package workflow.
+
+Excluded:
+
+- Feature policy in the UI, raw store or provider access, internal diagnostics,
+  credentials or private targets in presentation state, remote IPC, hidden
+  microphone capture, and any UI dependency in CLI or Raspberry Pi runtimes.
+- Voice interruption and barge-in, which remain Milestone 19 work and are not
+  represented by an active desktop control.
+
+Review outcomes:
+
+- The requested midpoint thermonuclear review found publisher ownership,
+  boundary parsing, composition, MVVM modularity, UI quality gates, and test
+  depth issues. Each finding was remediated in focused tested slices before the
+  remaining implementation continued.
+- The fresh final review found a voice/UI continuation race, stale projections,
+  fire-and-forget controls, misleading interruption UI, absent typed profile
+  controls, nonterminal follow-up caps, incomplete native proof, swallowed
+  boundary failures, insufficient real-path Playwright coverage, and a narrow
+  Semgrep ownership matcher. Every actionable finding was remediated before
+  completion.
+
+Acceptance outcome:
+
+- The graphical shell observes but does not replace the desktop voice service;
+  headless CLI, voice, service, and Pi composition remain independent.
+- Exact confirmation resumes the already validated core-owned interaction once,
+  even when voice and UI inputs race.
+- Real-browser coverage proves authenticated wake-to-overlay state, live
+  transcript, confirmation acceptance and safe rejection, correlated controls,
+  reconnect/replay, malformed-message fail-closed handling, automatic dismissal,
+  responsive layout, and screenshot contracts.
+- The full repository validation gate passes after both independent reviews and
+  all remediation.
+
 ## Milestone 17: Daily Briefings and Scheduled Delivery
 
 Status: implemented after an independent thermonuclear maintainability review.

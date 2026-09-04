@@ -130,4 +130,4 @@ rules:
         - /src/runtimes/presentation/presentation-interaction-coordinator.ts
         - /src/runtimes/presentation/assistant-runtime-event-stream.ts
         - /src/**/*.test.ts
-    pattern-regex: '\.presentation\??\.publish\('
+    pattern-regex: '\b[A-Za-z_$][A-Za-z0-9_$]*\??\.publish\('
