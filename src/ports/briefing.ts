@@ -13,7 +13,7 @@ export const briefingSections = [
 ] as const;
 
 export type BriefingSection = (typeof briefingSections)[number];
-type BriefingLength = "short" | "standard" | "attention-only";
+export type BriefingLength = "short" | "standard" | "attention-only";
 
 export interface BriefingItem {
   readonly key: string;
@@ -48,10 +48,55 @@ export interface BriefingSnapshotSection {
   readonly section: BriefingSection;
 }
 
-interface BriefingSnapshot {
+export interface BriefingSnapshot {
   readonly createdAt: string;
   readonly sections: readonly BriefingSnapshotSection[];
   readonly timeZone: string;
+}
+
+type BriefingWeekday =
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday"
+  | "sunday";
+
+export interface BriefingQuietHours {
+  readonly end: string;
+  readonly start: string;
+}
+
+export interface BriefingSchedule {
+  readonly localTime: string;
+  readonly timeZone: string;
+  readonly weekdays: readonly BriefingWeekday[];
+}
+
+export interface BriefingPreferences {
+  readonly length: BriefingLength;
+  readonly quietHours?: BriefingQuietHours;
+  readonly revision: number;
+  readonly schedule?: BriefingSchedule;
+  readonly searchTopics: readonly string[];
+  readonly sections: readonly BriefingSection[];
+  readonly updatedAt: string;
+}
+
+export interface BriefingPreferencesUpdate {
+  readonly expectedRevision: number;
+  readonly preferences: Omit<BriefingPreferences, "revision" | "updatedAt">;
+  readonly updatedAt: string;
+}
+
+export interface BriefingStore {
+  readonly getLastSnapshot: () => Promise<BriefingSnapshot | undefined>;
+  readonly getPreferences: () => Promise<BriefingPreferences>;
+  readonly saveSnapshot: (snapshot: BriefingSnapshot) => Promise<void>;
+  readonly updatePreferences: (
+    update: BriefingPreferencesUpdate,
+  ) => Promise<BriefingPreferences | undefined>;
 }
 
 export interface DailyBriefingRequest {

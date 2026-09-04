@@ -77,6 +77,9 @@ export function createDailyBriefingAggregator(
               },
             ],
       );
+      const renderedItems = request.sinceLast
+        ? changedItems(items, snapshotSections, context.lastSnapshot)
+        : items;
       return {
         citations,
         facts,
@@ -85,11 +88,54 @@ export function createDailyBriefingAggregator(
           sections: snapshotSections,
           timeZone: request.timeZone,
         },
-        text: renderWithin(items, lengthLimits[request.length]),
+        text: renderWithin(renderedItems, lengthLimits[request.length]),
         usedInternet: selected.includes("internet"),
       };
     },
   };
+}
+
+function changedItems(
+  currentItems: readonly BriefingItem[],
+  sections: readonly BriefingSnapshotSection[],
+  previous:
+    | { readonly sections: readonly BriefingSnapshotSection[] }
+    | undefined,
+): readonly BriefingItem[] {
+  if (!previous) return currentItems;
+  const previousItems = new Map(
+    previous.sections.flatMap(({ items }) =>
+      items.map((item) => [item.key, item.text] as const),
+    ),
+  );
+  const currentKeys = new Set(
+    sections.flatMap(({ items }) => items.map(({ key }) => key)),
+  );
+  const changed = currentItems.filter(
+    (item) => previousItems.get(item.key) !== item.text,
+  );
+  const removed = [...previousItems]
+    .filter(([key]) => !currentKeys.has(key))
+    .map(([key, text]) => ({
+      key: `removed:${key}`,
+      text: `No longer listed: ${text}`,
+    }));
+  const differences = [...changed, ...removed];
+  return differences.length > 0
+    ? [
+        {
+          key: "comparison:heading",
+          text: `Changed since your last briefing: ${differences
+            .map(({ text }) => text)
+            .join(" ")}`,
+        },
+      ]
+    : [
+        {
+          key: "comparison:none",
+          text: "Nothing has changed since your last briefing.",
+        },
+      ];
 }
 
 function orderedSelectedSections(
