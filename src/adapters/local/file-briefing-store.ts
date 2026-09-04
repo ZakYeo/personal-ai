@@ -1,4 +1,5 @@
 import type {
+  BriefingDeliverySlot,
   BriefingPreferences,
   BriefingSnapshot,
   BriefingStore,
@@ -20,6 +21,7 @@ import { createSerializedExecutor } from "./serialized-executor.js";
 interface BriefingStateDocument {
   readonly lastSnapshot?: BriefingSnapshot;
   readonly preferences: BriefingPreferences;
+  readonly slots: readonly BriefingDeliverySlot[];
   readonly version: 1;
 }
 
@@ -36,6 +38,48 @@ export function createFileBriefingStore(
   const fileSystem = options.fileSystem ?? createNodeLocalJsonStateFileSystem();
   const enqueue = createSerializedExecutor();
   return {
+    claimDeliverySlot: (slot) =>
+      enqueue(async () => {
+        const state = await readState(options, fileSystem);
+        if (state.slots.some(({ id }) => id === slot.id)) return false;
+        await writeState(
+          options.filePath,
+          {
+            ...state,
+            slots: pruneSlots(
+              [...state.slots, { ...slot, status: "claimed" }],
+              options.now(),
+            ),
+          },
+          fileSystem,
+        );
+        return true;
+      }),
+    completeDeliverySlot: (completion) =>
+      enqueue(async () => {
+        const state = await readState(options, fileSystem);
+        const index = state.slots.findIndex(
+          ({ id, status }) => id === completion.id && status === "claimed",
+        );
+        if (index < 0) return false;
+        const slots = [...state.slots];
+        slots[index] = {
+          claimedAt: slots[index]!.claimedAt,
+          deliveredAt: completion.deliveredAt,
+          id: completion.id,
+          status: "delivered",
+        };
+        await writeState(
+          options.filePath,
+          {
+            ...state,
+            lastSnapshot: cloneSnapshot(completion.snapshot),
+            slots,
+          },
+          fileSystem,
+        );
+        return true;
+      }),
     getLastSnapshot: () =>
       enqueue(async () =>
         cloneSnapshot((await readState(options, fileSystem)).lastSnapshot),
@@ -52,6 +96,30 @@ export function createFileBriefingStore(
           { ...state, lastSnapshot: cloneSnapshot(snapshot) },
           fileSystem,
         );
+      }),
+    skipDeliverySlot: (slot) =>
+      enqueue(async () => {
+        const state = await readState(options, fileSystem);
+        if (state.slots.some(({ id }) => id === slot.id)) return false;
+        await writeState(
+          options.filePath,
+          {
+            ...state,
+            slots: pruneSlots(
+              [
+                ...state.slots,
+                {
+                  claimedAt: slot.skippedAt,
+                  id: slot.id,
+                  status: "skipped",
+                },
+              ],
+              options.now(),
+            ),
+          },
+          fileSystem,
+        );
+        return true;
       }),
     updatePreferences: (update) =>
       enqueue(async () => {
@@ -82,8 +150,9 @@ function readState(
     fileSystem,
     invalidJsonMessage: "Briefing state file contains invalid JSON.",
     maxBytes: 256 * 1024,
-    missingState: () => ({
+    missingState: (): BriefingStateDocument => ({
       preferences: defaultPreferences(options.now()),
+      slots: [],
       version: 1,
     }),
     parse: parseState,
@@ -113,11 +182,47 @@ function parseState(value: unknown): BriefingStateDocument {
     value.lastSnapshot === undefined
       ? undefined
       : parseSnapshot(value.lastSnapshot);
+  const slots = value.slots === undefined ? [] : parseSlots(value.slots);
   return {
     ...(lastSnapshot ? { lastSnapshot } : {}),
     preferences,
+    slots,
     version: 1,
   };
+}
+
+function parseSlots(value: unknown): BriefingDeliverySlot[] {
+  if (!Array.isArray(value) || value.length > 100) throw invalidState();
+  const slots = value.map((slot): BriefingDeliverySlot => {
+    if (
+      !isRecord(slot) ||
+      typeof slot.id !== "string" ||
+      !isCanonicalIsoTimestamp(slot.claimedAt) ||
+      (slot.deliveredAt !== undefined &&
+        !isCanonicalIsoTimestamp(slot.deliveredAt)) ||
+      (slot.status !== "claimed" &&
+        slot.status !== "delivered" &&
+        slot.status !== "skipped")
+    )
+      throw invalidState();
+    return {
+      claimedAt: slot.claimedAt,
+      ...(slot.deliveredAt ? { deliveredAt: slot.deliveredAt } : {}),
+      id: slot.id,
+      status: slot.status,
+    };
+  });
+  if (new Set(slots.map(({ id }) => id)).size !== slots.length)
+    throw invalidState();
+  return slots;
+}
+
+function pruneSlots(
+  slots: readonly BriefingDeliverySlot[],
+  now: Date,
+): BriefingDeliverySlot[] {
+  const cutoff = new Date(now.getTime() - 45 * 24 * 60 * 60_000).toISOString();
+  return slots.filter(({ claimedAt }) => claimedAt >= cutoff).slice(-100);
 }
 
 function parsePreferences(value: unknown): BriefingPreferences {

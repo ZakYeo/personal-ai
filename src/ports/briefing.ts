@@ -100,10 +100,30 @@ export interface BriefingPreferencesUpdate {
   readonly updatedAt: string;
 }
 
+export interface BriefingDeliverySlot {
+  readonly claimedAt: string;
+  readonly deliveredAt?: string;
+  readonly id: string;
+  readonly status: "claimed" | "delivered" | "skipped";
+}
+
 export interface BriefingStore {
+  readonly claimDeliverySlot: (slot: {
+    readonly claimedAt: string;
+    readonly id: string;
+  }) => Promise<boolean>;
+  readonly completeDeliverySlot: (completion: {
+    readonly deliveredAt: string;
+    readonly id: string;
+    readonly snapshot: BriefingSnapshot;
+  }) => Promise<boolean>;
   readonly getLastSnapshot: () => Promise<BriefingSnapshot | undefined>;
   readonly getPreferences: () => Promise<BriefingPreferences>;
   readonly saveSnapshot: (snapshot: BriefingSnapshot) => Promise<void>;
+  readonly skipDeliverySlot: (slot: {
+    readonly id: string;
+    readonly skippedAt: string;
+  }) => Promise<boolean>;
   readonly updatePreferences: (
     update: BriefingPreferencesUpdate,
   ) => Promise<BriefingPreferences | undefined>;

@@ -28,12 +28,29 @@ export function createInMemoryBriefingStore(
     updatedAt: options.now().toISOString(),
   };
   let snapshot: BriefingSnapshot | undefined;
+  const slots = new Map<string, "claimed" | "delivered" | "skipped">();
   return {
+    claimDeliverySlot: ({ id }) => {
+      if (slots.has(id)) return Promise.resolve(false);
+      slots.set(id, "claimed");
+      return Promise.resolve(true);
+    },
+    completeDeliverySlot: ({ id, snapshot: deliveredSnapshot }) => {
+      if (slots.get(id) !== "claimed") return Promise.resolve(false);
+      slots.set(id, "delivered");
+      snapshot = cloneSnapshot(deliveredSnapshot);
+      return Promise.resolve(true);
+    },
     getLastSnapshot: () => Promise.resolve(cloneSnapshot(snapshot)),
     getPreferences: () => Promise.resolve(clonePreferences(preferences)),
     saveSnapshot: (next) => {
       snapshot = cloneSnapshot(next);
       return Promise.resolve();
+    },
+    skipDeliverySlot: ({ id }) => {
+      if (slots.has(id)) return Promise.resolve(false);
+      slots.set(id, "skipped");
+      return Promise.resolve(true);
     },
     updatePreferences: (update) => {
       if (preferences.revision !== update.expectedRevision) {
