@@ -25,6 +25,10 @@
     "build": "tsc -p tsconfig.build.json",
     "check": "npm run lint && npm run format:check && npm run package:sort:check && npm run docs:lint && npm run spellcheck && npm run secrets:check && npm run knip && npm run duplicates && npm run architecture:check && npm run bin:check && npm run smoke:package && npm run test:run && npm run typecheck",
     "cli": "node --env-file-if-exists=.env --import tsx src/runtimes/cli/main.ts",
+    "desktop:build": "vite build --config apps/desktop/vite.config.ts",
+    "desktop:dev": "vite --config apps/desktop/vite.config.ts",
+    "desktop:test": "vitest --run --config apps/desktop/vite.config.ts",
+    "desktop:typecheck": "tsc --noEmit -p apps/desktop/tsconfig.json",
     "docs:lint": "markdownlint-cli2 \"**/*.md\"",
     "duplicates": "jscpd src test",
     "format": "prettier . --write",
@@ -66,6 +70,13 @@
     "*.{js,cjs,mjs,ts,tsx}": "eslint --fix"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/plugin-autostart": "^2.5.1",
+    "@tauri-apps/plugin-global-shortcut": "^2.3.2",
+    "@tauri-apps/plugin-opener": "^2.5.5",
+    "@tauri-apps/plugin-window-state": "^2.4.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "ws": "^8.21.0"
   },
   "devDependencies": {
@@ -73,8 +84,14 @@
     "@commitlint/config-conventional": "^21.1.0",
     "@eslint/js": "^10.0.1",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/node": "^22.10.5",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
     "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^4.1.9",
     "@vitest/eslint-plugin": "^1.6.20",
     "cspell": "^9.8.0",
@@ -84,6 +101,7 @@
     "eslint-plugin-import-x": "^4.17.0",
     "eslint-plugin-unicorn": "^69.0.0",
     "jscpd": "^5.0.11",
+    "jsdom": "^29.1.1",
     "knip": "^5.41.1",
     "lint-staged": "^15.3.0",
     "markdownlint-cli2": "^0.22.1",
@@ -93,6 +111,7 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.62.0",
+    "vite": "^8.2.2",
     "vitest": "^4.1.9"
   },
   "engines": {
