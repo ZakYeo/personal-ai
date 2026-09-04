@@ -1,4 +1,5 @@
 import { createDailyBriefingAggregator } from "../../application/briefing-policy.js";
+import { getDeterministicFeatureRules } from "../../application/deterministic-feature-rules.js";
 import { createInMemoryBriefingStore } from "../../test-support/briefing-store.js";
 import {
   executeFeature,
@@ -7,6 +8,42 @@ import {
 import { createBriefingFeature } from "./briefing-feature.js";
 
 describe("briefing feature", () => {
+  it("routes deterministic briefing management requests without also fetching a briefing", () => {
+    const feature = createBriefingFeature(
+      createDailyBriefingAggregator([]),
+      createInMemoryBriefingStore({
+        now: () => new Date("2026-09-04T07:00:00.000Z"),
+        timeZone: "Europe/London",
+      }),
+    );
+    const rules = getDeterministicFeatureRules(feature);
+    const matches = (text: string) =>
+      rules.flatMap((rule) =>
+        rule.match(text) === undefined ? [] : [rule.capability],
+      );
+
+    expect(matches("show my daily briefing preferences")).toEqual([
+      "briefing.preferences.show",
+    ]);
+    expect(matches("make my daily briefing short")).toEqual([
+      "briefing.preferences.update",
+    ]);
+    expect(matches("add ai safety to my daily briefing topics")).toEqual([
+      "briefing.topic.add",
+    ]);
+    expect(matches("remove ai safety from my daily briefing topics")).toEqual([
+      "briefing.topic.remove",
+    ]);
+    expect(
+      matches(
+        "schedule my daily briefing for 08:00 on monday,tuesday in europe/london",
+      ),
+    ).toEqual(["briefing.schedule.set"]);
+    expect(matches("disable my scheduled daily briefing")).toEqual([
+      "briefing.schedule.disable",
+    ]);
+  });
+
   it("returns and retains an on-demand daily briefing", async () => {
     let text = "You have one task due today.";
     const store = createInMemoryBriefingStore({
@@ -83,10 +120,14 @@ describe("briefing feature", () => {
       }),
     ).resolves.toMatchObject({
       data: { length: "short", sections: "calendar,tasks" },
+      text: expect.stringMatching(/short.*calendar and tasks/u) as string,
     });
     await expect(
       executeFeature(feature, "briefing.topic.add", { topic: "AI safety" }),
-    ).resolves.toMatchObject({ data: { searchTopics: "AI safety" } });
+    ).resolves.toMatchObject({
+      data: { searchTopics: "AI safety" },
+      text: expect.stringContaining("AI safety") as string,
+    });
     await expect(
       executeFeature(feature, "briefing.schedule.set", {
         localTime: "08:00",

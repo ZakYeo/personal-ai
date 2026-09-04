@@ -40,6 +40,50 @@ describe("createConfiguredTextRuntime", () => {
     );
   });
 
+  it("routes deterministic briefing preference and schedule requests", async () => {
+    const assistant = await createConfiguredTextRuntimeHarness({
+      useRuntimeDefaultConfig: true,
+    });
+
+    await expect(
+      assistant.handleText("show my daily briefing preferences"),
+    ).resolves.toMatchObject({
+      status: "ok",
+      text: expect.stringContaining("Daily briefing length") as string,
+    });
+    await expect(
+      assistant.handleText("make my daily briefing short"),
+    ).resolves.toMatchObject({
+      status: "ok",
+      text: expect.stringContaining("short") as string,
+    });
+    await expect(
+      assistant.handleText("add AI safety to my daily briefing topics"),
+    ).resolves.toMatchObject({
+      status: "ok",
+      text: expect.stringContaining("AI safety") as string,
+    });
+    await expect(
+      assistant.handleText(
+        "schedule my daily briefing for 08:00 on monday,tuesday in Europe/London",
+      ),
+    ).resolves.toMatchObject({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+      text: expect.stringContaining("08:00") as string,
+    });
+    await expect(assistant.handleText("yes")).resolves.toMatchObject({
+      status: "ok",
+      text: expect.stringContaining("Scheduled delivery is 8am") as string,
+    });
+    await expect(
+      assistant.handleText("disable my scheduled daily briefing"),
+    ).resolves.toMatchObject({
+      expectsFollowUp: true,
+      status: "needs_confirmation",
+    });
+  });
+
   it("smoke-executes a calendar and alarm plan after one exact confirmation", async () => {
     const assistant = await createConfiguredTextRuntimeHarness();
 

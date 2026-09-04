@@ -13,6 +13,7 @@ import type {
   FeatureCapabilityParameters,
   FeatureExecutionContext,
 } from "../../ports/feature.js";
+import type { DeterministicFeatureRule } from "../../ports/deterministic-feature-rules.js";
 
 const showParameters = {} as const satisfies FeatureCapabilityParameters;
 const updateParameters = {
@@ -37,6 +38,45 @@ const scheduleParameters = {
 type UpdateArgs = FeatureArgsFromParameters<typeof updateParameters>;
 type TopicArgs = FeatureArgsFromParameters<typeof topicParameters>;
 type ScheduleArgs = FeatureArgsFromParameters<typeof scheduleParameters>;
+
+export const briefingPreferenceDeterministicRules = [
+  {
+    capability: "briefing.preferences.show",
+    match: (text) =>
+      /^(?:show|what are) my (?:daily )?briefing preferences$/u.test(text)
+        ? {}
+        : undefined,
+  },
+  {
+    capability: "briefing.preferences.update",
+    match: (text) => {
+      const mode =
+        /^make my (?:daily )?briefing (short|standard|attention-only)$/u.exec(
+          text,
+        )?.[1];
+      return mode ? { mode } : undefined;
+    },
+  },
+  {
+    capability: "briefing.topic.add",
+    match: (text, originalText) =>
+      matchTopic(originalText ?? text, "add", "to"),
+  },
+  {
+    capability: "briefing.topic.remove",
+    match: (text, originalText) =>
+      matchTopic(originalText ?? text, "remove", "from"),
+  },
+  {
+    capability: "briefing.schedule.set",
+    match: (_text, originalText) => matchSchedule(originalText ?? _text),
+  },
+  {
+    capability: "briefing.schedule.disable",
+    match: (text) =>
+      /^disable my scheduled (?:daily )?briefing$/u.test(text) ? {} : undefined,
+  },
+] as const satisfies readonly DeterministicFeatureRule[];
 
 export function createBriefingPreferenceCapabilities(store: BriefingStore) {
   return {
@@ -235,10 +275,14 @@ async function savePreferences(
 
 function preferenceResult(preferences: BriefingPreferences) {
   const schedule = preferences.schedule;
+  const quiet = preferences.quietHours;
   return {
     data: {
       length: preferences.length,
+      quietHoursEnabled: quiet !== undefined,
+      ...(quiet ? { quietEnd: quiet.end, quietStart: quiet.start } : {}),
       revision: preferences.revision,
+      scheduleEnabled: schedule !== undefined,
       searchTopics: preferences.searchTopics.join(","),
       sections: preferences.sections.join(","),
       ...(schedule
@@ -250,10 +294,48 @@ function preferenceResult(preferences: BriefingPreferences) {
         : {}),
     },
     responseRewrite: "disabled" as const,
-    text: schedule
-      ? `Daily briefings are scheduled for ${schedule.localTime} in ${schedule.timeZone} on ${schedule.weekdays.join(", ")}.`
-      : "Scheduled daily briefings are disabled.",
+    text: [
+      `Daily briefing length is ${preferences.length}.`,
+      `Sections are ${formatList(preferences.sections)}.`,
+      quiet
+        ? `Quiet hours are ${quiet.start} to ${quiet.end}.`
+        : "Quiet hours are disabled.",
+      preferences.searchTopics.length > 0
+        ? `Internet topics are ${formatList(preferences.searchTopics)}.`
+        : "There are no internet topics.",
+      schedule
+        ? `Scheduled delivery is ${schedule.localTime} in ${schedule.timeZone} on ${formatList(schedule.weekdays)}.`
+        : "Scheduled delivery is disabled.",
+    ].join(" "),
   };
+}
+
+function matchTopic(
+  text: string,
+  action: "add" | "remove",
+  preposition: "from" | "to",
+) {
+  const match = new RegExp(
+    `^${action} (?<topic>.+) ${preposition} my (?:daily )?briefing topics$`,
+    "iu",
+  ).exec(text.trim());
+  return match?.groups?.topic ? { topic: match.groups.topic } : undefined;
+}
+
+function matchSchedule(text: string) {
+  const match =
+    /^schedule my (?:daily )?briefing for (?<localTime>\d{2}:\d{2}) on (?<weekdays>[a-z]+(?:\s*,\s*[a-z]+)*)(?: in (?<timeZone>[^\s]+))?$/iu.exec(
+      text.trim(),
+    );
+  const { localTime, timeZone, weekdays } = match?.groups ?? {};
+  return localTime && weekdays
+    ? { localTime, ...(timeZone ? { timeZone } : {}), weekdays }
+    : undefined;
+}
+
+function formatList(values: readonly string[]): string {
+  if (values.length < 2) return values[0] ?? "none";
+  return `${values.slice(0, -1).join(", ")} and ${values.at(-1)}`;
 }
 
 function decodeSchedule(args: ScheduleArgs, defaultTimeZone: string) {

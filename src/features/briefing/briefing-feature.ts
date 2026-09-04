@@ -9,7 +9,10 @@ import type {
   FeatureCapabilityParameters,
   FeatureExecutionContext,
 } from "../../ports/feature.js";
-import { createBriefingPreferenceCapabilities } from "./briefing-preferences.js";
+import {
+  briefingPreferenceDeterministicRules,
+  createBriefingPreferenceCapabilities,
+} from "./briefing-preferences.js";
 
 const getParameters = {
   mode: {
@@ -46,10 +49,17 @@ export function createBriefingFeature(
       spokenSummary: "get and schedule concise daily briefings",
     }),
     [
+      ...briefingPreferenceDeterministicRules,
       {
         capability: "briefing.get_daily",
-        match: (text) =>
-          /\b(?:what does my day look like|daily briefing|brief me)\b/u.test(
+        match: (text) => {
+          if (
+            /\b(?:preferences?|topics?|schedule|scheduled|make my)\b/u.test(
+              text,
+            )
+          )
+            return;
+          return /\b(?:what does my day look like|daily briefing|brief me)\b/u.test(
             text,
           )
             ? { sinceLast: false }
@@ -57,7 +67,8 @@ export function createBriefingFeature(
                   text,
                 )
               ? { sinceLast: true }
-              : undefined,
+              : undefined;
+        },
       },
     ],
   );
