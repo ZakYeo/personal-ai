@@ -36,6 +36,12 @@ export {
   createInitialAssistantPresentationSnapshot,
   reduceAssistantRuntimeEvent,
 } from "./runtimes/presentation/assistant-runtime-event.js";
+export { startPresentationWebSocketServer } from "./runtimes/presentation/presentation-websocket-server.js";
+export type {
+  PresentationControl,
+  PresentationControlResult,
+  PresentationWebSocketServer,
+} from "./runtimes/presentation/presentation-websocket-server.js";
 export { createAssistantRuntimeEventStream } from "./runtimes/presentation/assistant-runtime-event-stream.js";
 export type {
   AssistantRuntimeEventCursor,
