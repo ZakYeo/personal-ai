@@ -32,3 +32,15 @@ export type {
   IntentInterpreterPort,
   ProposedAssistantPlan,
 } from "./ports/intent.js";
+export {
+  createInitialAssistantPresentationSnapshot,
+  reduceAssistantRuntimeEvent,
+} from "./runtimes/presentation/assistant-runtime-event.js";
+export type {
+  AssistantMicrophoneState,
+  AssistantPresentationInteraction,
+  AssistantPresentationPhase,
+  AssistantPresentationResponse,
+  AssistantPresentationSnapshot,
+  AssistantRuntimeEvent,
+} from "./runtimes/presentation/assistant-runtime-event.js";
