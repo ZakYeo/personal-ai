@@ -5,6 +5,7 @@ import type {
 } from "../ports/weather.js";
 import {
   createCalendarBriefingSource,
+  createInternetBriefingSource,
   createProfileBriefingSource,
   createWeatherBriefingSource,
 } from "./briefing-sources.js";
@@ -131,6 +132,56 @@ describe("briefing sources", () => {
       weatherWindSpeed: 29,
       weatherWindSpeedUnit: "km/h",
     });
+  });
+
+  it("retains only citations represented in the bounded internet projection", async () => {
+    const firstMarker = "First update [1].";
+    const answer = `${firstMarker}${"x".repeat(350)} Second update [2].`;
+    const secondStart = answer.indexOf("[2]");
+    const source = createInternetBriefingSource(
+      {
+        search: () =>
+          Promise.resolve({
+            answer,
+            citations: [
+              {
+                endIndex: firstMarker.indexOf("[1]") + 3,
+                sourceId: "first",
+                startIndex: firstMarker.indexOf("[1]"),
+              },
+              {
+                endIndex: secondStart + 3,
+                sourceId: "second",
+                startIndex: secondStart,
+              },
+            ],
+            sources: [
+              {
+                id: "first",
+                title: "First source",
+                url: "https://example.com/first",
+              },
+              {
+                id: "second",
+                title: "Second source",
+                url: "https://example.com/second",
+              },
+            ],
+          }),
+      },
+      2,
+    );
+
+    const result = await source.read({
+      now: new Date("2026-09-04T07:00:00.000Z"),
+      timeZone: "Europe/London",
+      topic: "updates",
+    });
+
+    expect(result.items[0]!.citations).toEqual([
+      { title: "First source", url: "https://example.com/first" },
+    ]);
+    expect(result.items[0]!.text).not.toContain("Second update");
   });
 });
 

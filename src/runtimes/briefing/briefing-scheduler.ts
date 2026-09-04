@@ -3,11 +3,12 @@ import {
   zonedParts,
 } from "../../application/local-date-time.js";
 import type { ClockPort } from "../../ports/assistant.js";
-import type {
-  BriefingPreferences,
-  BriefingSchedule,
-  BriefingStore,
-  DailyBriefingAggregatorPort,
+import {
+  briefingWeekdays,
+  type BriefingPreferences,
+  type BriefingSchedule,
+  type BriefingStore,
+  type DailyBriefingAggregatorPort,
 } from "../../ports/briefing.js";
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import {
@@ -55,7 +56,10 @@ export async function processBriefingScheduleCycle(
   const localDate = formatDate(local);
   const weekday = weekdayAt(now, schedule.timeZone);
   if (!schedule.weekdays.includes(weekday)) return;
-  const slotId = `briefing:${schedule.timeZone}:${localDate}:${schedule.localTime}:${schedule.weekdays.join(",")}`;
+  const normalizedWeekdays = briefingWeekdays.filter((weekday) =>
+    schedule.weekdays.includes(weekday),
+  );
+  const slotId = `briefing:${schedule.timeZone}:${localDate}:${schedule.localTime}:${normalizedWeekdays.join(",")}`;
   const timing = resolveSlotTiming(schedule, preferences, local);
   if (timing.skip) {
     if (now >= timing.scheduledAt) {

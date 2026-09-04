@@ -4,7 +4,10 @@ import type {
   BriefingSourceResult,
 } from "../ports/briefing.js";
 import type { CalendarSearchPort } from "../ports/calendar.js";
-import type { InternetSearchPort } from "../ports/internet-search.js";
+import type {
+  InternetSearchPort,
+  InternetSearchResponse,
+} from "../ports/internet-search.js";
 import type {
   AssistantPersonalizationReaderPort,
   PersonalContextReaderPort,
@@ -282,27 +285,51 @@ export function createInternetBriefingSource(
         signal ? { signal } : {},
       );
       validateInternetSearchResponse(response, Math.min(2, maxResults));
-      const answer = sanitizeHumanTextMarkup(response.answer).trim();
+      const projection = projectInternetAnswer(response);
       return {
         attention: [],
-        citations: response.sources.slice(0, 2).map(({ title, url }) => ({
-          title: sanitizeHumanTextMarkup(title),
-          url,
-        })),
         facts: { internetTopic: topic },
         items: [
           {
-            citations: response.sources.slice(0, 2).map(({ title, url }) => ({
-              title: sanitizeHumanTextMarkup(title),
-              url,
-            })),
+            citations: projection.citations,
             key: stableKey("internet", topic.toLocaleLowerCase()),
-            text: `${topic}: ${answer}`,
+            text: `${topic}: ${projection.answer}`,
           },
         ],
         section: "internet",
       };
     },
+  };
+}
+
+function projectInternetAnswer(response: InternetSearchResponse) {
+  const answerLimit = 350;
+  const retainedAnnotations = response.citations.filter(
+    ({ endIndex }) => endIndex <= answerLimit,
+  );
+  if (response.citations.length > 0 && retainedAnnotations.length === 0) {
+    return {
+      answer: "No bounded cited update was available.",
+      citations: [],
+    };
+  }
+  const endIndex =
+    retainedAnnotations.at(-1)?.endIndex ??
+    Math.min(response.answer.length, answerLimit);
+  const answer = sanitizeHumanTextMarkup(
+    response.answer.slice(0, endIndex),
+  ).trim();
+  const sourceIds = new Set(
+    retainedAnnotations.map(({ sourceId }) => sourceId),
+  );
+  return {
+    answer: `${answer}${endIndex < response.answer.length ? "…" : ""}`,
+    citations: response.sources
+      .filter(({ id }) => sourceIds.has(id))
+      .map(({ title, url }) => ({
+        title: sanitizeHumanTextMarkup(title),
+        url,
+      })),
   };
 }
 

@@ -85,7 +85,9 @@ export function createDailyBriefingAggregator(
       const snapshotSections: BriefingSnapshotSection[] = resolved.map(
         (entry) => ({
           available: entry.available,
-          items: entry.available ? [...entry.result.items] : [],
+          items: entry.available
+            ? entry.result.items.map(({ key, text }) => ({ key, text }))
+            : [],
           section: entry.section,
         }),
       );
