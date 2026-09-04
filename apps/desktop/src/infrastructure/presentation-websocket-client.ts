@@ -5,6 +5,7 @@ import {
   type AssistantPresentationSnapshot,
   type AssistantPresentationProjection,
   type PresentationControl,
+  type PresentationControlResult,
 } from "../../../../src/presentation-contract.js";
 import type { RuntimePresentationState } from "../model/desktop-state.js";
 import type { PresentationClient } from "../ports/presentation-client.js";
@@ -28,6 +29,12 @@ interface PresentationWebSocketClientOptions {
   readonly token: string;
 }
 
+interface PendingControl {
+  readonly reject: (error: Error) => void;
+  readonly resolve: (result: PresentationControlResult) => void;
+  readonly timer: number;
+}
+
 export function createPresentationWebSocketClient(
   options: PresentationWebSocketClientOptions,
 ): PresentationClient {
@@ -48,6 +55,7 @@ class PresentationWebSocketClient implements PresentationClient {
   private readonly listeners = new Set<
     (state: RuntimePresentationState) => void
   >();
+  private readonly pendingControls = new Map<string, PendingControl>();
   private readonly scheduleReconnect: (
     callback: () => void,
     delay: number,
@@ -62,8 +70,11 @@ class PresentationWebSocketClient implements PresentationClient {
 
   constructor(private readonly options: PresentationWebSocketClientOptions) {
     this.createSocket = options.createSocket ?? ((url) => new WebSocket(url));
-    this.cancelReconnect = options.cancelReconnect ?? window.clearTimeout;
-    this.scheduleReconnect = options.scheduleReconnect ?? window.setTimeout;
+    this.cancelReconnect =
+      options.cancelReconnect ?? ((timer) => window.clearTimeout(timer));
+    this.scheduleReconnect =
+      options.scheduleReconnect ??
+      ((callback, delay) => window.setTimeout(callback, delay));
   }
 
   connect(): void {
@@ -82,20 +93,29 @@ class PresentationWebSocketClient implements PresentationClient {
     this.clearReconnect();
     this.socket?.close();
     this.socket = undefined;
+    this.rejectPendingControls();
     this.notify("offline");
   }
 
-  sendControl(control: PresentationControl): Promise<void> {
+  sendControl(
+    control: PresentationControl,
+  ): Promise<PresentationControlResult> {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error("Presentation service is offline."));
     }
-    this.socket.send(
-      JSON.stringify({
-        ...control,
-        protocolVersion: presentationProtocolVersion,
-      }),
-    );
-    return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const timer = this.scheduleReconnect(() => {
+        this.pendingControls.delete(control.requestId);
+        reject(new Error("Presentation control response timed out."));
+      }, 5_000);
+      this.pendingControls.set(control.requestId, { reject, resolve, timer });
+      this.socket?.send(
+        JSON.stringify({
+          ...control,
+          protocolVersion: presentationProtocolVersion,
+        }),
+      );
+    });
   }
 
   subscribe(listener: (state: RuntimePresentationState) => void): () => void {
@@ -132,6 +152,12 @@ class PresentationWebSocketClient implements PresentationClient {
       this.projection = message.projection;
       this.notify("connected");
     }
+    if (message.type === "control_result") {
+      this.completeControl(message.requestId, {
+        ...(message.message ? { message: message.message } : {}),
+        status: message.status,
+      });
+    }
     if (message.type === "error" && message.code === "authentication_failed") {
       this.stopped = true;
       this.notify("authentication_failed");
@@ -163,6 +189,7 @@ class PresentationWebSocketClient implements PresentationClient {
 
   private readonly disconnected = (): void => {
     this.socket = undefined;
+    this.rejectPendingControls();
     if (this.stopped) return;
     this.notify("offline");
     this.reconnectAttempt += 1;
@@ -177,6 +204,25 @@ class PresentationWebSocketClient implements PresentationClient {
     if (this.reconnectTimer === undefined) return;
     this.cancelReconnect(this.reconnectTimer);
     this.reconnectTimer = undefined;
+  }
+
+  private completeControl(
+    requestId: string,
+    result: PresentationControlResult,
+  ): void {
+    const pending = this.pendingControls.get(requestId);
+    if (!pending) return;
+    this.cancelReconnect(pending.timer);
+    this.pendingControls.delete(requestId);
+    pending.resolve(result);
+  }
+
+  private rejectPendingControls(): void {
+    for (const pending of this.pendingControls.values()) {
+      this.cancelReconnect(pending.timer);
+      pending.reject(new Error("Presentation service disconnected."));
+    }
+    this.pendingControls.clear();
   }
 
   private notify(connection: RuntimePresentationState["connection"]): void {

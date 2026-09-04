@@ -16,6 +16,15 @@ export interface SourceViewState {
   readonly title: string;
 }
 
+export interface ProfileFactViewState {
+  readonly draft: string;
+  readonly field: string;
+  readonly id: string;
+  readonly label: string;
+  readonly provenance: "user-authored";
+  readonly value: string;
+}
+
 export interface OverlayViewState {
   readonly connectionLabel: string;
   readonly connectionState: DesktopConnectionState;
@@ -40,6 +49,7 @@ export interface CommandCenterViewState {
   readonly connectionState: DesktopConnectionState;
   readonly controlMessage?: string;
   readonly microphoneLabel: string;
+  readonly profileFacts: readonly ProfileFactViewState[];
   readonly requestDraft: string;
   readonly section: DesktopSection;
   readonly sections: readonly DesktopSection[];

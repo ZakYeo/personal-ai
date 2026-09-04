@@ -116,7 +116,9 @@ describe("presentation WebSocket client", () => {
       }),
     ).toThrow("loopback WebSocket");
   });
+});
 
+describe("presentation WebSocket client lifecycle", () => {
   it("prevents duplicate sockets and cancels queued reconnect on shutdown", () => {
     const fake = createFakeSocket();
     const cancelReconnect = vi.fn();
@@ -141,5 +143,57 @@ describe("presentation WebSocket client", () => {
 
     expect(createSocket).toHaveBeenCalledOnce();
     expect(cancelReconnect).toHaveBeenCalledWith(42);
+  });
+
+  it("correlates each control with its validated server result", async () => {
+    const fake = createFakeSocket();
+    const client = createPresentationWebSocketClient({
+      createSocket: () => fake.socket,
+      endpoint: "ws://127.0.0.1:43210",
+      token,
+    });
+    client.connect();
+    fake.open();
+
+    const result = client.sendControl({
+      requestId: "request-1",
+      text: "force rejection",
+      type: "submit_text",
+    });
+    fake.emitMessage({
+      message: "The request was safely rejected.",
+      protocolVersion: 1,
+      requestId: "request-1",
+      status: "rejected",
+      type: "control_result",
+    });
+
+    await expect(result).resolves.toEqual({
+      message: "The request was safely rejected.",
+      status: "rejected",
+    });
+    client.disconnect();
+  });
+
+  it("fails closed when an authenticated server message is malformed", () => {
+    const fake = createFakeSocket();
+    const states: RuntimePresentationState[] = [];
+    const client = createPresentationWebSocketClient({
+      createSocket: () => fake.socket,
+      endpoint: "ws://127.0.0.1:43210",
+      scheduleReconnect: () => 1,
+      token,
+    });
+    client.subscribe((state) => states.push(state));
+    client.connect();
+    fake.open();
+    fake.emitMessage({
+      privateDiagnostics: "must not cross the boundary",
+      protocolVersion: 1,
+      type: "snapshot",
+    });
+
+    expect(states.at(-1)?.connection).toBe("offline");
+    expect(states.at(-1)?.snapshot).toBeUndefined();
   });
 });

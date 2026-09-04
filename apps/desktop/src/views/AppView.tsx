@@ -13,6 +13,12 @@ export function AppView({
     viewModel.getSnapshot,
     viewModel.getSnapshot,
   );
+  if (
+    state.mode === "overlay" &&
+    (state.overlay.phase === "cancelled" || state.overlay.phase === "completed")
+  ) {
+    return <main aria-label="Overlay dismissed" hidden />;
+  }
   return state.mode === "overlay" ? (
     <OverlayView
       intents={{
@@ -20,7 +26,6 @@ export function AppView({
         decline: viewModel.decline,
         dismiss: viewModel.dismissOverlay,
         openSource: viewModel.openSource,
-        stopListening: viewModel.stopListening,
       }}
       state={state.overlay}
     />
@@ -28,11 +33,15 @@ export function AppView({
     <CommandCenterView
       intents={{
         applyShortcut: viewModel.applyShortcut,
+        correctProfileFact: viewModel.correctProfileFact,
+        explainProfileFact: viewModel.explainProfileFact,
+        forgetProfileFact: viewModel.forgetProfileFact,
         openSource: viewModel.openSource,
         selectSection: viewModel.selectSection,
         setAutostart: viewModel.setAutostart,
         submitRequest: viewModel.submitRequest,
         updateRequestDraft: viewModel.updateRequestDraft,
+        updateProfileDraft: viewModel.updateProfileDraft,
         updateShortcutDraft: viewModel.updateShortcutDraft,
       }}
       state={state.commandCenter}

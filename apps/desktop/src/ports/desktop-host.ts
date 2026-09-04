@@ -1,11 +1,14 @@
-import type { PresentationControl } from "../../../../src/presentation-contract.js";
+import type {
+  PresentationControl,
+  PresentationControlResult,
+} from "../../../../src/presentation-contract.js";
 
 export interface DesktopHost {
   hideCurrentWindow(): Promise<void>;
   initialize(): Promise<void>;
   isAutostartEnabled(): Promise<boolean>;
   openSource(url: string): Promise<void>;
-  sendControl(control: PresentationControl): Promise<void>;
+  sendControl(control: PresentationControl): Promise<PresentationControlResult>;
   setAutostart(enabled: boolean): Promise<void>;
   setPushToTalkShortcut(shortcut?: string): Promise<void>;
   showOverlay(): Promise<void>;

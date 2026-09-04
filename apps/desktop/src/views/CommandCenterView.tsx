@@ -1,5 +1,6 @@
 import { ConnectionBadge } from "../components/ConnectionBadge.js";
 import { SettingsPanel } from "../components/SettingsPanel.js";
+import { ProfilePanel } from "../components/ProfilePanel.js";
 import type { DesktopSection } from "../model/navigation.js";
 import type { CommandCenterViewState } from "../view-models/desktop-view-state.js";
 import { DashboardSectionView } from "./DashboardSectionView.js";
@@ -7,10 +8,14 @@ import { DashboardSectionView } from "./DashboardSectionView.js";
 interface CommandCenterViewIntents {
   readonly applyShortcut: () => void;
   readonly openSource: (sourceId: string) => void;
+  readonly correctProfileFact: (id: string, field: string) => void;
+  readonly explainProfileFact: (field: string) => void;
+  readonly forgetProfileFact: (field: string, value: string) => void;
   readonly selectSection: (section: DesktopSection) => void;
   readonly setAutostart: (enabled: boolean) => void;
   readonly submitRequest: () => void;
   readonly updateRequestDraft: (value: string) => void;
+  readonly updateProfileDraft: (id: string, value: string) => void;
   readonly updateShortcutDraft: (value: string) => void;
 }
 
@@ -61,6 +66,14 @@ export function CommandCenterView(properties: {
             onAutostartChange={intents.setAutostart}
             onShortcutChange={intents.updateShortcutDraft}
             shortcutDraft={state.shortcutDraft}
+          />
+        ) : state.section === "Profile" ? (
+          <ProfilePanel
+            facts={state.profileFacts}
+            onCorrect={intents.correctProfileFact}
+            onDraftChange={intents.updateProfileDraft}
+            onExplain={intents.explainProfileFact}
+            onForget={intents.forgetProfileFact}
           />
         ) : (
           <DashboardSectionView

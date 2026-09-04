@@ -76,7 +76,7 @@ function createDirectClient() {
     disconnect: vi.fn(),
     sendControl: (control) => {
       controls.push(control);
-      return Promise.resolve();
+      return Promise.resolve({ status: "accepted" as const });
     },
     subscribe: (listener) => {
       listeners.add(listener);

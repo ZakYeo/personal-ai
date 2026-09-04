@@ -9,6 +9,7 @@ import {
   microphoneLabel,
   type CardViewState,
   type DesktopAppViewState,
+  type ProfileFactViewState,
   type SourceViewState,
 } from "./desktop-view-state.js";
 
@@ -17,6 +18,7 @@ export function projectDesktopView(options: {
   readonly controlMessage?: string;
   readonly mode: DesktopMode;
   readonly presentation: DesktopPresentationState;
+  readonly profileDrafts: ReadonlyMap<string, string>;
   readonly requestDraft: string;
   readonly section: DesktopSection;
   readonly shortcutDraft: string;
@@ -41,6 +43,7 @@ function projectCommandCenter(
       ? { controlMessage: options.controlMessage }
       : {}),
     microphoneLabel: microphoneLabel(presentation.snapshot?.microphone),
+    profileFacts: projectProfileFacts(presentation, options.profileDrafts),
     requestDraft: options.requestDraft,
     section: options.section,
     sections: desktopSections,
@@ -120,11 +123,7 @@ function projectCards(
         title: item.request,
       }));
     case "Profile":
-      return projection.profile.map((item) => ({
-        detail: `${item.value} · ${item.provenance}`,
-        id: item.field,
-        title: readableField(item.field),
-      }));
+      return [];
     case "Integrations":
       return projection.integrations.map((item) => ({
         detail: item.status,
@@ -141,6 +140,31 @@ function projectCards(
     case "Sources":
       return [];
   }
+}
+
+function projectProfileFacts(
+  state: DesktopPresentationState,
+  drafts: ReadonlyMap<string, string>,
+): readonly ProfileFactViewState[] {
+  return state.projection.profile.map((item, index) => {
+    const id = profileFactId(item.field, item.value, index);
+    return {
+      draft: drafts.get(id) ?? item.value,
+      field: item.field,
+      id,
+      label: readableField(item.field),
+      provenance: item.provenance,
+      value: item.value,
+    };
+  });
+}
+
+export function profileFactId(
+  field: string,
+  value: string,
+  index: number,
+): string {
+  return `${field}:${value}:${index}`;
 }
 
 function projectSources(

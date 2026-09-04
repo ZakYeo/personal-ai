@@ -133,6 +133,25 @@ nav button.active {
   gap: 14px;
 }
 
+.profile-panel {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+}
+
+.profile-fact {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  display: grid;
+  gap: 0.7rem;
+  padding: 1rem;
+}
+
+.profile-fact small {
+  color: var(--text-muted);
+}
+
 .setting-row,
 .setting-column,
 .privacy-note {

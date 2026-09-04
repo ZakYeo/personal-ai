@@ -12,7 +12,10 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { restoreStateCurrent } from "@tauri-apps/plugin-window-state";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { PresentationControl } from "../../../../src/presentation-contract.js";
+import type {
+  PresentationControl,
+  PresentationControlResult,
+} from "../../../../src/presentation-contract.js";
 import type { DesktopHost } from "../ports/desktop-host.js";
 
 interface TauriDesktopDependencies {
@@ -27,7 +30,9 @@ interface TauriDesktopDependencies {
     onPressed: () => void,
   ) => Promise<void>;
   readonly restoreWindowState: () => Promise<void>;
-  readonly sendControl: (control: PresentationControl) => Promise<void>;
+  readonly sendControl: (
+    control: PresentationControl,
+  ) => Promise<PresentationControlResult>;
   readonly showOverlayWindow: () => Promise<void>;
   readonly unregisterGlobalShortcuts: () => Promise<void>;
 }
@@ -39,7 +44,9 @@ async function showOverlayWindow(): Promise<void> {
 }
 
 export function createTauriDesktopHost(
-  sendControl: (control: PresentationControl) => Promise<void>,
+  sendControl: (
+    control: PresentationControl,
+  ) => Promise<PresentationControlResult>,
   dependencies: TauriDesktopDependencies = {
     autostartDisable: disableAutostart,
     autostartEnable: enableAutostart,

@@ -19,6 +19,16 @@ export async function loadPresentationConnectionConfig(
   );
 }
 
+export function loadBrowserTestPresentationConfig(): PresentationConnectionConfig | null {
+  if (import.meta.env.MODE !== "test") return null;
+  const environment: unknown = import.meta.env;
+  if (!isRecord(environment)) return null;
+  return parsePresentationConnectionConfig({
+    endpoint: environment.VITE_PRESENTATION_ENDPOINT,
+    token: environment.VITE_PRESENTATION_TOKEN,
+  });
+}
+
 function parsePresentationConnectionConfig(
   value: unknown,
 ): PresentationConnectionConfig {

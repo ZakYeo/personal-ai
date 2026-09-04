@@ -5,7 +5,10 @@ import { createDesktopApp } from "./composition/create-desktop-app.js";
 import { createPresentationWebSocketClient } from "./infrastructure/presentation-websocket-client.js";
 import { createPresentationRelayClient } from "./infrastructure/presentation-relay-client.js";
 import { createTauriDesktopHost } from "./infrastructure/tauri-desktop-host.js";
-import { loadPresentationConnectionConfig } from "./infrastructure/tauri-presentation-config.js";
+import {
+  loadBrowserTestPresentationConfig,
+  loadPresentationConnectionConfig,
+} from "./infrastructure/tauri-presentation-config.js";
 import type { DesktopMode } from "./model/navigation.js";
 import { desktopShowcaseState } from "./model/showcase-state.js";
 import "./styles/index.css";
@@ -28,8 +31,13 @@ async function startDesktopApplication(
     desktopMode === "command-center"
       ? await loadPresentationConnectionConfig().catch(() => null)
       : null;
-  const directClient = connection
-    ? createPresentationWebSocketClient(connection)
+  const resolvedConnection =
+    connection ??
+    (desktopMode === "command-center" && isIntegrationRequested()
+      ? loadBrowserTestPresentationConfig()
+      : null);
+  const directClient = resolvedConnection
+    ? createPresentationWebSocketClient(resolvedConnection)
     : undefined;
   const presentationClient = directClient
     ? createPresentationRelayClient({
@@ -61,5 +69,12 @@ function isShowcaseRequested(): boolean {
   return (
     import.meta.env.MODE === "test" &&
     new URLSearchParams(window.location.search).get("e2e") === "showcase"
+  );
+}
+
+function isIntegrationRequested(): boolean {
+  return (
+    import.meta.env.MODE === "test" &&
+    new URLSearchParams(window.location.search).get("e2e") === "integration"
   );
 }

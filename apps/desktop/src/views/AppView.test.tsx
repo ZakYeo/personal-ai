@@ -61,7 +61,7 @@ function createHost(sendFails = false) {
       controls.push(control);
       return sendFails
         ? Promise.reject(new Error("private host failure"))
-        : Promise.resolve();
+        : Promise.resolve({ status: "accepted" as const });
     },
     setAutostart: (enabled) => {
       autostart.push(enabled);
@@ -142,6 +142,68 @@ describe("desktop application", () => {
       ),
     ).toBeVisible();
     expect(screen.queryByText("private host failure")).not.toBeInTheDocument();
+  });
+
+  it("surfaces safe service rejections from correlated control results", async () => {
+    const { host } = createHost();
+    const viewModel = createDesktopAppViewModel({
+      host: {
+        ...host,
+        sendControl: () =>
+          Promise.resolve({
+            message: "That confirmation was already answered.",
+            status: "rejected",
+          }),
+      },
+      initialState: state,
+      mode: "overlay",
+    });
+    render(<AppView viewModel={viewModel} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
+
+    expect(
+      await screen.findByText("That confirmation was already answered."),
+    ).toBeVisible();
+  });
+
+  it("emits typed profile explanation, correction, and deletion controls", async () => {
+    const { controls, host } = createHost();
+    const viewModel = createDesktopAppViewModel({
+      host,
+      initialState: state,
+      mode: "command-center",
+    });
+    render(<AppView viewModel={viewModel} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Profile" }));
+    const name = screen.getByLabelText("Preferred Name");
+    await userEvent.clear(name);
+    await userEvent.type(name, "Zachary");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save correction" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Why is this saved?" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Forget" }));
+
+    expect(controls).toEqual([
+      expect.objectContaining({
+        field: "preferredName",
+        type: "profile_set",
+        value: "Zachary",
+      }),
+      expect.objectContaining({
+        field: "preferredName",
+        type: "profile_explain",
+      }),
+      expect.objectContaining({
+        field: "preferredName",
+        type: "profile_forget",
+        value: "Zak",
+      }),
+    ]);
   });
 
   it("requires an explicit settings action before enabling autostart", async () => {

@@ -20,7 +20,7 @@ function createDependencies(
       return Promise.resolve();
     },
     restoreWindowState: () => Promise.resolve(),
-    sendControl: () => Promise.resolve(),
+    sendControl: () => Promise.resolve({ status: "accepted" as const }),
     showOverlayWindow: () => {
       shownOverlays.push("shown");
       return Promise.resolve();
@@ -33,7 +33,7 @@ describe("Tauri desktop host", () => {
   it("opens only revalidated HTTPS source URLs", async () => {
     const openedUrls: string[] = [];
     const host = createTauriDesktopHost(
-      () => Promise.resolve(),
+      () => Promise.resolve({ status: "accepted" }),
       createDependencies(openedUrls),
     );
 
@@ -49,7 +49,7 @@ describe("Tauri desktop host", () => {
     const shortcutHandlers: Array<() => void> = [];
     const shownOverlays: string[] = [];
     const host = createTauriDesktopHost(
-      () => Promise.resolve(),
+      () => Promise.resolve({ status: "accepted" }),
       createDependencies([], shortcutHandlers, shownOverlays),
     );
 

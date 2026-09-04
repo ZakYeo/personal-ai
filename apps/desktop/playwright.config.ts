@@ -15,6 +15,10 @@ export default defineConfig({
   webServer: {
     command: "npm run desktop:dev -- --mode test --host 127.0.0.1 --port 4173",
     cwd: "../..",
+    env: {
+      VITE_PRESENTATION_ENDPOINT: "ws://127.0.0.1:43119",
+      VITE_PRESENTATION_TOKEN: "playwright-authenticated-presentation-token",
+    },
     reuseExistingServer: false,
     timeout: 30_000,
     url: "http://127.0.0.1:4173",
