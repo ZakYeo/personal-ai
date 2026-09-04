@@ -37,6 +37,7 @@
     "Secretlint",
     "STT",
     "SUIDSGID",
+    "Tauri",
     "TTS",
     "Tunables",
     "Vitest",

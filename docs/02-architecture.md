@@ -221,13 +221,15 @@ Implemented real-provider adapters include:
 - Command-based desktop voice adapters and a Python openWakeWord sidecar behind
   TypeScript-owned adapter and runtime boundaries.
 
-Future providers such as Anthropic, local models, local STT/TTS, or real
-messaging integrations should be added behind the same application-owned ports.
+Future providers such as Anthropic, local models, or local STT/TTS should be
+added behind the same application-owned ports. Planned real communications must
+first prove one provider's account semantics before extending its narrow ports.
 
 ## Capability Expansion
 
-Milestones 13 through 17 extend the application through new ports and feature
-adapters without making features import or invoke one another:
+Implemented Milestones 13 through 16 and planned Milestones 17 through 25 extend
+the application through new ports and feature adapters without making features
+import or invoke one another:
 
 - A profile store port owns explicit user-authored facts and a separate narrow
   read-only personal-context port exposes only requested fields to composed
@@ -273,18 +275,25 @@ adapters without making features import or invoke one another:
 - Lists and tasks use their own revision-checked store. Reminder delivery closes
   over that exact store and remains separate from alarm state even when both use
   the neutral notification and output-coordination boundaries.
-- Prospective Milestone 17 daily briefings would use an application-owned
-  aggregator over fixed narrow read ports for configured sources. The
-  aggregator would not call feature plugins or delegate source selection to an
-  intent provider. No briefing port, plugin, scheduler, or runtime composition
-  exists yet.
+- Planned daily briefings use an application-owned aggregator over fixed narrow
+  read ports for configured sources. The aggregator does not call feature
+  plugins or delegate source selection to an intent provider.
+- Planned desktop presence consumes a frozen, bounded, human-safe runtime event
+  stream. Voice/service runtimes produce typed state changes; an authenticated
+  local IPC adapter transports them; native or development UIs render them. The
+  UI does not parse human log text or become a dependency of core and features.
+- Planned attention rules, computer context/actions, Home Assistant,
+  communications, personal knowledge, and adaptive memory each retain narrow
+  application contracts. Fixed orchestration and permission policy remain
+  application owned; host APIs, provider transports, persistence, native UI, and
+  device protocols remain adapters selected at runtime.
 
 Profile, search-result, weather-result, and task-result contracts remain
-application-owned. A future briefing contract would follow that same boundary.
-Provider credentials, transport, persistence paths, and selected adapter
-configuration remain adapter/runtime concerns. Smart-home control, a personal
-knowledge library, and adaptive memory are intentionally uncommitted until
-later discovery defines their boundaries.
+application-owned. New briefing, presentation, attention, context, action,
+smart-home, communications, knowledge, and memory contracts follow that same
+boundary. Provider credentials, transport, persistence paths, selected adapter
+configuration, native host integration, and local IPC remain adapter/runtime
+concerns.
 
 ## Compound Command Boundary
 

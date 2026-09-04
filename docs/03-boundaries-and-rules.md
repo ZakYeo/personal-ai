@@ -728,8 +728,29 @@ should also guard against subtler boundary and abstraction drift.
   policy before reaching notification delivery.
 - Planned daily briefings aggregate only a fixed configured set of narrow read
   ports. Partial source failures remain isolated and diagnostic-safe; retrieved
-  content cannot add sections, tools, or actions. This is prospective Milestone
-  17 policy; no briefing port, feature, or runtime exists yet.
+  content cannot add sections, tools, or actions.
+- Planned desktop presentation receives only bounded human-safe runtime events
+  and validated hidden-link metadata over authenticated local IPC. It cannot
+  receive internal diagnostics, credentials, provider payloads, private result
+  targets, or raw durable-store records, and UI approval cannot bypass the
+  existing core-owned pending-interaction state.
+- Planned proactive attention evaluates only explicit user-enabled typed rules
+  over fixed narrow reads. Application policy owns priority, quiet hours,
+  cooling-off periods, budgets, deduplication, and explanation; providers and
+  retrieved content cannot create monitors or follow-on actions.
+- Planned computer context reads are visible, explicit, bounded, and ephemeral
+  by default. Desktop actions resolve through an application-owned typed
+  allowlist; no model or document may supply an arbitrary shell command,
+  unrestricted path, or hidden capture request.
+- Planned Home Assistant control separates read and action allowlists and applies
+  device-class risk policy. Ambiguous entities, safety-critical device classes,
+  and unknown action outcomes fail closed.
+- Planned personal knowledge answers require current bounded citations from an
+  explicitly enrolled collection. Retrieved content remains untrusted and
+  cannot grant permissions, execute actions, or expose another collection.
+- Planned adaptive memory keeps inferred candidates temporary and inert. Only
+  an explicit approval that executes the canonical validated profile or
+  preference write may create durable state or affect assistant behavior.
 - Relative local state paths resolve from the selected config file's directory,
   never implicitly from a nested runtime's working directory. Runtime factories
   that pass parsed config to another factory must forward the same config-source

@@ -98,8 +98,20 @@ Examples:
 - `task.remind`
 - `task.reminder.acknowledge`
 
-Milestone 17 may add the prospective `briefing.get_daily` capability. It is not
-currently registered or available.
+The active roadmap may add these stable capability families after their
+contracts are proven:
+
+- Milestone 17: `briefing.get_daily`, briefing schedule, and preference controls.
+- Milestone 20: attention-rule create, explain, snooze, disable, and list controls.
+- Milestone 21: explicit desktop context reads and typed allowlisted actions.
+- Milestone 22: allowlisted Home Assistant state reads and device-class controls.
+- Milestone 23: real recent-message reads, drafting, and confirmed sending.
+- Milestone 24: knowledge collection lifecycle, cited search, and follow-ups.
+- Milestone 25: adaptive-memory suggestion review and approval controls.
+
+Milestones 18 and 19 are runtime/presentation work and must not invent parallel
+feature capabilities for wake state, cancellation, or UI navigation. None of
+the planned capability families above is currently registered or available.
 
 Capability names should be treated as part of the assistant contract. They are useful for intent routing, permission checks, logging, and future configuration.
 
@@ -205,10 +217,13 @@ adviser port and owns validation, weather facts, attribution, and final wording.
 Weather-watch adapters
 contribute background tasks that close over their exact provider and store;
 task-reminder adapters follow the same ownership rule around their exact task
-store. If Milestone 17 is implemented, briefings will aggregate fixed
-application read ports directly rather than call calendar, weather, alarm,
-task, search, or profile feature plugins. No briefing feature, port, or runtime
-composition exists yet.
+store. Planned briefings aggregate fixed application read ports directly rather
+than call calendar, weather, alarm, task, search, or profile feature plugins.
+Planned attention evaluation follows the same fixed-read rule. Desktop context,
+Home Assistant, communications, knowledge, and adaptive memory remain separate
+bounded feature/application contracts; one planned integration must not become
+a general provider-controlled executor. None of their feature, port, store, or
+runtime composition exists yet.
 Profile utterances from text or voice follow the normal intent pipeline:
 providers propose `profile.set`, core decodes and validates its typed fact, and
 only then may the profile feature update durable state. `profile.show` reads the

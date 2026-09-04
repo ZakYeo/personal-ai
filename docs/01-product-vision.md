@@ -66,6 +66,23 @@ The assistant should support natural voice commands such as:
   one example phrase does not become an accidental restriction on equivalent
   terminology, times, or contextual references.
 
+## Product North Star
+
+Jarvis starts quietly with the computer and remains available without demanding
+attention. At the configured time it can offer a concise daily briefing. When a
+user-owned rule detects a relevant calendar, weather, task, home, or runtime
+condition, it gives one timely and explainable notification rather than a stream
+of noise. When the user says “Hey Jarvis” from any application, a compact desktop
+overlay appears immediately, shows what the assistant heard and what it is doing,
+presents exact confirmation when required, speaks the result, and disappears.
+
+The assistant should feel like one ambient personal copilot across voice,
+desktop, and future physical-space integrations rather than a collection of
+disconnected commands. That feeling comes from fast feedback, visible state,
+bounded useful context, user-controlled initiative, safe real-world action,
+reviewable sources, and memory that never becomes durable without the user's
+knowledge.
+
 ## Near-Term Direction
 
 Compound plans, calendar result follow-ups, bounded calendar-to-alarm workflows,
@@ -76,12 +93,13 @@ review; it adds durable named lists,
 revision-checked tasks, bounded result-reference follow-ups, and restart-safe
 reminder delivery without treating delivery as task completion. Milestone 13's
 explicit personal profile is implemented after its required independent
-maintainability review. Planned Milestone 17 would add proactive daily briefings;
-no briefing capability is currently available.
-The goal is a more personalized everyday assistant while preserving the
-existing validation, confirmation, privacy, and runtime-boundary guarantees.
-Smart-home control, a personal knowledge library, and adaptive memory remain
-uncommitted future considerations.
+maintainability review. No briefing capability is currently available.
+The active post-Milestone-16 roadmap commits Milestones 17 through 25: daily
+briefings, desktop presence, voice interruption and responsiveness, proactive
+attention, computer context and allowlisted control, Home Assistant, one real
+communication integration, a personal knowledge library, and approval-based
+adaptive memory. Each milestone remains separately gated by evidence, bounded
+scope, tests, full validation, and a fresh independent maintainability review.
 
 The profile begins empty and is managed through normal text or voice requests
 such as “set my name to Zak” and “what do you know about me?” The language model

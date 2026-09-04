@@ -15,9 +15,11 @@ Calendar result follow-ups were implemented next as Milestone 11. Spike 12 then
 recorded an explicit local-voice no-go. Milestone 12.1 now adds bounded read-tool
 chaining so later commands may use validated safe results without introducing
 an unbounded agent loop. The unimplemented recommendations that originally
-followed Milestone 12.1 were retired on 2026-07-28 and replaced in the active
-roadmap by capability-focused Milestones 13 through 17. This report remains the
-historical evidence for the earlier decision.
+followed Milestone 12.1 were retired on 2026-07-28 and replaced by the
+capability-focused Milestones 13 through 17. After Milestones 13 through 16 were
+implemented, the remaining plan was expanded on 2026-09-04 into the active
+ambient-assistant Milestones 17 through 25. This report remains the historical
+evidence for the earlier decision rather than the current future roadmap.
 
 ## Candidate Comparison
 

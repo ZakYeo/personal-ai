@@ -49,8 +49,9 @@ and service composition.
 
 Detailed acceptance criteria and outcomes for Milestones 1 through 16
 are kept in `docs/09-implemented-milestones.md`. The earlier provider-focused
-roadmap after Milestone 12.1 was retired and replaced by capability-focused
-Milestones 13 through 17, selected from current user needs.
+roadmap after Milestone 12.1 was retired. Capability-focused Milestones 13
+through 16 are implemented, and the active ambient-assistant plan continues with
+Milestones 17 through 25 below.
 
 ## Spike 9: Future Milestone Discovery
 
@@ -560,78 +561,466 @@ Acceptance criteria:
   restart windows, and failures preserve diagnostics without losing the task.
 - `npm run check` passes.
 
+## Product North Star
+
+Jarvis starts quietly with the computer and remains available without occupying
+the user's attention. At the configured time it offers a concise briefing. If
+weather, calendar, task, or runtime state needs attention, it gives one timely,
+explainable notification instead of a stream of noise. When the user says “Hey
+Jarvis” from any application, a small desktop overlay appears immediately,
+shows the live transcript and current assistant state, presents exact
+confirmation when an action needs approval, speaks the result, and disappears.
+
+The target experience is an ambient personal copilot rather than a collection
+of disconnected commands. It should feel present through fast feedback,
+contextually useful through explicit bounded access, proactive through
+user-owned rules, and trustworthy because every durable memory, external
+action, source, and sensitive observation remains visible and controllable.
+
+The active post-Milestone-16 plan is Milestones 17 through 25. Each milestone
+must still pass its own evidence review, TDD slices, full validation gate, and
+fresh thermonuclear maintainability review before implementation is complete.
+
 ## Milestone 17: Daily Briefings and Scheduled Delivery
 
 Status: planned; depends on Milestones 13 through 16.
 
-Goal: combine the user's personal context and enabled read capabilities into a
-concise on-demand or scheduled daily briefing.
+Goal: make the assistant usefully proactive by combining personal context and
+enabled read capabilities into a concise on-demand or scheduled daily briefing.
 
 Included:
 
 - An on-demand “what does my day look like?” capability covering configured
-  sections from profile preferences, calendar, weather, alarms, and tasks.
-- Optional bounded internet-search topics selected explicitly by the user, such
-  as a small news or interest section.
-- An application-owned briefing aggregator that calls fixed narrow read ports;
-  it does not invoke feature plugins, ask an intent provider to choose tools, or
-  widen the two-read provider workflow.
-- Configurable morning schedule, timezone, sections, spoken length, and
-  quiet-hours behavior.
-- Durable per-schedule delivery slots, restart-safe deduplication, isolated
-  source failures, and delivery through the shared output coordinator.
+  profile, calendar, weather, alarm, and task sections.
+- Short, standard, and attention-only spoken modes, plus a bounded “what changed
+  since this morning?” comparison against the last delivered briefing snapshot.
+- Optional bounded internet-search topics explicitly selected by the user.
+- An application-owned aggregator over fixed narrow read ports, configurable
+  schedule, timezone, sections, quiet hours, and spoken length.
+- Durable delivery slots, restart-safe deduplication, isolated source failures,
+  and delivery through the shared output coordinator.
 
 Excluded:
 
-- Autonomous actions based on briefing content, provider-selected arbitrary
-  sources, open-ended agent planning, advertising, continuous surveillance, or
-  guaranteed emergency notification.
-- Treating a failed optional section as failure of every other briefing section.
+- Autonomous actions based on briefing content, provider-selected sources or
+  sections, open-ended planning, advertising, continuous surveillance, or
+  treating one optional source failure as failure of the complete briefing.
 
 Thin slices:
 
-1. Define typed briefing sections, safe source projections, ordering, length,
-   and deterministic aggregation contracts.
-2. Implement on-demand briefings from fixed mock/profile/calendar/weather/task
-   sources with exact protected facts and partial-failure metadata.
-3. Add user-owned schedule and section preferences with quiet-hours and
-   timezone validation.
-4. Add durable scheduled-delivery slots, restart deduplication, shutdown, and
+1. Define typed sections, safe source projections, ordering, length modes, exact
+   facts, and deterministic aggregation contracts.
+2. Implement on-demand mock and configured briefings with partial-failure and
+   last-snapshot comparison semantics.
+3. Add user-owned scheduling, section preferences, quiet hours, and timezone
+   validation.
+4. Add durable delivery slots, restart deduplication, shutdown handling, and
    shared voice-output coverage.
-5. Add optional bounded search topics, text/voice/Pi integration, operator
-   documentation, and the required independent maintainability review.
+5. Add bounded search topics, text/voice/Pi integration, documentation, and the
+   required independent review.
 
 Acceptance criteria:
 
-- An on-demand briefing concisely combines only enabled, user-selected sections
-  and identifies unavailable sections without exposing diagnostics.
-- Scheduled delivery occurs at most once per local briefing slot across restart
-  and respects the configured timezone and quiet hours.
-- Briefing aggregation is fixed and application-owned; source content cannot
-  add tools, actions, or new sections.
-- Exact calendar, weather, alarm, and task facts remain protected through final
-  response rewriting.
+- On-demand and scheduled briefings combine only enabled user-selected sections
+  and identify unavailable sections without exposing diagnostics.
+- Scheduled delivery occurs at most once per local slot across restart and
+  respects timezone and quiet hours.
+- Source content cannot add tools, actions, sources, or sections, and exact
+  source facts survive final response rewriting.
 - `npm run check` passes.
 
-## Future Considerations
+## Milestone 18: Desktop Presence and Command Center
 
-These ideas are intentionally unnumbered and are not committed milestones.
-Promoting one into the active roadmap requires fresh product scope, dependency
-and provider evidence, safety policy, thin slices, and measurable acceptance
-criteria.
+Status: planned; depends on Milestone 17 only for briefing presentation.
 
-- **Home Assistant smart-home control:** read allowlisted device state first,
-  then add confirmed controls with device-class-specific risk policy. Locks,
-  doors, security systems, and safety-critical climate controls must fail
-  closed.
-- **Personal knowledge library:** explicitly import selected local documents,
-  notes, manuals, and bookmarks for source-cited retrieval without automatically
-  crawling the filesystem or exposing raw private content to unrelated
-  providers.
-- **Opt-in adaptive memory:** suggest preferences from repeated interactions but
-  retain nothing inferred until the user approves it. Any future design must
-  distinguish temporary context from durable facts and support provenance,
-  explanation, correction, export, expiry, and deletion.
+Goal: give the existing always-listening service a native desktop presence that
+appears immediately on wake and makes listening, reasoning, confirmation,
+acting, speaking, privacy, and failure states visible.
+
+Included:
+
+- A provider-neutral, runtime-owned `AssistantRuntimeEvent` contract for wake,
+  transcript, processing, confirmation, response, speaking, completion, and
+  safe-failure state.
+- A bounded authenticated local IPC transport and restorable snapshot so a
+  presentation process can observe the service without parsing progress logs.
+- A compact wake overlay with live transcript, safe progress, confirmation,
+  stop, microphone state, result details, and automatic dismissal.
+- An expanded command center for today, tasks, alarms, recent safe interactions,
+  sources, profile controls, integration health, and activity history through
+  narrow presentation projections.
+- A native desktop shell with system tray, autostart, global keyboard shortcut,
+  single-instance behavior, and an always-on-top overlay; Windows is the first
+  supported host while the current voice service may remain behind local IPC.
+  Tauri is the preferred initial candidate because its official desktop APIs
+  cover [window state](https://v2.tauri.app/reference/javascript/api/namespacewindow/),
+  [global shortcuts](https://v2.tauri.app/plugin/global-shortcut/), and
+  [autostart](https://v2.tauri.app/plugin/autostart/), but the first slice must
+  record the final dependency and packaging decision.
+
+Excluded:
+
+- Moving feature policy into the UI, exposing diagnostics or raw store/provider
+  data, a remotely reachable general assistant API, hidden microphone capture,
+  or making the graphical interface mandatory for CLI and Pi runtimes.
+
+Thin slices:
+
+1. Record the native-shell dependency decision, then define the frozen sanitized
+   runtime-event state machine and deterministic replay/reconnect behavior.
+2. Adapt voice progress, confirmations, results, cancellation, and failures into
+   events without changing core feature behavior.
+3. Add authenticated loopback IPC and a development web presentation.
+4. Add the compact native overlay, tray, shortcut, autostart, and privacy states.
+5. Add narrow command-center projections, packaging/smoke coverage,
+   documentation, and the required independent review.
+
+Acceptance criteria:
+
+- Saying “Hey Jarvis” while another application is active shows listening state
+  and a live transcript without requiring the user to open a terminal.
+- Confirmation uses the exact already-validated action and UI approval cannot
+  bypass the core-owned pending interaction.
+- Disconnects, restarts, duplicate clients, and malformed IPC data fail safely;
+  the CLI, voice, service, and Pi paths remain usable without the UI.
+- The UI receives only bounded human-safe state and validated hidden link
+  metadata, never credentials, private targets, or internal diagnostics.
+- `npm run check` passes.
+
+## Milestone 19: Voice Interruption and Responsiveness
+
+Status: planned; depends on Milestone 18 for visible feedback and cancellation.
+
+Goal: reduce real and perceived response latency and let the user interrupt the
+assistant naturally without corrupting workflow or durable state.
+
+Included:
+
+- Immediate local wake feedback, first-transcript and first-audio measurements,
+  and explicit latency budgets for every voice phase.
+- Prompt cancellation during capture, provider work, synthesis, and playback,
+  with bounded cleanup and accurate safe runtime state.
+- “Jarvis, stop” during speech and bounded barge-in for a replacement request,
+  coordinated with notification output and one-microphone ownership.
+- Streaming-first response presentation where protected facts and confirmation
+  policy allow it, while durable feature success still waits for required
+  persistence.
+
+Excluded:
+
+- Unbounded full-duplex model sessions, pretending canceled external side
+  effects were rolled back, weakening confirmation to save time, or accepting
+  benchmark claims without measured host-device evidence.
+
+Thin slices:
+
+1. Establish committed phase metrics, device fixtures, and responsiveness gates.
+2. Add one turn-wide cancellation contract and propagate it through every voice
+   and provider boundary.
+3. Implement speech-stop behavior and serialized output interruption.
+4. Add bounded barge-in, replacement semantics, echo/false-wake protection, and
+   deterministic concurrency tests.
+5. Tune first-feedback/first-audio latency, update operator guidance, and
+   complete the required independent review.
+
+Acceptance criteria:
+
+- Wake produces immediate local visual or audible feedback and every measured
+  phase reports deterministic timing metadata.
+- Stop and barge-in settle within documented bounds, perform best-effort cleanup,
+  and cannot duplicate an action, confirmation, alarm, or notification.
+- Failures retain diagnostics internally and return the service to a valid
+  listening, pending-interaction, or stopped state.
+- `npm run check` passes.
+
+## Milestone 20: Proactive Attention Engine
+
+Status: planned; depends on Milestones 17 through 19.
+
+Goal: surface a small number of timely, explainable signals derived from existing
+trusted state without turning the assistant into an autonomous agent.
+
+Included:
+
+- User-enabled deterministic rules for upcoming calendar events, material
+  weather during a relevant period, due tasks, conflicting commitments, and
+  assistant delivery/runtime problems.
+- Typed rule inputs over fixed narrow read ports, durable evaluation slots,
+  cooling-off periods, deduplication, priorities, quiet hours, and a configurable
+  daily notification budget.
+- Explain, snooze, disable, and “do not tell me about this again” controls with
+  user-authored provenance for every enabled rule.
+- Presentation through the shared notification/output coordinator and desktop
+  attention surface.
+
+Excluded:
+
+- Model-invented monitors, continuous location or screen surveillance,
+  emergency guarantees, hidden rule creation, autonomous corrective actions, or
+  allowing source text to create another rule or capability call.
+
+Thin slices:
+
+1. Define rule types, eligibility, explanation, priority, cooling-off, and budget
+   policy with deterministic clocks.
+2. Implement durable rule preferences and evaluation/deduplication state.
+3. Add calendar, weather, task, and runtime-health rule adapters over narrow
+   reads with isolated partial failures.
+4. Add lifecycle commands, desktop/voice notification delivery, restart and
+   shutdown coverage.
+5. Prove notification quality against bounded scenarios and complete the
+   required independent review.
+
+Acceptance criteria:
+
+- No proactive notification exists without an explicit enabled rule and every
+  notification can explain which rule and safe facts caused it.
+- Quiet hours, cooling-off periods, budgets, deduplication, and restart behavior
+  are deterministic and cannot suppress higher-priority delivery silently.
+- One source or delivery failure does not corrupt other rules or expose internal
+  diagnostics.
+- `npm run check` passes.
+
+## Milestone 21: Computer Context and Allowlisted Control
+
+Status: planned; depends on the desktop presence and cancellation milestones.
+
+Goal: let explicitly invoked requests use the user's immediate computer context
+and perform a small catalog of typed desktop actions.
+
+Included:
+
+- Explicit, ephemeral reads for selected text, clipboard text, active-window
+  metadata, and a user-requested screenshot or region capture.
+- Visible capture state, bounded payloads, spoken-safe projection, source
+  provenance, immediate discard by default, and per-source permissions.
+- An application-owned desktop action catalog for opening approved applications
+  or files, media/volume controls, focus mode, and named developer workflows.
+- Typed arguments, allowlisted targets, capability-specific risk and confirmation
+  declarations, cancellation, and safe action results.
+
+Excluded:
+
+- Continuous screenshots, keystroke logging, automatic clipboard history,
+  arbitrary provider-authored shell commands, unrestricted filesystem access, hidden
+  background control, or claiming rollback after an uncertain external action.
+
+Thin slices:
+
+1. Define context-source and action contracts, scopes, size bounds, retention,
+   and confirmation policy.
+2. Implement selected-text/clipboard and active-window reads with visible UI
+   state and deterministic adapters.
+3. Add explicit screenshot capture with bounded local preprocessing and privacy
+   controls.
+4. Add a small typed desktop-action registry and one named developer-workflow
+   adapter without exposing a general shell.
+5. Add native-host integration, failure/cancellation coverage, documentation,
+   and the required independent review.
+
+Acceptance criteria:
+
+- “Summarize what I selected” and “explain this error” use only the context the
+  user explicitly invoked and do not make it durable by default.
+- Every action resolves through a configured allowlist and high-risk or unclear
+  targets fail closed with exact deterministic confirmation.
+- The UI always indicates capture/control activity and exposes revocation and
+  recent safe audit information.
+- `npm run check` passes.
+
+## Milestone 22: Home Assistant Smart-Home Integration
+
+Status: planned; depends on the proactive attention and action-policy work.
+
+Goal: extend Jarvis into the physical environment through one configured Home
+Assistant instance while preserving device-class-specific safety.
+
+Included:
+
+- Read-only state and bounded live updates for explicitly allowlisted entities,
+  areas, and scenes through narrow provider-neutral ports.
+- Natural queries about lights, media, temperature, air quality, and door/window
+  sensors, followed by confirmed control for approved low-risk devices.
+- Typed service actions, entity-class risk policy, exact protected confirmation
+  facts, timeouts, cancellation, and safe partial results for compound plans.
+- Local credential configuration, deterministic adapter contracts, opt-in live
+  smoke coverage, integration health in the command center, and proactive rules
+  that consume only allowlisted read state.
+- Home Assistant's official
+  [REST API](https://developers.home-assistant.io/docs/api/rest/) and
+  [WebSocket API](https://developers.home-assistant.io/docs/api/websocket/) are
+  the initial transport evidence; implementation must revalidate their current
+  authentication and action semantics before selecting an adapter.
+
+Excluded:
+
+- Direct device-protocol support in the first milestone, automatic discovery
+  enrollment, remote public exposure, or ordinary control of locks, doors,
+  security systems, ovens, and safety-critical climate devices. Those classes
+  fail closed until separately scoped and proven.
+
+Thin slices:
+
+1. Select and pin Home Assistant REST/WebSocket semantics and define entity,
+   state, event, and action contracts.
+2. Implement allowlisted read-only state with external-data validation and
+   reconnect behavior.
+3. Add low-risk typed controls with deterministic confirmation and unknown-outcome
+   handling.
+4. Add live state projection, attention rules, text/voice/UI integration, and an
+   opt-in authenticated smoke.
+5. Complete operational documentation and the required independent review.
+
+Acceptance criteria:
+
+- Read access and control access are independently configurable and only named
+  entities/actions are exposed to intent or execution.
+- Safety-critical classes fail closed; an ambiguous entity or unknown action
+  outcome is never guessed, retried automatically, or described as successful.
+- Live disconnect/reconnect, malformed messages, shutdown, and credential
+  failures remain bounded and diagnostic-safe.
+- `npm run check` passes.
+
+## Milestone 23: Real Communications
+
+Status: planned; depends on desktop confirmation presentation and an explicit
+provider-selection decision.
+
+Goal: replace the mock-only messaging experience with one real, bounded personal
+communication integration that supports reading, drafting, and safe sending.
+
+Included:
+
+- A short provider/authentication proof that selects one service based on the
+  user's real account semantics, supported API, privacy, idempotency, and test
+  environment rather than assuming personal WhatsApp access exists.
+- Bounded recent/unread message reads, conversation references, summaries, and
+  drafts in the user's explicit response style.
+- Exact recipient, destination, and body confirmation for every send.
+- Durable `prepared`, `sending/unknown`, and `confirmed` send lifecycle state,
+  provider idempotency where available, restart recovery, and no automatic retry
+  from an unknown outcome.
+
+Excluded:
+
+- Scraping unsupported consumer clients, bulk or autonomous outreach, hidden
+  sending, provider-generic semantics invented before one adapter proves them,
+  retaining complete inbox history, or claiming end-to-end encryption the
+  selected integration does not provide.
+
+Thin slices:
+
+1. Run the target-selection/authentication proof and record current primary
+   provider evidence, permissions, data handling, and test constraints.
+2. Implement provider-neutral bounded read and draft contracts plus deterministic
+   adapters.
+3. Add the selected read-only adapter and opaque conversation references.
+4. Add the durable send state machine, confirmation, idempotency, crash-window
+   tests, and opt-in live smoke.
+5. Add compound plan, voice/UI, documentation, and required review coverage.
+
+Acceptance criteria:
+
+- The selected service demonstrably represents the intended personal messaging
+  workflow; unsupported account semantics are documented rather than simulated.
+- Reads expose only bounded safe fields and send confirmation preserves exact
+  recipient, destination, and body facts.
+- Restart and crash-window tests prove that an unknown send is surfaced for
+  reconciliation and never automatically duplicated.
+- `npm run check` passes.
+
+## Milestone 24: Personal Knowledge Library
+
+Status: planned; depends on desktop source presentation and privacy controls.
+
+Goal: answer questions from explicitly imported personal documents, notes,
+manuals, repositories, and bookmarks with reviewable citations.
+
+Included:
+
+- User-created collections with explicit file/folder/bookmark import, supported
+  type and size limits, indexing status, provenance, refresh, export, and delete.
+- Local parsing and indexing behind provider-neutral retrieval ports, with
+  configurable local or opt-in remote answer generation.
+- Bounded cited retrieval, source-title links in capable UIs, URL-free speech,
+  and narrow collection scopes per request.
+- Filesystem watching only for explicitly enrolled collections, with safe
+  symlink/path handling and visible indexing failures.
+
+Excluded:
+
+- Automatic home-directory crawling, unrelated-provider access to raw private
+  content, executing document instructions, unrestricted code execution,
+  personal-knowledge answers without citations, or treating retrieved text as
+  permissions.
+
+Thin slices:
+
+1. Define collection, document, chunk, citation, lifecycle, and privacy contracts.
+2. Implement explicit import/delete/export and one bounded local text/Markdown
+   parser with deterministic retrieval.
+3. Add incremental indexing, supported additional formats, and opt-in watching.
+4. Add cited answering and follow-ups through existing untrusted-source and
+   human-text policy.
+5. Add UI management, backup/recovery guidance, provider smokes where selected,
+   and the required independent review.
+
+Acceptance criteria:
+
+- Nothing is indexed until the user explicitly enrolls it, and deleting a
+  collection removes its retrievable index and retained source metadata.
+- Every factual library answer resolves its citations to the current bounded
+  result set; instructions inside a document cannot create actions or
+  permissions.
+- Local and remote processing choices are explicit and the UI shows collection,
+  source, freshness, and indexing health.
+- `npm run check` passes.
+
+## Milestone 25: Approval-Based Adaptive Memory
+
+Status: planned; depends on the explicit profile, knowledge, attention, and
+desktop control surfaces from earlier milestones.
+
+Goal: let Jarvis suggest useful durable preferences from repeated interactions
+without silently converting conversation or provider inference into memory.
+
+Included:
+
+- Bounded process-local candidate detection for a small typed set of preference
+  fields, with evidence counts and expiry before approval.
+- An explicit suggestion such as “You often ask for the short briefing; should I
+  remember that?”, followed by the ordinary validated profile/preference command.
+- User-authored approval provenance, explanation, correction, export, expiry,
+  deletion, and a UI page separating approved facts from pending suggestions.
+- Per-category enable/disable, suggestion cooling-off periods, and a global
+  memory-off control that prevents candidate creation.
+
+Excluded:
+
+- Silent learning, durable embeddings of conversation history, inferred
+  sensitive traits, provider-owned memory, hidden behavioral scoring, or using a
+  suggestion before explicit approval.
+
+Thin slices:
+
+1. Define eligible typed preferences, evidence minimization, candidate lifetime,
+   sensitivity exclusions, and approval transitions.
+2. Implement ephemeral deterministic candidate detection without durable writes.
+3. Add explainable suggestions and save-through-existing-command ordering.
+4. Add user controls, export/delete, cooling-off periods, restart, and
+   changed-topic tests.
+5. Add end-to-end voice/UI coverage, privacy documentation, and the required
+   independent review.
+
+Acceptance criteria:
+
+- No inferred value becomes durable or affects behavior before an explicit
+  approval executes the canonical validated write.
+- Candidates contain only the bounded evidence required to explain the
+  suggestion and expire without creating profile or knowledge state.
+- Memory-off, correction, deletion, export, and provenance behavior is complete
+  and independently testable without a model provider.
+- `npm run check` passes.
 
 ## Roadmap Rule
 

@@ -279,6 +279,29 @@ provider latency varies; local samples after adding the summary were roughly
 6.0s to 8.4s total across realtime transcription, intent routing, and streaming
 speech.
 
+### Planned Desktop Presence Runtime
+
+Milestone 18 adds presentation around the existing long-running desktop voice
+service instead of creating a second assistant implementation. A neutral
+runtime-owned event adapter will publish frozen, bounded, human-safe state for
+wake listening, activation, transcript progress, assistant processing,
+confirmation, response, speech, cancellation, completion, and safe failure.
+The current line-oriented progress writer remains useful for CLI operation but
+will not become the UI protocol.
+
+An authenticated loopback IPC adapter will expose current state plus ordered
+events to one reconnecting local presentation client. The first native desktop
+shell is Windows-focused because the supported developer setup uses WSLg. It
+will own the tray, autostart, global shortcut, always-on-top overlay, and native
+capture/control permissions while the Node service remains independently usable.
+CLI and Raspberry Pi runtimes must not depend on that shell.
+
+Milestone 19 extends this runtime path with turn-wide cancellation, immediate
+local activation feedback, bounded speech interruption and barge-in, and
+measured wake-to-feedback, speech-end-to-transcript, and first-audio latency.
+Cancellation propagates through capture, providers, synthesis, playback, and
+bounded cleanup but never claims to roll back an accepted external action.
+
 ### Raspberry Pi Runtime
 
 The Raspberry Pi runtime runs the assistant as a long-lived service process.
@@ -530,12 +553,14 @@ before output, and does not replay a terminal watch after restart. Stores admit
 at most 24 active watches. Each evaluation cycle shares one forecast across
 identical location/period requests and runs at most four independent requests
 concurrently, keeping even the maximum configured provider timeout operationally
-bounded. If planned Milestone 17 is implemented, daily briefings will contribute
-a separate scheduled task with durable local delivery slots so restart cannot
-repeat the same local-day briefing. On-demand briefings will use the same fixed
-application-owned source aggregator as scheduled delivery. No briefing
-background task, aggregator, or runtime wiring exists yet. A future background
-task must not ask an intent provider to choose additional tools or actions.
+bounded. Planned daily briefings contribute a separate scheduled task with
+durable local delivery slots so restart cannot repeat the same local-day
+briefing. On-demand briefings use the same fixed application-owned source
+aggregator as scheduled delivery. Planned proactive attention contributes
+separate user-enabled typed rules with durable evaluation slots, quiet hours,
+cooling-off periods, budgets, and deduplication. Neither background path may ask
+an intent provider to choose additional tools or actions. No briefing or
+attention background task, aggregator, or runtime wiring exists yet.
 
 The selected weather provider is Open-Meteo's free non-commercial forecast and
 geocoding service. Runtime config may select endpoint and timeout policy but has
