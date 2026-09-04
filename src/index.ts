@@ -36,6 +36,13 @@ export {
   createInitialAssistantPresentationSnapshot,
   reduceAssistantRuntimeEvent,
 } from "./runtimes/presentation/assistant-runtime-event.js";
+export { createAssistantRuntimeEventStream } from "./runtimes/presentation/assistant-runtime-event-stream.js";
+export type {
+  AssistantRuntimeEventCursor,
+  AssistantRuntimeEventReplay,
+  AssistantRuntimeEventStream,
+  PendingAssistantRuntimeEvent,
+} from "./runtimes/presentation/assistant-runtime-event-stream.js";
 export type {
   AssistantMicrophoneState,
   AssistantPresentationInteraction,
