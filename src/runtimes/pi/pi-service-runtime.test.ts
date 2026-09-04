@@ -1,5 +1,6 @@
 import type { CapturedAudio } from "../../ports/voice.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
+import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import { createDesktopVoiceConfig } from "../../test-support/desktop-voice-runtime.js";
 import { createCapturedWriter, line } from "../../test-support/primitives.js";
@@ -96,6 +97,40 @@ describe("runPiServiceRuntime", () => {
     expect(signals.listenerCount("SIGTERM")).toBe(0);
     expect(stderr.writes).toEqual([]);
     expect(fallbackOutput.writes).toEqual([]);
+  });
+
+  it("composes daily briefings through the Pi voice service", async () => {
+    const signals = createServiceSignalController();
+    const backgroundTaskIds: string[] = [];
+    const config = createDesktopVoiceConfig("daily briefing", {
+      features: createLoadedRuntimeConfig({
+        briefing: { adapter: "local", enabled: true },
+      }).features,
+    });
+
+    await expect(
+      runPiServiceRuntime({
+        config,
+        processSignals: signals,
+        retryAfterFailure: () => Promise.resolve(),
+        runBackgroundTask: (task, context) => {
+          backgroundTaskIds.push(task.id);
+          return new Promise<void>((resolve) => {
+            context.shutdownSignal.addEventListener("abort", () => resolve(), {
+              once: true,
+            });
+          });
+        },
+        runVoiceActivation: async ({ assistant }) => {
+          const response = await assistant.handleText("daily briefing");
+          expect(response).toMatchObject({ status: "ok" });
+          signals.emit("SIGTERM");
+          return { response, status: "spoken", textOutputWritten: false };
+        },
+      }),
+    ).resolves.toEqual({ status: "stopped", turnsCompleted: 1 });
+
+    expect(backgroundTaskIds).toEqual(["briefing.delivery"]);
   });
 
   it("resolves persistent alarm state relative to the Pi config", async () => {

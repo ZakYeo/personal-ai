@@ -60,6 +60,22 @@ describe("personal-ai ask CLI", () => {
     );
   });
 
+  it("prints the configured daily briefing", async () => {
+    const result = await runAsk({
+      env: { PERSONAL_AI_FIXED_NOW: deterministicNowIso },
+      text: "daily briefing",
+    });
+
+    expect(result).toMatchObject({
+      exitCode: 0,
+      stderr: expect.arrayContaining([
+        expect.stringContaining("briefing.get_daily") as string,
+      ]) as string[],
+      stdout: [expect.stringContaining("Weather is unavailable") as string],
+    });
+    expect(result.stdout.join(" ")).not.toContain("saved home location");
+  });
+
   it("prints the messaging draft response", async () => {
     await expect(
       runAsk({ text: deterministicScenarios.messagingWhatsappDraft.text }),

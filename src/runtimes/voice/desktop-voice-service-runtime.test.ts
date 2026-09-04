@@ -10,6 +10,7 @@ import {
   createDesktopVoiceConfig,
 } from "../../test-support/desktop-voice-runtime.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
+import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
 import {
   createCapturedWriter,
   line,
@@ -19,6 +20,38 @@ import { createServiceSignalController } from "../../test-support/service-runtim
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
 
 describe("runDesktopVoiceServiceRuntime", () => {
+  it("composes on-demand and scheduled briefing support for desktop voice", async () => {
+    const signals = createServiceSignalController();
+    const backgroundTaskIds: string[] = [];
+    const config = createDesktopVoiceConfig("daily briefing", {
+      features: createLoadedRuntimeConfig({
+        briefing: { adapter: "local", enabled: true },
+      }).features,
+    });
+
+    await runDesktopVoiceServiceRuntime({
+      config,
+      processSignals: signals,
+      retryAfterFailure: () => Promise.resolve(),
+      runBackgroundTask: (task, context) => {
+        backgroundTaskIds.push(task.id);
+        return new Promise<void>((resolve) => {
+          context.shutdownSignal.addEventListener("abort", () => resolve(), {
+            once: true,
+          });
+        });
+      },
+      runVoiceActivation: async ({ assistant }) => {
+        const response = await assistant.handleText("daily briefing");
+        expect(response).toMatchObject({ status: "ok" });
+        signals.emit("SIGTERM");
+        return { response, status: "spoken", textOutputWritten: false };
+      },
+    });
+
+    expect(backgroundTaskIds).toEqual(["briefing.delivery"]);
+  });
+
   it("delivers scheduled alarms through configured voice output", async () => {
     const signals = createServiceSignalController();
     const synthesize = vi.fn().mockResolvedValue({

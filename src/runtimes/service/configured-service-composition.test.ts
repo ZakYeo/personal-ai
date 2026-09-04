@@ -245,6 +245,41 @@ describe("runConfiguredServiceRuntime", () => {
     }
   });
 
+  it("contributes scheduled briefings and keeps on-demand briefings available", async () => {
+    const backgroundTaskIds: string[] = [];
+    const config = createLoadedRuntimeConfig({
+      briefing: { adapter: "local", enabled: true },
+    });
+
+    await runConfiguredServiceRuntime(
+      {
+        config,
+        createNotificationDelivery: () => ({
+          deliver: () => Promise.resolve(),
+        }),
+        runBackgroundTask: (task, context) => {
+          backgroundTaskIds.push(task.id);
+          return new Promise<void>((resolve) => {
+            context.shutdownSignal.addEventListener("abort", () => resolve(), {
+              once: true,
+            });
+          });
+        },
+      },
+      {
+        validateConfig: () => {},
+        runTurn: async (context) => {
+          await expect(
+            context.assistant.handleText("daily briefing"),
+          ).resolves.toMatchObject({ status: "ok" });
+          context.requestShutdown("test complete");
+        },
+      },
+    );
+
+    expect(backgroundTaskIds).toEqual(["briefing.delivery"]);
+  });
+
   it("treats unexpected background task completion as fatal", async () => {
     const shutdownHook = vi.fn().mockResolvedValue(undefined);
     const stderr: string[] = [];
