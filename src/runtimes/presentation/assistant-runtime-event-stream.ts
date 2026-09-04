@@ -5,6 +5,8 @@ import {
   type AssistantPresentationSnapshot,
 } from "./assistant-runtime-event.js";
 
+export type { AssistantRuntimeEvent } from "./assistant-runtime-event.js";
+
 type WithoutEventMetadata<TEvent> = TEvent extends AssistantRuntimeEvent
   ? Omit<TEvent, "occurredAt" | "sequence">
   : never;

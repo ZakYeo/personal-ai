@@ -18,6 +18,7 @@ export async function runVoiceCommandSequence(
     captureFollowUp: () => Promise<{ text: string }>;
     instrumentation: VoiceTurnInstrumentation;
     maxFollowUpTurns?: number;
+    presentationInteractionId?: string;
     wakePhrase?: string;
   },
 ): Promise<VoiceTurnResult> {
@@ -36,6 +37,12 @@ export async function runVoiceCommandSequence(
   ) {
     followUpTurns += 1;
     logFollowUpListening(io);
+    if (metadata.presentationInteractionId) {
+      io.presentation?.publish({
+        interactionId: metadata.presentationInteractionId,
+        type: "follow_up_listening",
+      });
+    }
 
     const followUpTranscript = await metadata.captureFollowUp();
 
@@ -45,6 +52,16 @@ export async function runVoiceCommandSequence(
       io,
       metadata,
     );
+  }
+
+  if (
+    metadata.presentationInteractionId &&
+    !assistantResponseExpectsFollowUp(result.response)
+  ) {
+    io.presentation?.publish({
+      interactionId: metadata.presentationInteractionId,
+      type: "completed",
+    });
   }
 
   return result;

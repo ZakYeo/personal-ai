@@ -11,6 +11,7 @@ import {
   readChunksAsText,
 } from "../../test-support/voice-streams.js";
 import { runVoiceActivation } from "./voice-activation.js";
+import { createAssistantRuntimeEventStream } from "../presentation/assistant-runtime-event-stream.js";
 
 type VoiceActivationTestDependencies = ReturnType<
   typeof createVoiceActivationDependencies
@@ -84,6 +85,46 @@ const postWakeFailureScenarios: ActivationFailureScenario[] = [
 ];
 
 describe("voice activation", () => {
+  it("publishes bounded presentation events for a completed interaction", async () => {
+    const stream = createAssistantRuntimeEventStream({
+      instanceId: "service-1",
+      now: () => new Date("2026-09-04T10:00:00.000Z"),
+    });
+    const eventTypes: string[] = [];
+    stream.subscribe((event) => eventTypes.push(event.type));
+
+    await runVoiceActivation(
+      createVoiceActivationDependencies({
+        commandUtterance: deterministicScenarios.alarmListEmpty.text,
+        wakeUtterance: "Hey Jarvis",
+      }),
+      {
+        presentation: {
+          createInteractionId: () => "interaction-1",
+          publish: (event) => stream.publish(event),
+        },
+      },
+    );
+
+    expect(eventTypes).toEqual([
+      "wake_listening",
+      "wake_detected",
+      "transcript_final",
+      "processing",
+      "response_ready",
+      "speaking_started",
+      "speaking_finished",
+      "completed",
+    ]);
+    expect(stream.snapshot()).toMatchObject({
+      interaction: {
+        id: "interaction-1",
+        phase: "completed",
+        transcript: deterministicScenarios.alarmListEmpty.text,
+      },
+    });
+  });
+
   it("ignores wake audio without the wake phrase", async () => {
     const commandCaptures: string[] = [];
     const progressOutput = createCapturedWriter();

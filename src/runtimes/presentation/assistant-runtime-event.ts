@@ -51,6 +51,7 @@ export type AssistantRuntimeEvent =
       readonly delta: string;
       readonly type: "transcript_delta";
     })
+  | (InteractionEventMetadata & { readonly type: "follow_up_listening" })
   | (InteractionEventMetadata & {
       readonly text: string;
       readonly type: "transcript_final";
@@ -171,6 +172,14 @@ export function reduceAssistantRuntimeEvent(
         },
       });
     }
+    case "follow_up_listening":
+      return transition(
+        snapshot,
+        base,
+        event,
+        ["confirmation", "response"],
+        "listening",
+      );
     case "transcript_final": {
       assertTransition(snapshot, event, ["listening"]);
       validateText(
@@ -188,7 +197,11 @@ export function reduceAssistantRuntimeEvent(
       });
     }
     case "processing": {
-      assertTransition(snapshot, event, ["listening", "confirmation"]);
+      assertTransition(snapshot, event, [
+        "listening",
+        "confirmation",
+        "response",
+      ]);
       const current = snapshot.interaction;
       return freezeSnapshot({
         ...base,
@@ -375,6 +388,7 @@ function phaseForEvent(
     cancellation_requested: "cancelling",
     completed: "completed",
     confirmation_required: "confirmation",
+    follow_up_listening: "listening",
     processing: "processing",
     response_ready: "response",
     safe_failure: "failed",

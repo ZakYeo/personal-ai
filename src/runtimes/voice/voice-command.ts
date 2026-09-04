@@ -29,11 +29,19 @@ export async function runDetectedVoiceCommand(
   io: VoiceRuntimeIo,
   metadata: {
     instrumentation?: VoiceTurnInstrumentation;
+    presentationInteractionId?: string;
     wakePhrase?: string;
   } = {},
 ): Promise<VoiceTurnResult> {
   const instrumentation =
     metadata.instrumentation ?? createVoiceTurnInstrumentation();
+
+  if (metadata.presentationInteractionId) {
+    io.presentation?.publish({
+      interactionId: metadata.presentationInteractionId,
+      type: "processing",
+    });
+  }
 
   logCommandTranscript(io, commandText);
 
@@ -48,9 +56,40 @@ export async function runDetectedVoiceCommand(
 
   logAssistantResponse(io, response);
 
+  if (metadata.presentationInteractionId) {
+    if (response.status === "needs_confirmation") {
+      io.presentation?.publish({
+        interactionId: metadata.presentationInteractionId,
+        prompt: response.text,
+        type: "confirmation_required",
+      });
+    } else {
+      io.presentation?.publish({
+        ...(response.citations ? { citations: response.citations } : {}),
+        interactionId: metadata.presentationInteractionId,
+        status: response.status,
+        text: response.text,
+        type: "response_ready",
+      });
+      io.presentation?.publish({
+        interactionId: metadata.presentationInteractionId,
+        type: "speaking_started",
+      });
+    }
+  }
+
   const speechOutput = await instrumentation.measure("speech output", () =>
     speakResponse(dependencies, response, io),
   );
+  if (
+    metadata.presentationInteractionId &&
+    response.status !== "needs_confirmation"
+  ) {
+    io.presentation?.publish({
+      interactionId: metadata.presentationInteractionId,
+      type: "speaking_finished",
+    });
+  }
   const timings = instrumentation.snapshotIfEnabled();
 
   return {

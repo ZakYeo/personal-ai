@@ -79,6 +79,7 @@ async function runVoicePipelineActivation(
   instrumentation: VoiceTurnInstrumentation,
 ): Promise<VoicePipelineResult> {
   logWakeListening(io, dependencies.turnConfig.wakePhrases);
+  io.presentation?.publish({ type: "wake_listening" });
 
   if (dependencies.wakeActivation) {
     const { wakeActivation } = dependencies;
@@ -90,8 +91,17 @@ async function runVoicePipelineActivation(
 
     logWakeDetected(io);
 
+    const presentationInteractionId = io.presentation?.createInteractionId();
+    if (presentationInteractionId) {
+      io.presentation?.publish({
+        interactionId: presentationInteractionId,
+        type: "wake_detected",
+      });
+    }
+
     return runPostWakeVoiceCommand(dependencies, io, {
       instrumentation,
+      ...(presentationInteractionId ? { presentationInteractionId } : {}),
       ...(activation?.phrase ? { wakePhrase: activation.phrase } : {}),
     });
   }
@@ -128,8 +138,17 @@ async function runVoicePipelineActivation(
 
   logWakeDetected(io);
 
+  const presentationInteractionId = io.presentation?.createInteractionId();
+  if (presentationInteractionId) {
+    io.presentation?.publish({
+      interactionId: presentationInteractionId,
+      type: "wake_detected",
+    });
+  }
+
   return runPostWakeVoiceCommand(dependencies, io, {
     instrumentation,
+    ...(presentationInteractionId ? { presentationInteractionId } : {}),
     ...(dependencies.turnConfig.initialCommandSource === "wake-transcript"
       ? { initialCommandTranscript: wakeTranscript.text }
       : {}),
@@ -143,6 +162,7 @@ async function runPostWakeVoiceCommand(
   metadata: {
     initialCommandTranscript?: string;
     instrumentation: VoiceTurnInstrumentation;
+    presentationInteractionId?: string;
     wakePhrase?: string;
   },
 ): Promise<VoicePipelineResult> {
@@ -150,7 +170,20 @@ async function runPostWakeVoiceCommand(
     const commandTranscript =
       metadata.initialCommandTranscript !== undefined
         ? { text: metadata.initialCommandTranscript }
-        : await transcribeCommand(dependencies, io, metadata.instrumentation);
+        : await transcribeCommand(
+            dependencies,
+            io,
+            metadata.instrumentation,
+            metadata.presentationInteractionId,
+          );
+
+    if (metadata.initialCommandTranscript !== undefined) {
+      publishTranscriptFinal(
+        io,
+        metadata.presentationInteractionId,
+        commandTranscript.text,
+      );
+    }
 
     return await runVoiceCommandSequence(
       dependencies,
@@ -158,8 +191,16 @@ async function runPostWakeVoiceCommand(
       io,
       {
         captureFollowUp: () =>
-          transcribeCommand(dependencies, io, metadata.instrumentation),
+          transcribeCommand(
+            dependencies,
+            io,
+            metadata.instrumentation,
+            metadata.presentationInteractionId,
+          ),
         instrumentation: metadata.instrumentation,
+        ...(metadata.presentationInteractionId
+          ? { presentationInteractionId: metadata.presentationInteractionId }
+          : {}),
         ...(metadata.wakePhrase ? { wakePhrase: metadata.wakePhrase } : {}),
       },
     );
@@ -169,7 +210,12 @@ async function runPostWakeVoiceCommand(
       io,
       metadata.instrumentation,
       error,
-      metadata.wakePhrase ? { wakePhrase: metadata.wakePhrase } : {},
+      {
+        ...(metadata.presentationInteractionId
+          ? { presentationInteractionId: metadata.presentationInteractionId }
+          : {}),
+        ...(metadata.wakePhrase ? { wakePhrase: metadata.wakePhrase } : {}),
+      },
     );
   }
 }
@@ -179,9 +225,18 @@ async function speakPipelineFallback(
   io: VoiceRuntimeIo,
   instrumentation: VoiceTurnInstrumentation,
   error: unknown,
-  metadata: { wakePhrase?: string } = {},
+  metadata: { presentationInteractionId?: string; wakePhrase?: string } = {},
 ): Promise<VoicePipelineResult> {
   logRuntimeFailure(error, io);
+
+  const { presentationInteractionId } = metadata;
+  if (presentationInteractionId) {
+    io.presentation?.publish({
+      interactionId: presentationInteractionId,
+      message: safeRuntimeFallbackResponse.text,
+      type: "safe_failure",
+    });
+  }
 
   const speechOutput = await speakResponse(
     dependencies,
@@ -201,6 +256,7 @@ async function transcribeCommand(
   dependencies: VoicePipelineDependencies,
   io: VoiceRuntimeIo,
   instrumentation: VoiceTurnInstrumentation,
+  presentationInteractionId?: string,
 ): Promise<{ text: string }> {
   if (dependencies.streamingInput) {
     const { audioInput, speechToText } = dependencies.streamingInput;
@@ -208,13 +264,25 @@ async function transcribeCommand(
       audioInput.captureStream(),
     );
 
-    return instrumentation.measure("command transcription", () =>
-      speechToText.transcribeStream(audio, {
-        onTranscriptDelta: (delta) => {
-          io.progressOutput?.write(delta);
-        },
-      }),
-    );
+    return instrumentation
+      .measure("command transcription", () =>
+        speechToText.transcribeStream(audio, {
+          onTranscriptDelta: (delta) => {
+            io.progressOutput?.write(delta);
+            if (presentationInteractionId) {
+              io.presentation?.publish({
+                delta,
+                interactionId: presentationInteractionId,
+                type: "transcript_delta",
+              });
+            }
+          },
+        }),
+      )
+      .then((transcript) => {
+        publishTranscriptFinal(io, presentationInteractionId, transcript.text);
+        return transcript;
+      });
   }
 
   const commandAudio = await instrumentation.measure(
@@ -222,9 +290,24 @@ async function transcribeCommand(
     () => dependencies.commandAudioInput.capture(),
   );
 
-  return instrumentation.measure("command speech-to-text", () =>
-    dependencies.speechToText.transcribe(commandAudio),
-  );
+  return instrumentation
+    .measure("command speech-to-text", () =>
+      dependencies.speechToText.transcribe(commandAudio),
+    )
+    .then((transcript) => {
+      publishTranscriptFinal(io, presentationInteractionId, transcript.text);
+      return transcript;
+    });
+}
+
+function publishTranscriptFinal(
+  io: VoiceRuntimeIo,
+  interactionId: string | undefined,
+  text: string,
+): void {
+  if (interactionId) {
+    io.presentation?.publish({ interactionId, text, type: "transcript_final" });
+  }
 }
 
 function timingsResult(
