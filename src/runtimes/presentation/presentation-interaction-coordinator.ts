@@ -10,10 +10,12 @@ interface PresentationEventPublisher {
 }
 
 export interface PresentationInteraction {
+  claimContinuation(): boolean;
   completed(): void;
   confirmation(prompt: string): void;
+  continuationAvailable(): boolean;
   failed(message: string): void;
-  followUpListening(): void;
+  followUpListening(): boolean;
   processing(): void;
   response(response: AssistantResponse): void;
   speakingFinished(): void;
@@ -36,10 +38,12 @@ type PendingInteractionEvent = PendingAssistantRuntimeEvent extends infer TEvent
 
 const noOperation = (): void => {};
 const noOpInteraction: PresentationInteraction = Object.freeze({
+  claimContinuation: () => true,
   completed: noOperation,
   confirmation: noOperation,
+  continuationAvailable: () => true,
   failed: noOperation,
-  followUpListening: noOperation,
+  followUpListening: () => true,
   processing: noOperation,
   response: noOperation,
   speakingFinished: noOperation,
@@ -59,16 +63,37 @@ export function createPresentationInteractionCoordinator(
     });
   }
 
+  let pendingContinuationId: string | undefined;
+
   return Object.freeze({
-    beginInteraction: () => createInteraction(publisher),
+    beginInteraction: () =>
+      createInteraction(publisher, continuationOwner, undefined),
     continueInteraction: (interactionId: string) =>
-      createInteraction(publisher, interactionId),
+      createInteraction(publisher, continuationOwner, interactionId),
     wakeListening: () => publisher.publish({ type: "wake_listening" }),
   });
+
+  function continuationOwner(
+    interactionId: string,
+    action: "available" | "claim" | "open",
+  ) {
+    if (action === "open") {
+      pendingContinuationId = interactionId;
+      return true;
+    }
+    if (action === "available") return pendingContinuationId === interactionId;
+    if (pendingContinuationId !== interactionId) return false;
+    pendingContinuationId = undefined;
+    return true;
+  }
 }
 
 function createInteraction(
   publisher: PresentationEventPublisher,
+  continuation: (
+    interactionId: string,
+    action: "available" | "claim" | "open",
+  ) => boolean,
   existingInteractionId?: string,
 ): PresentationInteraction {
   const interactionId =
@@ -82,19 +107,31 @@ function createInteraction(
   };
 
   const interaction: PresentationInteraction = {
+    claimContinuation: () => continuation(interactionId, "claim"),
     completed: () => publish({ type: "completed" }),
-    confirmation: (prompt) =>
-      publish({ prompt, type: "confirmation_required" }),
+    confirmation: (prompt) => {
+      continuation(interactionId, "open");
+      publish({ prompt, type: "confirmation_required" });
+    },
+    continuationAvailable: () => continuation(interactionId, "available"),
     failed: (message) => publish({ message, type: "safe_failure" }),
-    followUpListening: () => publish({ type: "follow_up_listening" }),
+    followUpListening: () => {
+      if (!continuation(interactionId, "available")) return false;
+      publish({ type: "follow_up_listening" });
+      return true;
+    },
     processing: () => publish({ type: "processing" }),
-    response: (response) =>
+    response: (response) => {
+      if (response.expectsFollowUp === true) {
+        continuation(interactionId, "open");
+      }
       publish({
         ...(response.citations ? { citations: response.citations } : {}),
         status: response.status,
         text: response.text,
         type: "response_ready",
-      }),
+      });
+    },
     speakingFinished: () => publish({ type: "speaking_finished" }),
     speakingStarted: () => publish({ type: "speaking_started" }),
     transcriptDelta: (delta) => publish({ delta, type: "transcript_delta" }),

@@ -40,6 +40,7 @@ export function createPresentationClientSession(options: {
   readonly onAuthenticated: () => boolean;
   readonly onClosed: () => void;
   readonly projectionStream: PresentationProjectionStream;
+  readonly reportFailure: (error: unknown) => void;
   readonly setTimer: (
     callback: () => void,
     milliseconds: number,
@@ -70,6 +71,7 @@ export function createPresentationClientSession(options: {
     options.clearTimer(authenticationTimer);
     options.onClosed();
   });
+  options.socket.on("error", options.reportFailure);
 
   function authenticate(value: unknown): void {
     const authentication = parsePresentationAuthentication(value);
@@ -114,7 +116,12 @@ export function createPresentationClientSession(options: {
       return;
     }
     controlQueue = controlQueue.then(() =>
-      handleControl(options.socket, control, options.handleControl),
+      handleControl(
+        options.socket,
+        control,
+        options.handleControl,
+        options.reportFailure,
+      ),
     );
   }
 
@@ -159,6 +166,7 @@ async function handleControl(
   handler:
     | ((control: PresentationControl) => Promise<PresentationControlResult>)
     | undefined,
+  reportFailure: (error: unknown) => void,
 ): Promise<void> {
   try {
     const result = handler
@@ -173,7 +181,8 @@ async function handleControl(
       ...result,
       type: "control_result",
     });
-  } catch {
+  } catch (error) {
+    reportFailure(error);
     sendJson(socket, {
       message: "The presentation control could not be completed.",
       protocolVersion: presentationProtocolVersion,

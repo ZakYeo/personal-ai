@@ -63,6 +63,20 @@ describe("presentation protocol", () => {
       text: "list my alarms",
       type: "submit_text",
     });
+    expect(
+      parsePresentationControl({
+        field: "preferredName",
+        protocolVersion: 1,
+        requestId: "request-2",
+        type: "profile_set",
+        value: "Zachary",
+      }),
+    ).toEqual({
+      field: "preferredName",
+      requestId: "request-2",
+      type: "profile_set",
+      value: "Zachary",
+    });
   });
 
   it("rejects extra protocol fields", () => {
@@ -81,6 +95,15 @@ describe("presentation protocol", () => {
         text: "list my alarms",
         type: "submit_text",
         unsafe: true,
+      }),
+    ).toBeUndefined();
+    expect(
+      parsePresentationControl({
+        field: "preferredName",
+        privateTarget: "/home/user/profile.json",
+        protocolVersion: 1,
+        requestId: "request-2",
+        type: "profile_forget",
       }),
     ).toBeUndefined();
   });

@@ -3,6 +3,10 @@ import type {
   PresentationControl,
   PresentationControlResult,
 } from "../../ports/presentation.js";
+import {
+  logRuntimeFailure,
+  safeRuntimeFallbackResponse,
+} from "../human-boundary.js";
 import { handleAssistantText } from "../voice/voice-response.js";
 import type { VoiceRuntimeIo } from "../voice/voice-runtime-io.js";
 import type { AssistantRuntimeEventStream } from "./assistant-runtime-event-stream.js";
@@ -16,6 +20,12 @@ interface PresentationControlContext {
   readonly eventStream: AssistantRuntimeEventStream;
   readonly io?: VoiceRuntimeIo;
   readonly presentation: PresentationInteractionCoordinator;
+  readonly profileControl?: (
+    control: Extract<
+      PresentationControl,
+      { type: "profile_explain" | "profile_forget" | "profile_set" }
+    >,
+  ) => Promise<Awaited<ReturnType<Assistant["handleText"]>>>;
 }
 
 export function createPresentationControlHandler(
@@ -35,8 +45,36 @@ export function createPresentationControlHandler(
         };
       case "submit_text":
         return handleTextControl(options, control.text);
+      case "profile_explain":
+      case "profile_forget":
+      case "profile_set":
+        return handleProfileControl(options, control);
     }
   };
+}
+
+async function handleProfileControl(
+  options: PresentationControlContext,
+  control: Extract<
+    PresentationControl,
+    { type: "profile_explain" | "profile_forget" | "profile_set" }
+  >,
+): Promise<PresentationControlResult> {
+  if (!options.profileControl) {
+    return { message: "Profile controls are unavailable.", status: "rejected" };
+  }
+  const interaction = options.presentation.beginInteraction();
+  interaction.transcriptFinal("Update personal profile");
+  interaction.processing();
+  let response: Awaited<ReturnType<Assistant["handleText"]>>;
+  try {
+    response = await options.profileControl(control);
+  } catch (error) {
+    logRuntimeFailure(error, options.io ?? {});
+    response = safeRuntimeFallbackResponse;
+  }
+  presentResponse(interaction, response);
+  return { status: "accepted" };
 }
 
 async function handleConfirmationControl(
@@ -46,7 +84,8 @@ async function handleConfirmationControl(
   const pending = options.eventStream.snapshot().interaction;
   if (
     pending?.id !== control.interactionId ||
-    pending.phase !== "confirmation"
+    !pending.confirmation ||
+    (pending.phase !== "confirmation" && pending.phase !== "listening")
   ) {
     return {
       message: "That confirmation is no longer pending.",
@@ -54,6 +93,12 @@ async function handleConfirmationControl(
     };
   }
   const interaction = options.presentation.continueInteraction(pending.id);
+  if (!interaction.claimContinuation()) {
+    return {
+      message: "That confirmation was already answered.",
+      status: "rejected",
+    };
+  }
   interaction.processing();
   const response = await handleAssistantText(
     options.assistant,

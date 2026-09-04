@@ -80,6 +80,37 @@ describe("presentation control handler", () => {
     });
     expect(handled).toEqual(["Hello"]);
   });
+
+  it("logs profile failures and presents a human-safe terminal response", async () => {
+    const eventStream = createStream();
+    const stderr = { write: vi.fn() };
+    const handle = createPresentationControlHandler({
+      assistant: createAssistant([]),
+      eventStream,
+      io: { stderr },
+      presentation: createCoordinator(eventStream),
+      profileControl: () =>
+        Promise.reject(new Error("private persistence failure")),
+    });
+
+    await expect(
+      handle({
+        field: "preferredName",
+        requestId: "request-5",
+        type: "profile_explain",
+      }),
+    ).resolves.toEqual({ status: "accepted" });
+    expect(eventStream.snapshot().interaction).toMatchObject({
+      phase: "completed",
+      response: {
+        status: "error",
+        text: "I hit a problem and could not complete that.",
+      },
+    });
+    expect(stderr.write).toHaveBeenCalledWith(
+      "Runtime failure: private persistence failure\n",
+    );
+  });
 });
 
 function createStream() {

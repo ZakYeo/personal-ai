@@ -78,6 +78,53 @@ export function parsePresentationControl(
       ? { requestId: value.requestId, type: value.type }
       : undefined;
   }
+  if (value.type === "profile_explain") {
+    return hasOnlyKeys(value, [
+      "field",
+      "protocolVersion",
+      "requestId",
+      "type",
+    ]) && isIdentifier(value.field)
+      ? { field: value.field, requestId: value.requestId, type: value.type }
+      : undefined;
+  }
+  if (value.type === "profile_forget") {
+    return hasOnlyKeys(value, [
+      "field",
+      "protocolVersion",
+      "requestId",
+      "type",
+      "value",
+    ]) &&
+      isIdentifier(value.field) &&
+      (value.value === undefined ||
+        isSafePresentationText(value.value, 1_000, false))
+      ? {
+          field: value.field,
+          requestId: value.requestId,
+          ...(typeof value.value === "string" ? { value: value.value } : {}),
+          type: value.type,
+        }
+      : undefined;
+  }
+  if (value.type === "profile_set") {
+    return hasOnlyKeys(value, [
+      "field",
+      "protocolVersion",
+      "requestId",
+      "type",
+      "value",
+    ]) &&
+      isIdentifier(value.field) &&
+      isSafePresentationText(value.value, 1_000, false)
+      ? {
+          field: value.field,
+          requestId: value.requestId,
+          type: value.type,
+          value: value.value,
+        }
+      : undefined;
+  }
   return;
 }
 

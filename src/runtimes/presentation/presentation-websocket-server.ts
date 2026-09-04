@@ -38,6 +38,7 @@ export function startPresentationWebSocketServer(options: {
   readonly now?: () => number;
   readonly port: number;
   readonly projectionStream?: PresentationProjectionStream;
+  readonly reportFailure?: (error: unknown) => void;
   readonly setTimer?: (
     callback: () => void,
     milliseconds: number,
@@ -75,6 +76,7 @@ export function startPresentationWebSocketServer(options: {
         if (activeSession === session) activeSession = undefined;
       },
       projectionStream,
+      reportFailure: options.reportFailure ?? (() => {}),
       setTimer: options.setTimer ?? setTimeout,
       socket,
       token: options.token,
@@ -82,7 +84,13 @@ export function startPresentationWebSocketServer(options: {
     sessions.add(session);
   });
 
-  return listen(server, options.eventStream, projectionStream, sessions);
+  return listen(
+    server,
+    options.eventStream,
+    projectionStream,
+    sessions,
+    options.reportFailure ?? (() => {}),
+  );
 }
 
 function listen(
@@ -90,6 +98,7 @@ function listen(
   eventStream: AssistantRuntimeEventStream,
   projectionStream: PresentationProjectionStream,
   sessions: Set<PresentationClientSession>,
+  reportFailure: (error: unknown) => void,
 ): Promise<PresentationWebSocketServer> {
   return new Promise((resolve, reject) => {
     const fail = (error: Error) => {
@@ -100,6 +109,7 @@ function listen(
     server.once("error", fail);
     server.once("listening", () => {
       server.off("error", fail);
+      server.on("error", reportFailure);
       const address = server.address();
       if (!isAddressInfo(address)) {
         fail(new Error("Presentation server did not bind a TCP address."));

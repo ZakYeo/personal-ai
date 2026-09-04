@@ -1,4 +1,7 @@
 import type { Assistant } from "../../core/assistant/index.js";
+import { emptyAssistantPresentationProjection } from "../../application/presentation-projection.js";
+import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
+import { createRuntimeServiceRegistry } from "../runtime-service-registry.js";
 import { createDesktopPresentationRuntime } from "./desktop-presentation-runtime.js";
 import type { startPresentationWebSocketServer } from "./presentation-websocket-server.js";
 
@@ -69,6 +72,52 @@ describe("desktop presentation runtime", () => {
       "Presentation port",
     );
     expect(startServer).not.toHaveBeenCalled();
+  });
+
+  it("serially refreshes live command projections after background changes", async () => {
+    let today = "Initial view";
+    let refresh: (() => void) | undefined;
+    const timer = setInterval(() => {}, 60_000);
+    const startServer = vi.fn(
+      (options: Parameters<typeof startPresentationWebSocketServer>[0]) =>
+        Promise.resolve({ port: options.port, stop: () => Promise.resolve() }),
+    );
+    const readProjection = vi.fn(() =>
+      Promise.resolve({
+        ...emptyAssistantPresentationProjection,
+        today: [today],
+      }),
+    );
+    const runtime = createDesktopPresentationRuntime({
+      clearRefreshTimer: clearInterval,
+      env: { PERSONAL_AI_PRESENTATION_TOKEN: token },
+      now: () => new Date("2026-09-04T10:00:00.000Z"),
+      readProjection,
+      setRefreshTimer: (callback) => {
+        refresh = callback;
+        return timer;
+      },
+      startServer,
+    });
+
+    await runtime.start(createAssistant([]), {
+      config: createLoadedRuntimeConfig({}),
+      services: createRuntimeServiceRegistry([]),
+    });
+    const serverOptions = startServer.mock.calls[0]?.[0];
+    expect(serverOptions?.projectionStream?.snapshot().today).toEqual([
+      "Initial view",
+    ]);
+    today = "Background update";
+    refresh?.();
+    await vi.waitFor(() => expect(readProjection).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() =>
+      expect(serverOptions?.projectionStream?.snapshot().today).toEqual([
+        "Background update",
+      ]),
+    );
+
+    await runtime.stop();
   });
 });
 

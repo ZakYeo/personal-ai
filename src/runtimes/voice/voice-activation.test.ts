@@ -1,3 +1,4 @@
+import type { Assistant } from "../../core/assistant/index.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import { runtimeFailureResponse } from "../../test-support/deterministic-runtime-fixtures.js";
 import { line } from "../../test-support/primitives.js";
@@ -13,6 +14,7 @@ import {
 import { runVoiceActivation } from "./voice-activation.js";
 import { createAssistantRuntimeEventStream } from "../presentation/assistant-runtime-event-stream.js";
 import { createPresentationInteractionCoordinator } from "../presentation/presentation-interaction-coordinator.js";
+import { createPresentationControlHandler } from "../presentation/presentation-control-handler.js";
 
 type VoiceActivationTestDependencies = ReturnType<
   typeof createVoiceActivationDependencies
@@ -300,6 +302,121 @@ describe("voice activation", () => {
       line("Heard: I am doing well too, thanks."),
       line("Assistant: Glad to hear it."),
     ]);
+  });
+
+  it("lets a desktop confirmation atomically win a concurrent voice follow-up", async () => {
+    const handledTexts: string[] = [];
+    let releaseVoiceReply: ((audio: { text: string }) => void) | undefined;
+    const voiceReply = new Promise<{ text: string }>((resolve) => {
+      releaseVoiceReply = resolve;
+    });
+    const assistant: Assistant = {
+      handleText: () => Promise.reject(new Error("unexpected basic handler")),
+      handleTextWithDiagnostics: (text) => {
+        handledTexts.push(text);
+        return Promise.resolve({
+          response:
+            text === "set an alarm"
+              ? {
+                  expectsFollowUp: true,
+                  status: "needs_confirmation" as const,
+                  text: "Set the alarm?",
+                }
+              : { status: "ok" as const, text: `Handled ${text}` },
+        });
+      },
+    };
+    const stream = createAssistantRuntimeEventStream({
+      instanceId: "service-1",
+      now: () => new Date("2026-09-04T10:00:00.000Z"),
+    });
+    const presentation = createPresentationInteractionCoordinator({
+      createInteractionId: () => "interaction-1",
+      publish: (event) => stream.publish(event),
+    });
+    let captureCount = 0;
+    const dependencies = createVoiceActivationDependencies({
+      assistant,
+      wakeUtterance: "Hey Jarvis",
+    });
+    const voice = runVoiceActivation(
+      {
+        ...dependencies,
+        commandAudioInput: {
+          capture: () => {
+            captureCount += 1;
+            return captureCount === 1
+              ? Promise.resolve({ text: "set an alarm" })
+              : voiceReply;
+          },
+        },
+      },
+      { presentation },
+    );
+
+    await vi.waitFor(() => {
+      expect(stream.snapshot().interaction?.phase).toBe("listening");
+    });
+    const result = await createPresentationControlHandler({
+      assistant,
+      eventStream: stream,
+      presentation,
+    })({
+      interactionId: "interaction-1",
+      requestId: "desktop-confirmation",
+      type: "confirm",
+    });
+    releaseVoiceReply?.({ text: "no" });
+    await voice;
+
+    expect(result).toEqual({ status: "accepted" });
+    expect(handledTexts).toEqual(["set an alarm", "yes"]);
+    expect(stream.snapshot().interaction?.phase).toBe("completed");
+  });
+
+  it("terminalizes a capped follow-up so the next wake can start cleanly", async () => {
+    let interactionId = 0;
+    const stream = createAssistantRuntimeEventStream({
+      instanceId: "service-1",
+      now: () => new Date("2026-09-04T10:00:00.000Z"),
+    });
+    const presentation = createPresentationInteractionCoordinator({
+      createInteractionId: () => `interaction-${(interactionId += 1)}`,
+      publish: (event) => stream.publish(event),
+    });
+    const followUpAssistant: Assistant = {
+      handleText: () => Promise.reject(new Error("unexpected basic handler")),
+      handleTextWithDiagnostics: () =>
+        Promise.resolve({
+          response: {
+            expectsFollowUp: true,
+            status: "ok",
+            text: "Tell me more.",
+          },
+        }),
+    };
+    const followUpDependencies = createVoiceActivationDependencies({
+      assistant: followUpAssistant,
+      commandUtterance: "more context",
+      wakeUtterance: "Hey Jarvis",
+    });
+
+    await runVoiceActivation(followUpDependencies, { presentation });
+    expect(stream.snapshot().interaction).toMatchObject({
+      failure: {
+        message: "This interaction needs another reply. Please start it again.",
+      },
+      phase: "failed",
+    });
+
+    await runVoiceActivation(
+      createVoiceActivationDependencies({ wakeUtterance: "Hey Jarvis" }),
+      { presentation },
+    );
+    expect(stream.snapshot().interaction).toMatchObject({
+      id: "interaction-2",
+      phase: "completed",
+    });
   });
 
   it("speaks a graceful fallback if assistant handling rejects", async () => {

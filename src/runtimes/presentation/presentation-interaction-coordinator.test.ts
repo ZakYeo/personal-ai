@@ -71,4 +71,23 @@ describe("presentation interaction coordinator", () => {
       type: "processing",
     });
   });
+
+  it("allows only one boundary to claim a pending continuation", () => {
+    const stream = createAssistantRuntimeEventStream({
+      instanceId: "service-1",
+      now: () => new Date("2026-09-04T10:00:00.000Z"),
+    });
+    const coordinator = createPresentationInteractionCoordinator({
+      createInteractionId: () => "interaction-1",
+      publish: (event) => stream.publish(event),
+    });
+    const voice = coordinator.beginInteraction();
+    voice.processing();
+    voice.confirmation("Approve this action?");
+    const desktop = coordinator.continueInteraction("interaction-1");
+
+    expect(desktop.claimContinuation()).toBe(true);
+    expect(voice.continuationAvailable()).toBe(false);
+    expect(voice.claimContinuation()).toBe(false);
+  });
 });

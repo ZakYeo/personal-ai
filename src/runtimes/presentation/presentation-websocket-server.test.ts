@@ -207,6 +207,35 @@ describe("presentation websocket server", () => {
     await server.stop();
   });
 
+  it("reports control boundary failures while returning only a safe result", async () => {
+    const reportFailure = vi.fn();
+    const server = await startPresentationWebSocketServer({
+      authenticationTimeoutMs: 100,
+      eventStream: createStream(),
+      handleControl: () => Promise.reject(new Error("private adapter failure")),
+      port: 0,
+      reportFailure,
+      token,
+    });
+    const client = await authenticatedClient(server.port);
+    const messages = collectMessages(client);
+    client.send(controlMessage("request-1"));
+
+    expect(await messages.next()).toEqual({
+      message: "The presentation control could not be completed.",
+      protocolVersion: 1,
+      requestId: "request-1",
+      status: "rejected",
+      type: "control_result",
+    });
+    expect(reportFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "private adapter failure" }),
+    );
+
+    client.close();
+    await server.stop();
+  });
+
   it("closes unauthenticated clients during shutdown", async () => {
     const server = await startPresentationWebSocketServer({
       authenticationTimeoutMs: 5_000,

@@ -38,9 +38,14 @@ export async function runVoiceCommandSequence(
   ) {
     followUpTurns += 1;
     logFollowUpListening(io);
-    metadata.presentationInteraction?.followUpListening();
+    if (metadata.presentationInteraction?.followUpListening() === false) {
+      return result;
+    }
 
     const followUpTranscript = await metadata.captureFollowUp();
+    if (metadata.presentationInteraction?.claimContinuation() === false) {
+      return result;
+    }
 
     result = await runDetectedVoiceCommand(
       dependencies,
@@ -50,11 +55,14 @@ export async function runVoiceCommandSequence(
     );
   }
 
-  if (
-    metadata.presentationInteraction &&
-    !assistantResponseExpectsFollowUp(result.response)
-  ) {
-    metadata.presentationInteraction.completed();
+  if (metadata.presentationInteraction) {
+    if (assistantResponseExpectsFollowUp(result.response)) {
+      metadata.presentationInteraction.failed(
+        "This interaction needs another reply. Please start it again.",
+      );
+    } else {
+      metadata.presentationInteraction.completed();
+    }
   }
 
   return result;

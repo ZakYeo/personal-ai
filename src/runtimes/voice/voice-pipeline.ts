@@ -186,6 +186,7 @@ async function runPostWakeVoiceCommand(
             io,
             metadata.instrumentation,
             metadata.presentationInteraction,
+            () => metadata.presentationInteraction.continuationAvailable(),
           ),
         instrumentation: metadata.instrumentation,
         presentationInteraction: metadata.presentationInteraction,
@@ -239,6 +240,7 @@ async function transcribeCommand(
   io: VoiceRuntimeIo,
   instrumentation: VoiceTurnInstrumentation,
   presentationInteraction: PresentationInteraction,
+  shouldPublish: () => boolean = () => true,
 ): Promise<{ text: string }> {
   if (dependencies.streamingInput) {
     const { audioInput, speechToText } = dependencies.streamingInput;
@@ -251,12 +253,13 @@ async function transcribeCommand(
         speechToText.transcribeStream(audio, {
           onTranscriptDelta: (delta) => {
             io.progressOutput?.write(delta);
-            presentationInteraction.transcriptDelta(delta);
+            if (shouldPublish()) presentationInteraction.transcriptDelta(delta);
           },
         }),
       )
       .then((transcript) => {
-        presentationInteraction.transcriptFinal(transcript.text);
+        if (shouldPublish())
+          presentationInteraction.transcriptFinal(transcript.text);
         return transcript;
       });
   }
@@ -271,7 +274,8 @@ async function transcribeCommand(
       dependencies.speechToText.transcribe(commandAudio),
     )
     .then((transcript) => {
-      presentationInteraction.transcriptFinal(transcript.text);
+      if (shouldPublish())
+        presentationInteraction.transcriptFinal(transcript.text);
       return transcript;
     });
 }

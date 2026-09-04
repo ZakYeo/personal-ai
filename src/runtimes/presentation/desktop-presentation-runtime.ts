@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Assistant } from "../../core/assistant/index.js";
 import type { AssistantPresentationProjection } from "../../ports/presentation.js";
+import { createProfilePresentationControl } from "../../application/profile-presentation-control.js";
 import { logRuntimeFailure } from "../human-boundary.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
 import type { RuntimeServiceRegistry } from "../runtime-service-registry.js";
@@ -17,6 +18,7 @@ import {
 } from "./presentation-websocket-server.js";
 import { createPresentationProjectionStream } from "./presentation-projection-stream.js";
 import { readPresentationProjection } from "./presentation-projection-reader.js";
+import { profileStoreService } from "../profile-runtime-services.js";
 
 type PresentationServerStarterOptions = Parameters<
   typeof startPresentationWebSocketServer
@@ -40,10 +42,17 @@ interface DesktopPresentationStartContext {
 }
 
 export function createDesktopPresentationRuntime(options: {
+  readonly clearRefreshTimer?: (timer: NodeJS.Timeout) => void;
   readonly createInstanceId?: () => string;
   readonly env: Record<string, string | undefined>;
   readonly io?: VoiceRuntimeIo;
   readonly now: () => Date;
+  readonly projectionRefreshIntervalMs?: number;
+  readonly readProjection?: typeof readPresentationProjection;
+  readonly setRefreshTimer?: (
+    callback: () => void,
+    milliseconds: number,
+  ) => NodeJS.Timeout;
   readonly startServer?: (
     options: PresentationServerStarterOptions,
   ) => Promise<PresentationWebSocketServer>;
@@ -63,7 +72,7 @@ export function createDesktopPresentationRuntime(options: {
       interactionSequence += 1;
       return `${instanceId}-${interactionSequence}`;
     },
-    publish: (event) => eventStream.publish(event),
+    publish: eventStream.publish.bind(eventStream),
   });
   const projectionStream = createPresentationProjectionStream();
   let baseProjection = projectionStream.snapshot();
@@ -71,6 +80,9 @@ export function createDesktopPresentationRuntime(options: {
   let interactions: AssistantPresentationProjection["interactions"] = [];
   let sources: AssistantPresentationProjection["sources"] = [];
   let timeZone = "UTC";
+  let refreshProjection: (() => Promise<void>) | undefined;
+  let refreshQueue = Promise.resolve();
+  let refreshTimer: NodeJS.Timeout | undefined;
   eventStream.subscribe((event) => {
     if (event.type === "response_ready") sources = event.citations ?? [];
     if (event.type !== "completed" && event.type !== "safe_failure") return;
@@ -96,6 +108,7 @@ export function createDesktopPresentationRuntime(options: {
       ].slice(0, 50);
     }
     publishProjection();
+    void enqueueProjectionRefresh();
   });
   let server: PresentationWebSocketServer | undefined;
   let startAttempted = false;
@@ -110,17 +123,28 @@ export function createDesktopPresentationRuntime(options: {
       startAttempted = true;
       if (context) {
         timeZone = context.config.assistant.timeZone;
-        baseProjection = await readPresentationProjection({
-          config: context.config,
-          now: options.now(),
-          reportFailure: (error) => logRuntimeFailure(error, options.io ?? {}),
-          services: context.services,
-        });
-        publishProjection();
+        refreshProjection = () =>
+          (options.readProjection ?? readPresentationProjection)({
+            config: context.config,
+            now: options.now(),
+            reportFailure: (error) =>
+              logRuntimeFailure(error, options.io ?? {}),
+            services: context.services,
+          }).then((projection) => {
+            baseProjection = projection;
+            publishProjection();
+          });
+        await enqueueProjectionRefresh();
+        refreshTimer = (options.setRefreshTimer ?? setInterval)(
+          () => void enqueueProjectionRefresh(),
+          options.projectionRefreshIntervalMs ?? 30_000,
+        );
+        refreshTimer.unref();
       }
       const port = parsePresentationPort(
         options.env.PERSONAL_AI_PRESENTATION_PORT,
       );
+      const profileStore = context?.services.get(profileStoreService);
       server = await (options.startServer ?? startPresentationWebSocketServer)({
         eventStream,
         handleControl: createPresentationControlHandler({
@@ -128,13 +152,27 @@ export function createDesktopPresentationRuntime(options: {
           eventStream,
           ...(options.io ? { io: options.io } : {}),
           presentation,
+          ...(profileStore
+            ? {
+                profileControl: createProfilePresentationControl({
+                  now: options.now,
+                  store: profileStore,
+                }),
+              }
+            : {}),
         }),
         port,
         projectionStream,
+        reportFailure: (error) => logRuntimeFailure(error, options.io ?? {}),
         token,
       });
     },
     async stop() {
+      if (refreshTimer) {
+        (options.clearRefreshTimer ?? clearInterval)(refreshTimer);
+        refreshTimer = undefined;
+      }
+      await refreshQueue;
       await server?.stop();
     },
   });
@@ -146,6 +184,14 @@ export function createDesktopPresentationRuntime(options: {
       interactions,
       sources,
     });
+  }
+
+  function enqueueProjectionRefresh(): Promise<void> {
+    if (!refreshProjection) return refreshQueue;
+    refreshQueue = refreshQueue
+      .then(refreshProjection)
+      .catch((error) => logRuntimeFailure(error, options.io ?? {}));
+    return refreshQueue;
   }
 }
 

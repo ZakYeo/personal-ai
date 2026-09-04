@@ -154,6 +154,23 @@ export type PresentationControl =
   | {
       readonly requestId: string;
       readonly type: "dismiss_overlay" | "stop_listening";
+    }
+  | {
+      readonly field: string;
+      readonly requestId: string;
+      readonly type: "profile_explain";
+    }
+  | {
+      readonly field: string;
+      readonly requestId: string;
+      readonly value?: string;
+      readonly type: "profile_forget";
+    }
+  | {
+      readonly field: string;
+      readonly requestId: string;
+      readonly type: "profile_set";
+      readonly value: string;
     };
 
 export interface PresentationControlResult {
