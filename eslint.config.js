@@ -49,6 +49,7 @@ export default tseslint.config(
     ignores: [
       "coverage/**",
       "dist/**",
+      "apps/*/dist/**",
       "node_modules/**",
       ".venv/**",
       ".vitest-attachments/**",

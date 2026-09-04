@@ -12,6 +12,7 @@ import {
 } from "../../test-support/voice-streams.js";
 import { runVoiceActivation } from "./voice-activation.js";
 import { createAssistantRuntimeEventStream } from "../presentation/assistant-runtime-event-stream.js";
+import { createPresentationInteractionCoordinator } from "../presentation/presentation-interaction-coordinator.js";
 
 type VoiceActivationTestDependencies = ReturnType<
   typeof createVoiceActivationDependencies
@@ -99,10 +100,10 @@ describe("voice activation", () => {
         wakeUtterance: "Hey Jarvis",
       }),
       {
-        presentation: {
+        presentation: createPresentationInteractionCoordinator({
           createInteractionId: () => "interaction-1",
           publish: (event) => stream.publish(event),
-        },
+        }),
       },
     );
 

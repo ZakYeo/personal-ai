@@ -7,6 +7,7 @@ import { logFollowUpListening } from "./voice-progress.js";
 import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
 import type { VoiceTurnResult } from "./voice-turn-result.js";
 import type { VoiceTurnInstrumentation } from "./voice-timings.js";
+import type { PresentationInteraction } from "../presentation/presentation-interaction-coordinator.js";
 
 const defaultMaxFollowUpTurns = 3;
 
@@ -18,7 +19,7 @@ export async function runVoiceCommandSequence(
     captureFollowUp: () => Promise<{ text: string }>;
     instrumentation: VoiceTurnInstrumentation;
     maxFollowUpTurns?: number;
-    presentationInteractionId?: string;
+    presentationInteraction?: PresentationInteraction;
     wakePhrase?: string;
   },
 ): Promise<VoiceTurnResult> {
@@ -37,12 +38,7 @@ export async function runVoiceCommandSequence(
   ) {
     followUpTurns += 1;
     logFollowUpListening(io);
-    if (metadata.presentationInteractionId) {
-      io.presentation?.publish({
-        interactionId: metadata.presentationInteractionId,
-        type: "follow_up_listening",
-      });
-    }
+    metadata.presentationInteraction?.followUpListening();
 
     const followUpTranscript = await metadata.captureFollowUp();
 
@@ -55,13 +51,10 @@ export async function runVoiceCommandSequence(
   }
 
   if (
-    metadata.presentationInteractionId &&
+    metadata.presentationInteraction &&
     !assistantResponseExpectsFollowUp(result.response)
   ) {
-    io.presentation?.publish({
-      interactionId: metadata.presentationInteractionId,
-      type: "completed",
-    });
+    metadata.presentationInteraction.completed();
   }
 
   return result;

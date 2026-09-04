@@ -13,6 +13,7 @@ import {
 import type { VoiceTurnResult } from "./voice-turn-result.js";
 import type { StreamingVoiceOutput } from "./streaming-voice.js";
 import type { VoiceOutputCoordinator } from "./voice-output-coordinator.js";
+import type { PresentationInteraction } from "../presentation/presentation-interaction-coordinator.js";
 
 export interface VoiceCommandDependencies {
   assistant: Assistant;
@@ -29,19 +30,14 @@ export async function runDetectedVoiceCommand(
   io: VoiceRuntimeIo,
   metadata: {
     instrumentation?: VoiceTurnInstrumentation;
-    presentationInteractionId?: string;
+    presentationInteraction?: PresentationInteraction;
     wakePhrase?: string;
   } = {},
 ): Promise<VoiceTurnResult> {
   const instrumentation =
     metadata.instrumentation ?? createVoiceTurnInstrumentation();
 
-  if (metadata.presentationInteractionId) {
-    io.presentation?.publish({
-      interactionId: metadata.presentationInteractionId,
-      type: "processing",
-    });
-  }
+  metadata.presentationInteraction?.processing();
 
   logCommandTranscript(io, commandText);
 
@@ -56,25 +52,12 @@ export async function runDetectedVoiceCommand(
 
   logAssistantResponse(io, response);
 
-  if (metadata.presentationInteractionId) {
+  if (metadata.presentationInteraction) {
     if (response.status === "needs_confirmation") {
-      io.presentation?.publish({
-        interactionId: metadata.presentationInteractionId,
-        prompt: response.text,
-        type: "confirmation_required",
-      });
+      metadata.presentationInteraction.confirmation(response.text);
     } else {
-      io.presentation?.publish({
-        ...(response.citations ? { citations: response.citations } : {}),
-        interactionId: metadata.presentationInteractionId,
-        status: response.status,
-        text: response.text,
-        type: "response_ready",
-      });
-      io.presentation?.publish({
-        interactionId: metadata.presentationInteractionId,
-        type: "speaking_started",
-      });
+      metadata.presentationInteraction.response(response);
+      metadata.presentationInteraction.speakingStarted();
     }
   }
 
@@ -82,13 +65,10 @@ export async function runDetectedVoiceCommand(
     speakResponse(dependencies, response, io),
   );
   if (
-    metadata.presentationInteractionId &&
+    metadata.presentationInteraction &&
     response.status !== "needs_confirmation"
   ) {
-    io.presentation?.publish({
-      interactionId: metadata.presentationInteractionId,
-      type: "speaking_finished",
-    });
+    metadata.presentationInteraction.speakingFinished();
   }
   const timings = instrumentation.snapshotIfEnabled();
 
