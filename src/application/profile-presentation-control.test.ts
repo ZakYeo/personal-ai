@@ -1,10 +1,10 @@
-import { createInMemoryProfileStore } from "../adapters/local/in-memory-profile-store.js";
+import type { ProfileFact, ProfileStorePort } from "../ports/profile-store.js";
 import { createProfilePresentationControl } from "./profile-presentation-control.js";
 
 describe("profile presentation controls", () => {
   it("explains, corrects, and deletes only explicit profile facts", async () => {
     const now = new Date("2026-09-04T10:00:00.000Z");
-    const store = createInMemoryProfileStore({ now: () => now });
+    const store = createStore(now);
     await store.set({ field: "preferredName", value: "Zak" });
     const control = createProfilePresentationControl({
       now: () => now,
@@ -40,7 +40,7 @@ describe("profile presentation controls", () => {
   });
 
   it("rejects unsupported fields without touching storage", async () => {
-    const store = createInMemoryProfileStore({ now: () => new Date(0) });
+    const store = createStore(new Date(0));
     const control = createProfilePresentationControl({
       now: () => new Date(0),
       store,
@@ -60,3 +60,35 @@ describe("profile presentation controls", () => {
     expect(await store.list()).toEqual([]);
   });
 });
+
+function createStore(now: Date): ProfileStorePort {
+  let facts: ProfileFact[] = [];
+  return {
+    clear: () => {
+      const removed = facts;
+      facts = [];
+      return Promise.resolve(removed);
+    },
+    forget: (selector) => {
+      const index = facts.findIndex(
+        (fact) =>
+          fact.field === selector.field &&
+          (selector.value === undefined || fact.value === selector.value),
+      );
+      const removed = index < 0 ? undefined : facts.splice(index, 1)[0];
+      return Promise.resolve(removed);
+    },
+    list: () => Promise.resolve([...facts]),
+    set: (input) => {
+      const timestamp = now.toISOString();
+      const fact: ProfileFact = {
+        createdAt: timestamp,
+        ...input,
+        provenance: "user-authored",
+        updatedAt: timestamp,
+      };
+      facts = [fact, ...facts.filter((item) => item.field !== input.field)];
+      return Promise.resolve(fact);
+    },
+  };
+}
