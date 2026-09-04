@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.js";
 import { createDesktopApp } from "./composition/create-desktop-app.js";
-import { offlineDesktopHost } from "./infrastructure/offline-desktop-host.js";
+import { createTauriDesktopHost } from "./infrastructure/tauri-desktop-host.js";
 import type { DesktopMode } from "./model/navigation.js";
 import "./styles.css";
 
@@ -15,7 +15,7 @@ const root = document.querySelector("#root");
 if (!root) throw new Error("Desktop application root was not found.");
 
 const viewModel = createDesktopApp({
-  host: offlineDesktopHost,
+  host: createTauriDesktopHost(() => Promise.resolve()),
   mode: mode satisfies DesktopMode,
 });
 

@@ -1,0 +1,131 @@
+rules:
+  - id: desktop-view-no-implementation-import
+    languages: [typescript]
+    message: Views and components may not import infrastructure or native APIs.
+    severity: ERROR
+    paths:
+      include:
+        - /apps/desktop/src/views/**
+        - /apps/desktop/src/components/**
+        - /semgrep-rules/desktop.test.tsx
+    pattern-regex: '(?m)^import .* from ["''](?:.*infrastructure|@tauri-apps|.*src/(?:core|features|adapters|runtimes))/.*["''];$'
+
+  - id: desktop-view-model-no-implementation-import
+    languages: [typescript]
+    message: View models may depend only on models, ports, and the presentation contract.
+    severity: ERROR
+    paths:
+      include:
+        - /apps/desktop/src/view-models/**
+        - /semgrep-rules/desktop.test.tsx
+    pattern-regex: '(?m)^import .* from ["''](?:.*infrastructure|@tauri-apps|react-dom|.*src/(?:core|features|adapters|runtimes))/.*["''];$'
+
+  - id: desktop-model-no-framework-import
+    languages: [typescript]
+    message: Models must remain independent from frameworks and implementations.
+    severity: ERROR
+    paths:
+      include:
+        - /apps/desktop/src/model/**
+        - /semgrep-rules/desktop.test.tsx
+    pattern-regex: '(?m)^import .* from ["''](?:react|@tauri-apps|.*(?:views|view-models|infrastructure)).*["''];$'
+
+  - id: desktop-infrastructure-no-view-import
+    languages: [typescript]
+    message: Infrastructure may not import views or components.
+    severity: ERROR
+    paths:
+      include:
+        - /apps/desktop/src/infrastructure/**
+        - /semgrep-rules/desktop.test.tsx
+    pattern-regex: '(?m)^import .* from ["''].*(?:views|components)/.*["''];$'
+
+  - id: desktop-repository-import-through-contract-only
+    languages: [typescript]
+    message: Desktop code may import repository code only through presentation-contract.
+    severity: ERROR
+    paths:
+      include:
+        - /apps/desktop/src/**
+        - /semgrep-rules/desktop.test.tsx
+    pattern-regex: '(?m)^import .* from ["''].*src/(?!presentation-contract\.js["'']).*["''];$'
+
+  - id: desktop-browser-api-outside-infrastructure
+    languages: [typescript]
+    message: Browser IO, storage, clocks, and credentials belong in infrastructure or composition.
+    severity: ERROR
+    paths:
+      include:
+        - /apps/desktop/src/model/**
+        - /apps/desktop/src/ports/**
+        - /apps/desktop/src/view-models/**
+        - /apps/desktop/src/views/**
+        - /apps/desktop/src/components/**
+        - /semgrep-rules/desktop.test.tsx
+    pattern-either:
+      - pattern: fetch(...)
+      - pattern: new WebSocket(...)
+      - pattern: localStorage.$METHOD(...)
+      - pattern: sessionStorage.$METHOD(...)
+      - pattern: Date.now()
+      - pattern: process.env
+
+  - id: desktop-no-dangerous-html
+    languages: [typescript]
+    message: Desktop UI must never inject untrusted HTML.
+    severity: ERROR
+    paths:
+      include:
+        - /apps/desktop/src/**
+        - /semgrep-rules/desktop.test.tsx
+    pattern: <$ELEMENT ... dangerouslySetInnerHTML=$VALUE ... />
+
+  - id: desktop-no-dynamic-external-anchor
+    languages: [typescript]
+    message: Open external sources through the typed native opener port.
+    severity: ERROR
+    paths:
+      include:
+        - /apps/desktop/src/**
+        - /semgrep-rules/desktop.test.tsx
+    pattern: <a ... href={$URL} ...>...</a>
+
+  - id: desktop-no-any-assertion
+    languages: [typescript]
+    message: Do not bypass desktop boundary validation with an any assertion.
+    severity: ERROR
+    paths:
+      include:
+        - /apps/desktop/src/**
+        - /semgrep-rules/desktop.test.tsx
+      exclude:
+        - /apps/desktop/src/**/*.test.ts
+        - /apps/desktop/src/**/*.test.tsx
+    pattern: $VALUE as any
+
+  - id: desktop-no-double-assertion
+    languages: [typescript]
+    message: Do not bypass desktop boundary validation with a double assertion.
+    severity: ERROR
+    paths:
+      include:
+        - /apps/desktop/src/**
+        - /semgrep-rules/desktop.test.tsx
+      exclude:
+        - /apps/desktop/src/**/*.test.ts
+        - /apps/desktop/src/**/*.test.tsx
+    pattern: $VALUE as $TYPE1 as $TYPE2
+
+  - id: runtime-presentation-publish-only-from-coordinator
+    languages: [typescript]
+    message: Publish presentation events only through the canonical coordinator.
+    severity: ERROR
+    paths:
+      include:
+        - /src/runtimes/**
+        - /semgrep-rules/desktop.test.tsx
+      exclude:
+        - /src/runtimes/presentation/presentation-interaction-coordinator.ts
+        - /src/runtimes/presentation/assistant-runtime-event-stream.ts
+        - /src/**/*.test.ts
+    pattern-regex: '\.presentation\??\.publish\('

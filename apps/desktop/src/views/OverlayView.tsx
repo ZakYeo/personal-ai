@@ -2,12 +2,12 @@ import { ConnectionBadge } from "../components/ConnectionBadge.js";
 import { SourceButtons } from "../components/SourceButtons.js";
 import type { OverlayViewState } from "../view-models/desktop-view-state.js";
 
-export interface OverlayViewIntents {
-  confirm(interactionId: string): void;
-  decline(interactionId: string): void;
-  dismiss(): void;
-  openSource(sourceId: string): void;
-  stopListening(): void;
+interface OverlayViewIntents {
+  readonly confirm: (interactionId: string) => void;
+  readonly decline: (interactionId: string) => void;
+  readonly dismiss: () => void;
+  readonly openSource: (sourceId: string) => void;
+  readonly stopListening: () => void;
 }
 
 export function OverlayView(properties: {

@@ -3,11 +3,11 @@ import type { DesktopSection } from "../model/navigation.js";
 import type { CommandCenterViewState } from "../view-models/desktop-view-state.js";
 import { DashboardSectionView } from "./DashboardSectionView.js";
 
-export interface CommandCenterViewIntents {
-  openSource(sourceId: string): void;
-  selectSection(section: DesktopSection): void;
-  submitRequest(): void;
-  updateRequestDraft(value: string): void;
+interface CommandCenterViewIntents {
+  readonly openSource: (sourceId: string) => void;
+  readonly selectSection: (section: DesktopSection) => void;
+  readonly submitRequest: () => void;
+  readonly updateRequestDraft: (value: string) => void;
 }
 
 export function CommandCenterView(properties: {

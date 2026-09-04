@@ -87,6 +87,49 @@ module.exports = {
       to: { path: "^src/(core|features|adapters|runtimes)" },
     },
     {
+      name: "desktop-only-through-presentation-contract",
+      severity: "error",
+      comment:
+        "Desktop code may depend on repository code only through the public presentation contract.",
+      from: { path: "^apps/desktop/src" },
+      to: {
+        path: "^src",
+        pathNot: "^src/presentation-contract\\.ts$",
+      },
+    },
+    {
+      name: "desktop-views-not-to-infrastructure",
+      severity: "error",
+      comment: "Desktop views and components must be passive MVVM renderers.",
+      from: { path: "^apps/desktop/src/(views|components)" },
+      to: { path: "^apps/desktop/src/infrastructure" },
+    },
+    {
+      name: "desktop-view-models-not-to-infrastructure-or-views",
+      severity: "error",
+      comment:
+        "Desktop view models depend on model and ports, not implementations.",
+      from: { path: "^apps/desktop/src/view-models" },
+      to: { path: "^apps/desktop/src/(infrastructure|views|components)" },
+    },
+    {
+      name: "desktop-model-not-to-ui-or-infrastructure",
+      severity: "error",
+      comment:
+        "Desktop models remain framework and implementation independent.",
+      from: { path: "^apps/desktop/src/model" },
+      to: {
+        path: "^apps/desktop/src/(components|composition|infrastructure|view-models|views)",
+      },
+    },
+    {
+      name: "desktop-infrastructure-not-to-views",
+      severity: "error",
+      comment: "Desktop infrastructure must not reach into React views.",
+      from: { path: "^apps/desktop/src/infrastructure" },
+      to: { path: "^apps/desktop/src/(components|views)" },
+    },
+    {
       name: "core-features-not-to-node-or-packages",
       severity: "error",
       comment:
@@ -97,7 +140,7 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
-    exclude: { path: "node_modules|dist|coverage" },
+    exclude: { path: "node_modules|(?:^|/)dist|coverage" },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.json" },
   },

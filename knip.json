@@ -1,8 +1,14 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["scripts/run-checks.mjs", "src/index.ts"],
+  "entry": [
+    "scripts/run-checks.mjs",
+    "src/index.ts",
+    "apps/desktop/src/**/*.test.{ts,tsx}"
+  ],
+  "ignoreBinaries": ["semgrep"],
   "project": [
     "src/**/*.ts",
+    "apps/desktop/src/**/*.{ts,tsx}",
     "scripts/**/*.mjs",
     "*.config.cjs",
     "*.config.js",

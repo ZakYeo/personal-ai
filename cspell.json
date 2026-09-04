@@ -3,6 +3,7 @@
   "ignorePaths": [
     "node_modules/**",
     "dist/**",
+    "apps/*/dist/**",
     "coverage/**",
     "benchmarks/voice/results/*.json",
     ".venv/**",
@@ -35,6 +36,7 @@
     "QEMU",
     "Raspberry",
     "Secretlint",
+    "Semgrep",
     "STT",
     "SUIDSGID",
     "Tauri",
@@ -90,6 +92,7 @@
     "scikit",
     "reparsing",
     "resumably",
+    "ruleid",
     "systemd",
     "sympy",
     "sudoedit",

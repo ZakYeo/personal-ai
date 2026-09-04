@@ -67,7 +67,14 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/**/*.ts", "test/**/*.ts", "*.config.ts", "*.config.js"],
+    files: [
+      "src/**/*.ts",
+      "test/**/*.ts",
+      "apps/desktop/**/*.ts",
+      "apps/desktop/**/*.tsx",
+      "*.config.ts",
+      "*.config.js",
+    ],
     extends: [...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       parserOptions: {
@@ -117,6 +124,48 @@ export default tseslint.config(
       "unicorn/number-literal-case": "error",
       "unicorn/prefer-node-protocol": "error",
       "unicorn/throw-new-error": "error",
+    },
+  },
+  {
+    files: ["apps/desktop/src/**/*.{ts,tsx}"],
+    ignores: ["apps/desktop/src/**/*.test.tsx"],
+    languageOptions: {
+      globals: {
+        AbortController: "readonly",
+        URL: "readonly",
+        clearTimeout: "readonly",
+        document: "readonly",
+        setTimeout: "readonly",
+        window: "readonly",
+      },
+    },
+    rules: {
+      complexity: ["error", 10],
+      "max-depth": ["error", 3],
+      "max-lines": [
+        "error",
+        { max: 300, skipBlankLines: true, skipComments: true },
+      ],
+      "max-lines-per-function": [
+        "error",
+        { max: 120, skipBlankLines: true, skipComments: true },
+      ],
+      "no-restricted-properties": "off",
+    },
+  },
+  {
+    files: ["apps/desktop/src/**/*.{test,spec}.tsx"],
+    languageOptions: {
+      globals: {
+        document: "readonly",
+      },
+    },
+    plugins: {
+      vitest,
+    },
+    rules: {
+      ...vitest.configs.recommended.rules,
+      "vitest/expect-expect": "error",
     },
   },
   {

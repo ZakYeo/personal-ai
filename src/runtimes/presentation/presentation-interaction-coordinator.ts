@@ -4,7 +4,7 @@ import type {
   PendingAssistantRuntimeEvent,
 } from "./assistant-runtime-event-stream.js";
 
-export interface PresentationEventPublisher {
+interface PresentationEventPublisher {
   createInteractionId(): string;
   publish(event: PendingAssistantRuntimeEvent): AssistantRuntimeEvent;
 }

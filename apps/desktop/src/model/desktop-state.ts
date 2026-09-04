@@ -11,41 +11,41 @@ export interface CommandCenterProjection {
   readonly today: readonly string[];
 }
 
-export interface ActivityItem {
+interface ActivityItem {
   readonly occurredAt: string;
   readonly summary: string;
 }
 
-export interface AlarmItem {
+interface AlarmItem {
   readonly id: string;
   readonly label: string;
   readonly scheduledFor: string;
   readonly status: string;
 }
 
-export interface IntegrationItem {
+interface IntegrationItem {
   readonly label: string;
   readonly status: "degraded" | "disabled" | "ready" | "unavailable";
 }
 
-export interface InteractionItem {
+interface InteractionItem {
   readonly id: string;
   readonly request: string;
   readonly response: string;
 }
 
-export interface ProfileItem {
+interface ProfileItem {
   readonly field: string;
   readonly provenance: "user-authored";
   readonly value: string;
 }
 
-export interface SourceItem {
+interface SourceItem {
   readonly title: string;
   readonly url: string;
 }
 
-export interface TaskItem {
+interface TaskItem {
   readonly id: string;
   readonly label: string;
   readonly status: string;

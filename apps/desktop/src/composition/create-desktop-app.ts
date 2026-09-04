@@ -10,6 +10,7 @@ export function createDesktopApp(options: {
   readonly host: DesktopHost;
   readonly mode: DesktopMode;
 }): DesktopAppViewModel {
+  void options.host.initialize();
   return createDesktopAppViewModel({
     host: options.host,
     initialState: { connection: "offline", projection: emptyProjection },

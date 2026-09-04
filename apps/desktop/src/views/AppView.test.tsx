@@ -52,11 +52,15 @@ const state: DesktopPresentationState = {
 function createHost() {
   const controls: PresentationControl[] = [];
   const host: DesktopHost = {
+    initialize: () => Promise.resolve(),
+    isAutostartEnabled: () => Promise.resolve(false),
     openSource: () => Promise.resolve(),
     sendControl: (control) => {
       controls.push(control);
       return Promise.resolve();
     },
+    setAutostart: () => Promise.resolve(),
+    setPushToTalkShortcut: () => Promise.resolve(),
   };
   return { controls, host };
 }

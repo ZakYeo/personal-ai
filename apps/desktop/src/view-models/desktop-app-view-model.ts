@@ -1,4 +1,7 @@
-import type { PresentationControl } from "../../../../src/presentation-contract.js";
+import type {
+  AssistantPresentationInteraction,
+  PresentationControl,
+} from "../../../../src/presentation-contract.js";
 import type { DesktopPresentationState } from "../model/desktop-state.js";
 import {
   desktopSections,
@@ -14,16 +17,16 @@ import {
 } from "./desktop-view-state.js";
 
 export interface DesktopAppViewModel {
-  confirm(interactionId: string): void;
-  decline(interactionId: string): void;
-  dismissOverlay(): void;
-  getSnapshot(): DesktopAppViewState;
-  openSource(sourceId: string): void;
-  selectSection(section: DesktopSection): void;
-  stopListening(): void;
-  submitRequest(): void;
-  subscribe(listener: () => void): () => void;
-  updateRequestDraft(value: string): void;
+  readonly confirm: (interactionId: string) => void;
+  readonly decline: (interactionId: string) => void;
+  readonly dismissOverlay: () => void;
+  readonly getSnapshot: () => DesktopAppViewState;
+  readonly openSource: (sourceId: string) => void;
+  readonly selectSection: (section: DesktopSection) => void;
+  readonly stopListening: () => void;
+  readonly submitRequest: () => void;
+  readonly subscribe: (listener: () => void) => () => void;
+  readonly updateRequestDraft: (value: string) => void;
 }
 
 export function createDesktopAppViewModel(options: {
@@ -31,51 +34,17 @@ export function createDesktopAppViewModel(options: {
   readonly initialState: DesktopPresentationState;
   readonly mode: DesktopMode;
 }): DesktopAppViewModel {
-  let presentation = options.initialState;
+  const presentation = options.initialState;
   let requestDraft = "";
   let section: DesktopSection = "Today";
   let snapshot = project();
   const listeners = new Set<() => void>();
 
   function project(): DesktopAppViewState {
-    const interaction = presentation.snapshot?.interaction;
     return Object.freeze({
-      commandCenter: Object.freeze({
-        cards: projectCards(section, presentation),
-        connectionLabel: connectionLabel(presentation.connection),
-        connectionState: presentation.connection,
-        microphoneLabel: microphoneLabel(presentation.snapshot?.microphone),
-        requestDraft,
-        section,
-        sections: desktopSections,
-        sources: projectSources(presentation),
-      }),
+      commandCenter: projectCommandCenter(presentation, section, requestDraft),
       mode: options.mode,
-      overlay: Object.freeze({
-        connectionLabel: connectionLabel(presentation.connection),
-        connectionState: presentation.connection,
-        ...(interaction?.confirmation
-          ? {
-              confirmation: {
-                interactionId: interaction.id,
-                prompt: interaction.confirmation.prompt,
-              },
-            }
-          : {}),
-        ...(interaction?.failure
-          ? { failure: interaction.failure.message }
-          : {}),
-        microphoneLabel: microphoneLabel(presentation.snapshot?.microphone),
-        phase: interaction?.phase ?? "listening",
-        ...(interaction?.response
-          ? { response: interaction.response.text }
-          : {}),
-        sources: projectResponseSources(presentation),
-        title: overlayTitle(interaction?.phase ?? "listening"),
-        ...(interaction?.transcript
-          ? { transcript: interaction.transcript }
-          : {}),
-      }),
+      overlay: projectOverlay(presentation),
     });
   }
 
@@ -117,6 +86,61 @@ export function createDesktopAppViewModel(options: {
     updateRequestDraft: (value) => update(() => (requestDraft = value)),
   };
   return Object.freeze(viewModel);
+}
+
+function projectCommandCenter(
+  presentation: DesktopPresentationState,
+  section: DesktopSection,
+  requestDraft: string,
+): DesktopAppViewState["commandCenter"] {
+  return Object.freeze({
+    cards: projectCards(section, presentation),
+    connectionLabel: connectionLabel(presentation.connection),
+    connectionState: presentation.connection,
+    microphoneLabel: microphoneLabel(presentation.snapshot?.microphone),
+    requestDraft,
+    section,
+    sections: desktopSections,
+    sources: projectSources(presentation),
+  });
+}
+
+function projectOverlay(
+  presentation: DesktopPresentationState,
+): DesktopAppViewState["overlay"] {
+  const interaction = presentation.snapshot?.interaction;
+  const phase = interaction?.phase ?? "listening";
+  return Object.freeze({
+    connectionLabel: connectionLabel(presentation.connection),
+    connectionState: presentation.connection,
+    ...projectInteractionFields(interaction),
+    microphoneLabel: microphoneLabel(presentation.snapshot?.microphone),
+    phase,
+    sources: projectResponseSources(presentation),
+    title: overlayTitle(phase),
+  });
+}
+
+function projectInteractionFields(
+  interaction: AssistantPresentationInteraction | undefined,
+): Pick<
+  DesktopAppViewState["overlay"],
+  "confirmation" | "failure" | "response" | "transcript"
+> {
+  if (!interaction) return {};
+  return {
+    ...(interaction.confirmation
+      ? {
+          confirmation: {
+            interactionId: interaction.id,
+            prompt: interaction.confirmation.prompt,
+          },
+        }
+      : {}),
+    ...(interaction.failure ? { failure: interaction.failure.message } : {}),
+    ...(interaction.response ? { response: interaction.response.text } : {}),
+    ...(interaction.transcript ? { transcript: interaction.transcript } : {}),
+  };
 }
 
 function projectCards(
