@@ -5,32 +5,37 @@ import type {
 } from "../ports/briefing.js";
 import type { CalendarSearchPort } from "../ports/calendar.js";
 import type { InternetSearchPort } from "../ports/internet-search.js";
-import type { PersonalContextReaderPort } from "../ports/personal-context.js";
-import type { ProfileStorePort } from "../ports/profile-store.js";
+import type {
+  AssistantPersonalizationReaderPort,
+  PersonalContextReaderPort,
+} from "../ports/personal-context.js";
 import type { TaskStore } from "../ports/task-store.js";
 import type { WeatherProviderPort } from "../ports/weather.js";
 import type { AssistantCommandParameters } from "../ports/assistant.js";
 import { zonedParts } from "./local-date-time.js";
 import { sanitizeHumanTextMarkup } from "./human-text.js";
 import { validateInternetSearchResponse } from "./internet-search-policy.js";
+import { qualitativeWeatherDetails } from "./weather-condition-summary.js";
+import { selectWeatherLocation } from "./weather-location-selection.js";
 import {
   metricWeatherUnits,
   validateWeatherForecast,
+  validateWeatherLocationCandidates,
 } from "./weather-policy.js";
 
-export function createProfileBriefingSource(
-  store: ProfileStorePort,
-): BriefingSourcePort {
+export function createProfileBriefingSource(readers: {
+  readonly personalContext?: PersonalContextReaderPort;
+  readonly personalization?: AssistantPersonalizationReaderPort;
+}): BriefingSourcePort {
   return {
     section: "profile",
     read: async () => {
-      const facts = await store.list();
-      const preferredName = facts.find(
-        ({ field }) => field === "preferredName",
-      )?.value;
-      const homeLocation = facts.find(
-        ({ field }) => field === "homeLocation",
-      )?.value;
+      const [personalization, home] = await Promise.all([
+        readers.personalization?.readAssistantPersonalization(),
+        readers.personalContext?.readHomeLocation(),
+      ]);
+      const preferredName = personalization?.preferredName;
+      const homeLocation = home?.place;
       const text = preferredName
         ? `Good morning, ${preferredName}.`
         : homeLocation
@@ -94,7 +99,7 @@ export function createCalendarBriefingSource(
 }
 
 export function createAlarmBriefingSource(
-  store: AlarmStore,
+  store: Pick<AlarmStore, "list">,
 ): BriefingSourcePort {
   return {
     section: "alarms",
@@ -143,7 +148,9 @@ export function createAlarmBriefingSource(
   };
 }
 
-export function createTaskBriefingSource(store: TaskStore): BriefingSourcePort {
+export function createTaskBriefingSource(
+  store: Pick<TaskStore, "listLists" | "listTasks">,
+): BriefingSourcePort {
   return {
     section: "tasks",
     read: async ({ now, timeZone }) => {
@@ -196,13 +203,13 @@ export function createWeatherBriefingSource(
         { place: home.place },
         signal ? { signal } : {},
       );
-      const location = [...candidates].sort(
-        (left, right) => left.providerRank - right.providerRank,
-      )[0]?.location;
-      if (!location)
+      validateWeatherLocationCandidates(candidates);
+      const selection = selectWeatherLocation(home.place, candidates, "ranked");
+      if (selection.kind !== "selected")
         throw new Error(
           "The saved home location could not be resolved for weather.",
         );
+      const { location } = selection;
       const startAt = now.toISOString();
       const endAt = new Date(now.getTime() + 24 * 60 * 60_000).toISOString();
       const forecast = await provider.getForecast(
@@ -214,29 +221,45 @@ export function createWeatherBriefingSource(
         forecast.daily.find(
           ({ date }) => date === localDate(now, location.timezone),
         ) ?? forecast.daily[0];
-      const notable =
-        forecast.current.precipitation > 0 || forecast.current.windSpeed >= 40;
+      const details = qualitativeWeatherDetails(forecast.current, "current");
+      const citations = [
+        { title: forecast.attribution.name, url: forecast.attribution.url },
+      ];
       return {
-        attention: notable ? ["weather:today"] : [],
-        citations: [
-          { title: forecast.attribution.name, url: forecast.attribution.url },
-        ],
+        attention: details.length > 0 ? ["weather:today"] : [],
         facts: {
+          weatherAttributionName: forecast.attribution.name,
+          weatherAttributionUrl: forecast.attribution.url,
           weatherCondition: forecast.current.weather,
           weatherFetchedAt: forecast.fetchedAt,
+          weatherLatitude: forecast.location.latitude,
           weatherLocation: forecast.location.name,
+          weatherLongitude: forecast.location.longitude,
+          weatherObservedAt: forecast.current.observedAt,
+          weatherPeriodEndAt: forecast.period.endAt,
+          weatherPeriodStartAt: forecast.period.startAt,
+          weatherPrecipitation: forecast.current.precipitation,
+          weatherPrecipitationUnit: forecast.units.precipitation,
           weatherTemperature: forecast.current.temperature,
+          weatherTemperatureUnit: forecast.units.temperature,
+          weatherTimeZone: forecast.location.timezone,
+          weatherWindSpeed: forecast.current.windSpeed,
+          weatherWindSpeedUnit: forecast.units.windSpeed,
           ...(daily
             ? {
+                weatherDailyDate: daily.date,
                 weatherMaximum: daily.temperatureMax,
                 weatherMinimum: daily.temperatureMin,
+                weatherDailyPrecipitation: daily.precipitation,
+                weatherDailyWindSpeedMaximum: daily.windSpeedMax,
               }
             : {}),
         },
         items: [
           {
+            citations,
             key: "weather:today",
-            text: `${forecast.current.temperature}°C and ${forecast.current.weather} in ${forecast.location.name}${daily ? `, with a high of ${daily.temperatureMax}°C` : ""}. Source: ${forecast.attribution.name}.`,
+            text: `${forecast.current.temperature}°C and ${forecast.current.weather} in ${forecast.location.name}${daily ? `, with a high of ${daily.temperatureMax}°C` : ""}, observed ${formatObservationAge(forecast.current.observedAt, now)}. ${details.join(" ")}${details.length > 0 ? " " : ""}Source: ${forecast.attribution.name}.`,
           },
         ],
         section: "weather",
@@ -296,4 +319,15 @@ function stableKey(section: BriefingSourceResult["section"], identity: string) {
     second = Math.imul(second ^ code, 0x85ebca6b);
   }
   return `${section}:${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+function formatObservationAge(observedAt: string, now: Date): string {
+  const ageMinutes = Math.max(
+    0,
+    Math.round((now.getTime() - new Date(observedAt).getTime()) / 60_000),
+  );
+  if (ageMinutes <= 10) return "right now";
+  if (ageMinutes < 45) return `about ${ageMinutes} minutes ago`;
+  if (ageMinutes < 90) return "about an hour ago";
+  return `about ${Math.round(ageMinutes / 60)} hours ago`;
 }

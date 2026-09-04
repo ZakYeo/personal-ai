@@ -1,4 +1,4 @@
-import { qualitativeWeatherDetails } from "./weather-condition-summary.js";
+import { qualitativeWeatherDetails } from "../../application/weather-condition-summary.js";
 
 describe("qualitativeWeatherDetails", () => {
   it.each([

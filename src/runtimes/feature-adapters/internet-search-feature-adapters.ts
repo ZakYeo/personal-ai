@@ -10,7 +10,7 @@ import {
   parseInternetSearchFeatureConfig,
   parseInternetSearchOpenAIAdapterConfig,
 } from "./internet-search-feature-adapter-config.js";
-import { internetSearchService } from "../briefing/briefing-source-services.js";
+import { internetSearchService } from "../feature-source-services.js";
 import { bindRuntimeService } from "../runtime-service-registry.js";
 
 interface InternetSearchFeatureRegistryDependencies {

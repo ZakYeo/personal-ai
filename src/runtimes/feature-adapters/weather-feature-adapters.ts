@@ -26,7 +26,7 @@ import {
   type WeatherWatchStoreConfig,
 } from "./weather-feature-adapter-config.js";
 import type { ResolvedWeatherClothingAdvisorProvider } from "./weather-clothing-advisor-provider.js";
-import { weatherProviderService } from "../briefing/briefing-source-services.js";
+import { weatherProviderService } from "../feature-source-services.js";
 import { bindRuntimeService } from "../runtime-service-registry.js";
 
 interface WeatherFeatureRegistryDependencies {

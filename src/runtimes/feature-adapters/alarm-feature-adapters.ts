@@ -16,7 +16,7 @@ import {
 import { runAlarmScheduler } from "../alarm/alarm-scheduler.js";
 import { runAlarmRetention } from "../alarm/alarm-retention.js";
 import type { RuntimeBackgroundTaskContext } from "../background-task.js";
-import { alarmStoreService } from "../briefing/briefing-source-services.js";
+import { alarmStoreService } from "../feature-source-services.js";
 import { bindRuntimeService } from "../runtime-service-registry.js";
 
 const fileAlarmAdapter = defineFeatureAdapter({

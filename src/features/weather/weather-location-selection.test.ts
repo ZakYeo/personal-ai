@@ -1,7 +1,7 @@
 // cspell:ignore Londn
 
 import type { WeatherLocationCandidate } from "../../ports/weather.js";
-import { selectWeatherLocation } from "./weather-location-selection.js";
+import { selectWeatherLocation } from "../../application/weather-location-selection.js";
 
 const candidates = [
   candidate({

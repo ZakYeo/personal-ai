@@ -1,7 +1,7 @@
 import type {
   WeatherLocation,
   WeatherLocationCandidate,
-} from "../../ports/weather.js";
+} from "../ports/weather.js";
 
 type WeatherLocationSelection =
   | { kind: "selected"; location: WeatherLocation }
@@ -27,9 +27,7 @@ export function selectWeatherLocation(
     (left, right) => left.providerRank - right.providerRank,
   );
 
-  if (ranked.length === 0) {
-    return { kind: "not_found" };
-  }
+  if (ranked.length === 0) return { kind: "not_found" };
   if (ranked.length === 1 || policy === "ranked") {
     return { kind: "selected", location: ranked[0]!.location };
   }

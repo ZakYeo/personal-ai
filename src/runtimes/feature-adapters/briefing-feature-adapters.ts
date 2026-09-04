@@ -24,8 +24,8 @@ import {
 } from "../feature-adapter-registry.js";
 import { resolveLocalStatePath } from "../local-state-path.js";
 import {
+  assistantPersonalizationReaderService,
   personalContextReaderService,
-  profileStoreService,
 } from "../profile-runtime-services.js";
 import type { RuntimeServiceRegistry } from "../runtime-service-registry.js";
 import { runBriefingScheduler } from "../briefing/briefing-scheduler.js";
@@ -35,7 +35,7 @@ import {
   internetSearchService,
   taskStoreService,
   weatherProviderService,
-} from "../briefing/briefing-source-services.js";
+} from "../feature-source-services.js";
 
 const fileBriefingAdapter = defineFeatureAdapter({
   parseConfig: (featureConfig) => {
@@ -98,7 +98,9 @@ function createComposition(
   services: RuntimeServiceRegistry,
   delivery: NotificationDeliveryPort | undefined,
 ) {
-  const aggregator = createDailyBriefingAggregator(createSources(services));
+  const aggregator = createDailyBriefingAggregator(
+    createBriefingSources(services),
+  );
   const feature = createBriefingFeature(aggregator, store);
   if (!delivery) return feature;
   return {
@@ -123,23 +125,28 @@ function createComposition(
   };
 }
 
-function createSources(services: RuntimeServiceRegistry): BriefingSourcePort[] {
+export function createBriefingSources(
+  services: RuntimeServiceRegistry,
+): BriefingSourcePort[] {
   const sources: BriefingSourcePort[] = [];
-  const profile = services.get(profileStoreService);
+  const personalization = services.get(assistantPersonalizationReaderService);
+  const personalContext = services.get(personalContextReaderService);
   const calendar = services.get(calendarSearchService);
   const weather = services.get(weatherProviderService);
   const alarms = services.get(alarmStoreService);
   const tasks = services.get(taskStoreService);
   const internet = services.get(internetSearchService);
-  if (profile) sources.push(createProfileBriefingSource(profile));
+  if (personalization || personalContext) {
+    sources.push(
+      createProfileBriefingSource({
+        ...(personalContext ? { personalContext } : {}),
+        ...(personalization ? { personalization } : {}),
+      }),
+    );
+  }
   if (calendar) sources.push(createCalendarBriefingSource(calendar));
   if (weather) {
-    sources.push(
-      createWeatherBriefingSource(
-        weather,
-        services.get(personalContextReaderService),
-      ),
-    );
+    sources.push(createWeatherBriefingSource(weather, personalContext));
   }
   if (alarms) sources.push(createAlarmBriefingSource(alarms));
   if (tasks) sources.push(createTaskBriefingSource(tasks));

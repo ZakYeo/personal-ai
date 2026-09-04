@@ -1,5 +1,13 @@
 import type { CalendarEvent, CalendarSearchPort } from "../ports/calendar.js";
-import { createCalendarBriefingSource } from "./briefing-sources.js";
+import type {
+  WeatherLocationCandidate,
+  WeatherProviderPort,
+} from "../ports/weather.js";
+import {
+  createCalendarBriefingSource,
+  createProfileBriefingSource,
+  createWeatherBriefingSource,
+} from "./briefing-sources.js";
 
 describe("briefing sources", () => {
   it("uses stable opaque calendar keys when provider ordering changes", async () => {
@@ -39,4 +47,142 @@ describe("briefing sources", () => {
       "private-provider-id",
     );
   });
+
+  it("reads only narrow profile projections", async () => {
+    const source = createProfileBriefingSource({
+      personalContext: {
+        readHomeLocation: () =>
+          Promise.resolve({ place: "London", provenance: "user-authored" }),
+      },
+      personalization: {
+        readAssistantPersonalization: () =>
+          Promise.resolve({ preferredName: "Zak" }),
+      },
+    });
+
+    await expect(
+      source.read({
+        now: new Date("2026-09-04T07:00:00.000Z"),
+        timeZone: "Europe/London",
+      }),
+    ).resolves.toMatchObject({
+      facts: {
+        profileHomeLocation: "London",
+        profilePreferredName: "Zak",
+      },
+      items: [{ text: "Good morning, Zak." }],
+    });
+  });
+
+  it("requires an exact validated saved-home weather match", async () => {
+    const context = {
+      now: new Date("2026-09-04T07:00:00.000Z"),
+      timeZone: "Europe/London",
+    };
+    const home = (place: string) => ({
+      readHomeLocation: () =>
+        Promise.resolve({ place, provenance: "user-authored" as const }),
+    });
+
+    await expect(
+      createWeatherBriefingSource(weatherProvider([]), undefined).read(context),
+    ).rejects.toThrow("saved home location");
+    await expect(
+      createWeatherBriefingSource(
+        weatherProvider([weatherCandidate({ providerRank: 0 })]),
+        home("London"),
+      ).read(context),
+    ).rejects.toThrow("malformed");
+    await expect(
+      createWeatherBriefingSource(
+        weatherProvider([weatherCandidate()]),
+        home("Lond"),
+      ).read(context),
+    ).rejects.toThrow("could not be resolved");
+  });
+
+  it("preserves the exact weather envelope and canonical notable threshold", async () => {
+    const now = new Date("2026-09-04T07:00:00.000Z");
+    const source = createWeatherBriefingSource(
+      weatherProvider([weatherCandidate()], 29),
+      {
+        readHomeLocation: () =>
+          Promise.resolve({ place: "London", provenance: "user-authored" }),
+      },
+    );
+
+    const result = await source.read({ now, timeZone: "UTC" });
+
+    expect(result.attention).toEqual(["weather:today"]);
+    expect(result.items[0]).toMatchObject({
+      citations: [{ title: "Open-Meteo", url: "https://open-meteo.com/" }],
+      text: expect.stringContaining("It is windy.") as string,
+    });
+    expect(result.facts).toMatchObject({
+      weatherAttributionName: "Open-Meteo",
+      weatherFetchedAt: "2026-09-04T07:00:00.000Z",
+      weatherLocation: "London",
+      weatherObservedAt: "2026-09-04T06:55:00.000Z",
+      weatherPeriodStartAt: "2026-09-04T07:00:00.000Z",
+      weatherPrecipitationUnit: "mm",
+      weatherTemperature: 18,
+      weatherTemperatureUnit: "celsius",
+      weatherTimeZone: "Europe/London",
+      weatherWindSpeed: 29,
+      weatherWindSpeedUnit: "km/h",
+    });
+  });
 });
+
+function weatherCandidate(
+  overrides: Partial<WeatherLocationCandidate> = {},
+): WeatherLocationCandidate {
+  return {
+    countryName: "United Kingdom",
+    location: {
+      countryCode: "GB",
+      latitude: 51.5,
+      longitude: -0.12,
+      name: "London",
+      timezone: "Europe/London",
+    },
+    providerRank: 1,
+    searchName: "London",
+    ...overrides,
+  };
+}
+
+function weatherProvider(
+  candidates: WeatherLocationCandidate[],
+  windSpeed = 10,
+): WeatherProviderPort {
+  return {
+    findLocations: () => Promise.resolve(candidates),
+    getForecast: (request) =>
+      Promise.resolve({
+        attribution: { name: "Open-Meteo", url: "https://open-meteo.com/" },
+        current: {
+          observedAt: "2026-09-04T06:55:00.000Z",
+          precipitation: 0,
+          temperature: 18,
+          weather: "clear",
+          windSpeed,
+        },
+        daily: [
+          {
+            date: "2026-09-04",
+            precipitation: 0,
+            temperatureMax: 21,
+            temperatureMin: 12,
+            weather: "clear",
+            windSpeedMax: windSpeed,
+          },
+        ],
+        fetchedAt: "2026-09-04T07:00:00.000Z",
+        hourly: [],
+        location: request.location,
+        period: request.period,
+        units: request.units,
+      }),
+  };
+}

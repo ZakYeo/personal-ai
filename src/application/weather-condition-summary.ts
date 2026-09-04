@@ -6,7 +6,7 @@ interface WeatherConditions {
   windSpeed: number;
 }
 
-const WINDY_THRESHOLD_KMH = 29;
+const notableWindSpeedKmH = 29;
 
 export function qualitativeWeatherDetails(
   conditions: WeatherConditions,
@@ -14,7 +14,7 @@ export function qualitativeWeatherDetails(
 ): string[] {
   return [
     qualitativePrecipitation(conditions, mode),
-    conditions.windSpeed >= WINDY_THRESHOLD_KMH
+    conditions.windSpeed >= notableWindSpeedKmH
       ? mode === "current"
         ? "It is windy."
         : "Expect windy conditions."

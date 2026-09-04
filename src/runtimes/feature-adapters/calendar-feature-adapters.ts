@@ -12,7 +12,7 @@ import {
   type CalendarGoogleAdapterConfig,
 } from "./calendar-feature-adapter-config.js";
 import type { ResolvedCalendarEventGrouperProvider } from "./calendar-event-grouper-provider.js";
-import { calendarSearchService } from "../briefing/briefing-source-services.js";
+import { calendarSearchService } from "../feature-source-services.js";
 import { bindRuntimeService } from "../runtime-service-registry.js";
 
 interface CalendarFeatureRegistryDependencies {

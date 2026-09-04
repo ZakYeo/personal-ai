@@ -2,7 +2,7 @@ import type { WeatherForecast, WeatherUnits } from "../../ports/weather.js";
 import {
   qualitativeWeatherDetails,
   type WeatherTemporalMode,
-} from "./weather-condition-summary.js";
+} from "../../application/weather-condition-summary.js";
 import {
   weatherAttributionText,
   weatherResultEnvelope,

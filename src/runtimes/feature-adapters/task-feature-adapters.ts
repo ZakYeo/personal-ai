@@ -16,7 +16,7 @@ import {
 import { resolveLocalStatePath } from "../local-state-path.js";
 import { runTaskReminderRetention } from "../tasks/task-reminder-retention.js";
 import { runTaskReminderScheduler } from "../tasks/task-reminder-scheduler.js";
-import { taskStoreService } from "../briefing/briefing-source-services.js";
+import { taskStoreService } from "../feature-source-services.js";
 import { bindRuntimeService } from "../runtime-service-registry.js";
 
 const fileTaskAdapter = defineFeatureAdapter({
