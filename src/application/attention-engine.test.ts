@@ -165,4 +165,21 @@ describe("durable proactive attention evaluation", () => {
       ),
     ).toBe(true);
   });
+  it("does not start output when shutdown arrives during the durable claim", async () => {
+    const h = await harness();
+    const shutdown = new AbortController();
+    const replace = h.store.replace.bind(h.store);
+    h.store.replace = async (revision, state) => {
+      const saved = await replace(revision, state);
+      if (
+        saved &&
+        state.inbox.some((item) => item.delivery.status === "unknown")
+      )
+        shutdown.abort();
+      return saved;
+    };
+    await h.run(now, shutdown.signal);
+    expect(h.deliver).not.toHaveBeenCalled();
+    expect((await h.store.read()).inbox[0]?.delivery.status).toBe("unknown");
+  });
 });

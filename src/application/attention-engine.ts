@@ -64,6 +64,7 @@ export async function processAttentionCycle(
         clock.now(),
         !!delivery,
       );
+      if (signal?.aborted) return;
       if (!claimed || !delivery) continue;
       try {
         await delivery.deliver(
