@@ -11,7 +11,13 @@ describe("presentation protocol", () => {
         projection: {
           activity: [],
           alarms: [],
-          integrations: [{ label: "Calendar", status: "ready" }],
+          integrations: [
+            {
+              label: "Calendar",
+              status: "configured",
+              lastCheck: "Not checked",
+            },
+          ],
           interactions: [],
           profile: [],
           sources: [{ title: "Forecast", url: "https://example.com/weather" }],

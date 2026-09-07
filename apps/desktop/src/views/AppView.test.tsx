@@ -19,7 +19,9 @@ const state: DesktopPresentationState = {
         status: "scheduled",
       },
     ],
-    integrations: [{ label: "Calendar", status: "ready" }],
+    integrations: [
+      { label: "Calendar", status: "configured", lastCheck: "Not checked" },
+    ],
     interactions: [
       { id: "turn-1", request: "What is next?", response: "Tea at 11." },
     ],
@@ -110,6 +112,8 @@ describe("desktop application", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Tasks" }));
     expect(screen.getByText("Submit form")).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "Integrations" }));
+    expect(screen.getByText("configured · Not checked")).toBeVisible();
   });
 
   it("shows offline state without hiding the dashboard", () => {

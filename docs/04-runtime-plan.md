@@ -625,6 +625,13 @@ the configured assistant timezone before rendering; date-only events and task
 due dates use their calendar day. Calendar reads include adjacent dates to
 cover timezone boundaries. Overdue, future, and undated tasks stay in the task
 view with explicit status labels; future alarms stay in the alarm view.
+Integration health distinguishes configured, connected, degraded, disabled, and
+unchecked. A successful narrow source read establishes connected status for that
+read surface only, with the check time rendered in the assistant timezone;
+it does not certify unrelated write permissions. Failed reads show degraded,
+missing expected readers show unchecked, and enabled integrations without a
+reader show configured. The strict desktop protocol includes a safe last-check
+label; upgrade service and desktop together.
 Planned proactive attention contributes
 separate user-enabled typed rules with durable evaluation slots, quiet hours,
 cooling-off periods, budgets, and deduplication. Neither background path may ask

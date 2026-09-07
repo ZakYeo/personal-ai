@@ -57,7 +57,11 @@ export function buildAssistantPresentationProjection(
     })),
     integrations: value.integrations
       .slice(0, projectionLimits.integrations)
-      .map((item) => ({ ...item, label: text(item.label) })),
+      .map((item) => ({
+        ...item,
+        label: text(item.label),
+        lastCheck: text(item.lastCheck),
+      })),
     interactions: value.interactions
       .slice(0, projectionLimits.interactions)
       .map((item) => ({
@@ -178,16 +182,18 @@ function parseIntegration(
 ): PresentationIntegrationItem | undefined {
   if (
     !isRecord(value) ||
-    !hasExactKeys(value, ["label", "status"]) ||
+    !hasExactKeys(value, ["label", "lastCheck", "status"]) ||
+    !isText(value.lastCheck) ||
     !isText(value.label)
   )
     return;
   const status = value.status;
   return status === "degraded" ||
     status === "disabled" ||
-    status === "ready" ||
-    status === "unavailable"
-    ? { label: value.label, status }
+    status === "configured" ||
+    status === "connected" ||
+    status === "unchecked"
+    ? { label: value.label, lastCheck: value.lastCheck, status }
     : undefined;
 }
 

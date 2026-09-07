@@ -119,7 +119,13 @@ export interface PresentationAlarmItem {
 
 export interface PresentationIntegrationItem {
   readonly label: string;
-  readonly status: "degraded" | "disabled" | "ready" | "unavailable";
+  readonly lastCheck: string;
+  readonly status:
+    | "configured"
+    | "connected"
+    | "degraded"
+    | "disabled"
+    | "unchecked";
 }
 
 export interface PresentationInteractionItem {

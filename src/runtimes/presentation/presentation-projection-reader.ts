@@ -95,25 +95,38 @@ export async function readPresentationProjection(options: {
       .filter((task) => task.status === "open" && task.dueDate === day)
       .map((task) => task.label),
   ].slice(0, 50);
-  const degraded = new Set([
-    ...(alarmRead.failed ? ["alarms"] : []),
-    ...(calendarRead.failed ? ["calendar"] : []),
-    ...(profileRead.failed ? ["profile"] : []),
-    ...(taskRead.failed ? ["tasks"] : []),
+  const checks = new Map<string, { checked: boolean; failed: boolean }>([
+    ["alarms", alarmRead],
+    ["calendar", calendarRead],
+    ["profile", profileRead],
+    ["tasks", taskRead],
   ]);
   return {
     activity: [],
     alarms,
     integrations: Object.entries(options.config.features)
       .slice(0, 50)
-      .map(([id, feature]) => ({
-        label: readableIdentifier(id),
-        status: feature.enabled
-          ? degraded.has(id)
-            ? "degraded"
-            : "ready"
-          : "disabled",
-      })),
+      .map(([id, feature]) => {
+        const check = feature.enabled ? checks.get(id) : undefined;
+        return {
+          label: readableIdentifier(id),
+          lastCheck: check?.checked
+            ? renderDateTime(
+                options.now.toISOString(),
+                options.config.assistant.timeZone,
+              )
+            : "Not checked",
+          status: !feature.enabled
+            ? "disabled"
+            : !check
+              ? "configured"
+              : !check.checked
+                ? "unchecked"
+                : check.failed
+                  ? "degraded"
+                  : "connected",
+        };
+      }),
     interactions: [],
     profile: options.projectProfile(profileRead.value),
     sources: [],
@@ -126,13 +139,13 @@ async function readSource<TSource, TValue>(
   source: TSource | undefined,
   read: (source: TSource) => Promise<TValue[]>,
   options: { readonly reportFailure: (error: unknown) => void },
-): Promise<{ failed: boolean; value: TValue[] }> {
-  if (!source) return { failed: false, value: [] };
+): Promise<{ checked: boolean; failed: boolean; value: TValue[] }> {
+  if (!source) return { checked: false, failed: false, value: [] };
   try {
-    return { failed: false, value: await read(source) };
+    return { checked: true, failed: false, value: await read(source) };
   } catch (error) {
     options.reportFailure(error);
-    return { failed: true, value: [] };
+    return { checked: true, failed: true, value: [] };
   }
 }
 

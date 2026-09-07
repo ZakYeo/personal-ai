@@ -16,9 +16,13 @@ export const desktopShowcaseState = Object.freeze({
       },
     ],
     integrations: [
-      { label: "Calendar", status: "ready" },
-      { label: "Weather", status: "ready" },
-      { label: "Desktop voice", status: "ready" },
+      { label: "Calendar", status: "configured", lastCheck: "Not checked" },
+      { label: "Weather", status: "configured", lastCheck: "Not checked" },
+      {
+        label: "Desktop voice",
+        status: "configured",
+        lastCheck: "Not checked",
+      },
     ],
     interactions: [
       {

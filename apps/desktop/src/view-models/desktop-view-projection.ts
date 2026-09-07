@@ -126,7 +126,7 @@ function projectCards(
       return [];
     case "Integrations":
       return projection.integrations.map((item) => ({
-        detail: item.status,
+        detail: `${item.status} · ${item.lastCheck}`,
         id: item.label,
         title: item.label,
       }));
