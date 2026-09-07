@@ -8,7 +8,7 @@ interface CalendarEventBase {
 export type CalendarEvent = CalendarEventBase &
   (
     | { startAt: string; startTime: string; endAt?: string }
-    | { startAt?: never; startTime?: never }
+    | { startAt?: never; startTime?: never; endAt?: never }
   );
 
 export interface CalendarSearchPort {

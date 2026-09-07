@@ -44,8 +44,9 @@ export function parseGoogleCalendarEvent(value: unknown): CalendarEvent {
     ...(typeof value.location === "string" && value.location.length > 0
       ? { location: value.location }
       : {}),
-    ...start,
-    ...parseEventEnd(value.end, start),
+    ...("startAt" in start
+      ? { ...start, ...parseEventEnd(value.end, start) }
+      : start),
     title: value.summary,
   };
 }
