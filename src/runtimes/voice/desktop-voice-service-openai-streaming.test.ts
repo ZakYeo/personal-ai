@@ -12,7 +12,6 @@ import { deterministicScenarios } from "../../test-support/deterministic-scenari
 import { createCapturedWriter, line } from "../../test-support/primitives.js";
 import { createServiceSignalController } from "../../test-support/service-runtime.js";
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
-import { safeRuntimeFallbackResponse } from "../human-boundary.js";
 
 describe("desktop voice service OpenAI streaming", () => {
   it("aborts streaming speech when shutdown is requested during output", async () => {
@@ -64,15 +63,8 @@ describe("desktop voice service OpenAI streaming", () => {
         method: "POST",
       }),
     );
-    expect(fallbackOutput.writes).toEqual([
-      deterministicScenarios.alarmListEmpty.response.text + "\n",
-    ]);
-    // Shutdown may win before playback starts or while provider audio is consumed.
-    expect(stderr.writes).toEqual([
-      expect.stringMatching(
-        /^Runtime failure: (?:OpenAI speech request was aborted\.|signal:SIGTERM)\n$/u,
-      ),
-    ]);
+    expect(fallbackOutput.writes).toEqual([]);
+    expect(stderr.writes).toEqual([]);
   });
 
   it.each(casualConversationSmokeScenarios)(
@@ -183,14 +175,9 @@ describe("desktop voice service OpenAI streaming", () => {
         method: "POST",
       }),
     );
-    expect(fallbackOutput.writes).toEqual([
-      safeRuntimeFallbackResponse.text + "\n",
-    ]);
+    expect(fallbackOutput.writes).toEqual([]);
     expect(stderr.writes).toEqual([
       line("Runtime failure: Realtime transcription timed out after 100ms."),
-      expect.stringMatching(
-        /^Runtime failure: (?:OpenAI speech request was aborted\.|signal:SIGTERM)\n$/u,
-      ),
     ]);
   });
 
@@ -221,14 +208,9 @@ describe("desktop voice service OpenAI streaming", () => {
       turnsCompleted: 1,
     });
     expect(socket.closed).toBe(true);
-    expect(fallbackOutput.writes).toEqual([
-      safeRuntimeFallbackResponse.text + "\n",
-    ]);
+    expect(fallbackOutput.writes).toEqual([]);
     expect(stderr.writes).toEqual([
       line("Runtime failure: Realtime transcription was aborted."),
-      expect.stringMatching(
-        /^Runtime failure: (?:OpenAI speech request was aborted\.|signal:SIGTERM)\n$/u,
-      ),
     ]);
   });
 
@@ -276,14 +258,9 @@ describe("desktop voice service OpenAI streaming", () => {
       line('Now listening for wake word "hey jarvis".'),
       line("Wake word detected, now listening..."),
     ]);
-    expect(fallbackOutput.writes).toEqual([
-      safeRuntimeFallbackResponse.text + "\n",
-    ]);
+    expect(fallbackOutput.writes).toEqual([]);
     expect(stderr.writes).toEqual([
       line("Runtime failure: Realtime transcription failed."),
-      expect.stringMatching(
-        /^Runtime failure: (?:OpenAI speech request was aborted\.|signal:SIGTERM)\n$/u,
-      ),
     ]);
   });
 });

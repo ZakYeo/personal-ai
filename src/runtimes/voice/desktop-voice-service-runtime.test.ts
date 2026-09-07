@@ -105,11 +105,16 @@ describe("runDesktopVoiceServiceRuntime", () => {
       },
     });
 
-    expect(synthesize).toHaveBeenCalledExactlyOnceWith("Alarm: ping me.");
-    expect(play).toHaveBeenCalledExactlyOnceWith({
-      filePath: "/tmp/alarm.wav",
-      text: "Alarm: ping me.",
+    expect(synthesize).toHaveBeenCalledExactlyOnceWith("Alarm: ping me.", {
+      signal: expect.any(AbortSignal) as AbortSignal,
     });
+    expect(play).toHaveBeenCalledExactlyOnceWith(
+      {
+        filePath: "/tmp/alarm.wav",
+        text: "Alarm: ping me.",
+      },
+      { signal: expect.any(AbortSignal) as AbortSignal },
+    );
   });
 
   it("runs a configured voice activation through the service loop", async () => {

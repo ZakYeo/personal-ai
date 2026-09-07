@@ -18,27 +18,36 @@ export function createVoiceAlarmDelivery(
 ): NotificationDeliveryPort {
   return {
     deliver: (notification, context) =>
-      outputCoordinator.run(async () => {
-        const adapters = createAdapters(context.shutdownSignal);
-        const text = notification.text;
+      outputCoordinator.run(
+        async (signal) => {
+          const adapters = createAdapters(context.shutdownSignal);
+          const text = notification.text;
 
-        try {
-          if (adapters.streamingOutput) {
-            const speech =
-              await adapters.streamingOutput.textToSpeech.synthesizeStream(
-                text,
+          try {
+            if (adapters.streamingOutput) {
+              const speech =
+                await adapters.streamingOutput.textToSpeech.synthesizeStream(
+                  text,
+                  { signal },
+                );
+              signal.throwIfAborted();
+              await adapters.streamingOutput.audioOutput.playStream(
+                speech.chunks,
+                { signal },
               );
-            await adapters.streamingOutput.audioOutput.playStream(
-              speech.chunks,
-            );
-            return;
-          }
+              return;
+            }
 
-          const speech = await adapters.textToSpeech.synthesize(text);
-          await adapters.audioOutput.play(speech);
-        } finally {
-          await cleanupVoiceAdapters(() => adapters.cleanup?.(), io);
-        }
-      }),
+            const speech = await adapters.textToSpeech.synthesize(text, {
+              signal,
+            });
+            signal.throwIfAborted();
+            await adapters.audioOutput.play(speech, { signal });
+          } finally {
+            await cleanupVoiceAdapters(() => adapters.cleanup?.(), io);
+          }
+        },
+        context.shutdownSignal ? { signal: context.shutdownSignal } : {},
+      ),
   };
 }

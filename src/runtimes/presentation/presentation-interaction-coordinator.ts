@@ -10,6 +10,7 @@ interface PresentationEventPublisher {
 }
 
 export interface PresentationInteraction {
+  cancelled(): void;
   claimContinuation(): boolean;
   completed(): void;
   confirmation(prompt: string): void;
@@ -38,6 +39,7 @@ type PendingInteractionEvent = PendingAssistantRuntimeEvent extends infer TEvent
 
 const noOperation = (): void => {};
 const noOpInteraction: PresentationInteraction = Object.freeze({
+  cancelled: noOperation,
   claimContinuation: () => true,
   completed: noOperation,
   confirmation: noOperation,
@@ -112,6 +114,7 @@ function createInteraction(
   const available = () =>
     token !== undefined && continuation.current(interactionId) === token;
   const interaction: PresentationInteraction = {
+    cancelled: () => publish({ type: "cancelled" }),
     claimContinuation: () => continuation.claim(interactionId, token),
     completed: () => publish({ type: "completed" }),
     confirmation: (prompt) => {

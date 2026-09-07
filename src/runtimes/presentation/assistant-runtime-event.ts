@@ -193,7 +193,14 @@ export function reduceAssistantRuntimeEvent(
         snapshot,
         base,
         event,
-        ["listening", "processing", "confirmation", "cancelling"],
+        [
+          "listening",
+          "processing",
+          "confirmation",
+          "response",
+          "speaking",
+          "cancelling",
+        ],
         "cancelled",
       );
     case "safe_failure": {

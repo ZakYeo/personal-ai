@@ -1,3 +1,4 @@
+import type { AudioOutputPort } from "../../ports/voice.js";
 import type { DesktopVoiceOutputAdapters } from "./desktop-voice-adapter-types.js";
 import { createVoiceAlarmDelivery } from "./voice-alarm-delivery.js";
 import { createCapturedWriter, line } from "../../test-support/primitives.js";
@@ -5,6 +6,54 @@ import { createVoiceOutputCoordinator } from "./voice-output-coordinator.js";
 import { speakResponse } from "./voice-response.js";
 
 describe("createVoiceAlarmDelivery", () => {
+  it("stops ordinary speech without fallback or starting a queued notification", async () => {
+    const coordinator = createVoiceOutputCoordinator();
+    const fallbackOutput = createCapturedWriter();
+    const play = vi.fn<AudioOutputPort["play"]>(
+      (_speech, options) =>
+        new Promise<void>((_resolve, reject) => {
+          options?.signal?.addEventListener(
+            "abort",
+            () => reject(new Error("playback stopped")),
+            { once: true },
+          );
+        }),
+    );
+    const ordinary = speakResponse(
+      {
+        outputCoordinator: coordinator,
+        textToSpeech: { synthesize: (text) => Promise.resolve({ text }) },
+        audioOutput: { play },
+      },
+      { status: "ok", text: "A safe answer." },
+      { fallbackOutput },
+    );
+    const createAdapters = vi.fn(() =>
+      createAdaptersFixture({
+        cleanup: () => Promise.resolve(),
+        play: () => Promise.resolve(),
+        synthesize: (text) => Promise.resolve({ text }),
+      }),
+    );
+    const notification = createVoiceAlarmDelivery(
+      createAdapters,
+      {},
+      coordinator,
+    ).deliver({ id: "alarm-1", text: "Alarm." }, {});
+    const outcomes = Promise.allSettled([ordinary, notification]);
+    await vi.waitUntil(() => play.mock.calls.length === 1);
+    await coordinator.interrupt();
+    expect(await outcomes).toMatchObject([
+      {
+        status: "fulfilled",
+        value: { status: "cancelled", textOutputWritten: false },
+      },
+      { status: "rejected" },
+    ]);
+    expect(createAdapters).not.toHaveBeenCalled();
+    expect(fallbackOutput.writes).toEqual([]);
+  });
+
   it("speaks an alarm through fresh configured output adapters", async () => {
     const synthesize = vi.fn().mockResolvedValue({
       filePath: "/tmp/alarm.wav",
@@ -27,11 +76,16 @@ describe("createVoiceAlarmDelivery", () => {
     );
 
     expect(createAdapters).toHaveBeenCalledExactlyOnceWith(shutdown.signal);
-    expect(synthesize).toHaveBeenCalledExactlyOnceWith("Alarm: tea.");
-    expect(play).toHaveBeenCalledExactlyOnceWith({
-      filePath: "/tmp/alarm.wav",
-      text: "Alarm: tea.",
+    expect(synthesize).toHaveBeenCalledExactlyOnceWith("Alarm: tea.", {
+      signal: expect.any(AbortSignal) as AbortSignal,
     });
+    expect(play).toHaveBeenCalledExactlyOnceWith(
+      {
+        filePath: "/tmp/alarm.wav",
+        text: "Alarm: tea.",
+      },
+      { signal: expect.any(AbortSignal) as AbortSignal },
+    );
     expect(cleanup).toHaveBeenCalledOnce();
   });
 

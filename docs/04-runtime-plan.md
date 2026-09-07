@@ -343,8 +343,14 @@ The shared output coordinator admits at most 32 active/queued sessions and can
 interrupt the admitted set without replay. Every operation receives its own
 cancellation signal. On interruption it allows one second for the active
 operation to settle, then quarantines output if cleanup remains pending so a
-replacement cannot overlap an uncooperative player. Runtime playback and control
-wiring use this contract in subsequent Milestone 19 slices.
+replacement cannot overlap an uncooperative player. Ordinary speech and notification playback both receive this operation signal.
+Interrupted speech returns a cancelled result without fallback output or a
+presentation receipt. It does not capture another reply; terminal answers show
+cancelled state while pending confirmations and clarification prompts remain
+available. Queued notifications are rejected before adapters are constructed;
+their existing scheduler owns durable delivery outcomes and no output is replayed.
+Turn control and fatal cleanup supervision are added in subsequent Milestone 19
+slices.
 
 #### Native shell decision
 

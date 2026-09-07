@@ -33,6 +33,7 @@ export async function runVoiceCommandSequence(
   const maxFollowUpTurns = metadata.maxFollowUpTurns ?? defaultMaxFollowUpTurns;
 
   while (
+    result.status !== "cancelled" &&
     assistantResponseExpectsFollowUp(result.response) &&
     followUpTurns < maxFollowUpTurns
   ) {
@@ -53,6 +54,15 @@ export async function runVoiceCommandSequence(
       io,
       metadata,
     );
+  }
+
+  if (result.status === "cancelled") {
+    if (
+      result.response.status !== "needs_confirmation" &&
+      !assistantResponseExpectsFollowUp(result.response)
+    )
+      metadata.presentationInteraction?.cancelled();
+    return result;
   }
 
   if (metadata.presentationInteraction) {

@@ -1,7 +1,7 @@
 import { awaitAbortableOperation } from "../abortable-operation.js";
 import { waitForCleanupWithinDeadline } from "../bounded-cleanup.js";
 
-class VoiceOutputCancelledError extends Error {
+export class VoiceOutputCancelledError extends Error {
   constructor(cause?: unknown) {
     super("Voice output was cancelled.", { cause });
   }

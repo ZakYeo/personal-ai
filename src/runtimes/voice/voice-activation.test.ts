@@ -1,3 +1,6 @@
+import type { AudioOutputPort } from "../../ports/voice.js";
+import { createVoiceOutputCoordinator } from "./voice-output-coordinator.js";
+import type { AssistantResponse } from "../../ports/assistant.js";
 import type { Assistant } from "../../core/assistant/index.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import { runtimeFailureResponse } from "../../test-support/deterministic-runtime-fixtures.js";
@@ -88,6 +91,67 @@ const postWakeFailureScenarios: ActivationFailureScenario[] = [
 ];
 
 describe("voice activation", () => {
+  it.each([
+    { response: { status: "ok", text: "Completed." }, phase: "cancelled" },
+    {
+      response: {
+        status: "needs_confirmation",
+        text: "Confirm the exact action?",
+      },
+      phase: "confirmation",
+    },
+    {
+      response: { status: "ok", expectsFollowUp: true, text: "Which item?" },
+      phase: "response",
+    },
+  ] satisfies Array<{ response: AssistantResponse; phase: string }>)(
+    "stops output without capturing another reply and preserves $phase presentation",
+    async ({ response, phase }) => {
+      const outputCoordinator = createVoiceOutputCoordinator();
+      const record = vi.fn(() => Promise.resolve());
+      const captures: string[] = [];
+      const play = vi.fn<AudioOutputPort["play"]>(
+        (_speech, operation) =>
+          new Promise<void>((_resolve, reject) => {
+            operation?.signal?.addEventListener(
+              "abort",
+              () => reject(new Error("speech stopped")),
+              { once: true },
+            );
+          }),
+      );
+      const stream = createAssistantRuntimeEventStream({
+        instanceId: "service-1",
+        now: () => new Date("2026-09-07T12:00:00Z"),
+      });
+      const presentation = createPresentationInteractionCoordinator({
+        createInteractionId: () => "turn-1",
+        publish: (event) => stream.publish(event),
+      });
+      const dependencies = createVoiceActivationDependencies({
+        commandCaptures: captures,
+        assistant: {
+          handleText: () => Promise.resolve(response),
+          handleTextWithDiagnostics: () =>
+            Promise.resolve({ response, presentation: [{ record }] }),
+        },
+      });
+      const result = runVoiceActivation(
+        { ...dependencies, audioOutput: { play }, outputCoordinator },
+        { presentation },
+      );
+      await vi.waitUntil(() => play.mock.calls.length === 1);
+      await outputCoordinator.interrupt();
+      await expect(result).resolves.toMatchObject({
+        status: "cancelled",
+        textOutputWritten: false,
+      });
+      expect(record).not.toHaveBeenCalled();
+      expect(captures).toHaveLength(1);
+      expect(stream.snapshot().interaction?.phase).toBe(phase);
+    },
+  );
+
   it("publishes bounded presentation events for a completed interaction", async () => {
     const stream = createAssistantRuntimeEventStream({
       instanceId: "service-1",

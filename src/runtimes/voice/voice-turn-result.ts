@@ -4,7 +4,7 @@ import type { VoiceTurnTimings } from "./voice-timings.js";
 export interface VoiceTurnResult {
   response: AssistantResponse;
   spokenText?: string;
-  status: "spoken" | "ignored" | "fallback_output";
+  status: "spoken" | "ignored" | "fallback_output" | "cancelled";
   textOutputWritten: boolean;
   timings?: VoiceTurnTimings;
   transcript?: string;
