@@ -13,7 +13,11 @@ function preparedPlan(count = 1) {
     capabilities: [
       {
         name: "test.schedule",
-        risk: "low",
+        risk: "high",
+        renderConfirmation: (args) => ({
+          text: `Schedule ${String(args.instant)}`,
+          facts: { ...args },
+        }),
         parameters: {
           instant: { type: "string", required: true },
           label: { type: "string" },
@@ -40,6 +44,23 @@ function preparedPlan(count = 1) {
 }
 
 describe("plan correction patches", () => {
+  it("keeps confirmation-free companion steps fixed", () => {
+    const plan = preparedPlan();
+    const companion = {
+      ...plan.steps[0]!,
+      confirmation: { required: false as const },
+    };
+    expect(() =>
+      applyPlanCorrection(
+        { ...plan, steps: [companion] },
+        {
+          kind: "command",
+          command: createCommand("test.schedule", { label: "coffee" }),
+        },
+        "change",
+      ),
+    ).toThrow();
+  });
   it("retains unmentioned facts and permits explicit removal of an optional field", () => {
     const plan = preparedPlan();
     const result = applyPlanCorrection(

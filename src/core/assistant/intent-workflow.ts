@@ -32,10 +32,8 @@ import {
 } from "./command-execution.js";
 import type { ConversationSession } from "./conversation-session.js";
 import type { InteractionSession } from "./interaction-session.js";
-import {
-  createPlanConfirmationPrompt,
-  planRequiresConfirmation,
-} from "./plan-confirmation.js";
+import { planRequiresConfirmation } from "./plan-confirmation.js";
+import { requestWorkflowConfirmation } from "./confirmation-workflow.js";
 import { createSemanticallyValidatedIntentSession } from "./intent-semantic-validation.js";
 import { validateAssistantPlan } from "./plan-validation.js";
 import {
@@ -207,13 +205,46 @@ export function createIntentWorkflow(input: {
         : decorate(outcomeFromError(validation.error));
     }
     if (planRequiresConfirmation(validation.plan)) {
-      return input.dependencies.interaction.requestConfirmation(
-        validation.plan,
-        decorate(createPlanConfirmationPrompt(validation.plan)),
-        (plan, signal) => {
-          context = createContext(input.dependencies, signal);
-          return executePlan(plan);
+      return requestWorkflowConfirmation(
+        {
+          draft,
+          interaction: input.dependencies.interaction,
+          references: () =>
+            resultReferences
+              .publicReferences()
+              .map((reference) => reference.reference),
+          decorate,
+          execute: (plan, signal) => {
+            context = createContext(input.dependencies, signal);
+            return executePlan(plan);
+          },
+          next: (reply, metadata, signal) => {
+            context = createContext(input.dependencies, signal);
+            activeUserText = reply.trim();
+            return requireSession().next({
+              kind: "user_reply",
+              text: reply,
+              clarification: {
+                ...metadata,
+                capability: metadata.draft.capability,
+                origin: "confirmation_correction",
+                originalText: normalizedText,
+                session: "resume",
+              },
+            });
+          },
+          validate: (commands, kind) =>
+            validateAssistantPlan({
+              capabilityRouting: input.dependencies.capabilityRouting,
+              commands,
+              config: input.dependencies.config,
+              context: trustedContext(),
+              kind,
+              originalText: activeUserText,
+            }),
+          limitOutcome: clarificationLimitOutcome,
         },
+        validation.plan,
       );
     }
     return executePlan(validation.plan);

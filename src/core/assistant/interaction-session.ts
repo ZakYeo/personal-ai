@@ -35,6 +35,7 @@ export interface InteractionSession {
 
 export type ClarificationResolution =
   | { kind: "completed"; outcome: AssistantOutcome }
+  | { kind: "unchanged" }
   | { kind: "replacement" };
 
 type PendingReplyHandler = (
@@ -113,13 +114,18 @@ export function createInteractionSession(clock: ClockPort): InteractionSession {
             pending = undefined;
             outcome = cancelledOutcome;
           } else {
+            const original = pending;
             const resume = pending.resume;
             pending = undefined;
             const resolution = await resume(input, signal);
-            outcome =
-              resolution.kind === "replacement"
-                ? await handle()
-                : resolution.outcome;
+            if (resolution.kind === "unchanged") {
+              pending = original;
+              outcome = original.prompt;
+            } else
+              outcome =
+                resolution.kind === "replacement"
+                  ? await handle()
+                  : resolution.outcome;
           }
           return complete(outcome);
         }
@@ -127,13 +133,18 @@ export function createInteractionSession(clock: ClockPort): InteractionSession {
         const decision = parseConfirmation(input);
         if (decision === "pending") {
           if (pending.revise) {
+            const original = pending;
             const revise = pending.revise;
             pending = undefined;
             const resolution = await revise(input, signal);
-            outcome =
-              resolution.kind === "replacement"
-                ? await handle()
-                : resolution.outcome;
+            if (resolution.kind === "unchanged") {
+              pending = original;
+              outcome = original.prompt;
+            } else
+              outcome =
+                resolution.kind === "replacement"
+                  ? await handle()
+                  : resolution.outcome;
           } else outcome = pending.prompt;
           return complete(outcome);
         }

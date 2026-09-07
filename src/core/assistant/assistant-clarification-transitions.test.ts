@@ -92,7 +92,7 @@ describe("assistant clarification transitions", () => {
           capability: "weather.watch.create",
           draft: {
             capability: "weather.watch.create",
-            parameters: {},
+            parameters: { location: "London" },
             missingParameters: ["location"],
             references: [],
             expiresAt: "2026-06-26T09:05:00.000Z",

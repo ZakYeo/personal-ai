@@ -95,7 +95,8 @@ export interface IntentClarificationContext {
   readonly origin:
     | IntentClarificationMetadata["origin"]
     | "feature_validation"
-    | "feature_execution";
+    | "feature_execution"
+    | "confirmation_correction";
   readonly originalText: string;
   readonly parameter?: string;
   readonly prompt: string;

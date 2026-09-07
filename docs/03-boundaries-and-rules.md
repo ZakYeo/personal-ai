@@ -160,9 +160,11 @@ Development or test fixtures may exercise an unconfirmed high-risk path only
 when the fixture name and test expectation make that override obvious. Production
 or user-facing default configuration should not depend on remembering to list
 every high-risk capability in `confirmationRequiredCapabilities`.
-After a confirmation prompt, the assistant must not send the next input back to
-the intent provider. An explicit yes executes the already decoded command, an
-explicit no discards it, and unrelated input leaves it pending. Pending
+After a confirmation prompt, an explicit yes executes the already decoded
+command without provider reinterpretation and an explicit no discards it.
+Milestone 19 routes other replies through the originating bounded draft to
+propose corrections or classify a changed topic. An unchanged proposal restores
+the original prompt and deadline. Pending
 confirmation state is process-local and is discarded on restart. Milestone 19
 bounds it to two minutes from prompt creation using the injected clock. The
 serialized interaction checks expiry when a reply acquires ownership, including
@@ -250,6 +252,21 @@ save reply remains pinned to the exact trusted answer across later draft
 questions; it is prepended through the existing validated save-before-resume
 path only when the target resolves. Changed-topic replies discard the unsaved
 value, and the draft cannot collect a second application-owned save reply.
+
+Prepared confirmations share that original draft deadline and reply budget. Core
+applies provider-proposed field patches to frozen prepared arguments, preserves
+step count, order, and capability routes, and revalidates before showing a fresh
+confirmation. Omitted fields retain their values; explicit null removes a field
+only when the resulting command remains valid. Corrections may edit only steps
+covered by deterministic confirmation declarations. Companion steps, including
+application-owned profile saves, remain fixed; changing those requires a fresh
+request. Repeating unchanged facts does not refresh confirmation expiry.
+Correction questions remain in the same pending interaction; cancellation drops
+the draft and a changed topic starts one workflow from the exact reply. Read
+tools and executing or completed actions are unavailable to correction. Alarm
+creation and rescheduling normalize relative inputs to exact instants, so a label
+change cannot shift the prepared time; a newly requested relative time resolves
+against the live correction clock.
 Provider instructions distinguish required from optional capability parameters:
 missing required information may produce one question at a time, while absent
 optional values are omitted without an extra user turn. A provider-authored

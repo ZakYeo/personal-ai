@@ -336,7 +336,7 @@ shared Responses HTTP client; caller cancellation has its own diagnostic message
 and retains the underlying cause instead of being reported as a timeout.
 Core resumes confirmation and clarification through the originating workflow with
 the current request signal, including an explicit signal-free text continuation.
-It never reinterprets the frozen confirmation plan. Confirmation expires two
+Explicit approval never reinterprets the frozen confirmation plan. Confirmation expires two
 minutes after creation using the injected clock, checked after queued input gains
 transaction ownership. Repeated prompts do not renew it. Expired approvals return
 a terminal request to prepare the action again, without provider continuation;
@@ -348,8 +348,14 @@ parameters (32 fields and 8,000 serialized characters), declared missing fields,
 and ten public opaque references. Further questions do not renew their lifetime,
 and a late provider command cannot execute after expiry. Exhaustion returns a
 terminal request to restate the task without keeping voice capture open. This
-slice supports successive missing-field questions; edits to a pending confirmed
-action are implemented separately. OpenAI receives a field-by-field draft
+contract supports successive questions and corrections to prepared actions.
+Confirmed steps accept bounded field patches, preserving untouched fields and
+companion steps; every actual correction requires fresh validation and
+confirmation. Prepared plans contain at most three frozen step snapshots, each
+within the same field and character limits. Unchanged proposals restore the
+original confirmation deadline. A correction follow-up cannot extend the draft
+deadline, and even a newly refreshed confirmation cannot execute after it.
+OpenAI receives a field-by-field draft
 projection as context, never permissions, private targets, or diagnostics. Already-cancelled queued
 requests leave pending state intact; late interpretations cannot execute, and
 cancellation between plan steps preserves completed facts while blocking later

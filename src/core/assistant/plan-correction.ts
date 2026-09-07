@@ -42,6 +42,18 @@ export function applyPlanCorrection(
         step.route.capability,
       );
       if (!decoded.ok) throw new Error(decoded.error.message);
+      if (
+        Object.keys(decoded.args).length ===
+          Object.keys(step.decodedArgs).length &&
+        Object.entries(decoded.args).every(
+          ([name, value]) => step.decodedArgs[name] === value,
+        )
+      )
+        return step.command;
+      if (!step.confirmation.required)
+        throw new Error(
+          "A correction cannot change a companion step outside the deterministic confirmation.",
+        );
       return Object.freeze({
         ...command,
         parameters: Object.freeze(decoded.args),
