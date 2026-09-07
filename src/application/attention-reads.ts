@@ -4,7 +4,7 @@ import type {
   AttentionSourceReaderPort,
 } from "../ports/attention.js";
 
-export type AttentionReadResult = {
+type AttentionReadResult = {
   readonly rules: readonly AttentionRule[];
 } & (
   | {
