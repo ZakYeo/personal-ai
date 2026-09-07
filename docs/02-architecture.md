@@ -278,7 +278,7 @@ import or invoke one another:
 - Daily briefings use an application-owned aggregator over fixed narrow
   read ports for configured sources. The aggregator does not call feature
   plugins or delegate source selection to an intent provider.
-- Planned desktop presence consumes a frozen, bounded, human-safe runtime event
+- Desktop presence consumes a frozen, bounded, human-safe runtime event
   stream. Voice/service runtimes produce typed state changes; an authenticated
   local IPC adapter transports them; native or development UIs render them. The
   UI does not parse human log text or become a dependency of core and features.
@@ -287,6 +287,15 @@ import or invoke one another:
   application contracts. Fixed orchestration and permission policy remain
   application owned; host APIs, provider transports, persistence, native UI, and
   device protocols remain adapters selected at runtime.
+
+State ownership decision for future desktop/Pi/phone clients: one authenticated
+service owns durable stores and its core pending interactions. Current file
+adapters serialize within one process and provide no cross-process locking.
+Clients must use that service's typed commands and projections rather than
+opening the same files independently. The current desktop IPC remains local;
+remote transport, shared mounts, and simultaneous independent service writers
+are outside Milestone 18.1. A standalone setup verification must run after
+stopping the owner; an eventual in-service setup surface must reuse its stores.
 
 Profile, search-result, weather-result, and task-result contracts remain
 application-owned. New briefing, presentation, attention, context, action,

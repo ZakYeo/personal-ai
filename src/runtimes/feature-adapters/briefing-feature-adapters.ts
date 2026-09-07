@@ -64,6 +64,7 @@ export function createBriefingFeatureRegistryEntry(
   return {
     adapters: {
       file: fileBriefingAdapter.bind({
+        statePaths: (config) => [config.filePath],
         create: ({ adapterConfig, runtime }, services) =>
           createComposition(
             createFileBriefingStore({

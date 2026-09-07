@@ -656,6 +656,20 @@ tools, disconnected inputs, and unsupported systems produce safe recovery
 guidance. The selected device ID is diagnostic output only: apply it consistently
 to wake capture, command capture, and the wake detector through operator config;
 the setup command does not claim to have changed those paths.
+
+`npm run setup:check -- --config path/to/config.json` parses the selected config
+once and reports provider selection plus adapter-declared durable state paths.
+The registry exposes only its narrow state-path declaration; setup code must not
+reflect or dump broad adapter config, credentials, endpoints, or command bodies.
+Paths resolve through the same config-directory policy as composition. Local and
+known remote providers are identified; arbitrary command processing stays
+explicitly unchecked. Inspection performs no provider calls or store reads.
+An explicit `--verify` composes the configured feature readers, runs the same
+fixed read checks used by desktop health, and prints only health metadata.
+Verification is bounded to thirty seconds, propagates shutdown to network work,
+and never starts notification schedulers, executes assistant commands, or certifies
+write/send permissions. Stop any service owning the files before standalone
+verification; future multi-client setup must run inside the authenticated owner.
 Planned proactive attention contributes
 separate user-enabled typed rules with durable evaluation slots, quiet hours,
 cooling-off periods, budgets, and deduplication. Neither background path may ask

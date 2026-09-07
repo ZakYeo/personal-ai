@@ -679,8 +679,10 @@ Acceptance criteria:
 
 ## Milestone 18.1: Daily-Use Reliability
 
-Status: in progress; history fallback is implemented in tested slices, with
-remaining reliability work and the milestone review still pending. Follows
+Status: in progress; history fallback, briefing presentation receipts, local-day
+Today filtering, honest integration health, application CI, and guided local
+setup are implemented in tested slices. The milestone review and remediation
+are still pending. Follows
 implemented Milestone 18 and precedes Milestone 19.
 
 Goal: preserve completed work and present honest state before expanding the

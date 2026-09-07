@@ -58,6 +58,7 @@ export function createWeatherFeatureRegistryEntry(
   return {
     adapters: {
       mock: mockWeatherAdapter.bind({
+        statePaths: (config) => weatherStatePaths(config.watchStore),
         create: ({ adapterConfig, runtime }, services) => {
           const { watchStore, ...featureConfig } = adapterConfig;
           return createWeatherComposition(
@@ -86,6 +87,7 @@ export function createWeatherFeatureRegistryEntry(
           ).validateStartup(),
       }),
       openMeteo: openMeteoWeatherAdapter.bind({
+        statePaths: (config) => weatherStatePaths(config.watchStore),
         create: ({ adapterConfig, runtime }, services) => {
           const {
             openMeteo: _openMeteo,
@@ -191,4 +193,8 @@ function createWeatherWatchStore(
         now,
       })
     : createInMemoryWeatherWatchStore({ now });
+}
+
+function weatherStatePaths(config: WeatherWatchStoreConfig): readonly string[] {
+  return config.adapter === "file" ? [config.filePath] : [];
 }

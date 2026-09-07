@@ -46,6 +46,7 @@ function createFileAlarmAdapterEntry(
   const { configDirectory, notificationDelivery, ...storeDependencies } =
     dependencies;
   return fileAlarmAdapter.bind({
+    statePaths: (config) => [config.filePath],
     create: (_context, services) =>
       createAlarmComposition(
         services.require(alarmStoreService),

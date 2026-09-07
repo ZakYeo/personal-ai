@@ -756,6 +756,10 @@ should also guard against subtler boundary and abstraction drift.
   that pass parsed config to another factory must forward the same config-source
   directory. A directly injected parsed config must supply `configDirectory`
   when it selects relative local state.
+- Every current file store has one process owner. Future desktop/Pi/phone
+  clients must use one authenticated service for state and pending interactions;
+  shared filesystem access is not a multi-client protocol. Standalone setup
+  verification requires the existing service owner to be stopped first.
 - File-backed task state is single-process-owned and parsed from `unknown`
   through a versioned schema with deterministic migration. List and task
   mutations, reminder claims, delivery results, acknowledgement, and retention

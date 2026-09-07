@@ -17,6 +17,7 @@ interface FeatureAdapterContext<TAdapterConfig> {
 }
 
 interface FeatureAdapterBinding<TAdapterConfig> {
+  statePaths?(adapterConfig: TAdapterConfig): readonly string[];
   create(
     context: FeatureAdapterContext<TAdapterConfig>,
     services: RuntimeServiceRegistry,
@@ -45,6 +46,7 @@ interface FeatureAdapterEntryDefinition<
 }
 
 export interface ResolvedFeatureAdapter {
+  statePaths?(): readonly string[];
   create(
     runtime: FeatureAdapterRuntimeContext,
     services?: RuntimeServiceRegistry,
@@ -101,6 +103,9 @@ export function defineFeatureAdapter<TAdapterConfig>(definition: {
               services,
             ),
           parsedConfig,
+          ...(binding.statePaths
+            ? { statePaths: () => binding.statePaths?.(adapterConfig) ?? [] }
+            : {}),
           ...(binding.provideServices
             ? {
                 provideServices: (runtime: FeatureAdapterRuntimeContext) =>

@@ -653,6 +653,10 @@ Common development commands:
 - `npm run test:e2e:openai:weather` - run the focused opt-in live OpenAI
   weather-routing, clothing-adviser, and Open-Meteo ranked-location smoke; requires
   `OPENAI_API_KEY`.
+- `npm run setup:check -- --config path/to/config.json` - inspect selected
+  processing providers and declared durable state paths without connecting to
+  providers. Add `--verify` for bounded fixed-source read checks. Stop another
+  service using those state files before standalone verification.
 - `npm run setup:microphone` - guide a local PulseAudio microphone selection and
   optional five-second input-level/recording/playback test. Stop the voice service
   first. Test audio stays in memory, never enters a provider, and is discarded.

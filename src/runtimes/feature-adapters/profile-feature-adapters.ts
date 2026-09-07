@@ -38,6 +38,7 @@ export function createProfileFeatureRegistryEntry(
   return {
     adapters: {
       file: fileProfileAdapter.bind({
+        statePaths: (config) => [config.filePath],
         create: (_context, services) =>
           createProfileFeature(services.require(profileStoreService)),
         provideServices: ({ adapterConfig, runtime }) =>

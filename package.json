@@ -51,6 +51,7 @@
     "secrets:check": "secretlint \"**/*\"",
     "semgrep:check": "SEMGREP_ENABLE_VERSION_CHECK=0 SEMGREP_LOG_FILE=/tmp/personal-ai-semgrep.log SEMGREP_SETTINGS_FILE=/tmp/personal-ai-semgrep-settings.yml SEMGREP_SEND_METRICS=off semgrep scan --jobs 1 --no-git-ignore --config semgrep-rules/desktop.yml --strict --error apps/desktop/src src/runtimes/presentation src/runtimes/voice",
     "semgrep:test": "SEMGREP_ENABLE_VERSION_CHECK=0 SEMGREP_LOG_FILE=/tmp/personal-ai-semgrep.log SEMGREP_SETTINGS_FILE=/tmp/personal-ai-semgrep-settings.yml SEMGREP_SEND_METRICS=off semgrep scan --jobs 1 --test --config semgrep-rules/desktop.yml --strict semgrep-rules/desktop.test.tsx",
+    "setup:check": "node --env-file-if-exists=.env --import tsx src/runtimes/onboarding/configuration-check-main.ts",
     "setup:google-calendar": "node --env-file-if-exists=.env scripts/setup-google-calendar-oauth.mjs",
     "setup:microphone": "node --import tsx src/runtimes/onboarding/audio-setup-main.ts",
     "setup:openwakeword": "bash scripts/setup-openwakeword-venv.sh",

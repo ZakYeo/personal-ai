@@ -46,6 +46,7 @@ function createFileTaskAdapterEntry(
   const { configDirectory, notificationDelivery, ...storeDependencies } =
     dependencies;
   return fileTaskAdapter.bind({
+    statePaths: (config) => [config.filePath],
     create: (_context, services) =>
       createTaskComposition(
         services.require(taskStoreService),
