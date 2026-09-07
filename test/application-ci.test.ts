@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+// cspell:ignore libwebkit
 
 describe("application confidence CI", () => {
   it("requires the complete local gate with native and browser prerequisites", async () => {
