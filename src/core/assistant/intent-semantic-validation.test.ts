@@ -34,6 +34,70 @@ const capabilityCatalog: CapabilityCatalog = [
 ];
 
 describe("intent semantic validation", () => {
+  it.each([
+    { parameter: "location", parameters: {}, origin: "intent_interpreter" },
+    {
+      parameter: "location",
+      parameters: { privateTarget: "secret" },
+      origin: "semantic_validation",
+    },
+    {
+      parameter: "location",
+      parameters: { location: 12 },
+      origin: "semantic_validation",
+    },
+    { parameter: "constructor", parameters: {}, origin: "semantic_validation" },
+  ])(
+    "validates correction patches independently of retained required fields: $parameter $origin",
+    async ({ parameter, parameters, origin }) => {
+      const session = createSemanticallyValidatedIntentSession({
+        capabilityCatalog,
+        originalText: "Search for weather tomorrow",
+        session: fixedSession({
+          kind: "clarification",
+          clarification: {
+            capability: "internet.search",
+            origin: "intent_interpreter",
+            parameter,
+            partialCommand: command("internet.search", parameters),
+            session: "resume",
+          },
+          response: { status: "ok", text: "Which location?" },
+        }),
+      });
+      await expect(
+        session.next({
+          kind: "user_reply",
+          text: "change the location",
+          clarification: {
+            capability: "internet.search",
+            origin: "confirmation_correction",
+            originalText: "Search for weather tomorrow",
+            prompt: "Approve?",
+            session: "resume",
+            draft: {
+              capability: "internet.search",
+              parameters: { query: "weather tomorrow", location: "home" },
+              steps: [
+                {
+                  capability: "internet.search",
+                  parameters: { query: "weather tomorrow", location: "home" },
+                },
+              ],
+              missingParameters: [],
+              references: [],
+              remainingReplies: 2,
+              expiresAt: "2026-09-07T12:05:00.000Z",
+            },
+          },
+        }),
+      ).resolves.toMatchObject({
+        kind: "clarification",
+        clarification: { origin },
+      });
+    },
+  );
+
   it("applies request-echo safety when a partial draft is promoted to a complete command", async () => {
     const session = createSemanticallyValidatedIntentSession({
       capabilityCatalog,

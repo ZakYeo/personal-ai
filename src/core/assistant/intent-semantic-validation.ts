@@ -12,6 +12,11 @@ interface SemanticValidationOptions {
   session: IntentInterpreterSession;
 }
 
+type ClarificationValidationMode =
+  | "command"
+  | "application_clarification"
+  | "correction_patch";
+
 export function createSemanticallyValidatedIntentSession(
   options: SemanticValidationOptions,
 ): IntentInterpreterSession {
@@ -27,11 +32,14 @@ export function createSemanticallyValidatedIntentSession(
         interpretation,
         {
           activeUserText,
-          allowOptionalClarification:
-            (input?.kind === "tool_result" &&
-              input.expectedClarification?.kind === "application_declared") ||
-            (input?.kind === "user_reply" &&
-              input.clarification.origin === "confirmation_correction"),
+          clarificationMode:
+            input?.kind === "user_reply" &&
+            input.clarification.origin === "confirmation_correction"
+              ? "correction_patch"
+              : input?.kind === "tool_result" &&
+                  input.expectedClarification?.kind === "application_declared"
+                ? "application_clarification"
+                : "command",
           originalText: options.originalText,
         },
         options.capabilityCatalog,
@@ -44,7 +52,7 @@ function validateIntentSemantics(
   interpretation: IntentInterpretation,
   text: {
     activeUserText: string;
-    allowOptionalClarification: boolean;
+    clarificationMode: ClarificationValidationMode;
     originalText: string;
   },
   capabilityCatalog: CapabilityCatalog,
@@ -61,7 +69,7 @@ function validateIntentSemantics(
         validateProviderClarification(
           interpretation,
           capabilityCatalog,
-          text.allowOptionalClarification,
+          text.clarificationMode,
         ),
         text,
         capabilityCatalog,
@@ -101,7 +109,7 @@ function validateCommandSemantics(
 function validateProviderClarification(
   interpretation: Extract<IntentInterpretation, { kind: "clarification" }>,
   capabilityCatalog: CapabilityCatalog,
-  allowOptionalClarification: boolean,
+  mode: ClarificationValidationMode,
 ): IntentInterpretation {
   const clarification = interpretation.clarification;
   if (clarification.origin !== "intent_interpreter") return interpretation;
@@ -109,7 +117,10 @@ function validateProviderClarification(
   const declaration = capabilityCatalog.find(
     (entry) => entry.capability.name === capability,
   )?.capability;
-  const parameterDeclaration = declaration?.parameters?.[parameter];
+  const parameterDeclaration =
+    declaration?.parameters && Object.hasOwn(declaration.parameters, parameter)
+      ? declaration.parameters[parameter]
+      : undefined;
 
   if (
     !declaration ||
@@ -133,6 +144,7 @@ function validateProviderClarification(
     clarification: { ...clarification, partialCommand: validatedCommand },
     response: { ...interpretation.response, status: "ok" as const },
   };
+  if (mode === "correction_patch") return validatedInterpretation;
   const missingRequiredParameters = Object.entries(declaration.parameters ?? {})
     .filter(
       ([name, candidate]) =>
@@ -144,7 +156,7 @@ function validateProviderClarification(
 
   if (missingRequiredParameters.length === 0) {
     if (
-      allowOptionalClarification &&
+      mode === "application_clarification" &&
       parameterDeclaration.required !== true &&
       (partialCommand.parameters[parameter] === undefined ||
         partialCommand.parameters[parameter] === null)

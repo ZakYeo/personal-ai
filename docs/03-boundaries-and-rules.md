@@ -258,6 +258,9 @@ value, and the draft cannot collect a second application-owned save reply.
 
 Prepared confirmations share that original draft deadline and reply budget. Core
 applies provider-proposed field patches to frozen prepared arguments, preserves
+already validated required fields during replacement questions, and validates
+patch declarations, types, and bounds separately from merged-command completeness.
+It preserves
 step count, order, and capability routes, and revalidates before showing a fresh
 confirmation. Omitted fields retain their values; explicit null removes a field
 only when the resulting command remains valid. Corrections may edit only steps
