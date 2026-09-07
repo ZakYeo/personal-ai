@@ -1,4 +1,4 @@
-import { renderAttentionHistory } from "../../application/attention-presentation.js";
+import { presentAttentionNotice } from "../../application/attention-presentation.js";
 import type {
   AssistantPresentationProjection,
   PresentationProfileItem,
@@ -55,7 +55,7 @@ export async function readPresentationProjection(options: {
       ),
       readSource(
         options.services.get(attentionStoreService),
-        async (store) => [...(await store.read()).inbox],
+        async (store) => [await store.read()],
         options,
       ),
     ]);
@@ -105,7 +105,7 @@ export async function readPresentationProjection(options: {
     ["tasks", taskRead],
   ]);
   return {
-    attention: [...attentionRead.value]
+    attention: [...(attentionRead.value[0]?.inbox ?? [])]
       .sort(
         (a, b) =>
           Number(b.status === "open") - Number(a.status === "open") ||
@@ -116,7 +116,11 @@ export async function readPresentationProjection(options: {
         id: item.id,
         revision: item.revision,
         title: item.ruleName,
-        text: renderAttentionHistory(item),
+        ...presentAttentionNotice(
+          item,
+          attentionRead.value[0]!,
+          taskRead.checked && !taskRead.failed ? taskRead.value : undefined,
+        ),
         explanation: `${item.explanation}${item.delivery.status === "not_sent" ? ` Notification withheld: ${item.delivery.reason.replaceAll("_", " ")}.` : ""}`,
         provenance: item.provenance.request,
         recordedAt: renderDateTime(item.observedAt, item.timeZone),
@@ -127,9 +131,6 @@ export async function readPresentationProjection(options: {
             ? `snoozed until ${renderDateTime(item.snoozedUntil, item.timeZone)}`
             : item.status,
         delivery: item.delivery.status.replaceAll("_", " "),
-        canResolveReminder:
-          item.status === "open" &&
-          item.facts.problem === "reminder_delivery_unknown",
       })),
     activity: [],
     alarms,

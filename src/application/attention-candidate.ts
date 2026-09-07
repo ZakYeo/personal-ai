@@ -2,6 +2,7 @@ import type {
   AttentionCandidate,
   AttentionInboxItem,
   AttentionRule,
+  AttentionRuleDefinition,
 } from "../ports/attention.js";
 import { humanizeSpokenText } from "./human-text.js";
 import { containsControlCharacters } from "./text-safety.js";
@@ -50,10 +51,7 @@ export function prepareAttentionCandidate(
     return safe;
   };
   return {
-    key: createOpaqueKey(
-      "attention",
-      JSON.stringify([rule.definition, candidate.key]),
-    ),
+    key: attentionCandidateKey(rule.definition, candidate.key),
     text: text(candidate.text),
     explanation: text(candidate.explanation),
     timeZone: candidate.timeZone,
@@ -73,4 +71,11 @@ export function attentionClaims(items: readonly AttentionInboxItem[]) {
           },
         ],
   );
+}
+
+export function attentionCandidateKey(
+  definition: AttentionRuleDefinition,
+  key: string,
+): string {
+  return createOpaqueKey("attention", JSON.stringify([definition, key]));
 }

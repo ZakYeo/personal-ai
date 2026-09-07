@@ -14,6 +14,7 @@ export function createAttentionHealthSource(sources: {
       // Sequential narrow reads keep this source within one engine worker's budget.
       for (const task of (await sources.tasks?.listTasks()) ?? []) {
         if (
+          task.status !== "open" ||
           task.reminder?.status !== "claimed" ||
           now.getTime() - Date.parse(task.reminder.claimedAt) < 60_000
         )

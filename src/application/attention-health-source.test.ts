@@ -48,3 +48,17 @@ it("does not report an in-flight or acknowledged reminder as uncertain", async (
   });
   expect(await source.read(now)).toEqual([]);
 });
+
+it("does not create a new actionable delivery problem for a completed task", async () => {
+  const source = createAttentionHealthSource({
+    attention: createTestAttentionStore({ timeZone: "Europe/London" }),
+    tasks: {
+      listTasks: () =>
+        Promise.resolve([
+          { ...task, status: "completed", completedAt: now.toISOString() },
+        ]),
+    },
+    timeZone: "Europe/London",
+  });
+  expect(await source.read(now)).toEqual([]);
+});

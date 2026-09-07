@@ -1,3 +1,4 @@
+import { attentionCandidateKey } from "../../application/attention-candidate.js";
 import {
   createTestAttentionStore,
   createTestAttentionRule,
@@ -276,3 +277,88 @@ it("projects durable attention notices with opaque controls and no internal targ
     "Recorded at 1pm on 7 September 2026, London time:",
   );
 });
+
+it.each([
+  "claimed",
+  "acknowledged",
+  "delivered",
+  "missing",
+  "unavailable",
+] as const)(
+  "projects the current %s reminder state without changing notice delivery",
+  async (status) => {
+    const store = createTestAttentionStore({ timeZone: "Europe/London" });
+    const state = await store.read();
+    const rule = {
+      ...createTestAttentionRule(),
+      definition: { kind: "runtime_health" as const },
+    };
+    const item = {
+      ...createTestAttentionItem(rule),
+      key: attentionCandidateKey(
+        rule.definition,
+        "reminder:task-1:2026-09-07T11:00:00.000Z",
+      ),
+      facts: { problem: "reminder_delivery_unknown" },
+    };
+    await store.replace(state.revision, {
+      ...state,
+      revision: state.revision + 1,
+      rules: [rule],
+      inbox: [item],
+    });
+    const tasks = taskStore();
+    const original = (await tasks.listTasks())[0]!;
+    tasks.listTasks = () => {
+      if (status === "unavailable")
+        return Promise.reject(new Error("private task-store failure"));
+      if (status === "missing") return Promise.resolve([]);
+      const baseReminder = {
+        claimedAt: "2026-09-07T11:00:00.000Z",
+        scheduledFor: "2026-09-07T11:00:00.000Z",
+      };
+      const reminder =
+        status === "acknowledged"
+          ? {
+              ...baseReminder,
+              status,
+              acknowledgedAt: "2026-09-07T11:30:00.000Z",
+            }
+          : status === "delivered"
+            ? {
+                ...baseReminder,
+                status,
+                deliveredAt: "2026-09-07T11:30:00.000Z",
+              }
+            : { ...baseReminder, status };
+      return Promise.resolve([{ ...original, reminder }]);
+    };
+    const diagnostics = vi.fn();
+    const projection = await readPresentationProjection({
+      config: createLoadedRuntimeConfig({}),
+      now: new Date("2026-09-08T12:00:00.000Z"),
+      services: createRuntimeServiceRegistry([
+        bindRuntimeService(attentionStoreService, store),
+        bindRuntimeService(taskStoreService, tasks),
+      ]),
+      projectProfile: () => [],
+      reportFailure: diagnostics,
+    });
+    expect(projection.attention[0]?.canResolveReminder).toBe(
+      status === "claimed" || status === "delivered",
+    );
+    expect(projection.attention[0]?.delivery).toBe("unknown");
+    expect(projection.attention[0]?.status).toBe("open");
+    const descriptions = {
+      claimed: "Current reminder delivery remains unknown.",
+      acknowledged: "already been acknowledged",
+      delivered: "now records completed delivery",
+      missing: "no longer current",
+      unavailable: "Current reminder state is unavailable.",
+    };
+    expect(projection.attention[0]?.text).toContain(descriptions[status]);
+    expect(diagnostics).toHaveBeenCalledTimes(status === "unavailable" ? 1 : 0);
+    expect(JSON.stringify(projection.attention)).not.toContain("private");
+    expect((await store.read()).inbox[0]).toEqual(item);
+  },
+);

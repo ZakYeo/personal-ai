@@ -1,4 +1,4 @@
-import { renderAttentionHistory } from "../../application/attention-presentation.js";
+import { presentAttentionNotice } from "../../application/attention-presentation.js";
 import { applyAttentionInboxControl } from "../../application/attention-inbox-control.js";
 import { attentionInboxActions } from "../../ports/attention.js";
 import { defineCapability } from "../../application/feature.js";
@@ -23,7 +23,8 @@ export function createAttentionInboxCapabilities(
         "List up to five open notices that are not snoozed with opaque IDs and revisions for explicit follow-up actions. Notices are historical; delivery completion does not mean user acknowledgement.",
       spokenSummary: "read and manage your attention inbox",
       execute: async (_request, context) => {
-        const items = (await store.read()).inbox
+        const current = await readInboxSnapshot(store, tasks);
+        const items = current.state.inbox
           .filter(
             (item) =>
               item.status === "open" &&
@@ -42,11 +43,12 @@ export function createAttentionInboxCapabilities(
           ),
         );
         return {
+          diagnostics: current.diagnostics,
           data: { count: items.length, ...references },
           toolObservationData: { count: items.length, ...references },
           responseRewrite: "disabled",
           text: items.length
-            ? `Recorded notices: ${items.map((item) => `${item.ruleName}: ${renderAttentionHistory(item, 150)}`).join(" ")}`
+            ? `Recorded notices: ${items.map((item) => `${item.ruleName}: ${presentAttentionNotice(item, current.state, current.tasks, 100).text}`).join(" ")}`
             : "Your attention inbox has no open notices.",
         };
       },
@@ -59,12 +61,14 @@ export function createAttentionInboxCapabilities(
         "Read the exact saved explanation, explicit rule provenance, recorded time and delivery status for one opaque inbox ID.",
       spokenSummary: "read and manage your attention inbox",
       execute: async (request) => {
-        const item = (await store.read()).inbox.find(
+        const current = await readInboxSnapshot(store, tasks);
+        const item = current.state.inbox.find(
           (item) => item.id === request.args.id,
         );
         if (!item)
           return { text: "That notice is no longer in the attention inbox." };
         return {
+          diagnostics: current.diagnostics,
           data: {
             ...item.facts,
             id: item.id,
@@ -73,7 +77,7 @@ export function createAttentionInboxCapabilities(
             request: item.provenance.request,
           },
           responseRewrite: "disabled",
-          text: `${renderAttentionHistory(item)} ${item.explanation} The rule was enabled by your request: ${item.provenance.request}. Delivery status is ${item.delivery.status.replaceAll("_", " ")}; inbox status is ${item.status}.`,
+          text: `${presentAttentionNotice(item, current.state, current.tasks).text} ${item.explanation} The rule was enabled by your request: ${item.provenance.request}. Delivery status is ${item.delivery.status.replaceAll("_", " ")}; inbox status is ${item.status}.`,
           spokenText: { dateStyle: "contextual", timeZone: item.timeZone },
         };
       },
@@ -109,4 +113,26 @@ export function createAttentionInboxCapabilities(
       },
     }),
   };
+}
+
+async function readInboxSnapshot(
+  store: AttentionStore,
+  tasks: Pick<TaskStore, "listTasks"> | undefined,
+) {
+  const state = await store.read();
+  const diagnostics: Array<{ cause: unknown; message: string }> = [];
+  try {
+    const currentTasks = state.inbox.some(
+      (item) => item.facts.problem === "reminder_delivery_unknown",
+    )
+      ? await tasks?.listTasks()
+      : undefined;
+    return { state, tasks: currentTasks, diagnostics };
+  } catch (cause) {
+    diagnostics.push({
+      cause,
+      message: "Current attention reminder state was unavailable.",
+    });
+    return { state, tasks: undefined, diagnostics };
+  }
 }
