@@ -1,7 +1,7 @@
 import type { AudioOutputPort, TextToSpeechPort } from "../../ports/voice.js";
 import type { StreamingVoiceOutput } from "./streaming-voice.js";
 
-export interface VoiceSpeechAdapters {
+interface VoiceSpeechAdapters {
   audioOutput: AudioOutputPort;
   textToSpeech: TextToSpeechPort;
   streamingOutput?: StreamingVoiceOutput;
