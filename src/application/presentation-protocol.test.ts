@@ -69,12 +69,14 @@ describe("presentation protocol", () => {
         protocolVersion: 1,
         requestId: "request-2",
         type: "profile_set",
+        reference: "profile-1",
         value: "Zachary",
       }),
     ).toEqual({
       field: "preferredName",
       requestId: "request-2",
       type: "profile_set",
+      reference: "profile-1",
       value: "Zachary",
     });
   });

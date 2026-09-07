@@ -1,3 +1,4 @@
+import { createProfilePresentationControl } from "../../application/profile-presentation-control.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
 import type { CalendarSearchPort } from "../../ports/calendar.js";
 import type { ProfileStorePort } from "../../ports/profile-store.js";
@@ -26,6 +27,11 @@ describe("presentation projection reader", () => {
       }),
       now: new Date("2026-09-04T09:00:00.000Z"),
       reportFailure: vi.fn(),
+      projectProfile: createProfilePresentationControl({
+        referencePrefix: "test",
+        store: profileStore(),
+        now: () => new Date("2026-09-04T09:00:00Z"),
+      }).project,
       services: createRuntimeServiceRegistry([
         bindRuntimeService(alarmStoreService, alarmStore()),
         bindRuntimeService(calendarSearchService, calendar()),

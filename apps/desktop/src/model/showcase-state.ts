@@ -30,11 +30,13 @@ export const desktopShowcaseState = Object.freeze({
     profile: [
       {
         field: "preferredName",
+        reference: "profile-name",
         provenance: "user-authored",
         value: "Zak",
       },
       {
         field: "homeLocation",
+        reference: "profile-home",
         provenance: "user-authored",
         value: "London",
       },

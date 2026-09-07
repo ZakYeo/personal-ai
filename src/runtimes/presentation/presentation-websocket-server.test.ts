@@ -8,7 +8,7 @@ const token = "a-secure-presentation-token-with-32-characters";
 
 describe("presentation websocket server", () => {
   it.each(["disconnect", "shutdown"])(
-    "discards unstarted controls after %s",
+    "discards queued controls after %s",
     async (exit) => {
       const started: string[] = [];
       let finish: (() => void) | undefined;

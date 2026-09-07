@@ -94,15 +94,14 @@ export function parsePresentationControl(
       "protocolVersion",
       "requestId",
       "type",
-      "value",
+      "reference",
     ]) &&
       isIdentifier(value.field) &&
-      (value.value === undefined ||
-        isSafePresentationText(value.value, 1_000, false))
+      isIdentifier(value.reference)
       ? {
           field: value.field,
           requestId: value.requestId,
-          ...(typeof value.value === "string" ? { value: value.value } : {}),
+          reference: value.reference,
           type: value.type,
         }
       : undefined;
@@ -114,11 +113,14 @@ export function parsePresentationControl(
       "requestId",
       "type",
       "value",
+      "reference",
     ]) &&
       isIdentifier(value.field) &&
+      isIdentifier(value.reference) &&
       isSafePresentationText(value.value, 1_000, false)
       ? {
           field: value.field,
+          reference: value.reference,
           requestId: value.requestId,
           type: value.type,
           value: value.value,

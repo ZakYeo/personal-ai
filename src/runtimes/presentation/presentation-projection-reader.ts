@@ -1,4 +1,8 @@
-import type { AssistantPresentationProjection } from "../../ports/presentation.js";
+import type {
+  AssistantPresentationProjection,
+  PresentationProfileItem,
+} from "../../ports/presentation.js";
+import type { ProfileFact } from "../../ports/profile-store.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
 import {
   alarmStoreService,
@@ -13,6 +17,9 @@ export async function readPresentationProjection(options: {
   readonly now: Date;
   readonly reportFailure: (error: unknown) => void;
   readonly services: RuntimeServiceRegistry;
+  readonly projectProfile: (
+    facts: readonly ProfileFact[],
+  ) => readonly PresentationProfileItem[];
 }): Promise<AssistantPresentationProjection> {
   const day = localDate(options.now, options.config.assistant.timeZone);
   const [alarmRead, calendarRead, profileRead, taskRead] = await Promise.all([
@@ -88,11 +95,7 @@ export async function readPresentationProjection(options: {
           : "disabled",
       })),
     interactions: [],
-    profile: profileRead.value.slice(0, 50).map((fact) => ({
-      field: fact.field,
-      provenance: fact.provenance,
-      value: fact.value,
-    })),
+    profile: options.projectProfile(profileRead.value),
     sources: [],
     tasks,
     today,

@@ -125,6 +125,14 @@ export function createDesktopPresentationRuntime(options: {
       const port = parsePresentationPort(
         options.env.PERSONAL_AI_PRESENTATION_PORT,
       );
+      const profileStore = context?.services.get(profileStoreService);
+      const profileControl = profileStore
+        ? createProfilePresentationControl({
+            referencePrefix: instanceId,
+            now: options.now,
+            store: profileStore,
+          })
+        : undefined;
       if (context) {
         timeZone = context.config.assistant.timeZone;
         refresh = createPresentationRefresh({
@@ -135,6 +143,7 @@ export function createDesktopPresentationRuntime(options: {
               reportFailure: (error) =>
                 logRuntimeFailure(error, options.io ?? {}),
               services: context.services,
+              projectProfile: profileControl?.project ?? (() => []),
             }),
           publish: (projection) => {
             baseProjection = projection;
@@ -144,7 +153,6 @@ export function createDesktopPresentationRuntime(options: {
         });
         await refresh.request();
       }
-      const profileStore = context?.services.get(profileStoreService);
       server = await (options.startServer ?? startPresentationWebSocketServer)({
         eventStream,
         handleControl: createPresentationControlHandler({
@@ -152,12 +160,9 @@ export function createDesktopPresentationRuntime(options: {
           eventStream,
           ...(options.io ? { io: options.io } : {}),
           presentation,
-          ...(profileStore
+          ...(profileControl
             ? {
-                profileControl: createProfilePresentationControl({
-                  now: options.now,
-                  store: profileStore,
-                }),
+                profileControl: profileControl.handle,
               }
             : {}),
         }),

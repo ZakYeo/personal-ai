@@ -52,6 +52,7 @@ describe("presentation control handler", () => {
     await expect(
       handle({
         requestId: "profile",
+        reference: "profile-1",
         field: "preferredName",
         value: "Zak",
         type: "profile_set",

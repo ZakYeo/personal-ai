@@ -26,6 +26,7 @@ const state: DesktopPresentationState = {
     profile: [
       {
         field: "preferredName",
+        reference: "profile-name",
         provenance: "user-authored",
         value: "Zak",
       },
@@ -201,7 +202,7 @@ describe("desktop application", () => {
       expect.objectContaining({
         field: "preferredName",
         type: "profile_forget",
-        value: "Zak",
+        reference: "profile-name",
       }),
     ]);
   });

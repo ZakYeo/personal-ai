@@ -129,6 +129,7 @@ export interface PresentationInteractionItem {
 }
 
 export interface PresentationProfileItem {
+  readonly reference: string;
   readonly field: string;
   readonly provenance: "user-authored";
   readonly value: string;
@@ -163,13 +164,14 @@ export type PresentationControl =
   | {
       readonly field: string;
       readonly requestId: string;
-      readonly value?: string;
+      readonly reference: string;
       readonly type: "profile_forget";
     }
   | {
       readonly field: string;
       readonly requestId: string;
       readonly type: "profile_set";
+      readonly reference: string;
       readonly value: string;
     };
 

@@ -2,11 +2,7 @@ import type { PresentationControl } from "../../../../src/presentation-contract.
 import type { DesktopPresentationState } from "../model/desktop-state.js";
 import type { DesktopMode, DesktopSection } from "../model/navigation.js";
 import type { DesktopHost } from "../ports/desktop-host.js";
-import {
-  profileFactId,
-  projectDesktopView,
-  sourceById,
-} from "./desktop-view-projection.js";
+import { projectDesktopView, sourceById } from "./desktop-view-projection.js";
 import type { DesktopAppViewState } from "./desktop-view-state.js";
 
 export interface DesktopAppViewModel {
@@ -88,7 +84,13 @@ export function createDesktopAppViewModel(options: {
     correctProfileFact: (id, field) => {
       const value = profileDrafts.get(id)?.trim();
       if (!value) return;
-      dispatch({ field, requestId: requestId(), type: "profile_set", value });
+      dispatch({
+        field,
+        reference: id,
+        requestId: requestId(),
+        type: "profile_set",
+        value,
+      });
     },
     dismissOverlay: () => {
       void options.host.hideCurrentWindow().catch(showSafeControlFailure);
@@ -97,12 +99,12 @@ export function createDesktopAppViewModel(options: {
     getSnapshot: () => snapshot,
     explainProfileFact: (field) =>
       dispatch({ field, requestId: requestId(), type: "profile_explain" }),
-    forgetProfileFact: (field, value) =>
+    forgetProfileFact: (field, reference) =>
       dispatch({
         field,
         requestId: requestId(),
         type: "profile_forget",
-        value,
+        reference,
       }),
     openSource: (sourceId) => {
       const source = sourceById(presentation, sourceId);
@@ -136,8 +138,8 @@ export function createDesktopAppViewModel(options: {
           projection: state.projection ?? presentation.projection,
           ...(state.snapshot ? { snapshot: state.snapshot } : {}),
         };
-        for (const [index, fact] of presentation.projection.profile.entries()) {
-          const id = profileFactId(fact.field, fact.value, index);
+        for (const fact of presentation.projection.profile) {
+          const id = fact.reference;
           if (!profileDrafts.has(id)) profileDrafts.set(id, fact.value);
         }
       }),

@@ -146,8 +146,8 @@ function projectProfileFacts(
   state: DesktopPresentationState,
   drafts: ReadonlyMap<string, string>,
 ): readonly ProfileFactViewState[] {
-  return state.projection.profile.map((item, index) => {
-    const id = profileFactId(item.field, item.value, index);
+  return state.projection.profile.map((item) => {
+    const id = item.reference;
     return {
       draft: drafts.get(id) ?? item.value,
       field: item.field,
@@ -157,14 +157,6 @@ function projectProfileFacts(
       value: item.value,
     };
   });
-}
-
-export function profileFactId(
-  field: string,
-  value: string,
-  index: number,
-): string {
-  return `${field}:${value}:${index}`;
 }
 
 function projectSources(

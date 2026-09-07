@@ -352,6 +352,12 @@ Authenticated IPC admits at most ten outstanding controls per session, in
 addition to its arrival-rate limit. Overload receives a correlated safe
 rejection. Disconnect or shutdown discards controls that have not started;
 already-started operations retain their outcome without claiming rollback.
+Profile projections carry process-local opaque references separate from their
+humanized display values. Desktop correction and deletion resolve the exact
+selected fact through the composed profile session and reject stale selections;
+submitting an unchanged rendered value leaves the canonical fact unchanged.
+The desktop and service must be upgraded together for this profile-control
+contract revision; older controls without a reference fail closed.
 
 ### Raspberry Pi Runtime
 

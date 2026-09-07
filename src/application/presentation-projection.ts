@@ -205,11 +205,17 @@ function parseInteraction(
 
 function parseProfile(value: unknown): PresentationProfileItem | undefined {
   return isRecord(value) &&
-    hasExactKeys(value, ["field", "provenance", "value"]) &&
+    hasExactKeys(value, ["field", "provenance", "reference", "value"]) &&
     isText(value.field) &&
+    isText(value.reference) &&
     value.provenance === "user-authored" &&
     isText(value.value)
-    ? { field: value.field, provenance: value.provenance, value: value.value }
+    ? {
+        field: value.field,
+        provenance: value.provenance,
+        reference: value.reference,
+        value: value.value,
+      }
     : undefined;
 }
 

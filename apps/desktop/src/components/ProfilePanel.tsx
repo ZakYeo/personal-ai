@@ -28,7 +28,7 @@ export function ProfilePanel(properties: {
             <button onClick={() => properties.onExplain(fact.field)}>
               Why is this saved?
             </button>
-            <button onClick={() => properties.onForget(fact.field, fact.value)}>
+            <button onClick={() => properties.onForget(fact.field, fact.id)}>
               Forget
             </button>
           </div>
