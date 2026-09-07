@@ -530,7 +530,8 @@ describe("runCommandWritableStream", () => {
     await expect(
       runCommandWritableStream(
         {
-          args: ["-c", "exec 0<&-; printf 'playback failed' >&2; sleep 0.1"],
+          // Emit the diagnostic before EPIPE permits the parent to terminate us.
+          args: ["-c", "printf 'playback failed' >&2; exec 0<&-; sleep 0.1"],
           command: "/bin/sh",
           timeoutMs: 1_000,
         },
