@@ -3,7 +3,7 @@ import { waitForCleanupWithinDeadline } from "../bounded-cleanup.js";
 /** Owns one read at a time; timed-out reads cannot publish or accumulate retries. */
 export function createPresentationRefresh<T>(options: {
   read(): Promise<T>;
-  publish(value: T): void;
+  install(value: T): void;
   reportFailure(error: unknown): void;
 }): { request(): Promise<void>; stop(): void } {
   let stopped = false;
@@ -17,7 +17,7 @@ export function createPresentationRefresh<T>(options: {
       const read = Promise.resolve()
         .then(() => options.read())
         .then((value) => {
-          if (!stopped && !expired) options.publish(value);
+          if (!stopped && !expired) options.install(value);
         })
         .finally(() => {
           running = false;

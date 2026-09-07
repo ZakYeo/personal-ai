@@ -145,7 +145,7 @@ export function createDesktopPresentationRuntime(options: {
               services: context.services,
               projectProfile: profileControl?.project ?? (() => []),
             }),
-          publish: (projection) => {
+          install: (projection) => {
             baseProjection = projection;
             publishProjection();
           },

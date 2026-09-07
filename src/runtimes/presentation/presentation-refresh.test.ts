@@ -14,7 +14,7 @@ describe("presentation refresh ownership", () => {
     const publish = vi.fn();
     const refresh = createPresentationRefresh({
       read,
-      publish,
+      install: publish,
       reportFailure: vi.fn(),
     });
     const first = refresh.request();
@@ -38,7 +38,11 @@ describe("presentation refresh ownership", () => {
     );
     const publish = vi.fn();
     const reportFailure = vi.fn();
-    const refresh = createPresentationRefresh({ read, publish, reportFailure });
+    const refresh = createPresentationRefresh({
+      read,
+      install: publish,
+      reportFailure,
+    });
     const pending = refresh.request();
     await vi.advanceTimersByTimeAsync(5_000);
     await pending;
@@ -61,7 +65,7 @@ describe("presentation refresh ownership", () => {
         new Promise<string>((resolve) => {
           finish = resolve;
         }),
-      publish,
+      install: publish,
       reportFailure: vi.fn(),
     });
     const pending = refresh.request();
