@@ -28,8 +28,10 @@ export function createSemanticallyValidatedIntentSession(
         {
           activeUserText,
           allowOptionalClarification:
-            input?.kind === "tool_result" &&
-            input.expectedClarification?.kind === "application_declared",
+            (input?.kind === "tool_result" &&
+              input.expectedClarification?.kind === "application_declared") ||
+            (input?.kind === "user_reply" &&
+              input.clarification.origin === "confirmation_correction"),
           originalText: options.originalText,
         },
         options.capabilityCatalog,

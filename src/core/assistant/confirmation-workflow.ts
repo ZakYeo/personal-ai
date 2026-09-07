@@ -85,7 +85,12 @@ export function requestWorkflowConfirmation(
         const interpretation = await input.next(
           reply,
           {
-            draft: input.draft.snapshot(),
+            draft: Object.freeze({
+              ...input.draft.snapshot(),
+              ...(parameter
+                ? { missingParameters: Object.freeze([parameter]) }
+                : {}),
+            }),
             prompt: promptText,
             ...(parameter ? { parameter } : {}),
           },
@@ -121,6 +126,21 @@ export function requestWorkflowConfirmation(
             metadata && "parameter" in metadata
               ? metadata.parameter
               : undefined;
+          if (
+            nextParameter &&
+            !plan.steps.some(
+              (step) =>
+                step.command.capability === metadata?.capability &&
+                step.confirmation.required &&
+                Object.hasOwn(
+                  step.route.capability.parameters ?? {},
+                  nextParameter,
+                ),
+            )
+          )
+            throw new Error(
+              "A correction question requested an undeclared or fixed field.",
+            );
           return completed(
             input.interaction.requestClarification(
               {

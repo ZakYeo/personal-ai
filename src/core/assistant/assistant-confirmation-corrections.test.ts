@@ -81,7 +81,14 @@ describe("pending action corrections", () => {
   it("keeps a bounded correction question in the originating workflow", async () => {
     const h = harness([
       {
-        kind: "rephrase",
+        kind: "clarification",
+        clarification: {
+          capability: "alarm.create",
+          origin: "intent_interpreter",
+          parameter: "label",
+          partialCommand: createCommand("alarm.create"),
+          session: "resume",
+        },
         response: { status: "ok", text: "What label should I use?" },
       },
       labelCorrection("coffee"),
@@ -100,6 +107,12 @@ describe("pending action corrections", () => {
       { label: "coffee", scheduledFor: "2026-09-07T12:10:00.000Z" },
     ]);
     expect(h.starts).toHaveLength(1);
+    expect(h.continuations[1]).toMatchObject({
+      clarification: {
+        parameter: "label",
+        draft: { missingParameters: ["label"] },
+      },
+    });
   });
   it("cancels an incomplete correction without reinterpreting the cancellation", async () => {
     const h = harness([
