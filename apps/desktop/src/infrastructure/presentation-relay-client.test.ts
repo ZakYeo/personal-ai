@@ -4,6 +4,33 @@ import type { PresentationClient } from "../ports/presentation-client.js";
 import { createPresentationRelayClient } from "./presentation-relay-client.js";
 
 describe("presentation relay client", () => {
+  it("isolates identical caller IDs from separate windows", async () => {
+    const channel = createFakeChannelPair();
+    const direct = createDirectClient();
+    const leader = createPresentationRelayClient({
+      channel: channel.first,
+      directClient: direct.client,
+      role: "leader",
+    });
+    const satellite = createPresentationRelayClient({
+      channel: channel.second,
+      role: "satellite",
+    });
+    leader.connect();
+    satellite.connect();
+    const control = {
+      requestId: "desktop-1",
+      text: "Hello",
+      type: "submit_text" as const,
+    };
+    await Promise.all([
+      leader.sendControl(control),
+      satellite.sendControl(control),
+    ]);
+    expect(new Set(direct.controls.map((item) => item.requestId)).size).toBe(2);
+    leader.disconnect();
+    satellite.disconnect();
+  });
   it("keeps one direct service client and relays safe state to satellites", async () => {
     const channel = createFakeChannelPair();
     const direct = createDirectClient();
@@ -14,6 +41,7 @@ describe("presentation relay client", () => {
     });
     const satellite = createPresentationRelayClient({
       channel: channel.second,
+      createClientId: () => "satellite",
       role: "satellite",
     });
     const satelliteStates: RuntimePresentationState[] = [];
@@ -36,7 +64,7 @@ describe("presentation relay client", () => {
     expect(direct.controls).toEqual([
       {
         interactionId: "interaction-1",
-        requestId: "request-1",
+        requestId: "satellite-1",
         type: "confirm",
       },
     ]);

@@ -340,6 +340,9 @@ presentation server starts successfully, and port validation precedes reads.
 Projection construction humanizes and bounds display fields before retention;
 valid longer runtime responses cannot poison later dashboard updates. Opaque
 identifiers and validated hidden source targets remain exact.
+Each relay client assigns transport request IDs from its own instance identity
+and sequence so concurrent windows cannot collide. The direct transport rejects
+duplicate outstanding IDs without replacing the original promise owner.
 
 ### Raspberry Pi Runtime
 

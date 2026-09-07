@@ -103,6 +103,11 @@ class PresentationWebSocketClient implements PresentationClient {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
       return Promise.reject(new Error("Presentation service is offline."));
     }
+    if (this.pendingControls.has(control.requestId)) {
+      return Promise.reject(
+        new Error("Presentation control ID is already pending."),
+      );
+    }
     return new Promise((resolve, reject) => {
       const timer = this.scheduleReconnect(() => {
         this.pendingControls.delete(control.requestId);

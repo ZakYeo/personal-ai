@@ -42,6 +42,32 @@ function createFakeSocket() {
 }
 
 describe("presentation WebSocket client", () => {
+  it("rejects duplicate outstanding IDs without replacing the original result", async () => {
+    const fake = createFakeSocket();
+    const client = createPresentationWebSocketClient({
+      createSocket: () => fake.socket,
+      endpoint: "ws://127.0.0.1:43210",
+      token,
+    });
+    client.connect();
+    const control = {
+      requestId: "same-id",
+      text: "Hello",
+      type: "submit_text" as const,
+    };
+    const first = client.sendControl(control);
+    await expect(client.sendControl(control)).rejects.toThrow(
+      "already pending",
+    );
+    fake.emitMessage({
+      protocolVersion: 1,
+      requestId: "same-id",
+      status: "accepted",
+      type: "control_result",
+    });
+    await expect(first).resolves.toEqual({ status: "accepted" });
+    client.disconnect();
+  });
   it("authenticates and reduces validated events", () => {
     const fake = createFakeSocket();
     const states: RuntimePresentationState[] = [];
