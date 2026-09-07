@@ -267,6 +267,12 @@ tools and executing or completed actions are unavailable to correction. Alarm
 creation and rescheduling normalize relative inputs to exact instants, so a label
 change cannot shift the prepared time; a newly requested relative time resolves
 against the live correction clock.
+
+During correction validation only, core may select a provider-proposed opaque
+reference exactly from the still-current result set. Explicit spoken ordinals
+must agree, expired or replaced references fail closed, and changed target facts
+require a fresh confirmation. Normal contextual reference selection remains
+unchanged; providers never receive private targets.
 Provider instructions distinguish required from optional capability parameters:
 missing required information may produce one question at a time, while absent
 optional values are omitted without an extra user turn. A provider-authored

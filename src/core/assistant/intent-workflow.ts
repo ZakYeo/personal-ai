@@ -238,7 +238,7 @@ export function createIntentWorkflow(input: {
               capabilityRouting: input.dependencies.capabilityRouting,
               commands,
               config: input.dependencies.config,
-              context: trustedContext(),
+              context: trustedContext("exact"),
               kind,
               originalText: activeUserText,
             }),
@@ -454,11 +454,14 @@ export function createIntentWorkflow(input: {
     }
   }
 
-  function trustedContext(): AssistantContext {
+  function trustedContext(
+    referenceMatching: "contextual" | "exact" = "contextual",
+  ): AssistantContext {
     return createTrustedCommandContext(
       context,
       resultReferences,
       activeUserText,
+      referenceMatching,
     );
   }
 

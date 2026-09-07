@@ -169,6 +169,9 @@ export function createTrustedCommandContext(
   context: AssistantContext,
   resultReferences: ResultReferenceLookup,
   trustedInputText: string,
+  referenceMatching: NonNullable<
+    ResultReferenceSelectionRequest["referenceMatching"]
+  > = "contextual",
 ): AssistantContext {
   const publicReferences = resultReferences.publicReferences();
   return {
@@ -176,7 +179,7 @@ export function createTrustedCommandContext(
     ...(publicReferences.length > 0
       ? {
           selectResultReference: (request: ResultReferenceSelectionRequest) =>
-            resultReferences.select(request),
+            resultReferences.select({ ...request, referenceMatching }),
           trustedInputText,
         }
       : {}),

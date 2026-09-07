@@ -74,12 +74,19 @@ export function createResultReferenceSession(): ResultReferenceSession {
         ? state.entries.find(
             (candidate) => candidate.publicReference.ordinal === spokenOrdinal,
           )
-        : state.entries.length === 1
-          ? state.entries[0]
-          : state.entries.find(
+        : request.referenceMatching === "exact" &&
+            request.reference !== undefined
+          ? state.entries.find(
               (candidate) =>
-                candidate.publicReference.reference === state.focusedReference,
-            );
+                candidate.publicReference.reference === request.reference,
+            )
+          : state.entries.length === 1
+            ? state.entries[0]
+            : state.entries.find(
+                (candidate) =>
+                  candidate.publicReference.reference ===
+                  state.focusedReference,
+              );
       if (
         !entry ||
         (request.reference !== undefined &&

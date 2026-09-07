@@ -5,6 +5,36 @@ import {
 import type { FeatureResultReferenceSet } from "../../ports/result-reference.js";
 
 describe("result reference session", () => {
+  it("allows exact correction references only within current results and respects spoken ordinals", () => {
+    const session = createResultReferenceSession();
+    session.publishDisplayed({
+      items: ["first", "second"].map((title) => ({
+        facts: { date: "2026-07-17", time: "11:00", title },
+        target: { kind: "calendar_event" as const, providerEventId: title },
+      })),
+      kind: "calendar_events",
+    });
+    const request = {
+      expectedKind: "calendar_event" as const,
+      ordinalParsing: "enabled" as const,
+      rawText: "the other one",
+      reference: "calendar-event-2",
+      referenceMatching: "exact" as const,
+    };
+
+    expect(session.select(request)).toMatchObject({
+      target: { providerEventId: "second" },
+    });
+    expect(
+      session.select({ ...request, reference: "calendar-event-99" }),
+    ).toBeUndefined();
+    expect(
+      session.select({ ...request, rawText: "the first one" }),
+    ).toBeUndefined();
+    session.publishDisplayed(resultSet("replacement"));
+    expect(session.select(request)).toBeUndefined();
+  });
+
   it("keeps workflow references private until their result set is displayed", () => {
     const parent = createResultReferenceSession();
     parent.publishDisplayed(resultSet("previous"));

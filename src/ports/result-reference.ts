@@ -117,4 +117,5 @@ export interface ResultReferenceSelectionRequest {
   readonly ordinalParsing: "disabled" | "enabled";
   readonly rawText: string;
   readonly reference?: string;
+  readonly referenceMatching?: "contextual" | "exact";
 }
