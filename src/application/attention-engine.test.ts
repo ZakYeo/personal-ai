@@ -1,6 +1,7 @@
 import {
   createTestAttentionStore,
   createTestAttentionRule,
+  createTestAttentionItem,
 } from "../test-support/attention.js";
 import { processAttentionCycle } from "./attention-engine.js";
 import type { AttentionRule } from "../ports/attention.js";
@@ -181,5 +182,37 @@ describe("durable proactive attention evaluation", () => {
     await h.run(now, shutdown.signal);
     expect(h.deliver).not.toHaveBeenCalled();
     expect((await h.store.read()).inbox[0]?.delivery.status).toBe("unknown");
+  });
+  it("makes room for higher-priority notices without discarding claimed delivery history", async () => {
+    const task = createTestAttentionRule();
+    const health: AttentionRule = {
+      ...task,
+      id: "health",
+      name: "Health",
+      definition: { kind: "runtime_health" },
+    };
+    const h = await harness([{ ...task, enabled: false }, health]);
+    const state = await h.store.read();
+    const inbox = Array.from({ length: 256 }, (_, index) => ({
+      ...createTestAttentionItem(),
+      id: `old-${index}`,
+      key: `old-${index}`,
+      delivery:
+        index === 0
+          ? { status: "unknown" as const, attemptedAt: now.toISOString() }
+          : { status: "not_sent" as const, reason: "quiet_hours" as const },
+    }));
+    await h.store.replace(state.revision, {
+      ...state,
+      revision: state.revision + 1,
+      nextId: 1_000,
+      inbox,
+    });
+    await h.run();
+    expect(h.deliver).toHaveBeenCalledOnce();
+    const saved = await h.store.read();
+    expect(saved.inbox).toHaveLength(256);
+    expect(saved.inbox.some((item) => item.id === "old-0")).toBe(true);
+    expect(saved.inbox.some((item) => item.ruleId === "health")).toBe(true);
   });
 });

@@ -1,3 +1,4 @@
+import { attentionEvictionIndex } from "./attention-capacity.js";
 import type {
   AttentionCandidate,
   AttentionEvaluation,
@@ -89,8 +90,12 @@ export async function saveAttentionCandidates(
       )
         continue;
       if (!previous && inbox.length >= 256) {
-        full = true;
-        continue;
+        const eviction = attentionEvictionIndex(inbox, rule, state.rules);
+        if (eviction < 0) {
+          full = true;
+          continue;
+        }
+        inbox.splice(eviction, 1);
       }
       const item: AttentionInboxItem = {
         ...previous,
