@@ -3,6 +3,7 @@ import type { DesktopPresentationState } from "./desktop-state.js";
 export const desktopShowcaseState = Object.freeze({
   connection: "connected",
   projection: {
+    attention: [],
     activity: [
       { occurredAt: "10:42am", summary: "Morning briefing completed" },
       { occurredAt: "9:15am", summary: "Weather watch checked" },

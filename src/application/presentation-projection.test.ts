@@ -36,3 +36,34 @@ describe("presentation projection builder", () => {
     );
   });
 });
+
+it("sanitizes and freezes bounded attention notices without accepting private fields", () => {
+  const projection = buildAssistantPresentationProjection(
+    {
+      ...emptyAssistantPresentationProjection,
+      attention: [
+        {
+          id: "attention-item-1",
+          revision: 2,
+          title: "Health",
+          text: "Read https://example.test/private",
+          explanation: "A reminder outcome is unknown.",
+          provenance: "Notify me about problems",
+          recordedAt: "2026-09-07T12:00:00.000Z",
+          status: "open",
+          delivery: "unknown",
+          canResolveReminder: true,
+        },
+      ],
+    },
+    { now: new Date("2026-09-07T12:00:00.000Z"), timeZone: "Europe/London" },
+  );
+  expect(projection.attention[0]?.text).not.toContain("https:");
+  expect(Object.isFrozen(projection.attention[0])).toBe(true);
+  expect(
+    parseAssistantPresentationProjection({
+      ...projection,
+      attention: [{ ...projection.attention[0], privateTarget: "task-secret" }],
+    }),
+  ).toBeUndefined();
+});

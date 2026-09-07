@@ -30,6 +30,7 @@ describe("presentation protocol", () => {
     expect(
       parsePresentationServerMessage({
         projection: {
+          attention: [],
           activity: [],
           alarms: [],
           integrations: [
@@ -55,6 +56,7 @@ describe("presentation protocol", () => {
     expect(
       parsePresentationServerMessage({
         projection: {
+          attention: [],
           activity: [],
           alarms: [],
           diagnostics: "private",

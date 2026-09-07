@@ -99,6 +99,7 @@ export interface AssistantPresentationSnapshot {
 }
 
 export interface AssistantPresentationProjection {
+  readonly attention: readonly PresentationAttentionItem[];
   readonly activity: readonly PresentationActivityItem[];
   readonly alarms: readonly PresentationAlarmItem[];
   readonly integrations: readonly PresentationIntegrationItem[];
@@ -107,6 +108,19 @@ export interface AssistantPresentationProjection {
   readonly sources: readonly AssistantCitation[];
   readonly tasks: readonly PresentationTaskItem[];
   readonly today: readonly string[];
+}
+
+export interface PresentationAttentionItem {
+  readonly id: string;
+  readonly revision: number;
+  readonly title: string;
+  readonly text: string;
+  readonly explanation: string;
+  readonly provenance: string;
+  readonly recordedAt: string;
+  readonly status: string;
+  readonly delivery: string;
+  readonly canResolveReminder: boolean;
 }
 
 export interface PresentationActivityItem {

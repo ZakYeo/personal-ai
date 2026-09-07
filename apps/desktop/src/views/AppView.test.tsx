@@ -10,6 +10,7 @@ import { AppView } from "./AppView.js";
 const state: DesktopPresentationState = {
   connection: "connected",
   projection: {
+    attention: [],
     activity: [{ occurredAt: "10:00", summary: "Voice request completed" }],
     alarms: [
       {

@@ -1,3 +1,4 @@
+import { parsePresentationAttentionItem } from "./presentation-attention.js";
 import type {
   AssistantPresentationProjection,
   PresentationActivityItem,
@@ -43,6 +44,18 @@ export function buildAssistantPresentationProjection(
       : `${safe.slice(0, projectionLimits.textCharacters - 1)}…`;
   };
   const projection = parseAssistantPresentationProjection({
+    attention: value.attention.slice(0, 50).map((item) => ({
+      id: item.id,
+      revision: item.revision,
+      title: text(item.title),
+      text: text(item.text),
+      explanation: text(item.explanation),
+      provenance: text(item.provenance),
+      recordedAt: text(item.recordedAt),
+      status: text(item.status),
+      delivery: text(item.delivery),
+      canResolveReminder: item.canResolveReminder,
+    })),
     activity: value.activity
       .slice(0, projectionLimits.activities)
       .map((item) => ({
@@ -91,6 +104,11 @@ export function parseAssistantPresentationProjection(
   value: unknown,
 ): AssistantPresentationProjection | undefined {
   if (!isRecord(value) || !hasExactProjectionKeys(value)) return;
+  const attention = parseArray(
+    value.attention,
+    50,
+    parsePresentationAttentionItem,
+  );
   const activity = parseArray(
     value.activity,
     projectionLimits.activities,
@@ -119,7 +137,8 @@ export function parseAssistantPresentationProjection(
   );
   const tasks = parseArray(value.tasks, projectionLimits.tasks, parseTask);
   const today = parseArray(value.today, projectionLimits.today, parseText);
-  return activity &&
+  return attention &&
+    activity &&
     alarms &&
     integrations &&
     interactions &&
@@ -128,6 +147,7 @@ export function parseAssistantPresentationProjection(
     tasks &&
     today
     ? {
+        attention,
         activity,
         alarms,
         integrations,
@@ -142,6 +162,7 @@ export function parseAssistantPresentationProjection(
 
 export const emptyAssistantPresentationProjection: AssistantPresentationProjection =
   Object.freeze({
+    attention: Object.freeze([]),
     activity: Object.freeze([]),
     alarms: Object.freeze([]),
     integrations: Object.freeze([]),
@@ -265,6 +286,7 @@ function parseArray<TValue>(
 
 function hasExactProjectionKeys(value: Record<string, unknown>): boolean {
   return hasExactKeys(value, [
+    "attention",
     "activity",
     "alarms",
     "integrations",

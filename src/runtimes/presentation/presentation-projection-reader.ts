@@ -96,6 +96,7 @@ export async function readPresentationProjection(options: {
     ["tasks", taskRead],
   ]);
   return {
+    attention: [],
     activity: [],
     alarms,
     integrations: Object.entries(options.config.features)
