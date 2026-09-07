@@ -170,16 +170,16 @@ Milestones 18.1 and 19 now implement daily-use reliability, honest desktop state
 onboarding, main application CI, bounded voice interruption and corrections, and
 confirmation expiry after independent review. Physical responsiveness measurements
 remain operator-deferred. Milestone 20 adds a morning routine and a durable
-attention inbox. A narrow Milestone 24
+attention inbox after independent review. A narrow Milestone 24
 project/meeting-preparation pilot precedes broad computer control and real
-communications. A 30-day trial of ten user-selected jobs supplies product evidence;
-the attention implementation awaits its independent review; knowledge remains planned. See the
+communications. Knowledge remains planned. A 30-day trial of ten user-selected
+jobs supplies product evidence. See the
 [delivery priorities](docs/06-implementation-roadmap.md#delivery-priorities-and-daily-use-evidence).
 
 ## Proactive attention
 
-Milestone 20 implementation is available for local validation; its independent
-review is still pending. The checked-in configuration keeps attention disabled.
+Milestone 20 is implemented after independent review and tested remediation.
+The checked-in configuration keeps attention disabled.
 To opt in, set this section in the config used by your desktop or Pi service:
 
 ```json
@@ -207,8 +207,9 @@ examples also work with the deterministic intent provider:
 - `enable morning routine named Morning at 08:00`
 - `show my attention rules`, `show my attention inbox`, `help me plan my day`
 
-Every rule retains your explicit request as provenance. Defaults are at most 24
-saved rules, one evaluation per minute, four independent source reads, five
+Every rule retains your explicit request as provenance. Rule-list reads use
+pages of seven rules and support exact-name lookup for later lifecycle actions.
+Defaults are at most 24 saved rules, one evaluation per minute, four independent source reads, five
 notification attempts per local day, quiet hours from 22:00 to 08:00, and a
 60-minute cooling-off period per rule. The typed rule commands accept explicit
 quiet hours, timezone and cooling-off settings; the confirmed budget command
@@ -217,7 +218,11 @@ forecast within the evaluation cycle. Weather notices are conveniences, not
 emergency alerts.
 
 The desktop **Inbox** shows recorded notices, explanations, provenance, delivery
-status and acknowledgement status. It supports acknowledgement, one-hour snooze,
+status and acknowledgement status. Historical wording is attributed to its
+original snapshot time, including its year and timezone. Current reminder and
+integration state is read from the canonical stores without overwriting recorded
+attempts. Unchanged suppressed notices retain their control revision.
+The inbox supports acknowledgement, one-hour snooze,
 dismissal, disabling the originating rule, and canonical uncertain-reminder
 acknowledgement without completing the task. Text/voice lifecycle commands use
 the same revision-checked application operations. Failed or uncertain delivery is
@@ -298,9 +303,10 @@ The default desktop OpenAI voice service config used by `npm start` selects the
 Google Calendar adapter, OpenAI internet search, the OpenAI response rewriter,
 the narrow OpenAI calendar event grouper, Open-Meteo weather, the narrow OpenAI
 weather-clothing adviser, and config-relative durable alarm, weather-watch,
-task, and profile stores. This enables every currently implemented feature;
-Milestone 18 desktop presence is implemented. Milestones 19 through 25 remain
-planned, beginning with voice interruption and responsiveness.
+task, and profile stores. Desktop presence, daily-use reliability, and voice
+interruption are implemented. Proactive attention remains an explicit opt-in
+through the configuration above. Milestones 21 through 25 remain planned, with
+the narrow Milestone 24 knowledge pilot next in the delivery priorities.
 Internet search reuses
 `OPENAI_API_KEY`; its bounded source annotations become sanitized natural source
 titles with validated HTTPS link metadata, while raw URLs and citation markup

@@ -47,12 +47,13 @@ and service composition.
 
 ## Implemented Milestone Archive
 
-Detailed acceptance criteria and outcomes for Milestones 1 through 18
-are kept in `docs/09-implemented-milestones.md`. The earlier provider-focused
-roadmap after Milestone 12.1 was retired. Capability-focused Milestones 13
-through 18 are implemented. The September 7, 2026 evaluation adds planned
-Milestone 18.1 and refines Milestones 19 through 25 below; these additions do not
-claim new implementation or reopen the historical completion records.
+Detailed acceptance criteria and outcomes for Milestones 1 through 20,
+including Milestone 18.1, are kept in `docs/09-implemented-milestones.md`.
+The earlier provider-focused roadmap after Milestone 12.1 was retired.
+Milestones 18.1, 19, and 20 are implemented after fresh independent reviews and
+tested remediation. Physical voice measurements and the 30-day daily-use trial
+remain operator-deferred. The September 7, 2026 delivery priorities place a
+narrow Milestone 24 pilot before broader integrations in Milestones 21 through 25.
 
 ## Spike 9: Future Milestone Discovery
 
@@ -810,7 +811,10 @@ Acceptance criteria:
 
 ## Milestone 20: Proactive Attention Engine
 
-Status: planned; depends on Milestones 17 through 19.
+Status: implemented after a fresh independent thermonuclear review, tested
+remediation of every actionable finding, and the full validation gate. Physical
+voice measurements and the 30-day daily-use trial remain explicitly deferred by
+the operator. See the implemented milestone archive for outcomes and limits.
 
 Goal: surface a small number of timely, explainable signals derived from existing
 trusted state without turning the assistant into an autonomous agent.

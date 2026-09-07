@@ -840,8 +840,18 @@ priorities and inbox deduplication are application-owned. The desktop receives a
 bounded safe inbox projection and uses authenticated revision-pinned controls.
 The morning routine reuses fixed briefing aggregation and its shared presentation
 baseline, with a fifteen-minute scheduling grace window. Neither background path
-may ask an intent provider to choose additional tools or actions. Milestone 20's
-independent review remains pending.
+may ask an intent provider to choose additional tools or actions. Milestone 20 is
+implemented after independent review and tested remediation.
+
+Evaluation claims retain the last completed outcome so health reads can report
+source failures while a later evaluation is in flight. Independent task, alarm,
+and evaluation health reads isolate failures and retain internal diagnostics.
+Candidate reconciliation calculates content and suppression together; unchanged
+notices retain their revisions. Durable snapshots have a separate observation
+time and explicit historical attribution. Inbox reads and controls resolve the
+original reminder claim against current task state, preserving historical output
+and user acknowledgement separately. Bounded rule-list pages and exact-name
+lookup keep intermediate observations inside the shared 24-field limit.
 
 The selected weather provider is Open-Meteo's free non-commercial forecast and
 geocoding service. Runtime config may select endpoint and timeout policy but has

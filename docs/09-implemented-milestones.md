@@ -4,6 +4,66 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 20: Proactive Attention Engine
+
+Status: implemented after a fresh independent thermonuclear review, tested
+remediation, and the full validation gate. Physical voice measurements and the
+30-day daily-use evidence remain explicitly deferred by the operator.
+
+Implemented outcomes:
+
+- Explicit confirmed commands enable bounded calendar, task, conflict, weather,
+  runtime-health, and morning rules. Rules preserve the exact user-authored
+  request, an explicit timezone, quiet hours, cooling-off settings, and typed
+  source criteria. The feature is disabled in the checked-in default config;
+  enabling it creates no rules or notifications.
+- One asynchronous local/file store owns preferences, revision-checked rules,
+  claimed evaluation slots, completed outcomes, and the durable attention inbox.
+  File state uses the shared private-mode atomic replacement and sync policy,
+  resolves relative paths beside the selected config, and has one process owner.
+- Application-owned evaluation uses fixed narrow reads, shared identical requests,
+  at most four independent reads, minute slots, deterministic priorities, quiet
+  hours, per-rule cooling-off, daily budgets, and durable claim-before-output.
+  Uncertain output is never replayed automatically. Retention runs at startup
+  and daily even when notification output is absent.
+- The inbox retains bounded historical snapshots with exact facts, dated human
+  wording, provenance, and independent delivery/user acknowledgement states.
+  Text, voice, and authenticated desktop controls acknowledge, snooze, dismiss,
+  disable an originating rule, or resolve the exact canonical reminder claim.
+  Current task and integration state is projected separately from historical
+  attempts; acknowledging a notice never silently completes a task.
+- One explicitly enabled morning routine reads only fixed profile, calendar,
+  task, and weather sources, retains missing-source disclosures within the
+  briefing text bound, and records the shared briefing baseline after successful
+  presentation. A fifteen-minute grace window handles slow prior cycles.
+  Terminal day planning suggests at most three read-only priorities and does
+  not reserve another microphone turn or invent actions.
+
+Review outcome:
+
+The fresh reviewer found erased source-failure evidence, unnecessary notice
+revision churn, stale canonical reminder state, missed provable calendar
+overlaps, aging relative wording, duplicate-candidate persistence failures, and
+truncated morning availability disclosures. Parent commits addressed each with
+regression tests. Follow-up verification exposed missing isolation between the
+actual composed health readers; that also received tested remediation. A parent
+boundary audit additionally bounded rule-list observations with seven-rule pages
+and exact-name lookup. The reviewer independently verified remediation, passed
+58 focused tests and then 33 follow-up tests, and reported no remaining actionable findings. The full
+repository and desktop validation gate passed after remediation.
+
+Acceptance limits:
+
+The implementation admits at most 24 saved rules and 256 inbox notices. Defaults
+are five attempts per local day, quiet hours from 22:00 to 08:00, and sixty-minute
+cooling-off. Thirty-day inbox retention preserves records exactly at the cutoff;
+higher-priority notices may evict undelivered lower-priority notices, never
+claimed history. Weather notices remain conveniences rather than emergency
+alerts. The morning routine requires briefing storage and a disabled separate
+briefing schedule. Useful-notice ratings, unwanted interruptions, and physical
+voice responsiveness still require the operator-run evidence described in the
+active roadmap and voice benchmark guide.
+
 ## Milestone 19: Voice Interruption and Responsiveness
 
 Status: implemented after a fresh independent thermonuclear review, tested
