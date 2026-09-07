@@ -643,6 +643,19 @@ first successful runs, using GitHub's exact displayed check names. Coverage is
 not a required status. Workflow configuration is committed here; hosted run
 results and branch-protection settings must be verified in GitHub. Live provider
 tests and real microphone/latency measurements remain explicit opt-in work.
+
+The microphone onboarding command `npm run setup:microphone` discovers bounded
+PulseAudio input devices, excludes output monitors, and asks for device
+selection. Recording requires an explicit yes after stopping the voice service;
+playback requires a separate yes. Five seconds of mono 24 kHz signed 16-bit PCM
+are bounded to 240,000 bytes in memory, with level feedback and no provider calls
+or recording files. Cancellation propagates to command processes, iterator
+cleanup is bounded, and retained buffers are cleared on every outcome. Device
+discovery uses `pactl`; recording/playback use SoX's PulseAudio backend. Missing
+tools, disconnected inputs, and unsupported systems produce safe recovery
+guidance. The selected device ID is diagnostic output only: apply it consistently
+to wake capture, command capture, and the wake detector through operator config;
+the setup command does not claim to have changed those paths.
 Planned proactive attention contributes
 separate user-enabled typed rules with durable evaluation slots, quiet hours,
 cooling-off periods, budgets, and deduplication. Neither background path may ask

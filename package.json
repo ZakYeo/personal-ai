@@ -52,6 +52,7 @@
     "semgrep:check": "SEMGREP_ENABLE_VERSION_CHECK=0 SEMGREP_LOG_FILE=/tmp/personal-ai-semgrep.log SEMGREP_SETTINGS_FILE=/tmp/personal-ai-semgrep-settings.yml SEMGREP_SEND_METRICS=off semgrep scan --jobs 1 --no-git-ignore --config semgrep-rules/desktop.yml --strict --error apps/desktop/src src/runtimes/presentation src/runtimes/voice",
     "semgrep:test": "SEMGREP_ENABLE_VERSION_CHECK=0 SEMGREP_LOG_FILE=/tmp/personal-ai-semgrep.log SEMGREP_SETTINGS_FILE=/tmp/personal-ai-semgrep-settings.yml SEMGREP_SEND_METRICS=off semgrep scan --jobs 1 --test --config semgrep-rules/desktop.yml --strict semgrep-rules/desktop.test.tsx",
     "setup:google-calendar": "node --env-file-if-exists=.env scripts/setup-google-calendar-oauth.mjs",
+    "setup:microphone": "node --import tsx src/runtimes/onboarding/audio-setup-main.ts",
     "setup:openwakeword": "bash scripts/setup-openwakeword-venv.sh",
     "smoke:desktop-voice:openai": "PERSONAL_AI_RUN_DESKTOP_VOICE_OPENAI_SMOKE=1 node --env-file-if-exists=.env ./node_modules/vitest/vitest.mjs --run src/runtimes/desktop-voice-openai-smoke.e2e.test.ts",
     "smoke:package": "npm run build && node scripts/smoke-package.mjs",

@@ -653,6 +653,12 @@ Common development commands:
 - `npm run test:e2e:openai:weather` - run the focused opt-in live OpenAI
   weather-routing, clothing-adviser, and Open-Meteo ranked-location smoke; requires
   `OPENAI_API_KEY`.
+- `npm run setup:microphone` - guide a local PulseAudio microphone selection and
+  optional five-second input-level/recording/playback test. Stop the voice service
+  first. Test audio stays in memory, never enters a provider, and is discarded.
+  Requires `pactl` and SoX with PulseAudio support; unsupported systems should use
+  their operating-system input test. This diagnostic does not rewrite service
+  device configuration.
 - `npm run test:coverage` - run Vitest once with V8 coverage thresholds. CI
   publishes this as an advisory report; it does not replace the full check gate.
 - `npm run lint` - run ESLint.
