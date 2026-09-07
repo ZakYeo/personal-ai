@@ -68,6 +68,41 @@ const labelCorrection = (label: string): IntentInterpretation => ({
 });
 
 describe("pending action corrections", () => {
+  it("retains an explicit field deletion while asking for another correction", async () => {
+    const h = harness([
+      {
+        kind: "clarification",
+        clarification: {
+          capability: "alarm.create",
+          origin: "intent_interpreter",
+          parameter: "minutesFromNow",
+          partialCommand: createCommand("alarm.create", { label: null }),
+          session: "resume",
+        },
+        response: { status: "ok", text: "How many minutes?" },
+      },
+      {
+        kind: "command",
+        command: createCommand("alarm.create", {
+          scheduledFor: null,
+          minutesFromNow: 20,
+        }),
+      },
+    ]);
+    await h.assistant.handleText("set an alarm");
+    await h.assistant.handleText("remove the label and change the time");
+    const revised = await h.assistant.handleText("twenty minutes");
+    expect(revised.status).toBe("needs_confirmation");
+    expect(h.continuations[1]).not.toHaveProperty(
+      "clarification.draft.parameters.label",
+    );
+    await h.assistant.handleText("yes");
+    const alarms = await h.store.list();
+    expect(alarms).toHaveLength(1);
+    expect(alarms[0]?.label).not.toBe("tea");
+    expect(alarms[0]?.scheduledFor).toBe("2026-09-07T12:20:00.000Z");
+  });
+
   it.each([60_000, 120_000])(
     "restores original facts after a correction question without renewing expiry at %i milliseconds",
     async (elapsed) => {

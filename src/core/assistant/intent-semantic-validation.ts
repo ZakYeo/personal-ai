@@ -137,7 +137,16 @@ function validateProviderClarification(
 
   const validatedCommand = Object.freeze({
     ...partialCommand,
-    parameters: Object.freeze(decoded.args),
+    parameters: Object.freeze({
+      ...decoded.args,
+      ...(mode === "correction_patch"
+        ? Object.fromEntries(
+            Object.entries(partialCommand.parameters).filter(
+              ([, value]) => value === null,
+            ),
+          )
+        : {}),
+    }),
   });
   const validatedInterpretation = {
     ...interpretation,
