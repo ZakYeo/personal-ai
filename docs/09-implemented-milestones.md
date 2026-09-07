@@ -4,6 +4,58 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 18.1: Daily-Use Reliability
+
+Status: implemented after a fresh independent thermonuclear review and tested
+remediation of every actionable finding.
+
+Goal: preserve completed exchanges, record honest presentation and integration
+state, and provide bounded local setup before expanding voice and attention.
+
+Implemented outcomes:
+
+- Compaction failure retains the newest safe exchanges within ten pairs,
+  16,000 characters per entry, and 32,000 total characters while preserving the
+  previous summary, internal diagnostics, serialized commits, and later retry.
+- Daily briefing generation is terminal-only. An application-owned presentation
+  receipt advances the comparison baseline only after successful text publication
+  or speech delivery; undisplayed and failed delivery cannot advance it.
+- Today uses the assistant's configured local day, with overdue, undated, and
+  future work presented separately. Calendar discovery handles distant calendar
+  timezones, daylight-saving transitions, empty provider pages, and bounded
+  pagination before limiting retained matching events. Incomplete discovery
+  reports degraded health instead of an apparently empty day.
+- Integration health distinguishes configured, connected, degraded, disabled,
+  and unchecked sources with safe last-check metadata from actual narrow reads.
+- Hosted Application CI runs the full confidence gate with Linux native and
+  browser dependencies alongside Windows native checks. Coverage is advisory;
+  required branch-protection check names and setup are documented.
+- Explicit local microphone selection, bounded consented capture, level feedback,
+  separately consented playback, and buffer disposal use no provider transcription.
+  Readline interruption, EOF, and process signals share one cancellation owner,
+  including the existing voice-corpus capture command.
+- Configuration inspection reports adapter-declared processing surfaces and
+  state paths, including nested remote grouping and clothing advice, without
+  disclosing private provider or command configuration. Explicit verification
+  runs fixed narrow read checks with bounded shutdown.
+- File stores retain one process owner. Future simultaneous clients must use an
+  authenticated service owner for state and pending interactions; remote transport
+  remains outside this milestone.
+
+Review outcome:
+
+The fresh reviewer found Google Calendar pagination truncating Today, readline
+Ctrl-C leaving interactive setup unsettled, and hidden nested remote processing
+in setup inspection. Each finding received a tested remediation commit. Follow-up
+review reported no remaining actionable findings and independently passed 23
+focused tests. The full repository validation gate passed after remediation.
+
+Acceptance limits:
+
+Physical microphone and voice-responsiveness measurements require the operator's
+actual devices. The thirty-day daily-use evidence gate remains separate; automated
+validation and hosted native checks do not substitute for either measurement.
+
 ## Milestone 18: Desktop Presence and Command Center
 
 Status: implemented after midpoint and final independent thermonuclear

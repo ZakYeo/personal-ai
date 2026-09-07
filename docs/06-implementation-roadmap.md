@@ -679,15 +679,13 @@ Acceptance criteria:
 
 ## Milestone 18.1: Daily-Use Reliability
 
-Status: in progress; history fallback, briefing presentation receipts, local-day
-Today filtering, honest integration health, application CI, and guided local
-setup are implemented in tested slices. The milestone review and remediation
-are still pending. Follows
-implemented Milestone 18 and precedes Milestone 19.
+Status: implemented after a fresh independent thermonuclear review, tested
+remediation, and the full validation gate. See the implemented milestone archive
+for outcomes. Physical-device and thirty-day daily-use evidence remain separate.
+Follows implemented Milestone 18 and precedes Milestone 19.
 
 Goal: preserve completed work and present honest state before expanding the
-ambient experience. These are follow-up fixes, not claims that the
-existing implementation already provides the revised behavior.
+ambient experience through bounded reliability and setup behavior.
 
 Included and thin slices, each with a failing regression test first:
 
