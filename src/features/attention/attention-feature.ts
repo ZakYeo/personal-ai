@@ -1,3 +1,5 @@
+import { defineDeterministicFeatureRules } from "../../application/deterministic-feature-rules.js";
+import { attentionDeterministicRules } from "./attention-deterministic-rules.js";
 import type { CalendarSearchPort } from "../../ports/calendar.js";
 import { createAttentionPlanningCapability } from "./attention-planning-capability.js";
 import { createAttentionInboxCapabilities } from "./attention-inbox-capabilities.js";
@@ -17,19 +19,22 @@ export function createAttentionFeature(
     calendar?: CalendarSearchPort;
   } = {},
 ) {
-  return defineFeature({
-    id: "attention",
-    displayName: "Proactive Attention",
-    spokenSummary: "manage explicit proactive rules and your attention inbox",
-    capabilities: {
-      "attention.plan_day": createAttentionPlanningCapability(sources),
-      ...createAttentionRuleCapabilities(store),
-      ...createAttentionInboxCapabilities(store, sources.tasks),
-      ...createAttentionLifecycleCapabilities(store),
-      "attention.weather.enable": createAttentionWeatherCapability(
-        store,
-        sources.weather,
-      ),
-    },
-  });
+  return defineDeterministicFeatureRules(
+    defineFeature({
+      id: "attention",
+      displayName: "Proactive Attention",
+      spokenSummary: "manage explicit proactive rules and your attention inbox",
+      capabilities: {
+        "attention.plan_day": createAttentionPlanningCapability(sources),
+        ...createAttentionRuleCapabilities(store),
+        ...createAttentionInboxCapabilities(store, sources.tasks),
+        ...createAttentionLifecycleCapabilities(store),
+        "attention.weather.enable": createAttentionWeatherCapability(
+          store,
+          sources.weather,
+        ),
+      },
+    }),
+    attentionDeterministicRules,
+  );
 }
