@@ -4,6 +4,56 @@ This document preserves the detailed scope, exclusions, acceptance criteria,
 and outcomes for completed implementation milestones. The active roadmap and
 future ordering remain in `docs/06-implementation-roadmap.md`.
 
+## Milestone 19: Voice Interruption and Responsiveness
+
+Status: implemented after a fresh independent thermonuclear review, tested
+remediation, and the full validation gate. Physical responsiveness measurements
+and the 30-day daily-use evidence remain explicitly deferred by the operator.
+
+Implemented outcomes:
+
+- Injected monotonic phase timing includes live content-free event callbacks,
+  wake feedback, first transcript/audio, stop recognition, and software cleanup.
+  The bounded offline responsiveness report validates operator-supplied samples,
+  counts, scenarios, failures, false wakes, duplicates, and acoustic measurements;
+  synthetic fixtures cannot claim device acceptance.
+- One turn-wide cancellation signal reaches capture, intent/conversation,
+  synthesis, streaming playback, and cleanup. Serialized output and microphone
+  ownership have bounded cleanup and quarantine; failed cleanup stops the service
+  safely with internal diagnostics. Completed actions are never rolled back or
+  automatically repeated.
+- Local spoken stop and explicit desktop interruption preserve pending actions.
+  Opt-in barge-in requires operator-declared headphones or echo cancellation,
+  admits one bounded wake-qualified replacement, rejects output echo, and hands
+  off once after cleanup. Single-turn runtimes reject this service-only setting.
+- Core owns two-minute confirmation expiry and one five-minute, three-reply typed
+  draft with a shared 32-field/8,000-character decoded-parameter budget. Validated
+  corrections preserve untouched exact facts and routes, require fresh approval,
+  reject stale references, and retain explicit deletions through later questions.
+  Alarm relative times become exact prepared instants before confirmation.
+- Returning to original facts restores a session-owned original confirmation and
+  its original deadline. Desktop clicks identify the exact displayed confirmation
+  revision, preventing stale clicks from approving revised facts.
+
+Review outcome:
+
+The fresh reviewer found stale desktop approval identity, incorrect restoration
+after a correction question, per-step instead of aggregate draft bounds, and
+whole-command validation of correction patches. Follow-up verification found a
+related dropped-null-deletion case. Each received a separate tested parent commit;
+the reviewer independently verified remediation and reported no remaining
+actionable findings. The full repository and desktop gate passed afterward.
+
+Acceptance limits:
+
+The proposed physical targets remain under 150 ms wake-to-feedback, under 300 ms
+recognized-stop-to-silence, and under 1.5 seconds at p95 utterance-end-to-useful-audio.
+Software timings do not prove acoustic silence or microphone/provider latency.
+Use the committed responsiveness template and operator guidance with at least
+30 command, stop, and barge-in samples each across quiet, noise, and back-to-back
+scenarios. No optional rewriting or compaction optimization is claimed without
+measured benefit. The 30-day daily-use gate remains separate.
+
 ## Milestone 18.1: Daily-Use Reliability
 
 Status: implemented after a fresh independent thermonuclear review and tested

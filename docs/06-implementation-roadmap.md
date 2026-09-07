@@ -734,8 +734,8 @@ Acceptance criteria:
 
 ## Milestone 19: Voice Interruption and Responsiveness
 
-Status: initial implementation complete, pending fresh independent review and
-remediation. Monotonic live timing, shared bounded cancellation, spoken stop,
+Status: implemented after fresh independent review, remediation of all actionable
+findings, and the full validation gate. Monotonic live timing, shared bounded cancellation, spoken stop,
 opt-in isolated-input barge-in, typed draft corrections, and confirmation expiry
 have deterministic coverage. The read-only responsiveness report distinguishes
 synthetic checks from acoustic evidence. Physical host-device measurements and
