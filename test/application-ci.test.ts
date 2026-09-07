@@ -19,6 +19,7 @@ describe("application confidence CI", () => {
     expect(confidence).toContain("libgtk-3-dev");
     expect(confidence).toContain("playwright install --with-deps chromium");
     expect(confidence).toContain("semgrep==");
+    expect(confidence).toContain("components: rustfmt");
     expect(workflow).toContain("pull_request:");
     expect(workflow).toContain("branches: [master]");
   });
