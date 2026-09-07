@@ -3,7 +3,9 @@ export type VoiceTimingEventName =
   | "local_feedback"
   | "capture_completed"
   | "first_transcript"
-  | "first_audio_submitted";
+  | "first_audio_submitted"
+  | "stop_recognized"
+  | "output_stopped";
 
 interface VoiceTimingEvent {
   name: VoiceTimingEventName;
@@ -137,6 +139,12 @@ function formatResponsiveness(timings: VoiceTurnTimings): string[] {
     string,
   ][] = [
     ["wake_detected", "local_feedback", "detected wake to local feedback", ""],
+    [
+      "stop_recognized",
+      "output_stopped",
+      "recognized stop to output cleanup",
+      " (software boundary; acoustic silence unmeasured)",
+    ],
     [
       "capture_completed",
       "first_transcript",

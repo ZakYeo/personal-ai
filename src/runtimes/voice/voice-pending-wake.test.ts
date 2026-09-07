@@ -1,3 +1,4 @@
+import { createVoiceOutputCoordinator } from "./voice-output-coordinator.js";
 import { createPresentationControlHandler } from "../presentation/presentation-control-handler.js";
 import {
   createAssistantHarness,
@@ -11,6 +12,27 @@ import { createPresentationInteractionCoordinator } from "../presentation/presen
 import { runVoiceActivation } from "./voice-activation.js";
 
 describe("a later wake with a pending confirmation", () => {
+  it("pauses a spoken stop while preserving the exact confirmation for a later wake", async () => {
+    const { dependencies, execute, presentation, stream } =
+      await createPendingVoiceHarness();
+    dependencies.commandAudioInput.capture = () =>
+      Promise.resolve({ text: "stop" });
+    await expect(
+      runVoiceActivation(dependencies, { presentation }),
+    ).resolves.toMatchObject({ status: "cancelled" });
+    expect(execute).not.toHaveBeenCalled();
+    expect(stream.snapshot().interaction).toMatchObject({
+      id: "interaction-1",
+      phase: "confirmation",
+    });
+    dependencies.commandAudioInput.capture = () =>
+      Promise.resolve({ text: "yes" });
+    await expect(
+      runVoiceActivation(dependencies, { presentation }),
+    ).resolves.toMatchObject({ status: "spoken" });
+    expect(execute).toHaveBeenCalledOnce();
+  });
+
   it("resumes the existing interaction and reports microphone capture accurately", async () => {
     const { dependencies, execute, presentation, stream, createdIds } =
       await createPendingVoiceHarness();
@@ -42,33 +64,40 @@ describe("a later wake with a pending confirmation", () => {
       phase: "completed",
     });
   });
-  it("discards a captured voice reply after the UI claimed the confirmation", async () => {
-    const { assistant, dependencies, execute, presentation, stream } =
-      await createPendingVoiceHarness();
-    const handle = createPresentationControlHandler({
-      assistant,
-      presentation,
-      eventStream: stream,
-    });
-    dependencies.commandAudioInput.capture = async () => {
+  it.each(["no", "stop"])(
+    "discards captured %s after the UI claimed the confirmation",
+    async (reply) => {
+      const { assistant, dependencies, execute, presentation, stream } =
+        await createPendingVoiceHarness();
+      const outputCoordinator = createVoiceOutputCoordinator();
+      const interrupt = vi.spyOn(outputCoordinator, "interrupt");
+      dependencies.outputCoordinator = outputCoordinator;
+      const handle = createPresentationControlHandler({
+        assistant,
+        presentation,
+        eventStream: stream,
+      });
+      dependencies.commandAudioInput.capture = async () => {
+        await expect(
+          handle({
+            type: "confirm",
+            interactionId: "interaction-1",
+            requestId: "ui",
+          }),
+        ).resolves.toEqual({ status: "accepted" });
+        return { text: reply };
+      };
       await expect(
-        handle({
-          type: "confirm",
-          interactionId: "interaction-1",
-          requestId: "ui",
-        }),
-      ).resolves.toEqual({ status: "accepted" });
-      return { text: "no" };
-    };
-    await expect(
-      runVoiceActivation(dependencies, { presentation }),
-    ).resolves.toMatchObject({ status: "cancelled" });
-    expect(execute).toHaveBeenCalledOnce();
-    expect(stream.snapshot().interaction).toMatchObject({
-      phase: "completed",
-      response: { text: "Completed." },
-    });
-  });
+        runVoiceActivation(dependencies, { presentation }),
+      ).resolves.toMatchObject({ status: "cancelled" });
+      expect(execute).toHaveBeenCalledOnce();
+      expect(interrupt).not.toHaveBeenCalled();
+      expect(stream.snapshot().interaction).toMatchObject({
+        phase: "completed",
+        response: { text: "Completed." },
+      });
+    },
+  );
 });
 
 async function createPendingVoiceHarness() {

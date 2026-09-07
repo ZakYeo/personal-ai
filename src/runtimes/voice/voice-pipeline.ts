@@ -1,3 +1,4 @@
+import { stopVoiceOutputForCommand } from "./voice-spoken-stop.js";
 import {
   createVoiceTurnController,
   type VoiceTurnController,
@@ -223,17 +224,37 @@ async function runPostWakeVoiceCommand(
       metadata.presentationInteraction.transcriptFinal(commandTranscript.text);
     }
 
+    const stopped = (): VoicePipelineResult => ({
+      response: { status: "ok", text: "Stopped." },
+      status: "cancelled",
+      textOutputWritten: false,
+      ...timingsResult(metadata.instrumentation),
+      transcript: commandTranscript.text,
+    });
+    if (
+      pendingContinuation &&
+      !metadata.presentationInteraction.continuationAvailable()
+    )
+      return stopped();
+
+    if (
+      await stopVoiceOutputForCommand({
+        text: commandTranscript.text,
+        wakePhrases: dependencies.turnConfig.wakePhrases,
+        ...(dependencies.outputCoordinator
+          ? { outputCoordinator: dependencies.outputCoordinator }
+          : {}),
+        instrumentation: metadata.instrumentation,
+        presentation: metadata.presentationInteraction,
+      })
+    )
+      return stopped();
+
     if (
       pendingContinuation &&
       !metadata.presentationInteraction.claimContinuation()
-    ) {
-      return {
-        response: { status: "ok", text: "Stopped." },
-        status: "cancelled",
-        textOutputWritten: false,
-        ...timingsResult(metadata.instrumentation),
-      };
-    }
+    )
+      return stopped();
 
     return await runVoiceCommandSequence(
       dependencies,

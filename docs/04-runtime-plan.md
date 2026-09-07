@@ -397,8 +397,15 @@ and all currently admitted output together, awaiting both cleanup boundaries.
 It does not decline a pending action or cancel unrelated typed work. The service
 then returns to normal wake listening. Repeated concurrent stop requests share
 one interruption operation; cleanup failures retain internal diagnostics and
-produce a safe rejected control result. Spoken stop and barge-in are added in
-subsequent Milestone 19 slices.
+produce a safe rejected control result.
+After a valid wake, a captured “stop” or “stop please” is a local voice control.
+It bypasses intent interpretation, interrupts admitted output, preserves a
+pending confirmation, and emits no spoken acknowledgement. Longer action requests
+continue through normal intent validation. A reply whose ownership was already
+claimed by the desktop cannot interrupt newer output. Monotonic stop-recognition
+and output-cleanup events describe software timing only; acoustic silence still
+requires physical measurement. Concurrent wake capture during the assistant's
+own speech and replacement barge-in are added in subsequent Milestone 19 slices.
 
 #### Native shell decision
 
