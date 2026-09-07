@@ -7,12 +7,15 @@ export function createAttentionHealthSource(sources: {
   tasks?: Pick<TaskStore, "listTasks">;
   alarms?: Pick<AlarmStore, "list">;
   timeZone: string;
+  reportDiagnostic(error: unknown): void;
 }) {
   return {
     read: async (now: Date): Promise<AttentionCandidate[]> => {
       const result: AttentionCandidate[] = [];
       // Sequential narrow reads keep this source within one engine worker's budget.
-      for (const task of (await sources.tasks?.listTasks()) ?? []) {
+      for (const task of (await read(
+        sources.tasks ? () => sources.tasks!.listTasks() : undefined,
+      )) ?? []) {
         if (
           task.status !== "open" ||
           task.reminder?.status !== "claimed" ||
@@ -33,7 +36,9 @@ export function createAttentionHealthSource(sources: {
           },
         });
       }
-      for (const alarm of (await sources.alarms?.list()) ?? []) {
+      for (const alarm of (await read(
+        sources.alarms ? () => sources.alarms!.list() : undefined,
+      )) ?? []) {
         if (alarm.status !== "missed") continue;
         result.push({
           key: `alarm:${alarm.id}:${alarm.scheduledFor}`,
@@ -48,10 +53,10 @@ export function createAttentionHealthSource(sources: {
           },
         });
       }
-      const state = await sources.attention.read();
-      for (const evaluation of state.evaluations) {
+      const state = await read(() => sources.attention.read());
+      for (const evaluation of state?.evaluations ?? []) {
         if (evaluation.completed?.reason !== "source_unavailable") continue;
-        const rule = state.rules.find(
+        const rule = state?.rules.find(
           (rule) =>
             rule.id === evaluation.ruleId &&
             rule.revision === evaluation.ruleRevision &&
@@ -74,6 +79,20 @@ export function createAttentionHealthSource(sources: {
       return result.sort((a, b) => a.key.localeCompare(b.key)).slice(0, 10);
     },
   };
+  async function read<T>(
+    operation: (() => Promise<T>) | undefined,
+  ): Promise<T | undefined> {
+    try {
+      return await operation?.();
+    } catch (error) {
+      try {
+        sources.reportDiagnostic(error);
+      } catch {
+        /* A failed diagnostic writer cannot hide healthy sources. */
+      }
+      return undefined;
+    }
+  }
 }
 
 export function attentionReminderKey(id: string, claimedAt: string): string {

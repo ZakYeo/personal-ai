@@ -1,3 +1,4 @@
+import { createTestAlarmStore } from "../test-support/alarm-store.js";
 import { createAttentionHealthSource } from "./attention-health-source.js";
 import { createTestAttentionStore } from "../test-support/attention.js";
 import type { TaskRecord } from "../ports/task-store.js";
@@ -19,6 +20,7 @@ const task: TaskRecord = {
 };
 it("reads uncertain reminder state without copying private targets or claiming success", async () => {
   const source = createAttentionHealthSource({
+    reportDiagnostic: () => {},
     attention: createTestAttentionStore({ timeZone: "Europe/London" }),
     tasks: { listTasks: () => Promise.resolve([task]) },
     timeZone: "Europe/London",
@@ -30,6 +32,7 @@ it("reads uncertain reminder state without copying private targets or claiming s
 });
 it("does not report an in-flight or acknowledged reminder as uncertain", async () => {
   const source = createAttentionHealthSource({
+    reportDiagnostic: () => {},
     attention: createTestAttentionStore({ timeZone: "Europe/London" }),
     tasks: {
       listTasks: () =>
@@ -51,6 +54,7 @@ it("does not report an in-flight or acknowledged reminder as uncertain", async (
 
 it("does not create a new actionable delivery problem for a completed task", async () => {
   const source = createAttentionHealthSource({
+    reportDiagnostic: () => {},
     attention: createTestAttentionStore({ timeZone: "Europe/London" }),
     tasks: {
       listTasks: () =>
@@ -61,4 +65,47 @@ it("does not create a new actionable delivery problem for a completed task", asy
     timeZone: "Europe/London",
   });
   expect(await source.read(now)).toEqual([]);
+});
+
+it("retains missed alarms when tasks and diagnostic reporting fail", async () => {
+  const alarms = createTestAlarmStore();
+  const alarm = await alarms.add({
+    label: "Review",
+    scheduledFor: now.toISOString(),
+  });
+  await alarms.update({
+    id: alarm.id,
+    expectedRevision: alarm.revision,
+    updatedAt: now.toISOString(),
+    changes: { status: "missed", nextDeliveryAt: null },
+  });
+  const failure = new Error("private task failure");
+  const reportDiagnostic = vi.fn(() => {
+    throw new Error("logger failed");
+  });
+  const source = createAttentionHealthSource({
+    attention: createTestAttentionStore({ timeZone: "Europe/London" }),
+    tasks: { listTasks: () => Promise.reject(failure) },
+    alarms,
+    timeZone: "Europe/London",
+    reportDiagnostic,
+  });
+  expect((await source.read(now))[0]?.facts.problem).toBe("alarm_missed");
+  expect(reportDiagnostic).toHaveBeenCalledWith(failure);
+});
+
+it("retains uncertain reminders when the alarm read fails", async () => {
+  const failure = new Error("private alarm failure");
+  const reportDiagnostic = vi.fn();
+  const source = createAttentionHealthSource({
+    attention: createTestAttentionStore({ timeZone: "Europe/London" }),
+    tasks: { listTasks: () => Promise.resolve([task]) },
+    alarms: { list: () => Promise.reject(failure) },
+    timeZone: "Europe/London",
+    reportDiagnostic,
+  });
+  expect((await source.read(now))[0]?.facts.problem).toBe(
+    "reminder_delivery_unknown",
+  );
+  expect(reportDiagnostic).toHaveBeenCalledWith(failure);
 });

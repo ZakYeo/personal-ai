@@ -127,6 +127,7 @@ function composeAttention(
             ...(tasks ? { tasks } : {}),
             ...(weather ? { weather } : {}),
             health: createAttentionHealthSource({
+              reportDiagnostic: (error) => context.reportFailure(error),
               attention: store,
               timeZone,
               ...(tasks ? { tasks } : {}),

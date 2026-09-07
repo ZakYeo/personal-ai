@@ -31,6 +31,7 @@ it("acknowledges the exact uncertain reminder without completing or replaying it
     now,
   );
   const health = createAttentionHealthSource({
+    reportDiagnostic: () => {},
     attention: store,
     tasks,
     timeZone: "Europe/London",

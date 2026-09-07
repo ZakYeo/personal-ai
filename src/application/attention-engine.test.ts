@@ -61,6 +61,7 @@ describe("durable proactive attention evaluation", () => {
       },
     ]);
     const health = createAttentionHealthSource({
+      reportDiagnostic: () => {},
       attention: h.store,
       timeZone: "Europe/London",
     });

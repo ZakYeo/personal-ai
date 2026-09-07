@@ -44,6 +44,7 @@ it.each([
       now,
     );
     const health = createAttentionHealthSource({
+      reportDiagnostic: () => {},
       attention: store,
       tasks,
       timeZone: "Europe/London",
