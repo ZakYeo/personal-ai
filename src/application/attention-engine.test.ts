@@ -4,6 +4,7 @@ import {
   createTestAttentionItem,
 } from "../test-support/attention.js";
 import { processAttentionCycle } from "./attention-engine.js";
+import { createAttentionHealthSource } from "./attention-health-source.js";
 import type { AttentionRule } from "../ports/attention.js";
 
 const now = new Date("2026-09-07T12:00:00.000Z");
@@ -48,6 +49,45 @@ async function harness(rules: AttentionRule[] = [createTestAttentionRule()]) {
 }
 
 describe("durable proactive attention evaluation", () => {
+  it("keeps completed source failures visible to health while the next slot is reading", async () => {
+    const task = createTestAttentionRule();
+    const h = await harness([
+      task,
+      {
+        ...task,
+        id: "health",
+        name: "Health",
+        definition: { kind: "runtime_health" },
+      },
+    ]);
+    const health = createAttentionHealthSource({
+      attention: h.store,
+      timeZone: "Europe/London",
+    });
+    const reader = {
+      read: (
+        request: { definition: AttentionRule["definition"] },
+        context: { now: Date },
+      ) => {
+        if (request.definition.kind === "runtime_health")
+          return health.read(context.now);
+        throw new Error("private source failure");
+      },
+    };
+    for (let minute = 0; minute < 3; minute += 1) {
+      await processAttentionCycle({
+        store: h.store,
+        reader,
+        delivery: { deliver: h.deliver },
+        clock: { now: () => new Date(now.getTime() + minute * 60_000) },
+        reportFailure: h.reportFailure,
+      });
+    }
+    expect(h.deliver).toHaveBeenCalledOnce();
+    expect((await h.store.read()).inbox[0]?.facts.problem).toBe(
+      "source_unavailable",
+    );
+  });
   it("performs no source read or notification without an explicitly enabled rule", async () => {
     const h = await harness([{ ...createTestAttentionRule(), enabled: false }]);
     await h.run();
@@ -143,7 +183,9 @@ describe("durable proactive attention evaluation", () => {
     finish([candidate]);
     await first;
     expect(h.deliver).not.toHaveBeenCalled();
-    expect((await h.store.read()).evaluations[0]?.reason).toBe("no_match");
+    expect((await h.store.read()).evaluations[0]?.completed?.reason).toBe(
+      "no_match",
+    );
   });
   it("isolates a failed source while recording a safe evaluation reason", async () => {
     const task = createTestAttentionRule();
@@ -162,7 +204,7 @@ describe("durable proactive attention evaluation", () => {
     expect(h.reportFailure).toHaveBeenCalledOnce();
     expect(
       (await h.store.read()).evaluations.some(
-        (evaluation) => evaluation.reason === "source_unavailable",
+        (evaluation) => evaluation.completed?.reason === "source_unavailable",
       ),
     ).toBe(true);
   });

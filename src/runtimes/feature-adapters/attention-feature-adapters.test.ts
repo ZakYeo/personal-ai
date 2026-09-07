@@ -43,7 +43,9 @@ it("shares one store with the feature and long-running retention even without no
     timer: { wait },
     reportFailure: () => {},
   });
-  expect((await store.read()).evaluations[0]?.reason).toBe("no_match");
+  expect((await store.read()).evaluations[0]?.completed?.reason).toBe(
+    "no_match",
+  );
   expect(wait).toHaveBeenCalledWith(60_000, shutdown.signal);
 });
 it("requires explicit timezone and resolves file state relative to the selected config", () => {

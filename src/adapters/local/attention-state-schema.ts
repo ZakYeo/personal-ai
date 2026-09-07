@@ -60,23 +60,31 @@ function parseEvaluation(value: unknown): AttentionEvaluation {
     "ruleId",
     "ruleRevision",
     "slot",
-    "evaluatedAt",
-    "reason",
+    "completed",
   ]);
+  const slot = field.integer(item.slot, 0);
+  const completed =
+    item.completed === undefined
+      ? undefined
+      : field.record(item.completed, ["slot", "evaluatedAt", "reason"]);
   return {
     ruleId: field.text(item.ruleId, 80),
     ruleRevision: field.integer(item.ruleRevision),
-    slot: field.integer(item.slot, 0),
-    evaluatedAt: field.timestamp(item.evaluatedAt),
-    reason: field.choice(item.reason, [
-      "evaluating",
-      "matched",
-      "no_match",
-      "source_unavailable",
-      "inbox_full",
-      "disabled",
-      "snoozed",
-    ]),
+    slot,
+    ...(completed
+      ? {
+          completed: {
+            slot: field.integer(completed.slot, 0, slot),
+            evaluatedAt: field.timestamp(completed.evaluatedAt),
+            reason: field.choice(completed.reason, [
+              "matched",
+              "no_match",
+              "source_unavailable",
+              "inbox_full",
+            ]),
+          },
+        }
+      : {}),
   };
 }
 

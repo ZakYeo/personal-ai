@@ -35,15 +35,19 @@ export async function claimAttentionEvaluations(
         ...state,
         evaluations: [
           ...evaluations,
-          ...rules.map(
-            (rule): AttentionEvaluation => ({
+          ...rules.map((rule): AttentionEvaluation => {
+            const completed = state.evaluations.find(
+              (entry) =>
+                entry.ruleId === rule.id &&
+                entry.ruleRevision === rule.revision,
+            )?.completed;
+            return {
               ruleId: rule.id,
               ruleRevision: rule.revision,
               slot,
-              evaluatedAt: now.toISOString(),
-              reason: "evaluating",
-            }),
-          ),
+              ...(completed ? { completed } : {}),
+            };
+          }),
         ],
       },
     };
@@ -71,7 +75,7 @@ export async function saveAttentionCandidates(
           evaluation.ruleId === rule.id &&
           evaluation.ruleRevision === rule.revision &&
           evaluation.slot === Math.floor(now.getTime() / 60_000) &&
-          evaluation.reason === "evaluating",
+          evaluation.completed?.slot !== evaluation.slot,
       )
     )
       return { result: [] };
@@ -133,7 +137,14 @@ export async function saveAttentionCandidates(
         inbox,
         evaluations: state.evaluations.map((evaluation) =>
           evaluation.ruleId === rule.id
-            ? { ...evaluation, reason, evaluatedAt: now.toISOString() }
+            ? {
+                ...evaluation,
+                completed: {
+                  slot: evaluation.slot,
+                  reason,
+                  evaluatedAt: now.toISOString(),
+                },
+              }
             : evaluation,
         ),
       },

@@ -93,15 +93,15 @@ export interface AttentionEvaluation {
   readonly ruleId: string;
   readonly ruleRevision: number;
   readonly slot: number;
-  readonly evaluatedAt: string;
-  readonly reason:
-    | "evaluating"
-    | "matched"
-    | "no_match"
-    | "source_unavailable"
-    | "inbox_full"
-    | "disabled"
-    | "snoozed";
+  readonly completed?: {
+    readonly slot: number;
+    readonly evaluatedAt: string;
+    readonly reason:
+      | "matched"
+      | "no_match"
+      | "source_unavailable"
+      | "inbox_full";
+  };
 }
 
 export interface AttentionState {

@@ -71,7 +71,7 @@ export function createAttentionLifecycleCapabilities(store: AttentionStore) {
             request: rule.provenance.request,
           },
           responseRewrite: "disabled",
-          text: `${rule.name} checks ${description.text}. It is ${rule.enabled ? "enabled" : "disabled"}, quiet from ${rule.quietHours.start} to ${rule.quietHours.end}, with a ${rule.cooldownMinutes}-minute cooling-off period. You enabled it by asking: ${rule.provenance.request}. Latest evaluation: ${evaluation?.reason.replaceAll("_", " ") ?? "not evaluated"}.`,
+          text: `${rule.name} checks ${description.text}. It is ${rule.enabled ? "enabled" : "disabled"}, quiet from ${rule.quietHours.start} to ${rule.quietHours.end}, with a ${rule.cooldownMinutes}-minute cooling-off period. You enabled it by asking: ${rule.provenance.request}. Latest evaluation: ${evaluation?.completed?.reason.replaceAll("_", " ") ?? "not evaluated"}.`,
           spokenText: { dateStyle: "contextual", timeZone: rule.timeZone },
         };
       },

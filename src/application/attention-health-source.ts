@@ -49,9 +49,12 @@ export function createAttentionHealthSource(sources: {
       }
       const state = await sources.attention.read();
       for (const evaluation of state.evaluations) {
-        if (evaluation.reason !== "source_unavailable") continue;
+        if (evaluation.completed?.reason !== "source_unavailable") continue;
         const rule = state.rules.find(
-          (rule) => rule.id === evaluation.ruleId && rule.enabled,
+          (rule) =>
+            rule.id === evaluation.ruleId &&
+            rule.revision === evaluation.ruleRevision &&
+            rule.enabled,
         );
         if (!rule || rule.definition.kind === "runtime_health") continue;
         result.push({
@@ -62,7 +65,7 @@ export function createAttentionHealthSource(sources: {
           timeZone: sources.timeZone,
           facts: {
             ruleName: rule.name,
-            evaluatedAt: evaluation.evaluatedAt,
+            evaluatedAt: evaluation.completed.evaluatedAt,
             problem: "source_unavailable",
           },
         });
