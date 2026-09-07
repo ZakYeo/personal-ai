@@ -68,6 +68,44 @@ const labelCorrection = (label: string): IntentInterpretation => ({
 });
 
 describe("pending action corrections", () => {
+  it.each([60_000, 120_000])(
+    "restores original facts after a correction question without renewing expiry at %i milliseconds",
+    async (elapsed) => {
+      const h = harness([
+        {
+          kind: "clarification",
+          clarification: {
+            capability: "alarm.create",
+            origin: "intent_interpreter",
+            parameter: "label",
+            partialCommand: createCommand("alarm.create"),
+            session: "resume",
+          },
+          response: { status: "ok", text: "What label?" },
+        },
+        labelCorrection("tea"),
+      ]);
+      const original = await h.assistant.handleText("set the tea alarm");
+      await h.assistant.handleText("change its label");
+      h.elapsed(elapsed);
+      const restored = await h.assistant.handleText("tea");
+      const expected =
+        elapsed < 120_000
+          ? original
+          : {
+              status: "ok",
+              text: "That confirmation expired. Please ask me to prepare the action again.",
+            };
+      expect(restored).toEqual(expected);
+      await h.assistant.handleText("yes");
+      expect(await h.store.list()).toMatchObject(
+        elapsed < 120_000
+          ? [{ label: "tea", scheduledFor: "2026-09-07T12:10:00.000Z" }]
+          : [],
+      );
+    },
+  );
+
   it("rejects a provider correction that returns after the original draft expires", async () => {
     const h = harness([
       () => {

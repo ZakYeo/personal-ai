@@ -3,7 +3,7 @@ import type { AssistantOutcome, ClockPort } from "../../ports/assistant.js";
 import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
 
 export interface InteractionSession {
-  requestConfirmation(
+  prepareConfirmation(
     plan: ValidatedAssistantPlan,
     prompt: AssistantOutcome,
     execute?: (
@@ -11,7 +11,7 @@ export interface InteractionSession {
       signal?: AbortSignal,
     ) => Promise<AssistantOutcome>,
     revise?: PendingReplyHandler,
-  ): AssistantOutcome;
+  ): { show(): AssistantOutcome };
   requestClarification(
     prompt: AssistantOutcome,
     resume: (
@@ -35,7 +35,6 @@ export interface InteractionSession {
 
 export type ClarificationResolution =
   | { kind: "completed"; outcome: AssistantOutcome }
-  | { kind: "unchanged" }
   | { kind: "replacement" };
 
 type PendingReplyHandler = (
@@ -70,9 +69,11 @@ export function createInteractionSession(clock: ClockPort): InteractionSession {
   let queue = Promise.resolve();
 
   return {
-    requestConfirmation(plan, prompt, execute, revise) {
-      confirmationExpired = false;
-      pending = {
+    prepareConfirmation(plan, prompt, execute, revise) {
+      const confirmation: Extract<
+        PendingInteraction,
+        { kind: "confirmation" }
+      > = {
         kind: "confirmation",
         createdAt: clock.now().getTime(),
         plan,
@@ -80,7 +81,14 @@ export function createInteractionSession(clock: ClockPort): InteractionSession {
         ...(execute ? { execute } : {}),
         ...(revise ? { revise } : {}),
       };
-      return prompt;
+      return Object.freeze({
+        show: () => {
+          if (isExpired(confirmation.createdAt)) return expireConfirmation();
+          confirmationExpired = false;
+          pending = confirmation;
+          return prompt;
+        },
+      });
     },
     requestClarification(prompt, resume) {
       confirmationExpired = false;
@@ -94,12 +102,8 @@ export function createInteractionSession(clock: ClockPort): InteractionSession {
           (await onCompleted(outcome)) ?? outcome;
         let outcome: AssistantOutcome;
         if (pending?.kind === "confirmation") {
-          const elapsed = clock.now().getTime() - pending.createdAt;
-          if (!Number.isFinite(elapsed) || elapsed < 0 || elapsed >= 120_000) {
-            pending = undefined;
-            confirmationExpired = true;
-            return complete(expiredConfirmationOutcome);
-          }
+          if (isExpired(pending.createdAt))
+            return complete(expireConfirmation());
         }
         if (!pending) {
           if (confirmationExpired && parseConfirmation(input) !== "pending")
@@ -114,18 +118,13 @@ export function createInteractionSession(clock: ClockPort): InteractionSession {
             pending = undefined;
             outcome = cancelledOutcome;
           } else {
-            const original = pending;
             const resume = pending.resume;
             pending = undefined;
             const resolution = await resume(input, signal);
-            if (resolution.kind === "unchanged") {
-              pending = original;
-              outcome = original.prompt;
-            } else
-              outcome =
-                resolution.kind === "replacement"
-                  ? await handle()
-                  : resolution.outcome;
+            outcome =
+              resolution.kind === "replacement"
+                ? await handle()
+                : resolution.outcome;
           }
           return complete(outcome);
         }
@@ -133,18 +132,13 @@ export function createInteractionSession(clock: ClockPort): InteractionSession {
         const decision = parseConfirmation(input);
         if (decision === "pending") {
           if (pending.revise) {
-            const original = pending;
             const revise = pending.revise;
             pending = undefined;
             const resolution = await revise(input, signal);
-            if (resolution.kind === "unchanged") {
-              pending = original;
-              outcome = original.prompt;
-            } else
-              outcome =
-                resolution.kind === "replacement"
-                  ? await handle()
-                  : resolution.outcome;
+            outcome =
+              resolution.kind === "replacement"
+                ? await handle()
+                : resolution.outcome;
           } else outcome = pending.prompt;
           return complete(outcome);
         }
@@ -165,6 +159,17 @@ export function createInteractionSession(clock: ClockPort): InteractionSession {
       return turn;
     },
   };
+
+  function isExpired(createdAt: number): boolean {
+    const elapsed = clock.now().getTime() - createdAt;
+    return !Number.isFinite(elapsed) || elapsed < 0 || elapsed >= 120_000;
+  }
+
+  function expireConfirmation(): AssistantOutcome {
+    pending = undefined;
+    confirmationExpired = true;
+    return expiredConfirmationOutcome;
+  }
 }
 
 function parseConfirmation(

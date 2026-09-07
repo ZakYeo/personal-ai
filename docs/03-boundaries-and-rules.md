@@ -164,7 +164,10 @@ After a confirmation prompt, an explicit yes executes the already decoded
 command without provider reinterpretation and an explicit no discards it.
 Milestone 19 routes other replies through the originating bounded draft to
 propose corrections or classify a changed topic. An unchanged proposal restores
-the original prompt and deadline. Pending
+the original prepared confirmation, decoded arguments, prompt, and deadline even
+after a correction question. The correction owner retains a session-owned
+confirmation handle; the session never restores an arbitrary previous pending
+interaction. Showing the original handle checks its original expiry. Pending
 confirmation state is process-local and is discarded on restart. Milestone 19
 bounds it to two minutes from prompt creation using the injected clock. The
 serialized interaction checks expiry when a reply acquires ownership, including

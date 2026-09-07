@@ -24,10 +24,10 @@ describe("interaction session clarification", () => {
     };
     const execute = vi.fn(() => Promise.resolve(completedOutcome));
     const revise = vi.fn(() => {
-      session.requestConfirmation(plan, revised, execute);
+      session.prepareConfirmation(plan, revised, execute).show();
       return Promise.resolve({ kind: "completed" as const, outcome: revised });
     });
-    session.requestConfirmation(plan, prompt, execute, revise);
+    session.prepareConfirmation(plan, prompt, execute, revise).show();
     const signal = new AbortController().signal;
     await expect(
       session.run(
@@ -119,15 +119,17 @@ describe("serialized confirmation expiry", () => {
     const prompt = {
       response: { status: "needs_confirmation" as const, text: "Approve?" },
     };
-    session.requestConfirmation(
-      {
-        kind: "single",
-        originalText: "request",
-        steps: [],
-        validatedAt: new Date(0).toISOString(),
-      },
-      prompt,
-    );
+    session
+      .prepareConfirmation(
+        {
+          kind: "single",
+          originalText: "request",
+          steps: [],
+          validatedAt: new Date(0).toISOString(),
+        },
+        prompt,
+      )
+      .show();
     let finish = () => {};
     let completing = false;
     const first = session.run(

@@ -58,7 +58,7 @@ export function requestWorkflowConfirmation(
       input.draft.expired() ? expiredDraftOutcome : input.limitOutcome,
     );
   const prompt = input.decorate(createPlanConfirmationPrompt(plan));
-  return input.interaction.requestConfirmation(
+  const confirmation = input.interaction.prepareConfirmation(
     plan,
     prompt,
     (prepared, signal) =>
@@ -67,6 +67,7 @@ export function requestWorkflowConfirmation(
         : input.execute(prepared, signal),
     revise(prompt.response.text),
   );
+  return confirmation.show();
 
   function revise(promptText: string, parameter?: string) {
     return async (
@@ -201,8 +202,14 @@ export function requestWorkflowConfirmation(
           commands.every(
             (command, index) => command === plan.steps[index]!.command,
           )
-        )
-          return { kind: "unchanged" };
+        ) {
+          baseCommands = plan.steps.map((step) => step.command);
+          if (!input.draft.openPlan(baseCommands, input.references()))
+            return completed(
+              input.draft.expired() ? expiredDraftOutcome : input.limitOutcome,
+            );
+          return completed(confirmation.show());
+        }
         const validation = input.validate(commands, plan.kind);
         if (!validation.ok)
           return completed(
