@@ -127,6 +127,7 @@ export async function runVoicePipeline(
         ) {
           instrumentation.mark("stop_recognized");
         } else {
+          instrumentation.mark("barge_in_recognized");
           interruption = request;
         }
         interruptionCleanup = interrupt().then(

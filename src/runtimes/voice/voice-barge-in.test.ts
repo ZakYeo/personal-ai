@@ -105,6 +105,7 @@ describe("bounded voice barge-in", () => {
       const result = await runVoiceActivation({
         ...dependencies,
         bargeIn: { inputIsolation: "headphones" },
+        timing: { nowMs: () => 100 },
         commandAudioInput: {
           capture: async () => {
             activeCaptures += 1;
@@ -137,6 +138,16 @@ describe("bounded voice barge-in", () => {
       expect(result.interruption?.text).toBe(
         request === "stop" ? undefined : request,
       );
+      expect(result.timings?.events).toEqual(
+        expect.arrayContaining([
+          {
+            name:
+              request === "stop" ? "stop_recognized" : "barge_in_recognized",
+            offsetMs: 0,
+          },
+          { name: "output_stopped", offsetMs: 0 },
+        ]),
+      );
     },
   );
 
@@ -144,10 +155,13 @@ describe("bounded voice barge-in", () => {
     const signals = createServiceSignalController();
     let activations = 0;
     const observed: unknown[] = [];
+    const timing = { nowMs: () => 100 };
     const result = await runDesktopVoiceServiceRuntime({
       config: createDesktopVoiceConfig("list alarms"),
       processSignals: signals,
+      timing,
       runVoiceActivation: (dependencies) => {
+        expect(dependencies.timing).toBe(timing);
         activations += 1;
         observed.push(dependencies.initialCommand);
         if (activations === 1)

@@ -41,6 +41,7 @@ import type {
 import { createDesktopPresentationRuntime } from "../presentation/desktop-presentation-runtime.js";
 import { logRuntimeFailure } from "../human-boundary.js";
 import type { VoiceInterruptionRequest } from "./voice-interruption-monitor.js";
+import type { VoiceTimingOptions } from "./voice-timings.js";
 
 export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -65,6 +66,7 @@ export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
     dependencies: DesktopVoiceAdapterRuntimeDependencies,
   ) => DesktopVoiceOutputAdapters;
   io?: VoiceRuntimeIo;
+  timing?: VoiceTimingOptions;
   processControl?: ProcessControl;
   processSignals?: ServiceProcessSignals;
   retryAfterFailure?: (context: ServiceTurnFailureContext) => Promise<void>;
@@ -190,6 +192,7 @@ export function runConfiguredVoiceServiceRuntime(
               commandAudioInput: adapters.audioInput,
               outputCoordinator,
               turnController,
+              ...(options.timing ? { timing: options.timing } : {}),
               ...(voiceConfig.bargeIn ? { bargeIn: voiceConfig.bargeIn } : {}),
               ...(initialCommand ? { initialCommand } : {}),
               speechToText: adapters.speechToText,

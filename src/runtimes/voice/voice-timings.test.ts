@@ -5,6 +5,35 @@ import {
 } from "./voice-timings.js";
 
 describe("voice timings", () => {
+  it("emits bounded live clock observations without letting a failed observer affect the turn", async () => {
+    let now = 100;
+    const observed: unknown[] = [];
+    const recorder = createVoiceTurnInstrumentation({
+      nowMs: () => now,
+      onEvent: (event) => {
+        observed.push(event);
+        expect(Object.isFrozen(event)).toBe(true);
+        throw new Error("measurement output unavailable");
+      },
+    });
+    now = 125;
+    recorder.mark("wake_detected");
+    recorder.mark("wake_detected");
+    await expect(
+      recorder.measure("command", () => Promise.resolve("done")),
+    ).resolves.toBe("done");
+    expect(observed).toEqual([
+      {
+        name: "wake_detected",
+        offsetMs: 25,
+        monotonicMs: 125,
+        startedAtMs: 100,
+      },
+    ]);
+    expect(recorder.snapshotIfEnabled()?.events).toEqual([
+      { name: "wake_detected", offsetMs: 25 },
+    ]);
+  });
   it("retains first monotonic event offsets without mixing follow-up measurements", () => {
     let now = 100;
     const recorder = createVoiceTimingRecorder(() => now);

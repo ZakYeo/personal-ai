@@ -123,3 +123,13 @@ unmeasured metric; never fill it with zero. Optional `softwareStopToCleanupMs`
 comes from runtime events and cannot replace acoustic silence measurements.
 Missing required acoustic measurements or scenario coverage remain incomplete.
 No physical acceptance run has been collected for Milestone 19 yet.
+
+A device harness can inject `timing: { nowMs, onEvent }` into
+`runDesktopVoiceServiceRuntime` (or the shared configured service). `nowMs` is an
+optional monotonic clock; `onEvent` receives a frozen event name, `monotonicMs`,
+`startedAtMs`, and `offsetMs` immediately at each first software event, including
+`stop_recognized`, `barge_in_recognized`, and `output_stopped`. Correlate that clock
+with the external recording rather than treating output submission as acoustic
+onset. Observer failures cannot interrupt an assistant action, and the ordinary
+event snapshot remains available even if the observer fails. Measurement is
+disabled by default and no observer receives transcript or provider content.

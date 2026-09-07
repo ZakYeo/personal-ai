@@ -5,6 +5,7 @@ export type VoiceTimingEventName =
   | "first_transcript"
   | "first_audio_submitted"
   | "stop_recognized"
+  | "barge_in_recognized"
   | "output_stopped";
 
 interface VoiceTimingEvent {
@@ -33,6 +34,12 @@ export type MonotonicNow = () => number;
 
 export interface VoiceTimingOptions {
   nowMs?: MonotonicNow;
+  onEvent?(
+    this: void,
+    event: Readonly<
+      VoiceTimingEvent & { monotonicMs: number; startedAtMs: number }
+    >,
+  ): void;
 }
 
 export interface VoiceTurnInstrumentation {
@@ -43,6 +50,7 @@ export interface VoiceTurnInstrumentation {
 
 export function createVoiceTimingRecorder(
   nowMs: MonotonicNow = defaultMonotonicNow,
+  onEvent?: VoiceTimingOptions["onEvent"],
 ): VoiceTimingRecorder {
   const phases: VoiceTimingPhase[] = [];
   const events = new Map<VoiceTimingEventName, number>();
@@ -50,7 +58,22 @@ export function createVoiceTimingRecorder(
 
   return {
     mark(name) {
-      if (!events.has(name)) events.set(name, elapsedMs(nowMs(), startedAt));
+      if (events.has(name)) return;
+      const monotonicMs = nowMs();
+      const offsetMs = elapsedMs(monotonicMs, startedAt);
+      events.set(name, offsetMs);
+      try {
+        onEvent?.(
+          Object.freeze({
+            name,
+            offsetMs,
+            monotonicMs,
+            startedAtMs: startedAt,
+          }),
+        );
+      } catch {
+        /* Optional observation cannot alter turn behavior. */
+      }
     },
     async measure(name, operation) {
       const phaseStartedAt = nowMs();
@@ -92,7 +115,7 @@ export function createVoiceTurnInstrumentation(
     };
   }
 
-  const recorder = createVoiceTimingRecorder(options.nowMs);
+  const recorder = createVoiceTimingRecorder(options.nowMs, options.onEvent);
 
   return {
     mark: (name) => recorder.mark(name),
@@ -143,6 +166,12 @@ function formatResponsiveness(timings: VoiceTurnTimings): string[] {
       "stop_recognized",
       "output_stopped",
       "recognized stop to output cleanup",
+      " (software boundary; acoustic silence unmeasured)",
+    ],
+    [
+      "barge_in_recognized",
+      "output_stopped",
+      "recognized replacement to output cleanup",
       " (software boundary; acoustic silence unmeasured)",
     ],
     [
