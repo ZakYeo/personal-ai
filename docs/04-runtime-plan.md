@@ -436,6 +436,11 @@ normal core validation and pending-interaction policy. Completed actions remain
 completed. Desktop continuation controls claim the pending reply and await turn
 cleanup before execution; late voice input cannot approve the same action.
 
+Desktop approval controls carry the immutable sequence of the displayed
+confirmation event as well as the interaction ID. Admission checks both and claims
+the current continuation before awaiting cleanup. A click queued behind a text or
+voice correction cannot approve the revised facts; omitted revisions fail closed.
+
 #### Native shell decision
 
 Milestone 18 uses Tauri 2 with React and TypeScript for the Windows-first

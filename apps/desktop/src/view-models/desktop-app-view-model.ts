@@ -7,8 +7,14 @@ import type { DesktopAppViewState } from "./desktop-view-state.js";
 
 export interface DesktopAppViewModel {
   readonly applyShortcut: () => void;
-  readonly confirm: (interactionId: string) => void;
-  readonly decline: (interactionId: string) => void;
+  readonly confirm: (
+    interactionId: string,
+    confirmationSequence: number,
+  ) => void;
+  readonly decline: (
+    interactionId: string,
+    confirmationSequence: number,
+  ) => void;
   readonly dismissOverlay: () => void;
   readonly stopVoice: () => void;
   readonly getSnapshot: () => DesktopAppViewState;
@@ -73,15 +79,12 @@ export function createDesktopAppViewModel(options: {
   }
 
   const viewModel: DesktopAppViewModel = {
+    ...createConfirmationIntents(dispatch),
     applyShortcut: () => {
       void options.host
         .setPushToTalkShortcut(shortcutDraft.trim())
         .catch(showSafeControlFailure);
     },
-    confirm: (interactionId) =>
-      dispatch({ interactionId, requestId: requestId(), type: "confirm" }),
-    decline: (interactionId) =>
-      dispatch({ interactionId, requestId: requestId(), type: "decline" }),
     correctProfileFact: (id, field) => {
       const value = profileDrafts.get(id)?.trim();
       if (!value) return;
@@ -155,6 +158,21 @@ export function createDesktopAppViewModel(options: {
         (controlMessage = "The desktop window could not complete that action."),
     );
   }
+}
+
+function createConfirmationIntents(
+  dispatch: (control: PresentationControl) => void,
+): Pick<DesktopAppViewModel, "confirm" | "decline"> {
+  const reply =
+    (type: "confirm" | "decline") =>
+    (interactionId: string, confirmationSequence: number) =>
+      dispatch({
+        interactionId,
+        confirmationSequence,
+        requestId: requestId(),
+        type,
+      });
+  return { confirm: reply("confirm"), decline: reply("decline") };
 }
 
 function dispatchPresentationControl(

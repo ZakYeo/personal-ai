@@ -180,7 +180,7 @@ export function reduceAssistantRuntimeEvent(
         ...base,
         interaction: {
           ...requireInteraction(snapshot, event),
-          confirmation: { prompt: event.prompt },
+          confirmation: { prompt: event.prompt, sequence: event.sequence },
           phase: "confirmation",
           updatedAt: event.occurredAt,
         },

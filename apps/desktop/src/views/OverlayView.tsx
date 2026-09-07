@@ -3,8 +3,14 @@ import { SourceButtons } from "../components/SourceButtons.js";
 import type { OverlayViewState } from "../view-models/desktop-view-state.js";
 
 interface OverlayViewIntents {
-  readonly confirm: (interactionId: string) => void;
-  readonly decline: (interactionId: string) => void;
+  readonly confirm: (
+    interactionId: string,
+    confirmationSequence: number,
+  ) => void;
+  readonly decline: (
+    interactionId: string,
+    confirmationSequence: number,
+  ) => void;
   readonly dismiss: () => void;
   readonly stopVoice: () => void;
   readonly openSource: (sourceId: string) => void;
@@ -39,11 +45,23 @@ export function OverlayView(properties: {
           <div className="button-row">
             <button
               className="primary"
-              onClick={() => intents.confirm(confirmation.interactionId)}
+              onClick={() =>
+                intents.confirm(
+                  confirmation.interactionId,
+                  confirmation.sequence,
+                )
+              }
             >
               Confirm
             </button>
-            <button onClick={() => intents.decline(confirmation.interactionId)}>
+            <button
+              onClick={() =>
+                intents.decline(
+                  confirmation.interactionId,
+                  confirmation.sequence,
+                )
+              }
+            >
               Decline
             </button>
           </div>

@@ -30,6 +30,7 @@ export interface OverlayViewState {
   readonly connectionState: DesktopConnectionState;
   readonly confirmation?: {
     readonly interactionId: string;
+    readonly sequence: number;
     readonly prompt: string;
   };
   readonly controlMessage?: string;

@@ -61,13 +61,17 @@ export function parsePresentationControl(
   }
   if (value.type === "confirm" || value.type === "decline") {
     return hasOnlyKeys(value, [
+      "confirmationSequence",
       "interactionId",
       "protocolVersion",
       "requestId",
       "type",
-    ]) && isIdentifier(value.interactionId)
+    ]) &&
+      isIdentifier(value.interactionId) &&
+      isNonNegativeInteger(value.confirmationSequence)
       ? {
           interactionId: value.interactionId,
+          confirmationSequence: value.confirmationSequence,
           requestId: value.requestId,
           type: value.type,
         }

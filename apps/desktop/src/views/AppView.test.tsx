@@ -40,7 +40,7 @@ const state: DesktopPresentationState = {
   snapshot: {
     instanceId: "service-1",
     interaction: {
-      confirmation: { prompt: "Set an alarm for 11am?" },
+      confirmation: { prompt: "Set an alarm for 11am?", sequence: 3 },
       id: "interaction-1",
       phase: "confirmation",
       transcript: "set an alarm for tea",
@@ -108,6 +108,7 @@ describe("desktop application", () => {
       expect.objectContaining({
         interactionId: "interaction-1",
         type: "confirm",
+        confirmationSequence: 3,
       }),
     ]);
   });

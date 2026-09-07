@@ -4,6 +4,83 @@ import { createPresentationControlHandler } from "./presentation-control-handler
 import { createPresentationInteractionCoordinator } from "./presentation-interaction-coordinator.js";
 
 describe("presentation control handler", () => {
+  it("rejects an old click after voice revises the confirmation", async () => {
+    const handled: string[] = [];
+    const eventStream = createStream();
+    const presentation = createCoordinator(eventStream);
+    const voice = presentation.beginVoiceInteraction();
+    voice.processing();
+    voice.confirmation("Approve tea?");
+    const oldSequence =
+      eventStream.snapshot().interaction!.confirmation!.sequence;
+    expect(voice.claimContinuation()).toBe(true);
+    voice.processing();
+    voice.confirmation("Approve coffee?");
+    const handle = createPresentationControlHandler({
+      assistant: createAssistant(handled),
+      eventStream,
+      presentation,
+    });
+    await expect(
+      handle({
+        type: "confirm",
+        requestId: "old-voice-click",
+        interactionId: "interaction-1",
+        confirmationSequence: oldSequence,
+      }),
+    ).resolves.toMatchObject({ status: "rejected" });
+    expect(voice.continuationAvailable()).toBe(true);
+    expect(handled).toEqual([]);
+  });
+
+  it("rejects a queued approval of older facts after a correction keeps the interaction ID", async () => {
+    const handled: string[] = [];
+    const eventStream = createStream();
+    const presentation = createCoordinator(eventStream);
+    const original = presentation.beginInteraction();
+    original.processing();
+    original.confirmation("Set the tea alarm?");
+    const confirmationSequence = eventStream.snapshot().sequence;
+    const assistant = createAssistant(handled);
+    assistant.handleTextWithDiagnostics = (text) => {
+      handled.push(text);
+      return Promise.resolve({
+        response: {
+          status: "needs_confirmation",
+          text: "Set the coffee alarm?",
+        },
+      });
+    };
+    const handle = createPresentationControlHandler({
+      assistant,
+      eventStream,
+      presentation,
+    });
+    await handle({
+      type: "submit_text",
+      requestId: "correction",
+      text: "change the label to coffee",
+    });
+    await expect(
+      handle({
+        type: "confirm",
+        interactionId: "interaction-1",
+        confirmationSequence,
+        requestId: "old-click",
+      }),
+    ).resolves.toMatchObject({ status: "rejected" });
+    expect(handled).toEqual(["change the label to coffee"]);
+    await expect(
+      handle({
+        type: "confirm",
+        interactionId: "interaction-1",
+        confirmationSequence: eventStream.snapshot().sequence,
+        requestId: "fresh-click",
+      }),
+    ).resolves.toMatchObject({ status: "accepted" });
+    expect(handled).toEqual(["change the label to coffee", "yes"]);
+  });
+
   it.each(["confirm", "submit_text"] as const)(
     "joins voice capture before executing a %s reply",
     async (type) => {
@@ -28,7 +105,13 @@ describe("presentation control handler", () => {
       });
       const result = handle(
         type === "confirm"
-          ? { type, requestId: "reply", interactionId: "interaction-1" }
+          ? {
+              type,
+              requestId: "reply",
+              interactionId: "interaction-1",
+              confirmationSequence:
+                eventStream.snapshot().interaction!.confirmation!.sequence,
+            }
           : { type, requestId: "reply", text: "yes" },
       );
       await Promise.resolve();
@@ -171,6 +254,8 @@ describe("presentation control handler", () => {
 
     const result = await handle({
       interactionId: interactionId ?? "missing",
+      confirmationSequence:
+        eventStream.snapshot().interaction!.confirmation!.sequence,
       requestId: "request-1",
       type: "confirm",
     });
@@ -199,6 +284,8 @@ describe("presentation control handler", () => {
 
     const result = await handle({
       interactionId: "stale-interaction",
+      confirmationSequence:
+        eventStream.snapshot().interaction!.confirmation!.sequence,
       requestId: "request-2",
       type: "decline",
     });

@@ -63,6 +63,7 @@ export const desktopShowcaseState = Object.freeze({
     instanceId: "showcase-service",
     interaction: {
       confirmation: {
+        sequence: 3,
         prompt: "Send ‘Running five minutes late’ to Alex?",
       },
       id: "showcase-interaction",

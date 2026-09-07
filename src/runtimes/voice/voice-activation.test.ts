@@ -428,6 +428,8 @@ describe("voice activation", () => {
     })({
       interactionId: "interaction-1",
       requestId: "desktop-confirmation",
+      confirmationSequence:
+        stream.snapshot().interaction!.confirmation!.sequence,
       type: "confirm",
     });
     releaseVoiceReply?.({ text: "no" });

@@ -5,6 +5,27 @@ import {
 } from "./presentation-protocol.js";
 
 describe("presentation protocol", () => {
+  it("requires the exact displayed confirmation revision in approval controls", () => {
+    const control = {
+      protocolVersion: 1,
+      type: "confirm",
+      requestId: "click",
+      interactionId: "interaction",
+    };
+    expect(parsePresentationControl(control)).toBeUndefined();
+    expect(
+      parsePresentationControl({ ...control, confirmationSequence: -1 }),
+    ).toBeUndefined();
+    expect(
+      parsePresentationControl({ ...control, confirmationSequence: 7 }),
+    ).toEqual({
+      type: "confirm",
+      requestId: "click",
+      interactionId: "interaction",
+      confirmationSequence: 7,
+    });
+  });
+
   it("parses bounded exact command-center projections", () => {
     expect(
       parsePresentationServerMessage({

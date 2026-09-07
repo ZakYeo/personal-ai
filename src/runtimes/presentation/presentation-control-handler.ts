@@ -93,6 +93,7 @@ async function handleConfirmationControl(
   if (
     pending?.id !== control.interactionId ||
     !pending.confirmation ||
+    pending.confirmation.sequence !== control.confirmationSequence ||
     (pending.phase !== "confirmation" && pending.phase !== "listening")
   ) {
     return {

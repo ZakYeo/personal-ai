@@ -54,6 +54,7 @@ describe("presentation relay client", () => {
       interactionId: "interaction-1",
       requestId: "request-1",
       type: "confirm",
+      confirmationSequence: 3,
     });
 
     expect(direct.connect).toHaveBeenCalledOnce();
@@ -66,6 +67,7 @@ describe("presentation relay client", () => {
         interactionId: "interaction-1",
         requestId: "satellite-1",
         type: "confirm",
+        confirmationSequence: 3,
       },
     ]);
   });
@@ -159,7 +161,7 @@ function snapshot() {
   return {
     instanceId: "service-1",
     interaction: {
-      confirmation: { prompt: "Approve?" },
+      confirmation: { prompt: "Approve?", sequence: 3 },
       id: "interaction-1",
       phase: "confirmation" as const,
       transcript: "do it",

@@ -78,7 +78,10 @@ export interface AssistantPresentationResponse {
 }
 
 export interface AssistantPresentationInteraction {
-  readonly confirmation?: { readonly prompt: string };
+  readonly confirmation?: {
+    readonly prompt: string;
+    readonly sequence: number;
+  };
   readonly failure?: { readonly message: string };
   readonly id: string;
   readonly phase: AssistantPresentationPhase;
@@ -156,6 +159,7 @@ export type PresentationControl =
     }
   | {
       readonly interactionId: string;
+      readonly confirmationSequence: number;
       readonly requestId: string;
       readonly type: "confirm" | "decline";
     }

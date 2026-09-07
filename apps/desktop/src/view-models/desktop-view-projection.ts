@@ -83,6 +83,7 @@ function projectInteractionFields(
           confirmation: {
             interactionId: interaction.id,
             prompt: interaction.confirmation.prompt,
+            sequence: interaction.confirmation.sequence,
           },
         }
       : {}),

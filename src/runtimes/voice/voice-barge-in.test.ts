@@ -80,6 +80,8 @@ describe("bounded voice barge-in", () => {
     await handle({
       type: "confirm",
       requestId: "confirm",
+      confirmationSequence:
+        eventStream.snapshot().interaction!.confirmation!.sequence,
       interactionId: "interaction",
     });
     expect((await turn).interruption).toBeUndefined();

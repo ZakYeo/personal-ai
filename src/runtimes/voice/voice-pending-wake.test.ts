@@ -83,6 +83,8 @@ describe("a later wake with a pending confirmation", () => {
             type: "confirm",
             interactionId: "interaction-1",
             requestId: "ui",
+            confirmationSequence:
+              stream.snapshot().interaction!.confirmation!.sequence,
           }),
         ).resolves.toEqual({ status: "accepted" });
         return { text: reply };

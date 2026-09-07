@@ -122,9 +122,10 @@ function parseResponse(
 
 function parseConfirmation(value: unknown) {
   return isRecord(value) &&
-    hasOnlyKeys(value, ["prompt"]) &&
+    hasOnlyKeys(value, ["prompt", "sequence"]) &&
+    isNonNegativeInteger(value.sequence) &&
     isSafePresentationText(value.prompt, 1_000, true)
-    ? { prompt: value.prompt }
+    ? { prompt: value.prompt, sequence: value.sequence }
     : undefined;
 }
 
