@@ -14,6 +14,10 @@ export interface FeatureCapability {
   readonly description?: string;
   readonly requiresConfirmation?: boolean;
   readonly parameters?: Readonly<Record<string, FeatureCapabilityParameter>>;
+  readonly prepareArguments?: (
+    args: Readonly<Record<string, string | number | boolean | undefined>>,
+    context: AssistantContext,
+  ) => Readonly<Record<string, string | number | boolean | undefined>>;
   readonly renderConfirmation?: (
     args: Readonly<Record<string, string | number | boolean | undefined>>,
     context: AssistantContext,

@@ -113,10 +113,7 @@ function validateStep(
       };
     }
 
-    const decoded = decodeCommandForCapability(
-      proposedCommand,
-      route.capability,
-    );
+    let decoded = decodeCommandForCapability(proposedCommand, route.capability);
     if (!decoded.ok) {
       return decoded;
     }
@@ -131,6 +128,20 @@ function validateStep(
         clarificationCapability: proposedCommand.capability,
         ok: false,
       };
+    }
+
+    if (route.capability.prepareArguments) {
+      decoded = decodeCommandForCapability(
+        {
+          ...proposedCommand,
+          parameters: route.capability.prepareArguments(
+            Object.freeze({ ...decoded.args }),
+            input.context,
+          ),
+        },
+        route.capability,
+      );
+      if (!decoded.ok) return decoded;
     }
 
     const confirmationRequired =
@@ -162,7 +173,7 @@ function validateStep(
       step: Object.freeze({
         command: Object.freeze({
           ...proposedCommand,
-          parameters: Object.freeze({ ...proposedCommand.parameters }),
+          parameters: Object.freeze({ ...decoded.args }),
         }),
         confirmation: Object.freeze(confirmation),
         decodedArgs: Object.freeze({ ...decoded.args }),
