@@ -672,8 +672,10 @@ to wake capture, command capture, and the wake detector through operator config;
 the setup command does not claim to have changed those paths.
 
 `npm run setup:check -- --config path/to/config.json` parses the selected config
-once and reports provider selection plus adapter-declared durable state paths.
-The registry exposes only its narrow state-path declaration; setup code must not
+once and reports provider selection, declared processing surfaces, and durable
+state paths. Each adapter owns its narrow inspection declaration, including nested
+calendar grouping and weather clothing advice. Provider registries declare local
+or remote processing without constructing clients; setup code must not
 reflect or dump broad adapter config, credentials, endpoints, or command bodies.
 Paths resolve through the same config-directory policy as composition. Local and
 known remote providers are identified; arbitrary command processing stays

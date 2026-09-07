@@ -43,9 +43,13 @@ export function createDefaultConversationProviderRegistry(): ConversationProvide
         history,
         responder: new DeterministicConversationResponder(),
       };
-    }),
-    disabled: defineConfiglessRuntimeProvider((): undefined => undefined),
+    }, "local"),
+    disabled: defineConfiglessRuntimeProvider(
+      (): undefined => undefined,
+      "local",
+    ),
     openai: defineRuntimeProvider({
+      processing: "remote",
       configKey: "openai",
       create: (
         providerConfig: OpenAIResponsesConfig,

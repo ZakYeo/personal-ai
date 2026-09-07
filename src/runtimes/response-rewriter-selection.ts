@@ -20,8 +20,12 @@ export function createConfiguredResponseRewriter(
 
 export function createDefaultResponseRewriterProviderRegistry(): ResponseRewriterProviderRegistry {
   return {
-    disabled: defineConfiglessRuntimeProvider((): undefined => undefined),
+    disabled: defineConfiglessRuntimeProvider(
+      (): undefined => undefined,
+      "local",
+    ),
     openai: defineRuntimeProvider({
+      processing: "remote",
       configKey: "openai",
       create: (
         providerConfig: OpenAIResponsesConfig,

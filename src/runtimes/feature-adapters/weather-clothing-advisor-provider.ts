@@ -54,11 +54,15 @@ export function resolveWeatherClothingAdvisorProvider(
 
 const weatherClothingAdvisorProviderRegistry: WeatherClothingAdvisorProviderRegistry =
   {
-    mock: defineConfiglessRuntimeProvider(() => ({
-      adviser: createMockWeatherClothingAdvisor(),
-      validateStartup: () => {},
-    })),
+    mock: defineConfiglessRuntimeProvider(
+      () => ({
+        adviser: createMockWeatherClothingAdvisor(),
+        validateStartup: () => {},
+      }),
+      "local",
+    ),
     openai: defineRuntimeProvider({
+      processing: "remote",
       configKey: "openai",
       create: (
         config: OpenAIResponsesConfig,

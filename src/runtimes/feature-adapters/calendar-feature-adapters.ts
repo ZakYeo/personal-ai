@@ -33,6 +33,16 @@ export function createCalendarFeatureRegistryEntry(
   return {
     adapters: {
       google: googleCalendarAdapter.bind({
+        inspect: (config) => ({
+          processing: [
+            { name: "Calendar reads", location: "remote" },
+            {
+              name: "Event grouping",
+              location: config.eventGrouper.processing ?? "unchecked",
+            },
+          ],
+          statePaths: [],
+        }),
         create: (context, services) => {
           const eventGrouper = context.adapterConfig.eventGrouper.create({
             env: dependencies.env,
@@ -62,6 +72,16 @@ export function createCalendarFeatureRegistryEntry(
         },
       }),
       mock: mockCalendarAdapter.bind({
+        inspect: (config) => ({
+          processing: [
+            { name: "Calendar reads", location: "local" },
+            {
+              name: "Event grouping",
+              location: config.eventGrouper.processing ?? "unchecked",
+            },
+          ],
+          statePaths: [],
+        }),
         create: (context, services) => {
           const eventGrouper = context.adapterConfig.eventGrouper.create({
             env: dependencies.env,

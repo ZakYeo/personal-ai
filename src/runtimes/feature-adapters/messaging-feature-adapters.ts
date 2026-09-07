@@ -8,6 +8,10 @@ export function createMessagingFeatureRegistryEntry(): FeatureRegistryEntry {
   return {
     adapters: {
       mock: defineConfiglessFeatureAdapterEntry({
+        inspect: () => ({
+          processing: [{ name: "Local operations", location: "local" }],
+          statePaths: [],
+        }),
         create: () => createMessagingFeature(),
       }),
     },

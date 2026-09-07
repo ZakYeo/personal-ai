@@ -46,7 +46,10 @@ function createFileAlarmAdapterEntry(
   const { configDirectory, notificationDelivery, ...storeDependencies } =
     dependencies;
   return fileAlarmAdapter.bind({
-    statePaths: (config) => [config.filePath],
+    inspect: (config) => ({
+      processing: [{ name: "State storage", location: "local" }],
+      statePaths: [config.filePath],
+    }),
     create: (_context, services) =>
       createAlarmComposition(
         services.require(alarmStoreService),
@@ -72,6 +75,10 @@ function createLocalAlarmAdapterEntry(
   notificationDelivery: NotificationDeliveryPort | undefined,
 ) {
   return defineConfiglessFeatureAdapterEntry({
+    inspect: () => ({
+      processing: [{ name: "Local operations", location: "local" }],
+      statePaths: [],
+    }),
     create: (_context, services) =>
       createAlarmComposition(
         services.require(alarmStoreService),

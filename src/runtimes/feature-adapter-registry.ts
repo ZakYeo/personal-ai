@@ -1,3 +1,4 @@
+import type { FeatureAdapterInspection } from "./processing-inspection.js";
 import type { FeaturePlugin } from "../ports/feature.js";
 import type { ClockPort } from "../ports/assistant.js";
 import type { RuntimeBackgroundTask } from "./background-task.js";
@@ -17,7 +18,7 @@ interface FeatureAdapterContext<TAdapterConfig> {
 }
 
 interface FeatureAdapterBinding<TAdapterConfig> {
-  statePaths?(adapterConfig: TAdapterConfig): readonly string[];
+  inspect?(this: void, adapterConfig: TAdapterConfig): FeatureAdapterInspection;
   create(
     context: FeatureAdapterContext<TAdapterConfig>,
     services: RuntimeServiceRegistry,
@@ -29,6 +30,7 @@ interface FeatureAdapterBinding<TAdapterConfig> {
 }
 
 interface ConfiglessFeatureAdapterBinding {
+  inspect?(this: void): FeatureAdapterInspection;
   create(
     context: Pick<FeatureAdapterContext<never>, "runtime">,
     services: RuntimeServiceRegistry,
@@ -46,7 +48,7 @@ interface FeatureAdapterEntryDefinition<
 }
 
 export interface ResolvedFeatureAdapter {
-  statePaths?(): readonly string[];
+  inspect?(this: void): FeatureAdapterInspection;
   create(
     runtime: FeatureAdapterRuntimeContext,
     services?: RuntimeServiceRegistry,
@@ -93,6 +95,7 @@ export function defineFeatureAdapter<TAdapterConfig>(definition: {
       ): ResolvedFeatureAdapter => {
         requireCompatibleParsedConfig(parsedConfig, definitionId);
         const adapterConfig = parsedConfig.value as TAdapterConfig;
+        const inspect = binding.inspect;
         const resolved: ResolvedFeatureAdapter = {
           create: (runtime, services = createRuntimeServiceRegistry([])) =>
             binding.create(
@@ -103,9 +106,7 @@ export function defineFeatureAdapter<TAdapterConfig>(definition: {
               services,
             ),
           parsedConfig,
-          ...(binding.statePaths
-            ? { statePaths: () => binding.statePaths?.(adapterConfig) ?? [] }
-            : {}),
+          ...(inspect ? { inspect: () => inspect(adapterConfig) } : {}),
           ...(binding.provideServices
             ? {
                 provideServices: (runtime: FeatureAdapterRuntimeContext) =>
@@ -148,6 +149,7 @@ export function defineConfiglessFeatureAdapterEntry(
       create: (runtime, services = createRuntimeServiceRegistry([])) =>
         binding.create({ runtime }, services),
       parsedConfig,
+      ...(binding.inspect ? { inspect: binding.inspect } : {}),
       ...(binding.provideServices
         ? {
             provideServices: (runtime: FeatureAdapterRuntimeContext) =>

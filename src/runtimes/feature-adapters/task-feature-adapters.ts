@@ -46,7 +46,10 @@ function createFileTaskAdapterEntry(
   const { configDirectory, notificationDelivery, ...storeDependencies } =
     dependencies;
   return fileTaskAdapter.bind({
-    statePaths: (config) => [config.filePath],
+    inspect: (config) => ({
+      processing: [{ name: "State storage", location: "local" }],
+      statePaths: [config.filePath],
+    }),
     create: (_context, services) =>
       createTaskComposition(
         services.require(taskStoreService),
@@ -72,6 +75,10 @@ function createLocalTaskAdapterEntry(
   notificationDelivery: NotificationDeliveryPort | undefined,
 ) {
   return defineConfiglessFeatureAdapterEntry({
+    inspect: () => ({
+      processing: [{ name: "Local operations", location: "local" }],
+      statePaths: [],
+    }),
     create: (_context, services) =>
       createTaskComposition(
         services.require(taskStoreService),

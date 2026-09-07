@@ -38,7 +38,10 @@ export function createProfileFeatureRegistryEntry(
   return {
     adapters: {
       file: fileProfileAdapter.bind({
-        statePaths: (config) => [config.filePath],
+        inspect: (config) => ({
+          processing: [{ name: "State storage", location: "local" }],
+          statePaths: [config.filePath],
+        }),
         create: (_context, services) =>
           createProfileFeature(services.require(profileStoreService)),
         provideServices: ({ adapterConfig, runtime }) =>
@@ -54,6 +57,10 @@ export function createProfileFeatureRegistryEntry(
           ),
       }),
       local: defineConfiglessFeatureAdapterEntry({
+        inspect: () => ({
+          processing: [{ name: "Local operations", location: "local" }],
+          statePaths: [],
+        }),
         create: (_context, services) =>
           createProfileFeature(services.require(profileStoreService)),
         provideServices: ({ runtime }) =>

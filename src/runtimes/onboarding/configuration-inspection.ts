@@ -1,3 +1,4 @@
+import type { ProcessingLocation } from "../processing-inspection.js";
 import type { RuntimeConfigSource } from "../config/runtime-config-source.js";
 import { resolveLocalStatePath } from "../local-state-path.js";
 
@@ -7,21 +8,35 @@ export function inspectRuntimeConfiguration(
   const { config } = source;
   const lines = [
     `Config directory: ${JSON.stringify(source.configDirectory ?? "not supplied")}`,
-    `Intent: ${providerDescription(config.intent.provider)}`,
-    `Conversation: ${providerDescription(config.conversation.provider)}`,
-    `Response rewriting: ${providerDescription(config.responseRewriter.provider)}`,
+    `Intent: ${providerDescription(config.intent.provider, config.intent.resolvedProvider.processing)}`,
+    `Conversation: ${providerDescription(config.conversation.provider, config.conversation.resolvedProvider.processing)}`,
+    `Response rewriting: ${providerDescription(config.responseRewriter.provider, config.responseRewriter.resolvedProvider.processing)}`,
     "No integration checks have run.",
   ];
+  const voiceProcessing: Readonly<
+    Record<string, ProcessingLocation | undefined>
+  > = {
+    streamingSpeechToText:
+      config.desktopVoice?.streamingSpeechToTextProvider?.processing,
+    streamingTextToSpeech:
+      config.desktopVoice?.streamingTextToSpeechProvider?.processing,
+  };
   for (const [slot, provider] of Object.entries(config.voice ?? {})) {
     if (typeof provider === "string")
-      lines.push(`Voice ${slot}: ${providerDescription(provider)}`);
+      lines.push(
+        `Voice ${slot}: ${providerDescription(provider, voiceProcessing[slot])}`,
+      );
   }
   for (const [name, feature] of Object.entries(config.features)) {
     lines.push(
       `${name}: ${feature.enabled ? `configured (${feature.adapter})` : "disabled"}`,
     );
     if (!feature.enabled) continue;
-    for (const path of feature.resolvedAdapter.statePaths?.() ?? [])
+    const inspection = feature.resolvedAdapter.inspect?.();
+    for (const surface of inspection?.processing ?? [])
+      lines.push(`  ${surface.name}: ${surface.location}`);
+    if (!inspection) lines.push("  Processing: unchecked");
+    for (const path of inspection?.statePaths ?? [])
       lines.push(
         `  Durable state: ${JSON.stringify(resolveLocalStatePath(path, source.configDirectory))}`,
       );
@@ -35,22 +50,9 @@ export function inspectRuntimeConfiguration(
   return lines;
 }
 
-function providerDescription(provider: string): string {
-  const processing = ["openai", "openai-realtime", "openai-streaming"].includes(
-    provider,
-  )
-    ? "remote"
-    : [
-          "mock",
-          "deterministic",
-          "disabled",
-          "text-prefix",
-          "sox-rec",
-          "sox-play",
-          "sox-rec-stream",
-          "sox-play-stream",
-        ].includes(provider)
-      ? "local"
-      : "operator configured; unchecked";
-  return `${provider} (${processing})`;
+function providerDescription(
+  provider: string,
+  processing?: ProcessingLocation,
+): string {
+  return `${provider} (${processing ?? "operator configured; unchecked"})`;
 }

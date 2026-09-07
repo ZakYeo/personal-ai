@@ -38,8 +38,9 @@ export function createDefaultIntentProviderRegistry(): IntentProviderRegistry {
       return new DeterministicIntentInterpreter(
         createDeterministicIntentRules(features),
       );
-    }),
+    }, "local"),
     openai: defineRuntimeProvider({
+      processing: "remote",
       configKey: "openai",
       create: (
         providerConfig: OpenAIResponsesConfig,

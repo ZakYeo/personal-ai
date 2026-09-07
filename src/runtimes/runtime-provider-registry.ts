@@ -1,6 +1,8 @@
+import type { ProcessingLocation } from "./processing-inspection.js";
 import { selectConfiguredRuntimeEntry } from "./runtime-selector.js";
 
 export interface ResolvedRuntimeProvider<TContext, TResult> {
+  readonly processing?: ProcessingLocation;
   create(context: TContext): TResult;
 }
 
@@ -11,6 +13,7 @@ export interface RuntimeProviderEntry<TContext, TResult> {
 }
 
 interface RuntimeProviderDefinition<TConfig, TContext, TResult> {
+  processing?: ProcessingLocation;
   configKey?: string;
   create(config: TConfig, context: TContext): TResult;
   parseConfig(value: unknown): TConfig;
@@ -28,6 +31,7 @@ export function defineRuntimeProvider<TConfig, TContext, TResult>(
       );
 
       return {
+        ...(definition.processing ? { processing: definition.processing } : {}),
         create: (context) => definition.create(config, context),
       };
     },
@@ -36,9 +40,10 @@ export function defineRuntimeProvider<TConfig, TContext, TResult>(
 
 export function defineConfiglessRuntimeProvider<TContext, TResult>(
   create: (context: TContext) => TResult,
+  processing?: ProcessingLocation,
 ): RuntimeProviderEntry<TContext, TResult> {
   return {
-    resolve: () => ({ create }),
+    resolve: () => ({ create, ...(processing ? { processing } : {}) }),
   };
 }
 

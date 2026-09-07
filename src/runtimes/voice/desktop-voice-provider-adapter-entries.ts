@@ -25,6 +25,7 @@ export function createDesktopVoiceProviderAdapterRegistry(
   return {
     streamingSpeechToText: {
       "openai-realtime": defineDesktopVoiceProviderAdapter({
+        processing: "remote",
         configKey: "openAIRealtimeTranscription",
         create: (config: OpenAIRealtimeTranscriptionConfig, { dependencies }) =>
           new OpenAIRealtimeTranscription({
@@ -42,6 +43,7 @@ export function createDesktopVoiceProviderAdapterRegistry(
     },
     streamingTextToSpeech: {
       "openai-streaming": defineDesktopVoiceProviderAdapter({
+        processing: "remote",
         configKey: "openAIStreamingSpeech",
         create: (config: OpenAIStreamingSpeechConfig, { dependencies }) =>
           new OpenAIStreamingSpeech({

@@ -31,6 +31,10 @@ export function createInternetSearchFeatureRegistryEntry(
   return {
     adapters: {
       mock: mockInternetSearchAdapter.bind({
+        inspect: () => ({
+          processing: [{ name: "Internet search", location: "local" }],
+          statePaths: [],
+        }),
         create: ({ adapterConfig }, services) =>
           createInternetSearchFeature(services.require(internetSearchService), {
             maxResults: adapterConfig.maxResults,
@@ -40,6 +44,10 @@ export function createInternetSearchFeatureRegistryEntry(
         ],
       }),
       openai: openAIInternetSearchAdapter.bind({
+        inspect: () => ({
+          processing: [{ name: "Internet search", location: "remote" }],
+          statePaths: [],
+        }),
         create: ({ adapterConfig }, services) =>
           createInternetSearchFeature(services.require(internetSearchService), {
             maxResults: adapterConfig.maxResults,

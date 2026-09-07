@@ -64,7 +64,10 @@ export function createBriefingFeatureRegistryEntry(
   return {
     adapters: {
       file: fileBriefingAdapter.bind({
-        statePaths: (config) => [config.filePath],
+        inspect: (config) => ({
+          processing: [{ name: "State storage", location: "local" }],
+          statePaths: [config.filePath],
+        }),
         create: ({ adapterConfig, runtime }, services) =>
           createComposition(
             createFileBriefingStore({
@@ -80,6 +83,10 @@ export function createBriefingFeatureRegistryEntry(
           ),
       }),
       local: defineConfiglessFeatureAdapterEntry({
+        inspect: () => ({
+          processing: [{ name: "Local operations", location: "local" }],
+          statePaths: [],
+        }),
         create: ({ runtime }, services) =>
           createComposition(
             createInMemoryBriefingStore({

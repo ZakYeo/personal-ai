@@ -58,7 +58,16 @@ export function createWeatherFeatureRegistryEntry(
   return {
     adapters: {
       mock: mockWeatherAdapter.bind({
-        statePaths: (config) => weatherStatePaths(config.watchStore),
+        inspect: (config) => ({
+          processing: [
+            { name: "Weather forecasts", location: "local" },
+            {
+              name: "Clothing advice",
+              location: config.clothingAdvisor.processing ?? "unchecked",
+            },
+          ],
+          statePaths: weatherStatePaths(config.watchStore),
+        }),
         create: ({ adapterConfig, runtime }, services) => {
           const { watchStore, ...featureConfig } = adapterConfig;
           return createWeatherComposition(
@@ -87,7 +96,16 @@ export function createWeatherFeatureRegistryEntry(
           ).validateStartup(),
       }),
       openMeteo: openMeteoWeatherAdapter.bind({
-        statePaths: (config) => weatherStatePaths(config.watchStore),
+        inspect: (config) => ({
+          processing: [
+            { name: "Weather forecasts", location: "remote" },
+            {
+              name: "Clothing advice",
+              location: config.clothingAdvisor.processing ?? "unchecked",
+            },
+          ],
+          statePaths: weatherStatePaths(config.watchStore),
+        }),
         create: ({ adapterConfig, runtime }, services) => {
           const {
             openMeteo: _openMeteo,

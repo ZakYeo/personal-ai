@@ -54,11 +54,15 @@ export function resolveCalendarEventGrouperProvider(
 
 const calendarEventGrouperProviderRegistry: CalendarEventGrouperProviderRegistry =
   {
-    mock: defineConfiglessRuntimeProvider(() => ({
-      grouper: createMockCalendarEventGrouper(),
-      validateStartup: () => {},
-    })),
+    mock: defineConfiglessRuntimeProvider(
+      () => ({
+        grouper: createMockCalendarEventGrouper(),
+        validateStartup: () => {},
+      }),
+      "local",
+    ),
     openai: defineRuntimeProvider({
+      processing: "remote",
       configKey: "openai",
       create: (
         config: OpenAIResponsesConfig,
