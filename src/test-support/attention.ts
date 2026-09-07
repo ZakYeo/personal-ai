@@ -1,5 +1,7 @@
 import type { AttentionInboxItem, AttentionRule } from "../ports/attention.js";
 
+export { createInMemoryAttentionStore as createTestAttentionStore } from "../adapters/local/attention-store.js";
+
 const recordedAt = "2026-09-07T12:00:00.000Z";
 
 export function createTestAttentionRule(): AttentionRule {
