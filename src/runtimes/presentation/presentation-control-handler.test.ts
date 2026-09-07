@@ -4,6 +4,64 @@ import { createPresentationControlHandler } from "./presentation-control-handler
 import { createPresentationInteractionCoordinator } from "./presentation-interaction-coordinator.js";
 
 describe("presentation control handler", () => {
+  it.each(["yes", "no", "change the label"])(
+    "admits typed continuation %s and invalidates voice capture",
+    async (text) => {
+      const handled: string[] = [];
+      const eventStream = createStream();
+      const coordinator = createCoordinator(eventStream);
+      const voice = coordinator.beginInteraction();
+      voice.processing();
+      voice.confirmation("Approve?");
+      voice.followUpListening();
+      const handle = createPresentationControlHandler({
+        assistant: createAssistant(handled),
+        eventStream,
+        presentation: coordinator,
+      });
+      await expect(
+        handle({ requestId: "typed", text, type: "submit_text" }),
+      ).resolves.toEqual({ status: "accepted" });
+      expect(handled).toEqual([text]);
+      expect(voice.claimContinuation()).toBe(false);
+      expect(eventStream.snapshot().interaction).toMatchObject({
+        id: "interaction-1",
+        phase: "completed",
+        transcript: text,
+      });
+    },
+  );
+
+  it("keeps typed clarification available and rejects conflicting profile updates", async () => {
+    const eventStream = createStream();
+    const coordinator = createCoordinator(eventStream);
+    const assistant = createAssistant([]);
+    assistant.handleTextWithDiagnostics = () =>
+      Promise.resolve({
+        response: { status: "ok", text: "Which label?", expectsFollowUp: true },
+      });
+    const profileControl = vi.fn();
+    const handle = createPresentationControlHandler({
+      assistant,
+      eventStream,
+      presentation: coordinator,
+      profileControl,
+    });
+    await handle({ requestId: "ask", text: "edit it", type: "submit_text" });
+    expect(eventStream.snapshot().interaction?.phase).toBe("response");
+    await expect(
+      handle({
+        requestId: "profile",
+        field: "preferredName",
+        value: "Zak",
+        type: "profile_set",
+      }),
+    ).resolves.toMatchObject({ status: "rejected" });
+    expect(profileControl).not.toHaveBeenCalled();
+    await expect(
+      handle({ requestId: "answer", text: "Tea", type: "submit_text" }),
+    ).resolves.toEqual({ status: "accepted" });
+  });
   it("resumes the exact validated pending confirmation", async () => {
     const handled: string[] = [];
     const assistant = createAssistant(handled);

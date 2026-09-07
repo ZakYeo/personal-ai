@@ -6,6 +6,30 @@ import type {
 import { createPresentationInteractionCoordinator } from "./presentation-interaction-coordinator.js";
 
 describe("presentation interaction coordinator", () => {
+  it("does not let an old voice capture claim a replacement desktop prompt", () => {
+    const stream = createAssistantRuntimeEventStream({
+      instanceId: "service-1",
+      now: () => new Date("2026-09-04T10:00:00Z"),
+    });
+    const coordinator = createPresentationInteractionCoordinator({
+      createInteractionId: () => "interaction-1",
+      publish: (event) => stream.publish(event),
+    });
+    const voice = coordinator.beginInteraction();
+    voice.processing();
+    voice.confirmation("Approve?");
+    voice.followUpListening();
+    const desktop = coordinator.continueInteraction("interaction-1");
+    expect(desktop.claimContinuation()).toBe(true);
+    desktop.processing();
+    desktop.response({
+      status: "ok",
+      text: "Which label?",
+      expectsFollowUp: true,
+    });
+    expect(voice.claimContinuation()).toBe(false);
+    expect(desktop.continuationAvailable()).toBe(true);
+  });
   it("owns interaction identity and semantic event publication", () => {
     const stream = createAssistantRuntimeEventStream({
       instanceId: "service-1",

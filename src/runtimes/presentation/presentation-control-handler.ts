@@ -63,7 +63,8 @@ async function handleProfileControl(
   if (!options.profileControl) {
     return { message: "Profile controls are unavailable.", status: "rejected" };
   }
-  const interaction = options.presentation.beginInteraction();
+  const interaction = admitInput(options, false);
+  if (!interaction) return busyResult;
   interaction.transcriptFinal("Update personal profile");
   interaction.processing();
   let response: Awaited<ReturnType<Assistant["handleText"]>>;
@@ -113,7 +114,8 @@ async function handleTextControl(
   options: PresentationControlContext,
   text: string,
 ): Promise<PresentationControlResult> {
-  const interaction = options.presentation.beginInteraction();
+  const interaction = admitInput(options, true);
+  if (!interaction) return busyResult;
   interaction.transcriptFinal(text);
   interaction.processing();
   const response = await handleAssistantText(
@@ -134,5 +136,29 @@ function presentResponse(
     return;
   }
   interaction.response(response);
-  interaction.completed();
+  if (!response.expectsFollowUp) interaction.completed();
+}
+
+const busyResult: PresentationControlResult = {
+  status: "rejected",
+  message: "Please finish the current interaction first.",
+};
+
+function admitInput(
+  options: PresentationControlContext,
+  allowContinuation: boolean,
+): PresentationInteraction | undefined {
+  const active = options.eventStream.snapshot().interaction;
+  if (!active || ["completed", "cancelled", "failed"].includes(active.phase)) {
+    return options.presentation.beginInteraction();
+  }
+  if (
+    !allowContinuation ||
+    !["confirmation", "response", "listening"].includes(active.phase)
+  )
+    return;
+  const interaction = options.presentation.continueInteraction(active.id);
+  if (!interaction.continuationAvailable()) return;
+  if (active.phase !== "listening") interaction.followUpListening();
+  return interaction.claimContinuation() ? interaction : undefined;
 }

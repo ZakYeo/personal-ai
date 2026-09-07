@@ -343,6 +343,11 @@ identifiers and validated hidden source targets remain exact.
 Each relay client assigns transport request IDs from its own instance identity
 and sequence so concurrent windows cannot collide. The direct transport rejects
 duplicate outstanding IDs without replacing the original promise owner.
+Typed text claims the same pending continuation as voice and confirmation
+buttons; conflicting profile controls return a safe busy result. Continuation
+ownership is specific to each prompt, so an old voice capture cannot consume
+a newer prompt opened by a desktop reply. Required typed follow-ups remain
+pending rather than being presented as completed interactions.
 
 ### Raspberry Pi Runtime
 

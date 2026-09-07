@@ -63,7 +63,20 @@ export function createPresentationInteractionCoordinator(
     });
   }
 
-  let pendingContinuationId: string | undefined;
+  let pending: { id: string; token: symbol } | undefined;
+  const continuationOwner: ContinuationOwner = {
+    current: (id) => (pending?.id === id ? pending.token : undefined),
+    open: (id) => {
+      pending = { id, token: Symbol() };
+      return pending.token;
+    },
+    claim: (id, token) => {
+      if (!pending || pending.id !== id || pending.token !== token)
+        return false;
+      pending = undefined;
+      return true;
+    },
+  };
 
   return Object.freeze({
     beginInteraction: () =>
@@ -72,28 +85,17 @@ export function createPresentationInteractionCoordinator(
       createInteraction(publisher, continuationOwner, interactionId),
     wakeListening: () => publisher.publish({ type: "wake_listening" }),
   });
+}
 
-  function continuationOwner(
-    interactionId: string,
-    action: "available" | "claim" | "open",
-  ) {
-    if (action === "open") {
-      pendingContinuationId = interactionId;
-      return true;
-    }
-    if (action === "available") return pendingContinuationId === interactionId;
-    if (pendingContinuationId !== interactionId) return false;
-    pendingContinuationId = undefined;
-    return true;
-  }
+interface ContinuationOwner {
+  current(id: string): symbol | undefined;
+  open(id: string): symbol;
+  claim(id: string, token: symbol | undefined): boolean;
 }
 
 function createInteraction(
   publisher: PresentationEventPublisher,
-  continuation: (
-    interactionId: string,
-    action: "available" | "claim" | "open",
-  ) => boolean,
+  continuation: ContinuationOwner,
   existingInteractionId?: string,
 ): PresentationInteraction {
   const interactionId =
@@ -106,24 +108,27 @@ function createInteraction(
     publisher.publish({ ...event, interactionId });
   };
 
+  let token = continuation.current(interactionId);
+  const available = () =>
+    token !== undefined && continuation.current(interactionId) === token;
   const interaction: PresentationInteraction = {
-    claimContinuation: () => continuation(interactionId, "claim"),
+    claimContinuation: () => continuation.claim(interactionId, token),
     completed: () => publish({ type: "completed" }),
     confirmation: (prompt) => {
-      continuation(interactionId, "open");
+      token = continuation.open(interactionId);
       publish({ prompt, type: "confirmation_required" });
     },
-    continuationAvailable: () => continuation(interactionId, "available"),
+    continuationAvailable: available,
     failed: (message) => publish({ message, type: "safe_failure" }),
     followUpListening: () => {
-      if (!continuation(interactionId, "available")) return false;
+      if (!available()) return false;
       publish({ type: "follow_up_listening" });
       return true;
     },
     processing: () => publish({ type: "processing" }),
     response: (response) => {
       if (response.expectsFollowUp === true) {
-        continuation(interactionId, "open");
+        token = continuation.open(interactionId);
       }
       publish({
         ...(response.citations ? { citations: response.citations } : {}),
