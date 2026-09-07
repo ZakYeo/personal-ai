@@ -1,3 +1,8 @@
+import { applyAttentionInboxControl } from "../../application/attention-inbox-control.js";
+import {
+  attentionStoreService,
+  taskStoreService,
+} from "../feature-source-services.js";
 import { randomUUID } from "node:crypto";
 import { buildAssistantPresentationProjection } from "../../application/presentation-projection.js";
 import type { Assistant } from "../../core/assistant/index.js";
@@ -127,6 +132,8 @@ export function createDesktopPresentationRuntime(options: {
       const port = parsePresentationPort(
         options.env.PERSONAL_AI_PRESENTATION_PORT,
       );
+      const attentionStore = context?.services.get(attentionStoreService);
+      const taskStore = context?.services.get(taskStoreService);
       const profileStore = context?.services.get(profileStoreService);
       const profileControl = profileStore
         ? createProfilePresentationControl({
@@ -159,6 +166,27 @@ export function createDesktopPresentationRuntime(options: {
         eventStream,
         handleControl: createPresentationControlHandler({
           assistant,
+          ...(attentionStore
+            ? {
+                attentionControl: async (control) => {
+                  const changed = await applyAttentionInboxControl(
+                    {
+                      store: attentionStore,
+                      ...(taskStore ? { tasks: taskStore } : {}),
+                    },
+                    control,
+                    options.now(),
+                  );
+                  await refresh?.request();
+                  return {
+                    status: changed ? "ok" : "error",
+                    text: changed
+                      ? "Updated that attention notice."
+                      : "That notice changed or cannot be resolved this way. Please refresh the inbox.",
+                  };
+                },
+              }
+            : {}),
           eventStream,
           ...(options.io ? { io: options.io } : {}),
           presentation,

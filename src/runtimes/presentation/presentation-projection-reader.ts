@@ -7,6 +7,7 @@ import type { TaskRecord } from "../../ports/task-store.js";
 import { calendarLocalDayWindow } from "../../application/calendar-local-day.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
 import {
+  attentionStoreService,
   alarmStoreService,
   calendarSearchService,
   taskStoreService,
@@ -28,29 +29,35 @@ export async function readPresentationProjection(options: {
     localDay: { date: day, timeZone: options.config.assistant.timeZone },
   };
   const calendarWindow = calendarLocalDayWindow(calendarCriteria)!;
-  const [alarmRead, calendarRead, profileRead, taskRead] = await Promise.all([
-    readSource(
-      options.services.get(alarmStoreService),
-      (store) => store.list(),
-      options,
-    ),
-    readSource(
-      options.services.get(calendarSearchService),
-      (calendar) =>
-        calendar.searchEvents(calendarCriteria, { now: options.now }),
-      options,
-    ),
-    readSource(
-      options.services.get(profileStoreService),
-      (store) => store.list(),
-      options,
-    ),
-    readSource(
-      options.services.get(taskStoreService),
-      (store) => store.listTasks(),
-      options,
-    ),
-  ]);
+  const [alarmRead, calendarRead, profileRead, taskRead, attentionRead] =
+    await Promise.all([
+      readSource(
+        options.services.get(alarmStoreService),
+        (store) => store.list(),
+        options,
+      ),
+      readSource(
+        options.services.get(calendarSearchService),
+        (calendar) =>
+          calendar.searchEvents(calendarCriteria, { now: options.now }),
+        options,
+      ),
+      readSource(
+        options.services.get(profileStoreService),
+        (store) => store.list(),
+        options,
+      ),
+      readSource(
+        options.services.get(taskStoreService),
+        (store) => store.listTasks(),
+        options,
+      ),
+      readSource(
+        options.services.get(attentionStoreService),
+        async (store) => [...(await store.read()).inbox],
+        options,
+      ),
+    ]);
   const alarms = alarmRead.value.slice(0, 100).map((alarm) => ({
     id: alarm.id,
     label: alarm.label,
@@ -90,13 +97,39 @@ export async function readPresentationProjection(options: {
       .map((task) => task.label),
   ].slice(0, 50);
   const checks = new Map<string, { checked: boolean; failed: boolean }>([
+    ["attention", attentionRead],
     ["alarms", alarmRead],
     ["calendar", calendarRead],
     ["profile", profileRead],
     ["tasks", taskRead],
   ]);
   return {
-    attention: [],
+    attention: [...attentionRead.value]
+      .sort(
+        (a, b) =>
+          Number(b.status === "open") - Number(a.status === "open") ||
+          b.createdAt.localeCompare(a.createdAt),
+      )
+      .slice(0, 50)
+      .map((item) => ({
+        id: item.id,
+        revision: item.revision,
+        title: item.ruleName,
+        text: item.text,
+        explanation: `${item.explanation}${item.delivery.status === "not_sent" ? ` Notification withheld: ${item.delivery.reason.replaceAll("_", " ")}.` : ""}`,
+        provenance: item.provenance.request,
+        recordedAt: renderDateTime(item.createdAt, item.timeZone),
+        status:
+          item.status === "open" &&
+          item.snoozedUntil &&
+          item.snoozedUntil > options.now.toISOString()
+            ? `snoozed until ${renderDateTime(item.snoozedUntil, item.timeZone)}`
+            : item.status,
+        delivery: item.delivery.status.replaceAll("_", " "),
+        canResolveReminder:
+          item.status === "open" &&
+          item.facts.problem === "reminder_delivery_unknown",
+      })),
     activity: [],
     alarms,
     integrations: Object.entries(options.config.features)

@@ -1,3 +1,4 @@
+import { parseAttentionPresentationControl } from "./presentation-attention.js";
 import {
   presentationProtocolVersion,
   type PresentationControl,
@@ -48,6 +49,8 @@ export function parsePresentationControl(
   ) {
     return;
   }
+  if (value.type === "attention_update")
+    return parseAttentionPresentationControl(value);
   if (value.type === "submit_text") {
     return hasOnlyKeys(value, [
       "protocolVersion",

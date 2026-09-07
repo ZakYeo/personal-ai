@@ -1,4 +1,8 @@
-import type { PresentationAttentionItem } from "../ports/presentation.js";
+import { attentionInboxActions } from "../ports/attention.js";
+import type {
+  PresentationControl,
+  PresentationAttentionItem,
+} from "../ports/presentation.js";
 import {
   hasOnlyKeys,
   isIdentifier,
@@ -53,4 +57,47 @@ export function parsePresentationAttentionItem(
 }
 function text(value: unknown): value is string {
   return isSafePresentationText(value, 1_000, false) && isSpokenTextSafe(value);
+}
+
+export function parseAttentionPresentationControl(
+  value: Record<string, unknown>,
+): Extract<PresentationControl, { type: "attention_update" }> | undefined {
+  if (
+    !hasOnlyKeys(value, [
+      "protocolVersion",
+      "requestId",
+      "type",
+      "id",
+      "expectedRevision",
+      "action",
+      "minutes",
+    ]) ||
+    !isIdentifier(value.requestId) ||
+    !isIdentifier(value.id) ||
+    typeof value.expectedRevision !== "number" ||
+    !Number.isSafeInteger(value.expectedRevision) ||
+    value.expectedRevision < 1
+  )
+    return;
+  const action = attentionInboxActions.find(
+    (action) => action === value.action,
+  );
+  if (
+    !action ||
+    (value.minutes !== undefined &&
+      (action !== "snooze" ||
+        typeof value.minutes !== "number" ||
+        !Number.isInteger(value.minutes) ||
+        value.minutes < 1 ||
+        value.minutes > 10_080))
+  )
+    return;
+  return {
+    type: "attention_update",
+    requestId: value.requestId,
+    id: value.id,
+    expectedRevision: value.expectedRevision,
+    action,
+    ...(typeof value.minutes === "number" ? { minutes: value.minutes } : {}),
+  };
 }

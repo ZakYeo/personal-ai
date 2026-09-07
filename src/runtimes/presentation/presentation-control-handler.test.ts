@@ -378,3 +378,27 @@ function createAssistant(handled: string[]): Assistant {
     },
   };
 }
+
+it("executes admitted attention controls without reinterpreting them as assistant text", async () => {
+  const eventStream = createStream();
+  const handled: string[] = [];
+  const attentionControl = vi.fn(() =>
+    Promise.resolve({ status: "ok" as const, text: "Updated that notice." }),
+  );
+  const handle = createPresentationControlHandler({
+    assistant: createAssistant(handled),
+    eventStream,
+    presentation: createCoordinator(eventStream),
+    attentionControl,
+  });
+  const control = {
+    type: "attention_update" as const,
+    requestId: "attention-1",
+    id: "attention-item-1",
+    expectedRevision: 2,
+    action: "acknowledge" as const,
+  };
+  expect(await handle(control)).toEqual({ status: "accepted" });
+  expect(attentionControl).toHaveBeenCalledWith(control);
+  expect(handled).toEqual([]);
+});

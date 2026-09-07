@@ -1,7 +1,6 @@
+import { applyAttentionInboxControl } from "../../application/attention-inbox-control.js";
+import { attentionInboxActions } from "../../ports/attention.js";
 import { defineCapability } from "../../application/feature.js";
-import { changeAttentionItem } from "../../application/attention-commands.js";
-import { disableAttentionFromItem } from "../../application/attention-controls.js";
-import { resolveAttentionReminder } from "../../application/attention-resolution.js";
 import type { AttentionStore } from "../../ports/attention.js";
 import type { TaskStore } from "../../ports/task-store.js";
 
@@ -20,7 +19,7 @@ export function createAttentionInboxCapabilities(
       toolChain: "read",
       summary: "Read the current attention inbox.",
       description:
-        "List up to five open, unsnoozed notices with opaque IDs and revisions for explicit follow-up actions. Notices are historical; delivery completion does not mean user acknowledgement.",
+        "List up to five open notices that are not snoozed with opaque IDs and revisions for explicit follow-up actions. Notices are historical; delivery completion does not mean user acknowledgement.",
       spokenSummary: "read and manage your attention inbox",
       execute: async (_request, context) => {
         const items = (await store.read()).inbox
@@ -84,13 +83,7 @@ export function createAttentionInboxCapabilities(
         action: {
           type: "string",
           required: true,
-          allowedValues: [
-            "acknowledge",
-            "dismiss",
-            "snooze",
-            "disable_rule",
-            "resolve_reminder",
-          ],
+          allowedValues: attentionInboxActions,
         },
         minutes: { type: "number" },
       },
@@ -100,35 +93,12 @@ export function createAttentionInboxCapabilities(
         "Reduce interruptions for the exact ID and revision returned by the inbox. disable_rule means do not tell me about this again. resolve_reminder acknowledges the canonical uncertain reminder without completing its task or replaying it. Snooze requires 1 to 10080 minutes. These actions do not add permissions or output.",
       spokenSummary: "read and manage your attention inbox",
       execute: async (request, context) => {
-        const { id, expectedRevision, action, minutes } = request.args;
-        const selected = { id, expectedRevision };
-        const now = context.clock.now();
-        let changed: boolean;
-        switch (action) {
-          case "disable_rule":
-            changed = await disableAttentionFromItem(store, selected, now);
-            break;
-          case "resolve_reminder":
-            changed =
-              !!tasks &&
-              (await resolveAttentionReminder(store, tasks, selected, now));
-            break;
-          case "snooze":
-            changed = !!(await changeAttentionItem(
-              store,
-              { ...selected, action, minutes: minutes ?? 60 },
-              now,
-            ));
-            break;
-          case "acknowledge":
-          case "dismiss":
-            changed = !!(await changeAttentionItem(
-              store,
-              { ...selected, action },
-              now,
-            ));
-            break;
-        }
+        const { id } = request.args;
+        const changed = await applyAttentionInboxControl(
+          { store, ...(tasks ? { tasks } : {}) },
+          request.args,
+          context.clock.now(),
+        );
         return {
           data: { id, changed },
           text: changed

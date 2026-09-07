@@ -137,3 +137,17 @@ export interface AttentionSourceReaderPort {
     context: { readonly now: Date; readonly signal?: AbortSignal },
   ): Promise<readonly AttentionCandidate[]>;
 }
+
+export const attentionInboxActions = [
+  "acknowledge",
+  "dismiss",
+  "snooze",
+  "disable_rule",
+  "resolve_reminder",
+] as const;
+export interface AttentionInboxControl {
+  readonly id: string;
+  readonly expectedRevision: number;
+  readonly action: (typeof attentionInboxActions)[number];
+  readonly minutes?: number;
+}

@@ -1,3 +1,4 @@
+import type { AttentionInboxControl } from "./attention.js";
 import type {
   AssistantCitation,
   AssistantResponseStatus,
@@ -166,6 +167,10 @@ export interface PresentationTaskItem {
 }
 
 export type PresentationControl =
+  | (AttentionInboxControl & {
+      readonly requestId: string;
+      readonly type: "attention_update";
+    })
   | {
       readonly requestId: string;
       readonly text: string;

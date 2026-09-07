@@ -1,3 +1,4 @@
+import { presentationProtocolVersion } from "../ports/presentation.js";
 import {
   parsePresentationAuthentication,
   parsePresentationControl,
@@ -175,4 +176,28 @@ describe("presentation protocol", () => {
       }),
     ).toBeUndefined();
   });
+});
+
+it("accepts revision-pinned attention controls and rejects unknown actions or extra targets", () => {
+  const control = {
+    protocolVersion: presentationProtocolVersion,
+    requestId: "request-1",
+    type: "attention_update",
+    id: "attention-item-1",
+    expectedRevision: 2,
+    action: "acknowledge",
+  };
+  expect(parsePresentationControl(control)).toMatchObject({
+    type: "attention_update",
+    expectedRevision: 2,
+  });
+  expect(
+    parsePresentationControl({ ...control, action: "retry_send" }),
+  ).toBeUndefined();
+  expect(
+    parsePresentationControl({ ...control, privateTarget: "task-1" }),
+  ).toBeUndefined();
+  expect(
+    parsePresentationControl({ ...control, expectedRevision: 0 }),
+  ).toBeUndefined();
 });

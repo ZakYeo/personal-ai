@@ -17,6 +17,9 @@ import type {
 } from "./presentation-interaction-coordinator.js";
 
 interface PresentationControlContext {
+  readonly attentionControl?: (
+    control: Extract<PresentationControl, { type: "attention_update" }>,
+  ) => Promise<Awaited<ReturnType<Assistant["handleText"]>>>;
   readonly assistant: Assistant;
   readonly eventStream: AssistantRuntimeEventStream;
   readonly io?: VoiceRuntimeIo;
@@ -36,6 +39,14 @@ export function createPresentationControlHandler(
 ): (control: PresentationControl) => Promise<PresentationControlResult> {
   return async (control) => {
     switch (control.type) {
+      case "attention_update":
+        return handleStoredControl(
+          options,
+          "Attention",
+          options.attentionControl
+            ? () => options.attentionControl!(control)
+            : undefined,
+        );
       case "confirm":
       case "decline":
         return handleConfirmationControl(options, control);
@@ -54,29 +65,39 @@ export function createPresentationControlHandler(
       case "profile_explain":
       case "profile_forget":
       case "profile_set":
-        return handleProfileControl(options, control);
+        return handleStoredControl(
+          options,
+          "Profile",
+          options.profileControl
+            ? () => options.profileControl!(control)
+            : undefined,
+        );
     }
   };
 }
 
-async function handleProfileControl(
+async function handleStoredControl(
   options: PresentationControlContext,
-  control: Extract<
-    PresentationControl,
-    { type: "profile_explain" | "profile_forget" | "profile_set" }
-  >,
+  label: "Profile" | "Attention",
+  run:
+    | (() => Promise<Awaited<ReturnType<Assistant["handleText"]>>>)
+    | undefined,
 ): Promise<PresentationControlResult> {
-  if (!options.profileControl) {
-    return { message: "Profile controls are unavailable.", status: "rejected" };
-  }
+  if (!run)
+    return {
+      message: `${label} controls are unavailable.`,
+      status: "rejected",
+    };
   const admitted = admitInput(options, false);
   if (!admitted) return busyResult;
   const { interaction } = admitted;
-  interaction.transcriptFinal("Update personal profile");
+  interaction.transcriptFinal(
+    label === "Profile" ? "Update personal profile" : "Update attention notice",
+  );
   interaction.processing();
   let response: Awaited<ReturnType<Assistant["handleText"]>>;
   try {
-    response = await options.profileControl(control);
+    response = await run();
   } catch (error) {
     logRuntimeFailure(error, options.io ?? {});
     response = safeRuntimeFallbackResponse;

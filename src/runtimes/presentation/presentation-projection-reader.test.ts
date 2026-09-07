@@ -1,14 +1,20 @@
+import {
+  createTestAttentionStore,
+  createTestAttentionRule,
+  createTestAttentionItem,
+} from "../../test-support/attention.js";
+import {
+  attentionStoreService,
+  alarmStoreService,
+  calendarSearchService,
+  taskStoreService,
+} from "../feature-source-services.js";
 import { createProfilePresentationControl } from "../../application/profile-presentation-control.js";
 import type { AlarmStore } from "../../ports/alarm-store.js";
 import type { CalendarSearchPort } from "../../ports/calendar.js";
 import type { ProfileStorePort } from "../../ports/profile-store.js";
 import type { TaskStore } from "../../ports/task-store.js";
 import { createLoadedRuntimeConfig } from "../../test-support/core-assistant.js";
-import {
-  alarmStoreService,
-  calendarSearchService,
-  taskStoreService,
-} from "../feature-source-services.js";
 import { profileStoreService } from "../profile-runtime-services.js";
 import {
   bindRuntimeService,
@@ -238,3 +244,32 @@ function taskStore(): TaskStore {
     updateTask: vi.fn(),
   };
 }
+
+it("projects durable attention notices with opaque controls and no internal target facts", async () => {
+  const store = createTestAttentionStore({ timeZone: "Europe/London" });
+  const state = await store.read();
+  await store.replace(state.revision, {
+    ...state,
+    revision: state.revision + 1,
+    rules: [createTestAttentionRule()],
+    inbox: [createTestAttentionItem()],
+  });
+  const projection = await readPresentationProjection({
+    config: createLoadedRuntimeConfig({}),
+    now: new Date("2026-09-07T12:00:00.000Z"),
+    services: createRuntimeServiceRegistry([
+      bindRuntimeService(attentionStoreService, store),
+    ]),
+    projectProfile: () => [],
+    reportFailure: () => {},
+  });
+  expect(projection.attention).toMatchObject([
+    {
+      id: "attention-item-2",
+      revision: 1,
+      delivery: "unknown",
+      status: "open",
+    },
+  ]);
+  expect(projection.attention[0]).not.toHaveProperty("facts");
+});
