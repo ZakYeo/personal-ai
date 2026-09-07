@@ -8,15 +8,16 @@ import {
 import { humanizeSpokenText } from "../../application/human-text.js";
 import { logRuntimeFailure } from "../human-boundary.js";
 import { runAudioSetupSession } from "./audio-setup-session.js";
+import { createInteractiveTerminal } from "../interactive-terminal.js";
 
 const questions = createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-const shutdown = new AbortController();
-const stop = () => shutdown.abort(new Error("Audio setup interrupted."));
-process.once("SIGINT", stop);
-process.once("SIGTERM", stop);
+const terminal = createInteractiveTerminal({
+  questions,
+  processSignals: process,
+});
 try {
   process.exitCode = await runAudioSetupSession({
     audio: createPulseAudioSetup({
@@ -29,18 +30,15 @@ try {
         XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR,
       },
     }),
-    question: (prompt) =>
-      questions.question(prompt, { signal: shutdown.signal }),
+    question: terminal.question,
     reportFailure: (error) =>
       logRuntimeFailure(error, { stderr: process.stderr }),
-    signal: shutdown.signal,
+    signal: terminal.signal,
     writeLine: (line) =>
       process.stdout.write(
         `${humanizeSpokenText(line, { now: new Date(), timeZone: "UTC", assistantTimeZone: "UTC" })}\n`,
       ),
   });
 } finally {
-  questions.close();
-  process.removeListener("SIGINT", stop);
-  process.removeListener("SIGTERM", stop);
+  terminal.dispose();
 }

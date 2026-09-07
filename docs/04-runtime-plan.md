@@ -660,7 +660,10 @@ PulseAudio input devices, excludes output monitors, and asks for device
 selection. Recording requires an explicit yes after stopping the voice service;
 playback requires a separate yes. Five seconds of mono 24 kHz signed 16-bit PCM
 are bounded to 240,000 bytes in memory, with level feedback and no provider calls
-or recording files. Cancellation propagates to command processes, iterator
+or recording files. Readline Ctrl-C, input closure/EOF, and process signals share
+one disposable runtime cancellation owner, also used by corpus capture. Prompts
+settle on cancellation instead of leaving unresolved top-level work.
+Cancellation propagates to command processes, iterator
 cleanup is bounded, and retained buffers are cleared on every outcome. Device
 discovery uses `pactl`; recording/playback use SoX's PulseAudio backend. Missing
 tools, disconnected inputs, and unsupported systems produce safe recovery

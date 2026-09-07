@@ -1,5 +1,6 @@
 import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { createInterface } from "node:readline/promises";
+import { createInteractiveTerminal } from "../interactive-terminal.js";
 
 import { runCommand } from "../../adapters/desktop/process-runner.js";
 import {
@@ -10,10 +11,10 @@ import {
 const input = process.stdin;
 const output = process.stdout;
 const questions = createInterface({ input, output });
-const shutdown = new AbortController();
-const requestShutdown = () => shutdown.abort(new Error("Capture interrupted."));
-process.once("SIGINT", requestShutdown);
-process.once("SIGTERM", requestShutdown);
+const terminal = createInteractiveTerminal({
+  questions,
+  processSignals: process,
+});
 
 try {
   process.exitCode = await runVoiceCorpusCaptureCli(process.argv.slice(2), {
@@ -23,8 +24,7 @@ try {
       await mkdir(path, { recursive: true });
     },
     now: () => new Date(),
-    question: (prompt) =>
-      questions.question(prompt, { signal: shutdown.signal }),
+    question: terminal.question,
     readBinaryFile: (path) => readFile(path),
     readTextFile: (path) => readFile(path, "utf8"),
     removeFile: (path) => rm(path, { force: true }),
@@ -37,13 +37,11 @@ try {
         },
       });
     },
-    shutdownSignal: shutdown.signal,
+    shutdownSignal: terminal.signal,
     writeDiagnostic: (error) => console.error(error),
     writeLine: (line) => console.log(line),
     writeTextFile: (path, contents) => writeFile(path, contents, "utf8"),
   });
 } finally {
-  process.removeListener("SIGINT", requestShutdown);
-  process.removeListener("SIGTERM", requestShutdown);
-  questions.close();
+  terminal.dispose();
 }
