@@ -7,6 +7,10 @@ export function applyPlanCorrection(
   plan: ValidatedAssistantPlan,
   interpretation: Extract<IntentInterpretation, { kind: "command" | "plan" }>,
   trustedReply: string,
+  options: {
+    baseCommands?: readonly AssistantCommand[];
+    allowMissingRequired?: boolean;
+  } = {},
 ): readonly AssistantCommand[] {
   const patches =
     interpretation.kind === "command"
@@ -14,6 +18,10 @@ export function applyPlanCorrection(
       : interpretation.plan.commands;
   if (patches.length !== plan.steps.length)
     throw new Error("A correction must preserve every prepared plan step.");
+  if (options.baseCommands && options.baseCommands.length !== plan.steps.length)
+    throw new Error(
+      "A correction draft must preserve every prepared plan step.",
+    );
   return Object.freeze(
     plan.steps.map((step, index) => {
       const patch = patches[index]!;
@@ -21,7 +29,13 @@ export function applyPlanCorrection(
         allowMissingRequired: true,
       });
       if (!partial.ok) throw new Error(partial.error.message);
-      const parameters = { ...step.decodedArgs };
+      const base = decodeCommandForCapability(
+        options.baseCommands?.[index] ?? step.command,
+        step.route.capability,
+        { allowMissingRequired: true },
+      );
+      if (!base.ok) throw new Error(base.error.message);
+      const parameters = { ...base.args };
       for (const [name, value] of Object.entries(patch.parameters)) {
         if (value === null || value === undefined) delete parameters[name];
         else parameters[name] = value;
@@ -40,6 +54,7 @@ export function applyPlanCorrection(
       const decoded = decodeCommandForCapability(
         command,
         step.route.capability,
+        { allowMissingRequired: options.allowMissingRequired === true },
       );
       if (!decoded.ok) throw new Error(decoded.error.message);
       if (

@@ -45,6 +45,9 @@ export function requestWorkflowConfirmation(
   input: ConfirmationWorkflow,
   plan: ValidatedAssistantPlan,
 ): AssistantOutcome {
+  let baseCommands: readonly AssistantCommand[] = plan.steps.map(
+    (step) => step.command,
+  );
   if (
     !input.draft.openPlan(
       plan.steps.map((step) => step.command),
@@ -141,6 +144,43 @@ export function requestWorkflowConfirmation(
             throw new Error(
               "A correction question requested an undeclared or fixed field.",
             );
+          if (metadata && "partialCommand" in metadata && nextParameter) {
+            const selected = plan.steps.flatMap((step, index) =>
+              step.command.capability === metadata.capability ? [index] : [],
+            );
+            if (
+              selected.length !== 1 &&
+              Object.keys(metadata.partialCommand.parameters).length > 0
+            )
+              throw new Error(
+                "A partial correction must identify one unique prepared step.",
+              );
+            if (selected.length === 1) {
+              const commands = plan.steps.map((step, index) => ({
+                capability: step.command.capability,
+                parameters:
+                  index === selected[0]
+                    ? {
+                        ...metadata.partialCommand.parameters,
+                        [nextParameter]: null,
+                      }
+                    : {},
+                rawText: reply,
+              }));
+              baseCommands = applyPlanCorrection(
+                plan,
+                { kind: "plan", plan: { commands } },
+                reply,
+                { baseCommands, allowMissingRequired: true },
+              );
+              if (!input.draft.openPlan(baseCommands, input.references()))
+                return completed(
+                  input.draft.expired()
+                    ? expiredDraftOutcome
+                    : input.limitOutcome,
+                );
+            }
+          }
           return completed(
             input.interaction.requestClarification(
               {
@@ -154,7 +194,9 @@ export function requestWorkflowConfirmation(
           throw new Error(
             "A confirmation correction may not execute reads or return unrelated output.",
           );
-        const commands = applyPlanCorrection(plan, interpretation, reply);
+        const commands = applyPlanCorrection(plan, interpretation, reply, {
+          baseCommands,
+        });
         if (
           commands.every(
             (command, index) => command === plan.steps[index]!.command,

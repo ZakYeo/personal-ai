@@ -60,6 +60,45 @@ const labelCorrection = (label: string): IntentInterpretation => ({
 });
 
 describe("pending action corrections", () => {
+  it("retains a validated changed field while a correction asks for another value", async () => {
+    const h = harness([
+      {
+        kind: "clarification",
+        clarification: {
+          capability: "alarm.create",
+          origin: "intent_interpreter",
+          parameter: "minutesFromNow",
+          partialCommand: createCommand("alarm.create", { label: "coffee" }),
+          session: "resume",
+        },
+        response: { status: "ok", text: "How many minutes from now?" },
+      },
+      {
+        kind: "command",
+        command: createCommand("alarm.create", {
+          scheduledFor: null,
+          minutesFromNow: 20,
+        }),
+      },
+    ]);
+    await h.assistant.handleText("set an alarm");
+    await h.assistant.handleText(
+      "change its label to coffee and change the time",
+    );
+    await h.assistant.handleText("twenty minutes");
+    expect(h.continuations[1]).toMatchObject({
+      clarification: {
+        draft: {
+          parameters: { label: "coffee" },
+          missingParameters: ["minutesFromNow"],
+        },
+      },
+    });
+    await h.assistant.handleText("yes");
+    expect(await h.store.list()).toMatchObject([
+      { label: "coffee", scheduledFor: "2026-09-07T12:20:00.000Z" },
+    ]);
+  });
   it("resolves a newly requested relative time against the live correction clock", async () => {
     const h = harness([
       {
