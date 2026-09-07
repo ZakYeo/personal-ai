@@ -59,6 +59,35 @@ describe("fixed proactive attention sources", () => {
       ),
     ).toEqual([]);
   });
+  it.each([false, true])(
+    "detects a known interval containing an event with no end (reversed: %s)",
+    async (reversed) => {
+      const point = {
+        ...event,
+        id: "point",
+        startAt: "2026-09-07T09:30:00.000Z",
+      };
+      delete point.endAt;
+      const request = {
+        definition: {
+          kind: "conflicting_commitments" as const,
+          lookAheadHours: 2,
+        },
+        timeZone,
+      };
+      expect(
+        await reader(reversed ? [point, event] : [event, point]).read(request, {
+          now,
+        }),
+      ).toHaveLength(1);
+      expect(
+        await reader([event, { ...point, startAt: event.endAt! }]).read(
+          request,
+          { now },
+        ),
+      ).toEqual([]);
+    },
+  );
   it("uses only open due tasks and never writes task state", async () => {
     const listTasks = vi.fn(() =>
       Promise.resolve([

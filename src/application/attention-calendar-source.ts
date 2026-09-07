@@ -85,9 +85,11 @@ function overlap(first: CalendarEvent, second: CalendarEvent): boolean {
   if (!first.startAt || !second.startAt) return false;
   if (first.startAt === second.startAt) return true;
   return (
-    !!first.endAt &&
-    !!second.endAt &&
-    first.startAt < second.endAt &&
-    second.startAt < first.endAt
+    (!!first.endAt &&
+      first.startAt <= second.startAt &&
+      second.startAt < first.endAt) ||
+    (!!second.endAt &&
+      second.startAt <= first.startAt &&
+      first.startAt < second.endAt)
   );
 }
