@@ -56,7 +56,9 @@ export function createAttentionLifecycleCapabilities(store: AttentionStore) {
                     `${rule.name} is ${rule.enabled ? "enabled" : "disabled"}.`,
                 )
                 .join(" ")}`
-            : "There are no matching attention rules on this page.",
+            : state.rules.length === 0
+              ? "You have no proactive attention rules."
+              : "There are no matching attention rules on this page.",
         };
       },
     }),
