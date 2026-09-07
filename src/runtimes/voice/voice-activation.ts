@@ -1,4 +1,6 @@
 import type { VoiceTurnController } from "./voice-turn-controller.js";
+import type { ResolvedVoiceConfig } from "../config/voice-config.js";
+import type { VoiceInterruptionRequest } from "./voice-interruption-monitor.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -21,6 +23,8 @@ import type {
 import type { VoiceOutputCoordinator } from "./voice-output-coordinator.js";
 
 export interface VoiceActivationDependencies {
+  bargeIn?: NonNullable<ResolvedVoiceConfig["bargeIn"]>;
+  initialCommand?: VoiceInterruptionRequest;
   assistant: Assistant;
   audioOutput: AudioOutputPort;
   commandAudioInput: AudioInputPort;

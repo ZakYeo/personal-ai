@@ -1,4 +1,10 @@
-import { stopVoiceOutputForCommand } from "./voice-spoken-stop.js";
+import { transcribeVoiceCommand } from "./voice-command-capture.js";
+import {
+  isVoiceStopCommand,
+  stopVoiceOutputForCommand,
+} from "./voice-spoken-stop.js";
+import { createVoiceInterruption } from "./voice-interruption.js";
+import { createVoiceOutputCoordinator } from "./voice-output-coordinator.js";
 import {
   createVoiceTurnController,
   type VoiceTurnController,
@@ -35,6 +41,9 @@ import type {
   StreamingVoiceOutput,
 } from "./streaming-voice.js";
 import type { VoiceOutputCoordinator } from "./voice-output-coordinator.js";
+import type { ResolvedVoiceConfig } from "../config/voice-config.js";
+import type { VoiceInterruptionRequest } from "./voice-interruption-monitor.js";
+import type { VoiceSpeechInterruption } from "./voice-response.js";
 
 interface VoicePipelineConfig {
   initialCommandSource: "command-capture" | "wake-transcript";
@@ -43,6 +52,9 @@ interface VoicePipelineConfig {
 }
 
 interface VoicePipelineDependencies {
+  bargeIn?: NonNullable<ResolvedVoiceConfig["bargeIn"]>;
+  initialCommand?: VoiceInterruptionRequest;
+  interruption?: VoiceSpeechInterruption;
   assistant: Assistant;
   audioOutput: AudioOutputPort;
   commandAudioInput: AudioInputPort;
@@ -77,6 +89,14 @@ export async function runVoicePipeline(
       onCleanupFailure: (error) => logRuntimeFailure(error, io),
     });
   const session = controller.begin(dependencies.shutdownSignal);
+  const outputCoordinator =
+    dependencies.outputCoordinator ??
+    createVoiceOutputCoordinator({
+      onCleanupFailure: (error) => controller.quarantine(error),
+    });
+  const interrupt = createVoiceInterruption(controller, outputCoordinator);
+  let interruption: VoiceInterruptionRequest | undefined;
+  let interruptionCleanup: Promise<void> | undefined;
   const observed = createVoiceTurnInstrumentation(dependencies.timing);
   const instrumentation: VoiceTurnInstrumentation = {
     mark: (name) => observed.mark(name),
@@ -86,21 +106,74 @@ export async function runVoicePipeline(
   };
   const scoped = {
     ...dependencies,
+    outputCoordinator,
     shutdownSignal: session.signal,
     turnController: controller,
   };
+  if (dependencies.bargeIn && !dependencies.initialCommand) {
+    scoped.interruption = {
+      signal: session.signal,
+      wakePhrases: dependencies.turnConfig.wakePhrases,
+      capture: (signal) =>
+        transcribeVoiceCommand(
+          { ...scoped, shutdownSignal: signal },
+          {},
+          createVoiceTurnInstrumentation(),
+        ),
+      onRequest: (request) => {
+        if (interruptionCleanup || session.signal.aborted) return;
+        if (
+          isVoiceStopCommand(request.text, dependencies.turnConfig.wakePhrases)
+        ) {
+          instrumentation.mark("stop_recognized");
+        } else {
+          interruption = request;
+        }
+        interruptionCleanup = interrupt().then(
+          () => {
+            instrumentation.mark("output_stopped");
+          },
+          (error: unknown) => {
+            interruption = undefined;
+            controller.quarantine(
+              error instanceof Error
+                ? error
+                : new Error("Voice interruption failed."),
+            );
+          },
+        );
+      },
+      onCleanupFailure: (error) => controller.quarantine(error),
+      reportFailure: (error) => logRuntimeFailure(error, io),
+      onCaptureState: (capturing) =>
+        io.presentation?.microphoneChanged(
+          controller.failed
+            ? "unavailable"
+            : capturing
+              ? "capturing"
+              : "available",
+        ),
+    };
+  }
+  let result: VoicePipelineResult;
   try {
-    return await runVoicePipelineActivation(scoped, io, instrumentation);
+    result = await runVoicePipelineActivation(scoped, io, instrumentation);
   } catch (error) {
     if (
       session.signal.aborted ||
       dependencies.turnConfig.preWakeFailureMode === "fallback"
     )
-      return await speakPipelineFallback(scoped, io, instrumentation, error);
-    throw error;
+      result = await speakPipelineFallback(scoped, io, instrumentation, error);
+    else throw error;
   } finally {
     session.dispose();
+    await interruptionCleanup;
   }
+  return {
+    ...result,
+    ...timingsResult(instrumentation),
+    ...(interruption && !controller.failed ? { interruption } : {}),
+  };
 }
 
 async function runVoicePipelineActivation(
@@ -108,9 +181,17 @@ async function runVoicePipelineActivation(
   io: VoiceRuntimeIo,
   instrumentation: VoiceTurnInstrumentation,
 ): Promise<VoicePipelineResult> {
-  logWakeListening(io, dependencies.turnConfig.wakePhrases);
   const presentation =
     io.presentation ?? createPresentationInteractionCoordinator();
+  if (dependencies.initialCommand) {
+    return runPostWakeVoiceCommand(dependencies, io, {
+      instrumentation,
+      presentationInteraction: presentation.beginVoiceInteraction(),
+      initialCommandTranscript: dependencies.initialCommand.text,
+      wakePhrase: dependencies.initialCommand.wakePhrase,
+    });
+  }
+  logWakeListening(io, dependencies.turnConfig.wakePhrases);
   presentation.wakeListening();
 
   if (dependencies.wakeActivation) {
@@ -209,7 +290,7 @@ async function runPostWakeVoiceCommand(
     const commandTranscript =
       metadata.initialCommandTranscript !== undefined
         ? { text: metadata.initialCommandTranscript }
-        : await transcribeCommand(
+        : await transcribeVoiceCommand(
             dependencies,
             io,
             metadata.instrumentation,
@@ -262,7 +343,7 @@ async function runPostWakeVoiceCommand(
       io,
       {
         captureFollowUp: () =>
-          transcribeCommand(
+          transcribeVoiceCommand(
             dependencies,
             io,
             metadata.instrumentation,
@@ -327,78 +408,10 @@ async function speakPipelineFallback(
   };
 }
 
-async function transcribeCommand(
-  dependencies: ActiveVoicePipelineDependencies,
-  io: VoiceRuntimeIo,
-  instrumentation: VoiceTurnInstrumentation,
-  presentationInteraction: PresentationInteraction,
-  shouldPublish: () => boolean = () => true,
-): Promise<{ text: string }> {
-  if (dependencies.streamingInput) {
-    const { audioInput, speechToText } = dependencies.streamingInput;
-    const audio = await instrumentation.measure("command stream setup", () =>
-      audioInput.captureStream({ signal: dependencies.shutdownSignal }),
-    );
-
-    return instrumentation
-      .measure("command transcription", () =>
-        speechToText.transcribeStream(
-          { chunks: markStreamEnd(audio.chunks, instrumentation) },
-          {
-            onTranscriptDelta: (delta) => {
-              if (dependencies.shutdownSignal.aborted) return;
-              if (delta) instrumentation.mark("first_transcript");
-              io.progressOutput?.write(delta);
-              if (shouldPublish())
-                presentationInteraction.transcriptDelta(delta);
-            },
-          },
-          { signal: dependencies.shutdownSignal },
-        ),
-      )
-      .then((transcript) => {
-        instrumentation.mark("first_transcript");
-        if (shouldPublish())
-          presentationInteraction.transcriptFinal(transcript.text);
-        return transcript;
-      });
-  }
-
-  const commandAudio = await instrumentation.measure(
-    "command audio capture",
-    () =>
-      dependencies.commandAudioInput.capture({
-        signal: dependencies.shutdownSignal,
-      }),
-  );
-
-  instrumentation.mark("capture_completed");
-  return instrumentation
-    .measure("command speech-to-text", () =>
-      dependencies.speechToText.transcribe(commandAudio, {
-        signal: dependencies.shutdownSignal,
-      }),
-    )
-    .then((transcript) => {
-      instrumentation.mark("first_transcript");
-      if (shouldPublish())
-        presentationInteraction.transcriptFinal(transcript.text);
-      return transcript;
-    });
-}
-
 function timingsResult(
   instrumentation: VoiceTurnInstrumentation,
 ): Pick<VoiceTurnResult, "timings"> | Record<string, never> {
   const timings = instrumentation.snapshotIfEnabled();
 
   return timings ? { timings } : {};
-}
-
-async function* markStreamEnd(
-  chunks: AsyncIterable<Uint8Array>,
-  instrumentation: VoiceTurnInstrumentation,
-): AsyncIterable<Uint8Array> {
-  yield* chunks;
-  instrumentation.mark("capture_completed");
 }

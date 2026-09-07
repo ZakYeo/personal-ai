@@ -40,6 +40,7 @@ import type {
 } from "../background-task.js";
 import { createDesktopPresentationRuntime } from "../presentation/desktop-presentation-runtime.js";
 import { logRuntimeFailure } from "../human-boundary.js";
+import type { VoiceInterruptionRequest } from "./voice-interruption-monitor.js";
 
 export interface ConfiguredVoiceServiceRuntimeOptions extends Pick<
   ConfiguredTextRuntimeOptions,
@@ -100,6 +101,7 @@ export function runConfiguredVoiceServiceRuntime(
   const presentationRuntime = options.desktopPresentation
     ? createDesktopPresentationRuntime({
         env,
+        interruptTurn: () => turnController.cancel(),
         interruptVoice: createVoiceInterruption(
           turnController,
           outputCoordinator,
@@ -114,6 +116,7 @@ export function runConfiguredVoiceServiceRuntime(
       ? { presentation: presentationRuntime.presentation }
       : {}),
   };
+  let pendingCommand: VoiceInterruptionRequest | undefined;
 
   return runConfiguredServiceRuntime(
     {
@@ -176,6 +179,8 @@ export function runConfiguredVoiceServiceRuntime(
         });
 
         try {
+          const initialCommand = pendingCommand;
+          pendingCommand = undefined;
           const result = await (
             options.runVoiceActivation ?? runVoiceActivation
           )(
@@ -185,6 +190,8 @@ export function runConfiguredVoiceServiceRuntime(
               commandAudioInput: adapters.audioInput,
               outputCoordinator,
               turnController,
+              ...(voiceConfig.bargeIn ? { bargeIn: voiceConfig.bargeIn } : {}),
+              ...(initialCommand ? { initialCommand } : {}),
               speechToText: adapters.speechToText,
               ...(adapters.streamingInput
                 ? { streamingInput: adapters.streamingInput }
@@ -205,6 +212,7 @@ export function runConfiguredVoiceServiceRuntime(
             },
             voiceIo,
           );
+          pendingCommand = result.interruption;
           return { completed: result.status !== "cancelled" };
         } finally {
           await cleanupVoiceAdapters(() => adapters.cleanup?.(), options.io);

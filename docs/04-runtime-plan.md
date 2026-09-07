@@ -404,8 +404,24 @@ pending confirmation, and emits no spoken acknowledgement. Longer action request
 continue through normal intent validation. A reply whose ownership was already
 claimed by the desktop cannot interrupt newer output. Monotonic stop-recognition
 and output-cleanup events describe software timing only; acoustic silence still
-requires physical measurement. Concurrent wake capture during the assistant's
-own speech and replacement barge-in are added in subsequent Milestone 19 slices.
+requires physical measurement.
+
+Concurrent interruption capture is opt-in through `voice.bargeIn.enabled: true`
+and an explicit `inputIsolation` of `headphones` or `echo_cancelled`. The operator
+must provide that audio isolation; the runtime does not claim to implement acoustic
+echo cancellation. Default configurations leave concurrent capture off. The speech
+output owner admits at most three wake-qualified captures during a 30-second
+window, rejects exact output echo, and joins capture cleanup before releasing
+output. Capture cleanup has a one-second deadline; failure quarantines the turn
+and fails the service rather than admitting another microphone owner.
+
+A recognized stop cancels the current turn and admitted output without a spoken
+acknowledgement. Another bounded wake-qualified request is handed to the next
+activation only after cleanup, without another wake or capture. The handoff is
+consumed once, cannot itself start another concurrent listener, and passes through
+normal core validation and pending-interaction policy. Completed actions remain
+completed. Desktop continuation controls claim the pending reply and await turn
+cleanup before execution; late voice input cannot approve the same action.
 
 #### Native shell decision
 

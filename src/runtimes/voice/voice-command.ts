@@ -4,7 +4,10 @@ import {
   logAssistantResponse,
   logCommandTranscript,
 } from "./voice-progress.js";
-import { speakResponse } from "./voice-response.js";
+import {
+  speakResponse,
+  type VoiceSpeechInterruption,
+} from "./voice-response.js";
 import {
   readAssistantOutcome,
   recordPresentedOutcome,
@@ -20,6 +23,7 @@ import type { VoiceOutputCoordinator } from "./voice-output-coordinator.js";
 import type { PresentationInteraction } from "../presentation/presentation-interaction-coordinator.js";
 
 export interface VoiceCommandDependencies {
+  interruption?: VoiceSpeechInterruption;
   assistant: Assistant;
   audioOutput: AudioOutputPort;
   outputCoordinator?: VoiceOutputCoordinator;
@@ -70,6 +74,23 @@ export async function runDetectedVoiceCommand(
     speakResponse(
       {
         ...dependencies,
+        ...(dependencies.interruption
+          ? {
+              interruption: {
+                ...dependencies.interruption,
+                onRequest: (request) => {
+                  if (
+                    (response.status === "needs_confirmation" ||
+                      response.expectsFollowUp) &&
+                    metadata.presentationInteraction?.continuationAvailable() ===
+                      false
+                  )
+                    return;
+                  dependencies.interruption?.onRequest(request);
+                },
+              },
+            }
+          : {}),
         onFirstAudioSubmitted: () =>
           instrumentation.mark("first_audio_submitted"),
       },
