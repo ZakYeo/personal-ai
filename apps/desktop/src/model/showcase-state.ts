@@ -3,7 +3,21 @@ import type { DesktopPresentationState } from "./desktop-state.js";
 export const desktopShowcaseState = Object.freeze({
   connection: "connected",
   projection: {
-    attention: [],
+    attention: [
+      {
+        id: "attention-item-health",
+        revision: 1,
+        title: "Delivery health",
+        text: "Delivery of the reminder for Review the plan is unknown. It will not be replayed automatically.",
+        explanation:
+          "The reminder was claimed but no completed delivery was recorded. Acknowledging it will not complete the task.",
+        provenance: "Notify me about assistant delivery problems",
+        recordedAt: "7 September at 10am",
+        status: "open",
+        delivery: "delivered",
+        canResolveReminder: true,
+      },
+    ],
     activity: [
       { occurredAt: "10:42am", summary: "Morning briefing completed" },
       { occurredAt: "9:15am", summary: "Weather watch checked" },

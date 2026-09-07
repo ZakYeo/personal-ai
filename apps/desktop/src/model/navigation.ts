@@ -1,5 +1,6 @@
 export const desktopSections = Object.freeze([
   "Today",
+  "Inbox",
   "Tasks",
   "Alarms",
   "Interactions",

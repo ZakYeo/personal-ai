@@ -33,6 +33,7 @@ export function AppView({
   ) : (
     <CommandCenterView
       intents={{
+        updateAttention: viewModel.updateAttention,
         applyShortcut: viewModel.applyShortcut,
         correctProfileFact: viewModel.correctProfileFact,
         explainProfileFact: viewModel.explainProfileFact,

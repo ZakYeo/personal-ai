@@ -236,3 +236,21 @@ nav button.active {
   border-radius: 10px;
   cursor: pointer;
 }
+
+.attention-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.attention-actions {
+  flex-wrap: wrap;
+}
+
+.attention-actions button {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: inherit;
+  background: var(--color-panel);
+  cursor: pointer;
+}

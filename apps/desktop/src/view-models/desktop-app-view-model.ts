@@ -3,9 +3,17 @@ import type { DesktopPresentationState } from "../model/desktop-state.js";
 import type { DesktopMode, DesktopSection } from "../model/navigation.js";
 import type { DesktopHost } from "../ports/desktop-host.js";
 import { projectDesktopView, sourceById } from "./desktop-view-projection.js";
-import type { DesktopAppViewState } from "./desktop-view-state.js";
+import type {
+  AttentionNoticeAction,
+  DesktopAppViewState,
+} from "./desktop-view-state.js";
 
 export interface DesktopAppViewModel {
+  readonly updateAttention: (
+    id: string,
+    expectedRevision: number,
+    action: AttentionNoticeAction,
+  ) => void;
   readonly applyShortcut: () => void;
   readonly confirm: (
     interactionId: string,
@@ -79,7 +87,7 @@ export function createDesktopAppViewModel(options: {
   }
 
   const viewModel: DesktopAppViewModel = {
-    ...createConfirmationIntents(dispatch),
+    ...createInteractionIntents(dispatch),
     applyShortcut: () => {
       void options.host
         .setPushToTalkShortcut(shortcutDraft.trim())
@@ -160,9 +168,9 @@ export function createDesktopAppViewModel(options: {
   }
 }
 
-function createConfirmationIntents(
+function createInteractionIntents(
   dispatch: (control: PresentationControl) => void,
-): Pick<DesktopAppViewModel, "confirm" | "decline"> {
+): Pick<DesktopAppViewModel, "confirm" | "decline" | "updateAttention"> {
   const reply =
     (type: "confirm" | "decline") =>
     (interactionId: string, confirmationSequence: number) =>
@@ -172,7 +180,19 @@ function createConfirmationIntents(
         requestId: requestId(),
         type,
       });
-  return { confirm: reply("confirm"), decline: reply("decline") };
+  return {
+    confirm: reply("confirm"),
+    decline: reply("decline"),
+    updateAttention: (id, expectedRevision, action) =>
+      dispatch({
+        type: "attention_update",
+        requestId: requestId(),
+        id,
+        expectedRevision,
+        action,
+        ...(action === "snooze" ? { minutes: 60 } : {}),
+      }),
+  };
 }
 
 function dispatchPresentationControl(

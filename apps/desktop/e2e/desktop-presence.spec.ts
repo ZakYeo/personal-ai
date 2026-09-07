@@ -76,6 +76,35 @@ test("command center navigation and request entry remain usable", async ({
   await expect(autostart).toBeChecked();
 });
 
+test("attention inbox shows provenance and lifecycle controls without overflow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ height: 900, width: 1280 });
+  await page.goto("/?e2e=showcase");
+  await page.getByRole("button", { name: "Inbox" }).click();
+  await page.getByText("Why this notice?").click();
+  await expect(
+    page.getByText("Notify me about assistant delivery problems"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Acknowledge notice" }),
+  ).toBeVisible();
+  await expect(page).toHaveScreenshot("attention-inbox-wide.png", {
+    fullPage: true,
+  });
+  await page.setViewportSize({ height: 900, width: 480 });
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth ===
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await expect(page).toHaveScreenshot("attention-inbox-narrow.png", {
+    fullPage: true,
+  });
+});
+
 test("command center matches its wide visual contract", async ({ page }) => {
   await page.setViewportSize({ height: 800, width: 1280 });
   await page.goto("/?e2e=showcase");

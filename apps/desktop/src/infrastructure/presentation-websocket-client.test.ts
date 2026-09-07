@@ -105,6 +105,7 @@ describe("presentation WebSocket client", () => {
     });
     fake.emitMessage({
       projection: {
+        attention: [],
         activity: [],
         alarms: [],
         integrations: [],

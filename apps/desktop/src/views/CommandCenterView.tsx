@@ -1,11 +1,20 @@
+import { AttentionPanel } from "../components/AttentionPanel.js";
+import type {
+  AttentionNoticeAction,
+  CommandCenterViewState,
+} from "../view-models/desktop-view-state.js";
 import { ConnectionBadge } from "../components/ConnectionBadge.js";
 import { SettingsPanel } from "../components/SettingsPanel.js";
 import { ProfilePanel } from "../components/ProfilePanel.js";
 import type { DesktopSection } from "../model/navigation.js";
-import type { CommandCenterViewState } from "../view-models/desktop-view-state.js";
 import { DashboardSectionView } from "./DashboardSectionView.js";
 
 interface CommandCenterViewIntents {
+  readonly updateAttention: (
+    id: string,
+    expectedRevision: number,
+    action: AttentionNoticeAction,
+  ) => void;
   readonly applyShortcut: () => void;
   readonly openSource: (sourceId: string) => void;
   readonly correctProfileFact: (id: string, field: string) => void;
@@ -66,6 +75,11 @@ export function CommandCenterView(properties: {
             onAutostartChange={intents.setAutostart}
             onShortcutChange={intents.updateShortcutDraft}
             shortcutDraft={state.shortcutDraft}
+          />
+        ) : state.section === "Inbox" ? (
+          <AttentionPanel
+            notices={state.attention}
+            onUpdate={intents.updateAttention}
           />
         ) : state.section === "Profile" ? (
           <ProfilePanel

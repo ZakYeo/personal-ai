@@ -1,4 +1,6 @@
 import type {
+  AssistantPresentationProjection,
+  PresentationControl,
   AssistantMicrophoneState,
   AssistantPresentationPhase,
 } from "../../../../src/presentation-contract.js";
@@ -43,7 +45,15 @@ export interface OverlayViewState {
   readonly transcript?: string;
 }
 
+export type AttentionNoticeViewState =
+  AssistantPresentationProjection["attention"][number];
+export type AttentionNoticeAction = Extract<
+  PresentationControl,
+  { type: "attention_update" }
+>["action"];
+
 export interface CommandCenterViewState {
+  readonly attention: readonly AttentionNoticeViewState[];
   readonly autostartEnabled: boolean;
   readonly cards: readonly CardViewState[];
   readonly connectionLabel: string;

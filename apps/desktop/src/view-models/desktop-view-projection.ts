@@ -35,6 +35,11 @@ function projectCommandCenter(
 ): DesktopAppViewState["commandCenter"] {
   const { presentation } = options;
   return Object.freeze({
+    attention: Object.freeze(
+      presentation.projection.attention.map((item) =>
+        Object.freeze({ ...item }),
+      ),
+    ),
     autostartEnabled: options.autostartEnabled,
     cards: projectCards(options.section, presentation),
     connectionLabel: connectionLabel(presentation.connection),
@@ -98,49 +103,49 @@ function projectCards(
   state: DesktopPresentationState,
 ): readonly CardViewState[] {
   const projection = state.projection;
-  switch (section) {
-    case "Today":
-      return projection.today.map((detail, index) => ({
+  const projectors: Record<DesktopSection, () => readonly CardViewState[]> = {
+    Today: () =>
+      projection.today.map((detail, index) => ({
         detail,
         id: `today-${index}`,
         title: "Today",
-      }));
-    case "Tasks":
-      return projection.tasks.map((item) => ({
+      })),
+    Tasks: () =>
+      projection.tasks.map((item) => ({
         detail: item.status,
         id: item.id,
         title: item.label,
-      }));
-    case "Alarms":
-      return projection.alarms.map((item) => ({
+      })),
+    Alarms: () =>
+      projection.alarms.map((item) => ({
         detail: `${item.scheduledFor} · ${item.status}`,
         id: item.id,
         title: item.label,
-      }));
-    case "Interactions":
-      return projection.interactions.map((item) => ({
+      })),
+    Interactions: () =>
+      projection.interactions.map((item) => ({
         detail: item.response,
         id: item.id,
         title: item.request,
-      }));
-    case "Profile":
-      return [];
-    case "Integrations":
-      return projection.integrations.map((item) => ({
+      })),
+    Integrations: () =>
+      projection.integrations.map((item) => ({
         detail: `${item.status} · ${item.lastCheck}`,
         id: item.label,
         title: item.label,
-      }));
-    case "Activity":
-      return projection.activity.map((item, index) => ({
+      })),
+    Activity: () =>
+      projection.activity.map((item, index) => ({
         detail: item.occurredAt,
         id: `activity-${index}`,
         title: item.summary,
-      }));
-    case "Settings":
-    case "Sources":
-      return [];
-  }
+      })),
+    Inbox: () => [],
+    Sources: () => [],
+    Profile: () => [],
+    Settings: () => [],
+  };
+  return projectors[section]();
 }
 
 function projectProfileFacts(

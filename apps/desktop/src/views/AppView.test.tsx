@@ -246,3 +246,47 @@ describe("desktop application", () => {
     expect(autostart).toEqual([true]);
   });
 });
+
+it("renders an explainable inbox and dispatches the exact displayed notice revision", async () => {
+  const { host, controls } = createHost();
+  const viewModel = createDesktopAppViewModel({
+    host,
+    mode: "command-center",
+    initialState: {
+      ...state,
+      projection: {
+        ...state.projection,
+        attention: [
+          {
+            id: "attention-item-1",
+            revision: 7,
+            title: "Delivery health",
+            text: "A reminder delivery is unknown.",
+            explanation: "Its durable claim has no recorded completion.",
+            provenance: "Notify me about delivery problems",
+            recordedAt: "7 September at noon",
+            status: "open",
+            delivery: "delivered",
+            canResolveReminder: true,
+          },
+        ],
+      },
+    },
+  });
+  render(<AppView viewModel={viewModel} />);
+  await userEvent.click(screen.getByRole("button", { name: "Inbox" }));
+  expect(screen.getByText("A reminder delivery is unknown.")).toBeVisible();
+  await userEvent.click(screen.getByText("Why this notice?"));
+  expect(screen.getByText("Notify me about delivery problems")).toBeVisible();
+  await userEvent.click(
+    screen.getByRole("button", { name: "Acknowledge notice" }),
+  );
+  expect(controls).toEqual([
+    expect.objectContaining({
+      type: "attention_update",
+      id: "attention-item-1",
+      expectedRevision: 7,
+      action: "acknowledge",
+    }),
+  ]);
+});
