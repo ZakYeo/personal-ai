@@ -12,6 +12,40 @@ const plannedMilestones = [
 ] as const;
 
 describe("product roadmap", () => {
+  it("gates expansion on the September reliability and daily-use plan", async () => {
+    const roadmap = await readFile("docs/06-implementation-roadmap.md", "utf8");
+    const section = (title: string) => {
+      const heading = `## ${title}\n`;
+      expect(roadmap).toContain(heading);
+      return roadmap.split(heading)[1]!.split("\n## ")[0]!;
+    };
+
+    const reliability = section("Milestone 18.1: Daily-Use Reliability");
+    for (const requirement of [
+      "compaction failure",
+      "read-only briefing",
+      "Today",
+      "CI",
+      "microphone",
+      "single-process",
+    ]) {
+      expect(reliability).toContain(requirement);
+    }
+    const voice = section(plannedMilestones[1]);
+    expect(voice).toContain("150 ms");
+    expect(voice).toContain("300 ms");
+    expect(voice).toContain("1.5 seconds");
+    expect(voice).toContain("confirmation expiry");
+    expect(voice).toContain("typed draft");
+    const attention = section(plannedMilestones[2]);
+    expect(attention).toContain("attention inbox");
+    expect(attention).toContain("morning routine");
+    expect(section(plannedMilestones[6])).toContain("meeting preparation");
+    expect(section("Delivery Priorities and Daily-Use Evidence")).toContain(
+      "30-day",
+    );
+  });
+
   it("documents the ordered post-Milestone-17 plan and North Star", async () => {
     const [archive, roadmap, vision] = await Promise.all([
       readFile("docs/09-implemented-milestones.md", "utf8"),

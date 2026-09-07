@@ -166,6 +166,15 @@ Current roadmap position:
   Real providers and hardware validation remain opt-in work outside the default
   deterministic validation gate.
 
+The September 7, 2026 roadmap revision adds planned Milestone 18.1 for daily-use
+reliability, honest desktop state, onboarding, and main application CI. Milestones
+19 and 20 prioritize measured responsiveness, bounded corrections, confirmation
+expiry, a morning routine, and a durable attention inbox. A narrow Milestone 24
+project/meeting-preparation pilot precedes broad computer control and real
+communications. A 30-day trial of ten user-selected jobs supplies product evidence;
+these additions are planned, not implemented. See the
+[delivery priorities](docs/06-implementation-roadmap.md#delivery-priorities-and-daily-use-evidence).
+
 ## Requirements
 
 - Node.js 22 or newer.

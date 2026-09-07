@@ -16,6 +16,12 @@ still performs routing, decoding, confirmation-policy checks, and sequential
 execution; features never invoke each other and providers never receive a
 general feature executor.
 
+The September 7, 2026 evaluation identified a planned Milestone 18.1 remediation:
+`briefing.get_daily` currently declares read-tool eligibility while saving its
+comparison snapshot. Separate read-only generation from recording presentation
+or delivery, or contain it as terminal-only until that separation exists. An
+intermediate observation must not advance the user's last-presented baseline.
+
 Capabilities that can require confirmation must also declare an
 application-owned deterministic confirmation renderer tied to their decoded
 argument type. It returns concise human text plus protected exact facts such as

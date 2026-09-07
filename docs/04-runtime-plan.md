@@ -753,6 +753,9 @@ conversation such as asking how the user is doing. They reject rhetorical
 questions and generic invitations to continue chatting.
 History compaction failure preserves the already completed human response, keeps
 the last valid state, and emits an internal conversation diagnostic.
+Planned Milestone 18.1 will revise this behavior to retain the completed exchange
+under a bounded fallback policy even when compaction fails; until its tested
+implementation, the preceding description remains the current runtime contract.
 The deterministic compactor removes summaries echoed by its own responder and
 caps retained summary text at 2,000 characters, preventing repeated compaction
 from multiplying stored history.

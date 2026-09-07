@@ -102,6 +102,18 @@ communication integration, a personal knowledge library, and approval-based
 adaptive memory. Each milestone remains separately gated by evidence, bounded
 scope, tests, full validation, and a fresh independent maintainability review.
 
+Milestone 18 desktop presence is now implemented. The September 7, 2026 plan
+prioritizes planned Milestone 18.1 reliability fixes, then Milestones 19 and 20:
+fast interruption, bounded corrections, confirmation expiry, a useful morning
+routine, and a durable attention inbox. A narrow Milestone 24 pilot brings
+explicit project notes and cited meeting preparation forward before broad
+computer control or real communications. Guided setup and honest health should
+make recovery as understandable as success. Before simultaneous device clients,
+record one service owner's responsibility for state and pending interactions.
+A 30-day trial of ten user-selected jobs measures completion, corrections,
+latency, and notification usefulness with minimal local telemetry. The roadmap
+owns acceptance targets; these additions are not claims of current behavior.
+
 The profile begins empty and is managed through normal text or voice requests
 such as “set my name to Zak” and “what do you know about me?” The language model
 may interpret those requests, but validated application commands and local

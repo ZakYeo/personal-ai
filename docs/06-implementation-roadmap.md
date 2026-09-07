@@ -47,11 +47,12 @@ and service composition.
 
 ## Implemented Milestone Archive
 
-Detailed acceptance criteria and outcomes for Milestones 1 through 17
+Detailed acceptance criteria and outcomes for Milestones 1 through 18
 are kept in `docs/09-implemented-milestones.md`. The earlier provider-focused
 roadmap after Milestone 12.1 was retired. Capability-focused Milestones 13
-through 17 are implemented, and the active ambient-assistant plan continues with
-Milestones 18 through 25 below.
+through 18 are implemented. The September 7, 2026 evaluation adds planned
+Milestone 18.1 and refines Milestones 19 through 25 below; these additions do not
+claim new implementation or reopen the historical completion records.
 
 ## Spike 9: Future Milestone Discovery
 
@@ -581,6 +582,40 @@ The active post-Milestone-17 plan is Milestones 18 through 25. Each milestone
 must still pass its own evidence review, TDD slices, full validation gate, and
 fresh thermonuclear maintainability review before implementation is complete.
 
+## Delivery Priorities and Daily-Use Evidence
+
+The September 7, 2026 evaluation prioritizes reliability, responsiveness,
+continuity, and useful initiative over expanding the integration catalog.
+Keep existing milestone numbers stable, with this delivery order:
+
+1. Milestone 18.1 addresses observed reliability and presentation gaps.
+2. Milestone 19 delivers measurable interruption and bounded conversational
+   corrections; Milestone 20 adds a morning routine and durable attention inbox.
+3. Deliver a narrow, separately reviewed Milestone 24 pilot for explicitly
+   enrolled project notes and meeting preparation before broad computer control
+   or real communications. The pilot does not complete the full library.
+4. Continue Milestones 21 through 25 with the remaining library scope. If an
+   existing user-owned Home Assistant installation is available, a small
+   Milestone 22 lights/scenes pilot may precede broad desktop control after
+   Milestones 19 and 20 and its own action-policy proof. Do not assume a new
+   service purchase or enrollment.
+
+Run a 30-day daily-use trial around ten user-selected recurring jobs, including
+morning planning, interruption, correction, and reminder recovery. Before the
+trial, record the jobs, host/audio setup, success criteria, and measurement
+method. Track completion without repair, corrections per job, phase latency,
+unwanted interruptions, and explicitly rated notification usefulness. Keep
+content-free local counters by default; recordings and transcripts require
+separate consent and bounded retention. Review failures weekly and turn repeated
+friction into tested slices. Missing device evidence remains explicitly missing;
+passing deterministic tests alone does not prove daily-use acceptance.
+
+The next product release targets completed Milestones 18.1, 19, and 20 plus a
+reviewed trial report. Broader integrations should follow the demonstrated jobs
+and remaining friction. Every implemented milestone still requires the full
+validation gate and a fresh independent thermonuclear review; roadmap editing
+does not constitute implementation or satisfy those reviews.
+
 ## Milestone 18: Desktop Presence and Command Center
 
 Status: implemented after midpoint and final independent thermonuclear
@@ -642,9 +677,62 @@ Acceptance criteria:
   metadata, never credentials, private targets, or internal diagnostics.
 - `npm run check` passes.
 
+## Milestone 18.1: Daily-Use Reliability
+
+Status: planned; follows implemented Milestone 18 and precedes Milestone 19.
+
+Goal: preserve completed work and present honest state before expanding the
+ambient experience. These are follow-up fixes, not claims that the
+existing implementation already provides the revised behavior.
+
+Included and thin slices, each with a failing regression test first:
+
+1. Preserve completed safe exchanges on compaction failure through an explicitly
+   bounded fallback history policy. Test repeated provider failure, invalid
+   summaries, recovery, concurrency, and result-reference aging. Retain core
+   transaction ownership; any later background compaction needs revision-checked
+   installation and must not overwrite newer turns. This deliberately revises
+   the current documented policy of retaining only the previous valid state.
+2. Enforce read-only briefing generation: intermediate reads cannot save the
+   last-presented baseline. Separate generation from recording presentation or
+   delivery through an application-owned contract; terminal-only exposure is an
+   acceptable initial containment. Test failed continuations, undisplayed reads,
+   successful terminal presentation, and failed speech delivery. Define which
+   text/voice delivery boundary advances the baseline without claiming the user
+   heard it.
+3. Filter Today by the configured local day before rendering, including date
+   boundaries, overdue tasks, and future alarms. Give undated and future work
+   explicit separate presentation. Replace enabled-implies-ready health with
+   bounded configured, connected, degraded, disabled, and unchecked states plus
+   last-check metadata; test missing and failed sources without exposing details.
+4. Add the main application confidence gate to CI alongside Windows native
+   checks, with required host dependencies and loopback access. Document required
+   status-check setup and decide whether coverage is a gate or advisory report;
+   live provider and hardware tests remain opt-in.
+5. Add guided microphone selection, input-level feedback, explicit test capture
+   and playback, integration verification, and safe recovery instructions. Show
+   selected local/remote data paths and state locations; never reveal credentials
+   or initiate capture without an explicit user action.
+6. Record the ownership decision before simultaneous desktop/Pi/phone clients:
+   existing file stores remain single-process-owned. Future clients must use an
+   authenticated service owner for state and pending interactions rather than
+   independently opening shared files. Remote transport implementation is outside
+   this milestone. Complete documentation and the required independent review.
+
+Acceptance criteria:
+
+- Every completed safe exchange survives a compactor failure within documented
+  turn/character bounds, and later recovery preserves serialization.
+- An undisplayed intermediate briefing cannot replace the comparison baseline.
+- Today and integration health describe actual scope and verified freshness;
+  unknown health is never labeled connected merely because config enables it.
+- Main application CI checks and Windows native checks pass; onboarding can
+  diagnose a disconnected microphone or unavailable integration safely.
+- `npm run check` passes, followed by a fresh independent review and remediation.
+
 ## Milestone 19: Voice Interruption and Responsiveness
 
-Status: planned; depends on Milestone 18 for visible feedback and cancellation.
+Status: planned; depends on Milestones 18 and 18.1.
 
 Goal: reduce real and perceived response latency and let the user interrupt the
 assistant naturally without corrupting workflow or durable state.
@@ -660,6 +748,15 @@ Included:
 - Streaming-first response presentation where protected facts and confirmation
   policy allow it, while durable feature success still waits for required
   persistence.
+- Bounded conversational corrections through one core-owned typed draft with
+  explicit missing fields, lifetime, turn limit, and cancellation transitions.
+  Support representative corrections such as “the other one” and “keep the time,
+  change the label” using validated references. Replacing the current one-resumable-
+  clarification limit requires a documented contract change and regression tests;
+  do not widen provider-directed read or plan limits implicitly.
+- Core-owned confirmation expiry using an injected clock. Stale approval must
+  not execute; reconfirm exact facts or explain that the action must be prepared
+  again. Refreshing stale context never silently changes the approved action.
 
 Excluded:
 
@@ -675,17 +772,32 @@ Thin slices:
 3. Implement speech-stop behavior and serialized output interruption.
 4. Add bounded barge-in, replacement semantics, echo/false-wake protection, and
    deterministic concurrency tests.
-5. Tune first-feedback/first-audio latency, update operator guidance, and
-   complete the required independent review.
+5. Add bounded draft corrections and confirmation expiry across text, voice,
+   and UI, including racing replies, stale references, and changed topics.
+6. Remove optional rewriting and compaction from the simple-command critical
+   path where measured benefit justifies it; retain safe deterministic responses,
+   bounded history, and durable completion guarantees. Update operator guidance
+   and complete the required independent review.
 
 Acceptance criteria:
 
 - Wake produces immediate local visual or audible feedback and every measured
   phase reports deterministic timing metadata.
+- Initial device targets are under 150 ms from detected wake to local feedback,
+  under 300 ms from recognized stop to silence, and under 1.5 seconds at p95 from
+  utterance end to first useful audio for simple local commands. These are proposed
+  acceptance targets, not current measurements. Report acoustic stop-to-silence
+  separately so recognition delay is visible. Record sample counts, host/audio
+  setup, background-noise and back-to-back scenarios, and first-transcript timing.
+  Long external work receives truthful local progress within a documented bound;
+  filler does not count as useful answer audio. Any target revision needs measured
+  evidence and an explicit roadmap decision before claiming acceptance.
 - Stop and barge-in settle within documented bounds, perform best-effort cleanup,
   and cannot duplicate an action, confirmation, alarm, or notification.
 - Failures retain diagnostics internally and return the service to a valid
   listening, pending-interaction, or stopped state.
+- Corrections cannot mutate an executing/completed action, expired confirmations
+  cannot execute, and replacing a draft preserves one pending interaction.
 - `npm run check` passes.
 
 ## Milestone 20: Proactive Attention Engine
@@ -707,6 +819,15 @@ Included:
   user-authored provenance for every enabled rule.
 - Presentation through the shared notification/output coordinator and desktop
   attention surface.
+- A durable attention inbox with bounded retention, provenance, deduplication,
+  acknowledge/snooze/dismiss/explain controls, and safe resolution of uncertain
+  reminder delivery and integration failures. Distinguish output completion from
+  user acknowledgement; never replay an uncertain action automatically.
+- One user-enabled morning routine over the existing narrow calendar, task,
+  weather, briefing, and profile readers, followed by bounded day-planning help.
+  Add explicit named routine declarations only for fixed application-owned
+  workflows with declared inputs, actions, permissions, and confirmation facts.
+  Models may explain options but cannot invent steps or persistent monitors.
 
 Excluded:
 
@@ -723,8 +844,11 @@ Thin slices:
    reads with isolated partial failures.
 4. Add lifecycle commands, desktop/voice notification delivery, restart and
    shutdown coverage.
-5. Prove notification quality against bounded scenarios and complete the
-   required independent review.
+5. Add the durable attention inbox and uncertain-delivery resolution without
+   duplicating scheduler state or silently completing tasks.
+6. Deliver the morning routine and bounded planning continuation; measure useful
+   notifications and unwanted interruptions in the daily-use trial, then complete
+   the required independent review.
 
 Acceptance criteria:
 
@@ -734,6 +858,10 @@ Acceptance criteria:
   are deterministic and cannot suppress higher-priority delivery silently.
 - One source or delivery failure does not corrupt other rules or expose internal
   diagnostics.
+- Inbox items survive restart, reflect canonical delivery state, expire under a
+  documented retention policy, and support acknowledgement without replay.
+- The morning routine handles missing sources explicitly, presents current facts,
+  and can continue into planning without adding unapproved actions or rules.
 - `npm run check` passes.
 
 ## Milestone 21: Computer Context and Allowlisted Control
@@ -839,7 +967,8 @@ Acceptance criteria:
 ## Milestone 23: Real Communications
 
 Status: planned; depends on desktop confirmation presentation and an explicit
-provider-selection decision.
+provider-selection decision. Deliver after the responsiveness, continuity,
+attention, and narrow meeting-preparation pilot evidence gates.
 
 Goal: replace the mock-only messaging experience with one real, bounded personal
 communication integration that supports reading, drafting, and safe sending.
@@ -887,6 +1016,8 @@ Acceptance criteria:
 ## Milestone 24: Personal Knowledge Library
 
 Status: planned; depends on desktop source presentation and privacy controls.
+The initial pilot follows Milestone 20 and precedes broad Milestones 21 and 23;
+the remaining library scope retains its milestone number and completion gate.
 
 Goal: answer questions from explicitly imported personal documents, notes,
 manuals, repositories, and bookmarks with reviewable citations.
@@ -901,6 +1032,11 @@ Included:
   and narrow collection scopes per request.
 - Filesystem watching only for explicitly enrolled collections, with safe
   symlink/path handling and visible indexing failures.
+- An early project-context and meeting preparation pilot: explicitly enroll
+  selected text/Markdown notes, associate only user-selected calendar context and
+  tasks, and return a short cited preparation brief through application-owned
+  narrow reads. Working context is ephemeral unless explicitly saved through
+  canonical collection/profile commands; it is not inferred adaptive memory.
 
 Excluded:
 
@@ -914,7 +1050,10 @@ Thin slices:
 1. Define collection, document, chunk, citation, lifecycle, and privacy contracts.
 2. Implement explicit import/delete/export and one bounded local text/Markdown
    parser with deterministic retrieval.
-3. Add incremental indexing, supported additional formats, and opt-in watching.
+3. Deliver and independently review the narrow project/meeting pilot with explicit
+   scopes, provenance, deletion, and cited preparation. Do not mark the full
+   milestone complete. Then add incremental indexing, additional formats, and
+   opt-in watching as later slices.
 4. Add cited answering and follow-ups through existing untrusted-source and
    human-text policy.
 5. Add UI management, backup/recovery guidance, provider smokes where selected,
@@ -929,6 +1068,8 @@ Acceptance criteria:
   permissions.
 - Local and remote processing choices are explicit and the UI shows collection,
   source, freshness, and indexing health.
+- Meeting preparation uses only the selected event, enrolled notes, and scoped
+  tasks; missing evidence is stated and unrelated collections remain inaccessible.
 - `npm run check` passes.
 
 ## Milestone 25: Approval-Based Adaptive Memory
