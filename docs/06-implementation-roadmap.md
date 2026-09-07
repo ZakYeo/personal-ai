@@ -734,9 +734,11 @@ Acceptance criteria:
 
 ## Milestone 19: Voice Interruption and Responsiveness
 
-Status: in progress; initial monotonic software event instrumentation is
-implemented. Cancellation, interruption, corrections, and independent review
-remain. Depends on implemented Milestones 18 and 18.1.
+Status: in progress; monotonic software events, per-operation cancellation,
+pending-workflow signal ownership, interruptible shared output, and bounded turn
+ownership are implemented in tested slices. Public interruption controls,
+barge-in, draft corrections, expiry, and independent review remain. Depends on
+implemented Milestones 18 and 18.1.
 
 Goal: reduce real and perceived response latency and let the user interrupt the
 assistant naturally without corrupting workflow or durable state.

@@ -159,6 +159,7 @@ function parseSimpleInteractionEvent(
     case "cancellation_requested":
     case "completed":
     case "follow_up_listening":
+    case "follow_up_paused":
     case "processing":
     case "speaking_finished":
     case "speaking_started":

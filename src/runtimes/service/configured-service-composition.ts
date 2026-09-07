@@ -19,6 +19,7 @@ import {
   type ServiceRuntimeResult,
   type ServiceShutdownContext,
   type ServiceTurnContext,
+  type ServiceTurnOutcome,
   type ServiceTurnFailureContext,
 } from "./service-runtime.js";
 import type { DesktopVoiceProviderAdapterRegistry } from "../voice/desktop-voice-provider-adapter-registry.js";
@@ -59,7 +60,9 @@ interface ConfiguredServiceTurnContext extends ServiceTurnContext {
 }
 
 interface ConfiguredServiceRuntimeCallbacks {
-  runTurn(context: ConfiguredServiceTurnContext): Promise<void>;
+  runTurn(
+    context: ConfiguredServiceTurnContext,
+  ): Promise<void | ServiceTurnOutcome>;
   validateConfig(config: LoadedRuntimeConfig): Promise<void> | void;
 }
 

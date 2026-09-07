@@ -43,6 +43,7 @@ export type AssistantRuntimeEvent =
       readonly type: "transcript_delta";
     })
   | (InteractionEventMetadata & { readonly type: "follow_up_listening" })
+  | (InteractionEventMetadata & { readonly type: "follow_up_paused" })
   | (InteractionEventMetadata & {
       readonly text: string;
       readonly type: "transcript_final";

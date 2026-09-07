@@ -104,6 +104,26 @@ export function reduceAssistantRuntimeEvent(
         ["confirmation", "response"],
         "listening",
       );
+    case "follow_up_paused": {
+      assertTransition(snapshot, event, [
+        "listening",
+        "confirmation",
+        "response",
+        "speaking",
+      ]);
+      const current = requireInteraction(snapshot, event);
+      if (!current.confirmation && !current.response)
+        throw new Error("Paused follow-up has no retained prompt.");
+      return freezeSnapshot({
+        ...base,
+        microphone: "available",
+        interaction: {
+          ...current,
+          phase: current.confirmation ? "confirmation" : "response",
+          updatedAt: event.occurredAt,
+        },
+      });
+    }
     case "transcript_final": {
       assertTransition(snapshot, event, ["listening"]);
       validateText(

@@ -42,7 +42,7 @@ describe("desktop voice service OpenAI streaming", () => {
       }),
     ).resolves.toEqual({
       status: "stopped",
-      turnsCompleted: 1,
+      turnsCompleted: 0,
     });
 
     expect(progressOutput.writes).toEqual([
@@ -156,7 +156,7 @@ describe("desktop voice service OpenAI streaming", () => {
       }),
     ).resolves.toEqual({
       status: "stopped",
-      turnsCompleted: 1,
+      turnsCompleted: 0,
     });
 
     expect(progressOutput.writes).toEqual([
@@ -205,13 +205,11 @@ describe("desktop voice service OpenAI streaming", () => {
 
     await expect(runtime).resolves.toEqual({
       status: "stopped",
-      turnsCompleted: 1,
+      turnsCompleted: 0,
     });
     expect(socket.closed).toBe(true);
     expect(fallbackOutput.writes).toEqual([]);
-    expect(stderr.writes).toEqual([
-      line("Runtime failure: Realtime transcription was aborted."),
-    ]);
+    expect(stderr.writes).toEqual([]);
   });
 
   it("cleans up streaming command audio when realtime transcription fails before audio is read", async () => {
@@ -248,7 +246,7 @@ describe("desktop voice service OpenAI streaming", () => {
       }),
     ).resolves.toEqual({
       status: "stopped",
-      turnsCompleted: 1,
+      turnsCompleted: 0,
     });
 
     expect(socket.sentMessages.map((message) => message.type)).toEqual([

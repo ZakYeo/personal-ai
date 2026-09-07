@@ -45,6 +45,10 @@ export interface ServiceTurnFailureContext {
   shutdownSignal: AbortSignal;
 }
 
+export interface ServiceTurnOutcome {
+  readonly completed: boolean;
+}
+
 export interface ServiceRuntimeOptions {
   backgroundTasks?: readonly RuntimeBackgroundTask[];
   backgroundTaskTimer?: RuntimeBackgroundTaskContext["timer"];
@@ -59,7 +63,7 @@ export interface ServiceRuntimeOptions {
     context: RuntimeBackgroundTaskContext,
   ) => Promise<void>;
   sleep?: (ms: number) => Promise<void>;
-  runTurn(context: ServiceTurnContext): Promise<void>;
+  runTurn(context: ServiceTurnContext): Promise<void | ServiceTurnOutcome>;
   shutdownGraceMs?: number;
   shutdownHooks?: Array<(context: ServiceShutdownContext) => Promise<void>>;
 }
@@ -123,7 +127,7 @@ export async function runServiceRuntime(
 
     while (!state.shutdownRequested) {
       try {
-        await options.runTurn({
+        const turnOutcome = await options.runTurn({
           assistant,
           ...(options.configPath ? { configPath: options.configPath } : {}),
           now: options.now ?? (() => new Date()),
@@ -132,7 +136,7 @@ export async function runServiceRuntime(
           },
           shutdownSignal: state.shutdownSignal,
         });
-        turnsCompleted += 1;
+        if (turnOutcome?.completed !== false) turnsCompleted += 1;
         turnFailures = 0;
       } catch (error) {
         if (state.shutdownRequested) {

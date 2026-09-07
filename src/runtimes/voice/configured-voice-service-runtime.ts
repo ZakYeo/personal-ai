@@ -1,3 +1,4 @@
+import { createVoiceTurnController } from "./voice-turn-controller.js";
 import { createServiceFailureBoundary } from "../service/service-failure-boundary.js";
 import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
@@ -86,8 +87,11 @@ export function runConfiguredVoiceServiceRuntime(
   const processControl =
     options.processControl ?? createNodeProcessControl(process);
   const failures = createServiceFailureBoundary({
-    failureReason: "voice output cleanup failed",
+    failureReason: "voice runtime cleanup failed",
     reportFailure: (error) => logRuntimeFailure(error, options.io ?? {}),
+  });
+  const turnController = createVoiceTurnController({
+    onCleanupFailure: (error) => failures.report(error),
   });
   const outputCoordinator = createVoiceOutputCoordinator({
     onCleanupFailure: (error) => failures.report(error),
@@ -167,12 +171,15 @@ export function runConfiguredVoiceServiceRuntime(
         });
 
         try {
-          await (options.runVoiceActivation ?? runVoiceActivation)(
+          const result = await (
+            options.runVoiceActivation ?? runVoiceActivation
+          )(
             {
               assistant,
               audioOutput: adapters.audioOutput,
               commandAudioInput: adapters.audioInput,
               outputCoordinator,
+              turnController,
               speechToText: adapters.speechToText,
               ...(adapters.streamingInput
                 ? { streamingInput: adapters.streamingInput }
@@ -193,6 +200,7 @@ export function runConfiguredVoiceServiceRuntime(
             },
             voiceIo,
           );
+          return { completed: result.status !== "cancelled" };
         } finally {
           await cleanupVoiceAdapters(() => adapters.cleanup?.(), options.io);
         }

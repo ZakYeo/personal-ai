@@ -351,8 +351,21 @@ available. Queued notifications are rejected before adapters are constructed;
 their existing scheduler owns durable delivery outcomes and no output is replayed.
 A runtime-owned failure boundary requests service shutdown on output cleanup
 failure and preserves a failed service result through cleanup, even when diagnostic
-IO fails or the normal loop would otherwise report a clean stop. Turn control is
-added in subsequent Milestone 19 slices.
+IO fails or the normal loop would otherwise report a clean stop.
+A service-owned turn controller now permits one active voice turn and one active
+operation within it. Its combined signal reaches wake capture, transcription,
+assistant handling, synthesis, and playback. Cancellation allows 1.5 seconds for
+an operation to settle (including the output coordinator's one-second bound),
+and 1.6 seconds for turn ownership to release; an overrun fails closed and requests
+service shutdown. Disposing a turn with active work also fails closed. These are
+cleanup bounds, not revisions to the 300 ms acoustic stop target.
+Late transcript and assistant callbacks cannot publish new output after
+cancellation. Pausing follow-up capture restores the already-retained confirmation
+or clarification prompt, while a voice callback whose continuation was claimed
+by the UI cannot change that UI-owned state. Neutral service-turn metadata
+excludes cancelled activations from the completed-turn count; this does not erase
+completed feature actions from their canonical stores or conversation history. Public stop and barge-in controls
+are added in subsequent Milestone 19 slices.
 
 #### Native shell decision
 

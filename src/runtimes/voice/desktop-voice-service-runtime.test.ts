@@ -348,7 +348,7 @@ describe("runDesktopVoiceServiceRuntime", () => {
         }),
       ).resolves.toEqual({
         status: "stopped",
-        turnsCompleted: 1,
+        turnsCompleted: 0,
       });
 
       expect(adapterCreations).toBe(2);

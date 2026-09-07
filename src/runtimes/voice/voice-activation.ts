@@ -1,3 +1,4 @@
+import type { VoiceTurnController } from "./voice-turn-controller.js";
 import type {
   AudioInputPort,
   AudioOutputPort,
@@ -30,6 +31,7 @@ export interface VoiceActivationDependencies {
   streamingOutput?: StreamingVoiceOutput;
   textToSpeech: TextToSpeechPort;
   timing?: VoiceTimingOptions;
+  turnController?: VoiceTurnController;
   turnConfig: VoiceTurnConfig;
   wakeActivation?: WakeActivationPort;
   wakeAudioInput: AudioInputPort;

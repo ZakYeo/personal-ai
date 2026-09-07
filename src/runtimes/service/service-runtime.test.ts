@@ -13,6 +13,19 @@ import type {
 import { runServiceRuntime } from "./service-runtime.js";
 
 describe("runServiceRuntime", () => {
+  it("does not count a cancelled turn as completed", async () => {
+    const harness = createServiceRuntimeHarness({
+      runTurn: (context) => {
+        context.requestShutdown("cancelled");
+        return Promise.resolve({ completed: false });
+      },
+    });
+    await expect(harness.run()).resolves.toMatchObject({
+      status: "stopped",
+      turnsCompleted: 0,
+    });
+  });
+
   it("returns a safe startup failure outcome when assistant composition fails", async () => {
     const harness = createServiceRuntimeHarness({
       createAssistant: () => Promise.reject(new Error("raw startup failure")),

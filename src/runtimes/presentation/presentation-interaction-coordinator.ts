@@ -10,6 +10,7 @@ interface PresentationEventPublisher {
 }
 
 export interface PresentationInteraction {
+  interrupted(): void;
   cancelled(): void;
   claimContinuation(): boolean;
   completed(): void;
@@ -39,6 +40,7 @@ type PendingInteractionEvent = PendingAssistantRuntimeEvent extends infer TEvent
 
 const noOperation = (): void => {};
 const noOpInteraction: PresentationInteraction = Object.freeze({
+  interrupted: noOperation,
   cancelled: noOperation,
   claimContinuation: () => true,
   completed: noOperation,
@@ -114,8 +116,19 @@ function createInteraction(
   const available = () =>
     token !== undefined && continuation.current(interactionId) === token;
   const interaction: PresentationInteraction = {
+    interrupted: () => {
+      if (token !== undefined) {
+        if (available()) publish({ type: "follow_up_paused" });
+        return;
+      }
+      publish({ type: "cancelled" });
+    },
     cancelled: () => publish({ type: "cancelled" }),
-    claimContinuation: () => continuation.claim(interactionId, token),
+    claimContinuation: () => {
+      const claimed = continuation.claim(interactionId, token);
+      if (claimed) token = undefined;
+      return claimed;
+    },
     completed: () => publish({ type: "completed" }),
     confirmation: (prompt) => {
       token = continuation.open(interactionId);

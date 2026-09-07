@@ -1,3 +1,7 @@
+import {
+  createVoiceTurnController,
+  type VoiceTurnController,
+} from "./voice-turn-controller.js";
 import type { Assistant } from "../../core/assistant/index.js";
 import type {
   AudioInputPort,
@@ -48,10 +52,16 @@ interface VoicePipelineDependencies {
   streamingOutput?: StreamingVoiceOutput;
   textToSpeech: TextToSpeechPort;
   timing?: VoiceTimingOptions;
+  turnController?: VoiceTurnController;
   turnConfig: VoicePipelineConfig;
   wakeActivation?: WakeActivationPort;
   wakeAudioInput: AudioInputPort;
   wakeWord: WakeWordPort;
+}
+
+interface ActiveVoicePipelineDependencies extends VoicePipelineDependencies {
+  shutdownSignal: AbortSignal;
+  turnController: VoiceTurnController;
 }
 
 export type VoicePipelineResult = VoiceTurnResult;
@@ -60,25 +70,40 @@ export async function runVoicePipeline(
   dependencies: VoicePipelineDependencies,
   io: VoiceRuntimeIo = {},
 ): Promise<VoicePipelineResult> {
-  const instrumentation = createVoiceTurnInstrumentation(dependencies.timing);
-
-  if (dependencies.turnConfig.preWakeFailureMode === "fallback") {
-    try {
-      return await runVoicePipelineActivation(
-        dependencies,
-        io,
-        instrumentation,
-      );
-    } catch (error) {
-      return speakPipelineFallback(dependencies, io, instrumentation, error);
-    }
+  const controller =
+    dependencies.turnController ??
+    createVoiceTurnController({
+      onCleanupFailure: (error) => logRuntimeFailure(error, io),
+    });
+  const session = controller.begin(dependencies.shutdownSignal);
+  const observed = createVoiceTurnInstrumentation(dependencies.timing);
+  const instrumentation: VoiceTurnInstrumentation = {
+    mark: (name) => observed.mark(name),
+    measure: (name, operation) =>
+      observed.measure(name, () => session.run(operation)),
+    snapshotIfEnabled: () => observed.snapshotIfEnabled(),
+  };
+  const scoped = {
+    ...dependencies,
+    shutdownSignal: session.signal,
+    turnController: controller,
+  };
+  try {
+    return await runVoicePipelineActivation(scoped, io, instrumentation);
+  } catch (error) {
+    if (
+      session.signal.aborted ||
+      dependencies.turnConfig.preWakeFailureMode === "fallback"
+    )
+      return await speakPipelineFallback(scoped, io, instrumentation, error);
+    throw error;
+  } finally {
+    session.dispose();
   }
-
-  return runVoicePipelineActivation(dependencies, io, instrumentation);
 }
 
 async function runVoicePipelineActivation(
-  dependencies: VoicePipelineDependencies,
+  dependencies: ActiveVoicePipelineDependencies,
   io: VoiceRuntimeIo,
   instrumentation: VoiceTurnInstrumentation,
 ): Promise<VoicePipelineResult> {
@@ -90,9 +115,12 @@ async function runVoicePipelineActivation(
   if (dependencies.wakeActivation) {
     const { wakeActivation } = dependencies;
     const activation = await instrumentation.measure("wake activation", () =>
-      wakeActivation.waitForWake({
-        wakePhrases: dependencies.turnConfig.wakePhrases,
-      }),
+      wakeActivation.waitForWake(
+        {
+          wakePhrases: dependencies.turnConfig.wakePhrases,
+        },
+        { signal: dependencies.shutdownSignal },
+      ),
     );
 
     instrumentation.mark("wake_detected");
@@ -110,20 +138,28 @@ async function runVoicePipelineActivation(
   }
 
   const wakeAudio = await instrumentation.measure("wake audio capture", () =>
-    dependencies.wakeAudioInput.capture(),
+    dependencies.wakeAudioInput.capture({
+      signal: dependencies.shutdownSignal,
+    }),
   );
   const wakeTranscript = await instrumentation.measure(
     "wake speech-to-text",
-    () => dependencies.speechToText.transcribe(wakeAudio),
+    () =>
+      dependencies.speechToText.transcribe(wakeAudio, {
+        signal: dependencies.shutdownSignal,
+      }),
   );
   const detection = await instrumentation.measure("wake word detection", () =>
-    dependencies.wakeWord.detect({
-      audio: {
-        ...wakeAudio,
-        text: wakeTranscript.text,
+    dependencies.wakeWord.detect(
+      {
+        audio: {
+          ...wakeAudio,
+          text: wakeTranscript.text,
+        },
+        wakePhrases: dependencies.turnConfig.wakePhrases,
       },
-      wakePhrases: dependencies.turnConfig.wakePhrases,
-    }),
+      { signal: dependencies.shutdownSignal },
+    ),
   );
 
   if (!detection.detected) {
@@ -157,7 +193,7 @@ async function runVoicePipelineActivation(
 }
 
 async function runPostWakeVoiceCommand(
-  dependencies: VoicePipelineDependencies,
+  dependencies: ActiveVoicePipelineDependencies,
   io: VoiceRuntimeIo,
   metadata: {
     initialCommandTranscript?: string;
@@ -215,7 +251,7 @@ async function runPostWakeVoiceCommand(
 }
 
 async function speakPipelineFallback(
-  dependencies: VoicePipelineDependencies,
+  dependencies: ActiveVoicePipelineDependencies,
   io: VoiceRuntimeIo,
   instrumentation: VoiceTurnInstrumentation,
   error: unknown,
@@ -224,6 +260,17 @@ async function speakPipelineFallback(
     wakePhrase?: string;
   } = {},
 ): Promise<VoicePipelineResult> {
+  if (dependencies.shutdownSignal.aborted) {
+    metadata.presentationInteraction?.interrupted();
+    return {
+      response: dependencies.turnController.failed
+        ? safeRuntimeFallbackResponse
+        : { status: "ok", text: "Stopped." },
+      status: "cancelled",
+      textOutputWritten: false,
+      ...timingsResult(instrumentation),
+    };
+  }
   logRuntimeFailure(error, io);
 
   metadata.presentationInteraction?.failed(safeRuntimeFallbackResponse.text);
@@ -243,7 +290,7 @@ async function speakPipelineFallback(
 }
 
 async function transcribeCommand(
-  dependencies: VoicePipelineDependencies,
+  dependencies: ActiveVoicePipelineDependencies,
   io: VoiceRuntimeIo,
   instrumentation: VoiceTurnInstrumentation,
   presentationInteraction: PresentationInteraction,
@@ -252,7 +299,7 @@ async function transcribeCommand(
   if (dependencies.streamingInput) {
     const { audioInput, speechToText } = dependencies.streamingInput;
     const audio = await instrumentation.measure("command stream setup", () =>
-      audioInput.captureStream(),
+      audioInput.captureStream({ signal: dependencies.shutdownSignal }),
     );
 
     return instrumentation
@@ -261,12 +308,14 @@ async function transcribeCommand(
           { chunks: markStreamEnd(audio.chunks, instrumentation) },
           {
             onTranscriptDelta: (delta) => {
+              if (dependencies.shutdownSignal.aborted) return;
               if (delta) instrumentation.mark("first_transcript");
               io.progressOutput?.write(delta);
               if (shouldPublish())
                 presentationInteraction.transcriptDelta(delta);
             },
           },
+          { signal: dependencies.shutdownSignal },
         ),
       )
       .then((transcript) => {
@@ -279,13 +328,18 @@ async function transcribeCommand(
 
   const commandAudio = await instrumentation.measure(
     "command audio capture",
-    () => dependencies.commandAudioInput.capture(),
+    () =>
+      dependencies.commandAudioInput.capture({
+        signal: dependencies.shutdownSignal,
+      }),
   );
 
   instrumentation.mark("capture_completed");
   return instrumentation
     .measure("command speech-to-text", () =>
-      dependencies.speechToText.transcribe(commandAudio),
+      dependencies.speechToText.transcribe(commandAudio, {
+        signal: dependencies.shutdownSignal,
+      }),
     )
     .then((transcript) => {
       instrumentation.mark("first_transcript");
