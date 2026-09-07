@@ -734,12 +734,13 @@ Acceptance criteria:
 
 ## Milestone 19: Voice Interruption and Responsiveness
 
-Status: in progress; monotonic software events, per-operation cancellation,
-pending-workflow signal ownership, shared output cancellation, bounded turn
-ownership, desktop voice stop, and two-minute confirmation expiry are implemented
-in tested slices. Spoken stop, barge-in, draft corrections, and independent review
-remain. Depends on
-implemented Milestones 18 and 18.1.
+Status: initial implementation complete, pending fresh independent review and
+remediation. Monotonic live timing, shared bounded cancellation, spoken stop,
+opt-in isolated-input barge-in, typed draft corrections, and confirmation expiry
+have deterministic coverage. The read-only responsiveness report distinguishes
+synthetic checks from acoustic evidence. Physical host-device measurements and
+the 30-day daily-use trial remain explicitly deferred by the operator; no measured
+latency acceptance is claimed. Depends on implemented Milestones 18 and 18.1.
 
 Goal: reduce real and perceived response latency and let the user interrupt the
 assistant naturally without corrupting workflow or durable state.

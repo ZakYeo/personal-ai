@@ -10,7 +10,9 @@ import {
   createCommand,
 } from "../../test-support/core-assistant.js";
 
-function harness(replies: IntentInterpretation[]) {
+function harness(
+  replies: (IntentInterpretation | (() => Promise<IntentInterpretation>))[],
+) {
   let now = Date.parse("2026-09-07T12:00:00.000Z");
   const store = createTestAlarmStore();
   const continuations: IntentSessionContinuation[] = [];
@@ -33,12 +35,18 @@ function harness(replies: IntentInterpretation[]) {
         return {
           next: (input) => {
             if (input) continuations.push(input);
-            return Promise.resolve(
-              queue.shift() ?? {
-                kind: "unknown",
-                response: { status: "unknown", text: "Please start again." },
-              },
-            );
+            const next = queue.shift();
+            return typeof next === "function"
+              ? next()
+              : Promise.resolve(
+                  next ?? {
+                    kind: "unknown",
+                    response: {
+                      status: "unknown",
+                      text: "Please start again.",
+                    },
+                  },
+                );
           },
         };
       },
@@ -60,6 +68,21 @@ const labelCorrection = (label: string): IntentInterpretation => ({
 });
 
 describe("pending action corrections", () => {
+  it("rejects a provider correction that returns after the original draft expires", async () => {
+    const h = harness([
+      () => {
+        h.elapsed(300_000);
+        return Promise.resolve(labelCorrection("late coffee"));
+      },
+    ]);
+    await h.assistant.handleText("set an alarm");
+    expect((await h.assistant.handleText("call it coffee")).text).toContain(
+      "draft expired",
+    );
+    await h.assistant.handleText("yes");
+    expect(await h.store.list()).toEqual([]);
+  });
+
   it("retains a validated changed field while a correction asks for another value", async () => {
     const h = harness([
       {
