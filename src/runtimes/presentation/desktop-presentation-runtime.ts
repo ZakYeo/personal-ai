@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { buildAssistantPresentationProjection } from "../../application/presentation-projection.js";
 import type { Assistant } from "../../core/assistant/index.js";
 import type { AssistantPresentationProjection } from "../../ports/presentation.js";
 import { createProfilePresentationControl } from "../../application/profile-presentation-control.js";
@@ -184,12 +185,19 @@ export function createDesktopPresentationRuntime(options: {
   });
 
   function publishProjection(): void {
-    projectionStream.update({
-      ...baseProjection,
-      activity,
-      interactions,
-      sources,
-    });
+    const projection = buildAssistantPresentationProjection(
+      {
+        ...baseProjection,
+        activity,
+        interactions,
+        sources,
+      },
+      { now: options.now(), timeZone },
+    );
+    projectionStream.update(projection);
+    activity = projection.activity;
+    interactions = projection.interactions;
+    sources = projection.sources;
   }
 }
 

@@ -8,6 +8,36 @@ import type { startPresentationWebSocketServer } from "./presentation-websocket-
 const token = "a-secure-presentation-token-with-32-characters";
 
 describe("desktop presentation runtime", () => {
+  it("bounds retained interactions without poisoning later projections", async () => {
+    const startServer = vi.fn(
+      (options: Parameters<typeof startPresentationWebSocketServer>[0]) =>
+        Promise.resolve({ port: options.port, stop: () => Promise.resolve() }),
+    );
+    const runtime = createDesktopPresentationRuntime({
+      env: { PERSONAL_AI_PRESENTATION_TOKEN: token },
+      now: () => new Date("2026-09-04T10:00:00.000Z"),
+      startServer,
+    });
+    await runtime.start(createAssistant([]));
+    for (const text of ["Long reply ".repeat(110), "Next reply"]) {
+      const interaction = runtime.presentation?.beginInteraction();
+      interaction?.transcriptFinal("request ".repeat(200));
+      interaction?.processing();
+      interaction?.response({ status: "ok", text });
+      interaction?.completed();
+    }
+    const projection =
+      startServer.mock.calls[0]?.[0].projectionStream?.snapshot();
+    expect(projection?.interactions).toHaveLength(2);
+    expect(projection?.interactions[0]?.response).toBe("Next reply");
+    expect(projection?.interactions[1]?.response.length).toBeLessThanOrEqual(
+      1_000,
+    );
+    expect(projection?.interactions[0]?.request.length).toBeLessThanOrEqual(
+      1_000,
+    );
+    await runtime.stop();
+  });
   it("stays disabled unless a presentation token is explicitly configured", async () => {
     const startServer = vi.fn();
     const runtime = createDesktopPresentationRuntime({

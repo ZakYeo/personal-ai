@@ -337,6 +337,9 @@ timed-out read cannot publish stale results or accumulate further reads while
 it remains unsettled. Shutdown invalidates refresh publication and closes IPC
 without waiting for a stalled source. Refresh timers start only after the
 presentation server starts successfully, and port validation precedes reads.
+Projection construction humanizes and bounds display fields before retention;
+valid longer runtime responses cannot poison later dashboard updates. Opaque
+identifiers and validated hidden source targets remain exact.
 
 ### Raspberry Pi Runtime
 

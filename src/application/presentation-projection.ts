@@ -8,7 +8,7 @@ import type {
   PresentationTaskItem,
 } from "../ports/presentation.js";
 import { containsControlCharacters } from "./text-safety.js";
-import { isSpokenTextSafe } from "./human-text.js";
+import { humanizeSpokenText, isSpokenTextSafe } from "./human-text.js";
 
 const projectionLimits = Object.freeze({
   activities: 100,
@@ -22,6 +22,66 @@ const projectionLimits = Object.freeze({
   today: 50,
   urlCharacters: 2_048,
 });
+
+/** Builds bounded display fields; opaque IDs and link targets remain exact. */
+export function buildAssistantPresentationProjection(
+  value: AssistantPresentationProjection,
+  context: { now: Date; timeZone: string },
+): AssistantPresentationProjection {
+  const text = (value: string) => {
+    const printable = [...value]
+      .map((character) =>
+        containsControlCharacters(character) ? " " : character,
+      )
+      .join("");
+    const safe = humanizeSpokenText(printable, {
+      ...context,
+      assistantTimeZone: context.timeZone,
+    });
+    return safe.length <= projectionLimits.textCharacters
+      ? safe
+      : `${safe.slice(0, projectionLimits.textCharacters - 1)}…`;
+  };
+  const projection = parseAssistantPresentationProjection({
+    activity: value.activity
+      .slice(0, projectionLimits.activities)
+      .map((item) => ({
+        occurredAt: text(item.occurredAt),
+        summary: text(item.summary),
+      })),
+    alarms: value.alarms.slice(0, projectionLimits.alarms).map((item) => ({
+      ...item,
+      label: text(item.label),
+      scheduledFor: text(item.scheduledFor),
+      status: text(item.status),
+    })),
+    integrations: value.integrations
+      .slice(0, projectionLimits.integrations)
+      .map((item) => ({ ...item, label: text(item.label) })),
+    interactions: value.interactions
+      .slice(0, projectionLimits.interactions)
+      .map((item) => ({
+        ...item,
+        request: text(item.request),
+        response: text(item.response),
+      })),
+    profile: value.profile
+      .slice(0, projectionLimits.profiles)
+      .map((item) => ({ ...item, value: text(item.value) })),
+    sources: value.sources
+      .slice(0, projectionLimits.sources)
+      .map((item) => ({ ...item, title: text(item.title) })),
+    tasks: value.tasks.slice(0, projectionLimits.tasks).map((item) => ({
+      ...item,
+      label: text(item.label),
+      status: text(item.status),
+    })),
+    today: value.today.slice(0, projectionLimits.today).map(text),
+  });
+  if (!projection)
+    throw new Error("Presentation projection failed canonical validation.");
+  return projection;
+}
 
 export function parseAssistantPresentationProjection(
   value: unknown,
