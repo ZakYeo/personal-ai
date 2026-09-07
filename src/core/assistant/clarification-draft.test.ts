@@ -30,6 +30,43 @@ function harness() {
 }
 
 describe("shared interaction draft", () => {
+  it.each([
+    { fields: 16, length: 1 },
+    { fields: 3, length: 1_000 },
+  ])(
+    "rejects aggregate plan overflow atomically for $fields fields of length $length",
+    ({ fields, length }) => {
+      const parameters = Object.fromEntries(
+        Array.from({ length: fields }, (_, index) => [
+          `field${index}`,
+          { type: "string" as const },
+        ]),
+      );
+      const catalog = createCapabilityCatalog([
+        createRawFeature({
+          capabilities: [{ name: "test.action", risk: "low", parameters }],
+        }),
+      ]);
+      const draft = createClarificationDraft(
+        { now: () => new Date(0) },
+        catalog,
+      );
+      const initial = createCommand("test.action", { field0: "original" });
+      expect(draft.openPlan([initial], ["old-reference"])).toBe(true);
+      const before = draft.snapshot();
+      const command = createCommand(
+        "test.action",
+        Object.fromEntries(
+          Object.keys(parameters).map((key) => [key, "x".repeat(length)]),
+        ),
+      );
+      expect(
+        draft.openPlan([command, command, command], ["new-reference"]),
+      ).toBe(false);
+      expect(draft.snapshot()).toEqual(before);
+    },
+  );
+
   it("merges validated partial fields when a later question omits them", () => {
     const { draft } = harness();
     draft.open(

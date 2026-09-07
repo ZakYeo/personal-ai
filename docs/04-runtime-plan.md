@@ -356,8 +356,10 @@ terminal request to restate the task without keeping voice capture open. This
 contract supports successive questions and corrections to prepared actions.
 Confirmed steps accept bounded field patches, preserving untouched fields and
 companion steps; every actual correction requires fresh validation and
-confirmation. Prepared plans contain at most three frozen step snapshots, each
-within the same field and character limits. Unchanged proposals restore the
+confirmation. Prepared plans contain at most three frozen step snapshots sharing
+one aggregate field and character budget. Each selected step is stored once;
+provider projections derive their selected fields from that same immutable state.
+Unchanged proposals restore the
 original confirmation deadline. A correction follow-up cannot extend the draft
 deadline, and even a newly refreshed confirmation cannot execute after it.
 OpenAI receives a field-by-field draft

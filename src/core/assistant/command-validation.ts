@@ -4,6 +4,7 @@ import type {
   FeatureCapability,
 } from "../../ports/feature.js";
 import { createAppError, type AppError } from "./app-error.js";
+import { withinDraftParameterBudget } from "./draft-parameters.js";
 
 type CommandDecodeResult =
   | { ok: true; args: FeatureArguments }
@@ -36,8 +37,7 @@ export function decodeCommandForCapability(
 
   if (
     options.allowMissingRequired === true &&
-    (Object.keys(command.parameters).length > 32 ||
-      JSON.stringify(command.parameters).length > 8_000)
+    !withinDraftParameterBudget([command.parameters])
   ) {
     return {
       ok: false,

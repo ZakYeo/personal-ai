@@ -202,7 +202,11 @@ describe("assistant bounded tool chains", () => {
     const continuationFailure = new Error("clarification continuation failed");
     let nextCall = 0;
     const assistant = createAssistant({
-      capabilityRouting: createCapabilityRoutingIndex([]),
+      capabilityRouting: createCapabilityRoutingIndex([
+        createRawFeature({
+          capabilities: [{ name: "test.clarification", risk: "low" }],
+        }),
+      ]),
       clock: createFixedClock(),
       config: createAssistantConfig({}),
       intentInterpreter: {
@@ -670,7 +674,11 @@ describe("assistant bounded tool chains", () => {
       },
     ];
     const assistant = createAssistant({
-      capabilityRouting: createCapabilityRoutingIndex([]),
+      capabilityRouting: createCapabilityRoutingIndex([
+        createRawFeature({
+          capabilities: [{ name: "test.clarification", risk: "low" }],
+        }),
+      ]),
       clock: createFixedClock(),
       config: createAssistantConfig({}),
       intentInterpreter: {
