@@ -50,6 +50,16 @@ Excluded:
 
 Review outcomes:
 
+- The September 7 re-audit found unbounded projection refresh, long-response
+  projection failures, cross-window control ID collisions, unavailable typed
+  continuations, and queued controls surviving disconnect. Tested remediation
+  bounds refresh and control work, sanitizes projection text before retention,
+  isolates transport IDs, and gives each continuation prompt its own owner.
+  Follow-up review also required opaque profile references so rendered values
+  cannot become canonical mutation selectors. That feedback was implemented;
+  the reviewer reported no remaining actionable findings. Application and
+  desktop tests, including all six real-browser scenarios, passed. Real audio
+  responsiveness evidence remains part of Milestone 19 acceptance.
 - The requested midpoint thermonuclear review found publisher ownership,
   boundary parsing, composition, MVVM modularity, UI quality gates, and test
   depth issues. Each finding was remediated in focused tested slices before the
