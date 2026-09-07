@@ -41,6 +41,8 @@ export async function executeAssistantPlan(
   const stepOutcomes: NonNullable<AssistantOutcome["plan"]>["steps"][number][] =
     [];
   let failed = false;
+  const presentation: NonNullable<AssistantOutcome["presentation"]>[number][] =
+    [];
 
   for (const step of plan.steps) {
     if (failed) {
@@ -56,6 +58,7 @@ export async function executeAssistantPlan(
       execution.kind === "completed" &&
       execution.outcome.response.status === "ok";
     failed = !succeeded;
+    if (succeeded) presentation.push(...(execution.outcome.presentation ?? []));
     stepOutcomes.push({
       capability: step.command.capability,
       ...(execution.kind === "completed" && execution.data
@@ -69,7 +72,10 @@ export async function executeAssistantPlan(
     });
   }
 
-  return composePlanOutcome(plan, stepOutcomes);
+  return {
+    ...composePlanOutcome(plan, stepOutcomes),
+    ...(presentation.length ? { presentation } : {}),
+  };
 }
 
 function composePlanOutcome(

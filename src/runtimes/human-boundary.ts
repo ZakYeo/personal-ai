@@ -2,7 +2,9 @@ import type {
   AssistantDiagnostic,
   AssistantDiagnosticCategory,
   AssistantResponse,
+  AssistantOutcome,
 } from "../ports/assistant.js";
+import type { Assistant } from "../core/assistant/index.js";
 import {
   quoteOperatorDiagnosticString,
   readOperatorDiagnosticProjection,
@@ -10,6 +12,42 @@ import {
 
 interface HumanBoundaryIo {
   stderr?: { write(chunk: string): boolean | void };
+}
+
+export async function readAssistantOutcome(
+  assistant: Assistant,
+  text: string,
+  io: HumanBoundaryIo,
+  signal?: AbortSignal,
+): Promise<AssistantOutcome> {
+  try {
+    const outcome = await assistant.handleTextWithDiagnostics(
+      text,
+      signal ? { signal } : {},
+    );
+    logAssistantDiagnostics(outcome.diagnostics ?? [], io);
+    return outcome;
+  } catch (error) {
+    logRuntimeFailure(error, io);
+    return { response: safeRuntimeFallbackResponse };
+  }
+}
+
+export async function recordPresentedOutcome(
+  outcome: AssistantOutcome,
+  io: HumanBoundaryIo,
+): Promise<void> {
+  for (const receipt of outcome.presentation ?? []) {
+    try {
+      await receipt.record();
+    } catch (error) {
+      try {
+        logRuntimeFailure(error, io);
+      } catch {
+        /* Diagnostics cannot prevent later receipts. */
+      }
+    }
+  }
 }
 
 export const safeRuntimeFallbackResponse: AssistantResponse = {

@@ -4,6 +4,7 @@ import type {
   ResultReferenceSelectionRequest,
 } from "./result-reference.js";
 import type { AssistantPersonalization } from "./personal-context.js";
+import type { ResponsePresentationReceipt } from "./response-presentation.js";
 
 export type AssistantResponseStatus =
   | "ok"
@@ -43,6 +44,7 @@ export interface AssistantDiagnostic {
 }
 
 export interface AssistantOutcome {
+  presentation?: readonly ResponsePresentationReceipt[];
   response: AssistantResponse;
   diagnostics?: AssistantDiagnostic[];
   plan?: AssistantPlanOutcome;

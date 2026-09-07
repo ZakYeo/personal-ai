@@ -17,9 +17,12 @@ execution; features never invoke each other and providers never receive a
 general feature executor.
 
 Milestone 18.1 contains `briefing.get_daily` as terminal-only; it is never an
-intermediate provider observation. Separating generation from recording actual
-presentation or delivery remains the next reliability slice. An intermediate
-observation must not advance the user's last-presented baseline.
+intermediate provider observation. Generation returns an application-owned
+presentation receipt without saving the comparison baseline. Core preserves
+successful receipts through final response rewriting and plan assembly, outside
+provider observations and human responses. Runtime delivery records them;
+duplicate acknowledgements share one operation. An undisplayed result cannot
+advance the user's last-presented baseline.
 
 Capabilities that can require confirmation must also declare an
 application-owned deterministic confirmation renderer tied to their decoded

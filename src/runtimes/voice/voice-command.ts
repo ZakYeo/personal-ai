@@ -4,7 +4,11 @@ import {
   logAssistantResponse,
   logCommandTranscript,
 } from "./voice-progress.js";
-import { handleAssistantText, speakResponse } from "./voice-response.js";
+import { speakResponse } from "./voice-response.js";
+import {
+  readAssistantOutcome,
+  recordPresentedOutcome,
+} from "../human-boundary.js";
 import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
 import {
   createVoiceTurnInstrumentation,
@@ -41,14 +45,15 @@ export async function runDetectedVoiceCommand(
 
   logCommandTranscript(io, commandText);
 
-  const response = await instrumentation.measure("assistant handling", () =>
-    handleAssistantText(
+  const outcome = await instrumentation.measure("assistant handling", () =>
+    readAssistantOutcome(
       dependencies.assistant,
       commandText,
       io,
       dependencies.shutdownSignal,
     ),
   );
+  const response = outcome.response;
 
   logAssistantResponse(io, response);
 
@@ -64,6 +69,8 @@ export async function runDetectedVoiceCommand(
   const speechOutput = await instrumentation.measure("speech output", () =>
     speakResponse(dependencies, response, io),
   );
+  if (speechOutput.status === "spoken")
+    await recordPresentedOutcome(outcome, io);
   if (
     metadata.presentationInteraction &&
     response.status !== "needs_confirmation"

@@ -58,7 +58,7 @@ describe("briefing feature", () => {
     ]);
   });
 
-  it("returns and retains an on-demand daily briefing", async () => {
+  it("records the comparison baseline only after explicit presentation", async () => {
     let text = "You have one task due today.";
     const store = createInMemoryBriefingStore({
       now: () => new Date("2026-09-04T07:00:00.000Z"),
@@ -81,12 +81,16 @@ describe("briefing feature", () => {
       store,
     );
 
-    await expect(
-      executeFeature(feature, "briefing.get_daily", {}),
-    ).resolves.toMatchObject({
+    const result = await executeFeature(feature, "briefing.get_daily", {});
+    expect(result).toMatchObject({
       data: { taskCount: 1 },
       text: "You have one task due today.",
     });
+    expect(await store.getLastSnapshot()).toBeUndefined();
+    if (result.kind === "resumable_clarification")
+      throw new Error("Expected briefing result");
+    await result.presentation?.record();
+    expect(await store.getLastSnapshot()).toBeDefined();
     text = "You have two tasks due today.";
     await expect(
       executeFeature(feature, "briefing.get_daily", { sinceLast: true }),

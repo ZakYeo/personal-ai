@@ -10,6 +10,7 @@ import type {
   FeatureCapabilityParameter,
 } from "./capability-catalog.js";
 import type { FeatureResultReferenceSet } from "./result-reference.js";
+import type { ResponsePresentationReceipt } from "./response-presentation.js";
 
 export type { ConfirmationDeclaration } from "./assistant.js";
 export type {
@@ -36,6 +37,7 @@ interface CompletedFeatureResultContent {
 }
 
 interface SuccessfulFeatureResult extends CompletedFeatureResultContent {
+  presentation?: ResponsePresentationReceipt;
   diagnostics?: readonly FeatureDiagnostic[];
   expectsFollowUp?: boolean;
   failure?: never;
@@ -44,6 +46,7 @@ interface SuccessfulFeatureResult extends CompletedFeatureResultContent {
 }
 
 interface FailedFeatureResult extends CompletedFeatureResultContent {
+  presentation?: never;
   diagnostics?: never;
   expectsFollowUp?: never;
   failure: FeatureFailure;
@@ -80,6 +83,7 @@ export interface FeatureToolClarification {
 }
 
 interface ResumableFeatureClarification {
+  readonly presentation?: never;
   readonly citations?: never;
   readonly data?: never;
   readonly expectsFollowUp?: never;

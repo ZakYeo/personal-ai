@@ -297,6 +297,9 @@ async function executeFeatureCommand(
             response,
           )
         : {
+            ...(result.presentation
+              ? { presentation: [result.presentation] }
+              : {}),
             ...(result.diagnostics?.length
               ? {
                   diagnostics: toAssistantDiagnostics(
@@ -362,6 +365,7 @@ function combineOutcomeDiagnostics(
 
   return {
     ...rewritten,
+    ...(original.presentation ? { presentation: original.presentation } : {}),
     ...(diagnostics.length > 0 ? { diagnostics } : {}),
   };
 }

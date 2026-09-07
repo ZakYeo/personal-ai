@@ -3,6 +3,36 @@ import { createVoiceRuntimeDependencies } from "../../test-support/voice-runtime
 import { runDetectedVoiceCommand } from "./voice-command.js";
 
 describe("runDetectedVoiceCommand", () => {
+  it.each([true, false])(
+    "records presentation only when speech succeeds: %s",
+    async (succeeds) => {
+      const record = vi.fn(() => Promise.resolve());
+      const dependencies = createVoiceRuntimeDependencies({
+        assistant: {
+          handleText: vi.fn(),
+          handleTextWithDiagnostics: () =>
+            Promise.resolve({
+              response: { status: "ok", text: "Briefing." },
+              presentation: [{ record }],
+            }),
+        },
+      });
+      await runDetectedVoiceCommand(
+        {
+          ...dependencies,
+          audioOutput: {
+            play: () =>
+              succeeds
+                ? Promise.resolve()
+                : Promise.reject(new Error("speaker failed")),
+          },
+        },
+        "brief me",
+        {},
+      );
+      expect(record).toHaveBeenCalledTimes(succeeds ? 1 : 0);
+    },
+  );
   it("speaks natural citation titles without passing link targets to text-to-speech", async () => {
     const synthesize = vi.fn((text: string) => Promise.resolve({ text }));
     const response = {

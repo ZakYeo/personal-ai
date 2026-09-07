@@ -1,10 +1,13 @@
-import type { Assistant } from "../../core/assistant/index.js";
-import type { AssistantResponse } from "../../ports/assistant.js";
+import type {
+  AssistantResponse,
+  AssistantOutcome,
+} from "../../ports/assistant.js";
 import { createConfiguredTextRuntime } from "../configured-text-runtime.js";
 import {
-  logAssistantDiagnostics,
+  readAssistantOutcome,
   logRuntimeFailure,
   safeRuntimeFallbackResponse,
+  recordPresentedOutcome,
 } from "../human-boundary.js";
 import { runPiServiceRuntime } from "../pi/pi-service-runtime.js";
 import { runDesktopVoiceServiceRuntime } from "../voice/desktop-voice-service-runtime.js";
@@ -29,9 +32,11 @@ export async function runAskCommand(
   io: CliIo,
   dependencies: CliDependencies,
 ): Promise<number> {
-  const response = await handleRuntimeCommand(parsed, io, dependencies);
+  const outcome = await handleRuntimeCommand(parsed, io, dependencies);
+  const response = outcome.response;
 
   writeAssistantResponse(io, response);
+  await recordPresentedOutcome(outcome, io);
   return response.status === "error" ? 1 : 0;
 }
 
@@ -95,20 +100,16 @@ async function handleRuntimeCommand(
   parsed: ParsedAskCommand,
   io: CliIo,
   dependencies: CliDependencies,
-): Promise<AssistantResponse> {
+): Promise<AssistantOutcome> {
   try {
     const createRuntime =
       dependencies.createRuntime ?? createConfiguredTextRuntime;
     const runtime = await createRuntime(buildRuntimeOptions(parsed, io.env));
-    const outcome = await handleRuntimeText(runtime, parsed.commandText);
-
-    logAssistantDiagnostics(outcome.diagnostics ?? [], io);
-
-    return outcome.response;
+    return await readAssistantOutcome(runtime, parsed.commandText, io);
   } catch (error) {
     logRuntimeFailure(error, io);
 
-    return safeRuntimeFallbackResponse;
+    return { response: safeRuntimeFallbackResponse };
   }
 }
 
@@ -186,11 +187,4 @@ async function handleDesktopVoiceServiceCommand(
       turnsCompleted: 0,
     };
   }
-}
-
-function handleRuntimeText(
-  runtime: Assistant,
-  commandText: string,
-): ReturnType<Assistant["handleTextWithDiagnostics"]> {
-  return runtime.handleTextWithDiagnostics(commandText);
 }

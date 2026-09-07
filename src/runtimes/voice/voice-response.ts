@@ -1,11 +1,6 @@
-import type { Assistant } from "../../core/assistant/index.js";
 import type { AssistantResponse } from "../../ports/assistant.js";
 import type { AudioOutputPort, TextToSpeechPort } from "../../ports/voice.js";
-import {
-  logAssistantDiagnostics,
-  logRuntimeFailure,
-  safeRuntimeFallbackResponse,
-} from "../human-boundary.js";
+import { logRuntimeFailure } from "../human-boundary.js";
 import type { VoiceRuntimeIo } from "./voice-runtime-io.js";
 import type { StreamingVoiceOutput } from "./streaming-voice.js";
 import type { VoiceOutputCoordinator } from "./voice-output-coordinator.js";
@@ -21,28 +16,6 @@ interface VoiceSpeechOutputResult {
   spokenText?: string;
   status: "fallback_output" | "spoken";
   textOutputWritten: boolean;
-}
-
-export async function handleAssistantText(
-  assistant: Assistant,
-  text: string,
-  io: VoiceRuntimeIo,
-  signal?: AbortSignal,
-): Promise<AssistantResponse> {
-  try {
-    const outcome = await assistant.handleTextWithDiagnostics(
-      text,
-      signal ? { signal } : {},
-    );
-
-    logAssistantDiagnostics(outcome.diagnostics ?? [], io);
-
-    return outcome.response;
-  } catch (error) {
-    logRuntimeFailure(error, io);
-
-    return safeRuntimeFallbackResponse;
-  }
 }
 
 export async function speakResponse(

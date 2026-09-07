@@ -5,9 +5,10 @@ import type {
 } from "../../ports/presentation.js";
 import {
   logRuntimeFailure,
+  readAssistantOutcome,
+  recordPresentedOutcome,
   safeRuntimeFallbackResponse,
 } from "../human-boundary.js";
-import { handleAssistantText } from "../voice/voice-response.js";
 import type { VoiceRuntimeIo } from "../voice/voice-runtime-io.js";
 import type { AssistantRuntimeEventStream } from "./assistant-runtime-event-stream.js";
 import type {
@@ -101,12 +102,13 @@ async function handleConfirmationControl(
     };
   }
   interaction.processing();
-  const response = await handleAssistantText(
+  const outcome = await readAssistantOutcome(
     options.assistant,
     control.type === "confirm" ? "yes" : "no",
     options.io ?? {},
   );
-  presentResponse(interaction, response);
+  presentResponse(interaction, outcome.response);
+  await recordPresentedOutcome(outcome, options.io ?? {});
   return { status: "accepted" };
 }
 
@@ -118,12 +120,13 @@ async function handleTextControl(
   if (!interaction) return busyResult;
   interaction.transcriptFinal(text);
   interaction.processing();
-  const response = await handleAssistantText(
+  const outcome = await readAssistantOutcome(
     options.assistant,
     text,
     options.io ?? {},
   );
-  presentResponse(interaction, response);
+  presentResponse(interaction, outcome.response);
+  await recordPresentedOutcome(outcome, options.io ?? {});
   return { status: "accepted" };
 }
 

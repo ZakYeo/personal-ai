@@ -613,7 +613,14 @@ concurrently, keeping even the maximum configured provider timeout operationally
 bounded. Daily briefings contribute a separate scheduled task with
 durable local delivery slots so restart cannot repeat the same local-day
 briefing. On-demand briefings use the same fixed application-owned source
-aggregator as scheduled delivery. Planned proactive attention contributes
+aggregator as scheduled delivery. Generation does not update the comparison
+baseline. On-demand presentation receipts advance it after successful CLI text
+output, desktop response publication, or completed voice playback. These are
+delivery boundaries, not proof that a person read or heard the answer. Failed
+speech, including successful fallback speech, does not record the original
+briefing. Receipt persistence failures remain internal diagnostics without
+replaying output. Scheduled delivery retains its durable delivery-slot policy.
+Planned proactive attention contributes
 separate user-enabled typed rules with durable evaluation slots, quiet hours,
 cooling-off periods, budgets, and deduplication. Neither background path may ask
 an intent provider to choose additional tools or actions. The briefing

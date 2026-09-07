@@ -1,7 +1,33 @@
 import { createCapturedWriter } from "../test-support/primitives.js";
 import { CommandExecutionError } from "../adapters/desktop/command-process.js";
 import { OpenAIIntentError } from "../adapters/openai/openai-intent-error.js";
-import { logAssistantDiagnostics } from "./human-boundary.js";
+import {
+  logAssistantDiagnostics,
+  recordPresentedOutcome,
+} from "./human-boundary.js";
+
+describe("presentation acknowledgement", () => {
+  it("preserves later receipts when persistence and diagnostics fail", async () => {
+    const record = vi.fn().mockResolvedValue(undefined);
+    await recordPresentedOutcome(
+      {
+        response: { status: "ok", text: "Presented." },
+        presentation: [
+          { record: () => Promise.reject(new Error("state unavailable")) },
+          { record },
+        ],
+      },
+      {
+        stderr: {
+          write: () => {
+            throw new Error("writer unavailable");
+          },
+        },
+      },
+    );
+    expect(record).toHaveBeenCalledOnce();
+  });
+});
 
 describe("assistant diagnostic logging", () => {
   it("logs every preserved diagnostic category with safe labels and causes", () => {

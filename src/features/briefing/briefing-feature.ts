@@ -1,4 +1,5 @@
 import { defineCapability, defineFeature } from "../../application/feature.js";
+import { createResponsePresentationReceipt } from "../../application/response-presentation.js";
 import { defineDeterministicFeatureRules } from "../../application/deterministic-feature-rules.js";
 import type {
   DailyBriefingAggregatorPort,
@@ -106,8 +107,10 @@ async function getDailyBriefing(
       ...(context.signal ? { signal: context.signal } : {}),
     },
   );
-  await store.saveSnapshot(result.snapshot);
   return {
+    presentation: createResponsePresentationReceipt(() =>
+      store.saveSnapshot(result.snapshot),
+    ),
     ...(result.citations.length > 0 ? { citations: result.citations } : {}),
     data: { ...result.facts, briefingCreatedAt: result.snapshot.createdAt },
     ...(diagnostics.length > 0
