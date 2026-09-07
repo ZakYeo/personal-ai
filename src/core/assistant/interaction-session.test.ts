@@ -2,6 +2,47 @@ import { createFixedClock } from "../../test-support/core-assistant.js";
 import { createInteractionSession } from "./interaction-session.js";
 
 describe("interaction session clarification", () => {
+  it("routes a non-decision reply through the exact pending revision callback", async () => {
+    const session = createInteractionSession(createFixedClock());
+    const plan = {
+      kind: "single" as const,
+      originalText: "request",
+      steps: [],
+      validatedAt: createFixedClock().now().toISOString(),
+    };
+    const prompt = {
+      response: {
+        status: "needs_confirmation" as const,
+        text: "Approve exact facts?",
+      },
+    };
+    const revised = {
+      response: {
+        status: "needs_confirmation" as const,
+        text: "Approve revised facts?",
+      },
+    };
+    const execute = vi.fn(() => Promise.resolve(completedOutcome));
+    const revise = vi.fn(() => {
+      session.requestConfirmation(plan, revised, execute);
+      return Promise.resolve({ kind: "completed" as const, outcome: revised });
+    });
+    session.requestConfirmation(plan, prompt, execute, revise);
+    const signal = new AbortController().signal;
+    await expect(
+      session.run(
+        "change the label",
+        unexpectedHandling,
+        unexpectedExecution,
+        vi.fn(),
+        signal,
+      ),
+    ).resolves.toEqual(revised);
+    expect(revise).toHaveBeenCalledExactlyOnceWith("change the label", signal);
+    expect(execute).not.toHaveBeenCalled();
+    await session.run("yes", unexpectedHandling, unexpectedExecution, vi.fn());
+    expect(execute).toHaveBeenCalledExactlyOnceWith(plan, undefined);
+  });
   it.each(["no", "no thanks", "cancel", "stop"])(
     "discards a pending clarification for %j",
     async (reply) => {

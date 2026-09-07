@@ -10,6 +10,7 @@ export interface InteractionSession {
       plan: ValidatedAssistantPlan,
       signal?: AbortSignal,
     ) => Promise<AssistantOutcome>,
+    revise?: PendingReplyHandler,
   ): AssistantOutcome;
   requestClarification(
     prompt: AssistantOutcome,
@@ -36,12 +37,18 @@ export type ClarificationResolution =
   | { kind: "completed"; outcome: AssistantOutcome }
   | { kind: "replacement" };
 
+type PendingReplyHandler = (
+  reply: string,
+  signal?: AbortSignal,
+) => Promise<ClarificationResolution>;
+
 type PendingInteraction =
   | {
       kind: "confirmation";
       createdAt: number;
       plan: ValidatedAssistantPlan;
       prompt: AssistantOutcome;
+      revise?: PendingReplyHandler;
       execute?: (
         plan: ValidatedAssistantPlan,
         signal?: AbortSignal,
@@ -62,7 +69,7 @@ export function createInteractionSession(clock: ClockPort): InteractionSession {
   let queue = Promise.resolve();
 
   return {
-    requestConfirmation(plan, prompt, execute) {
+    requestConfirmation(plan, prompt, execute, revise) {
       confirmationExpired = false;
       pending = {
         kind: "confirmation",
@@ -70,6 +77,7 @@ export function createInteractionSession(clock: ClockPort): InteractionSession {
         plan,
         prompt,
         ...(execute ? { execute } : {}),
+        ...(revise ? { revise } : {}),
       };
       return prompt;
     },
@@ -118,7 +126,15 @@ export function createInteractionSession(clock: ClockPort): InteractionSession {
 
         const decision = parseConfirmation(input);
         if (decision === "pending") {
-          outcome = pending.prompt;
+          if (pending.revise) {
+            const revise = pending.revise;
+            pending = undefined;
+            const resolution = await revise(input, signal);
+            outcome =
+              resolution.kind === "replacement"
+                ? await handle()
+                : resolution.outcome;
+          } else outcome = pending.prompt;
           return complete(outcome);
         }
 
