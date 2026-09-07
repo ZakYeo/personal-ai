@@ -19,7 +19,7 @@ export function createAttentionHealthSource(sources: {
         )
           continue;
         result.push({
-          key: `reminder:${task.id}:${task.reminder.claimedAt}`,
+          key: attentionReminderKey(task.id, task.reminder.claimedAt),
           text: `Delivery of the reminder for ${task.label} is unknown. It will not be replayed automatically.`,
           explanation:
             "The reminder was durably claimed but no completed delivery was recorded. You can acknowledge the reminder without completing its task.",
@@ -70,4 +70,8 @@ export function createAttentionHealthSource(sources: {
       return result.sort((a, b) => a.key.localeCompare(b.key)).slice(0, 10);
     },
   };
+}
+
+export function attentionReminderKey(id: string, claimedAt: string): string {
+  return `reminder:${id}:${claimedAt}`;
 }
