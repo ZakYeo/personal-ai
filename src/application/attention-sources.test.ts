@@ -173,3 +173,16 @@ describe("fixed proactive attention sources", () => {
     expect(read).toHaveBeenCalledOnce();
   });
 });
+
+it("evaluates a fresh morning routine when a slow prior cycle crosses its scheduled minute", async () => {
+  const read = vi.fn(() => Promise.resolve([]));
+  const source = createAttentionSourceReader({ morning: { read } });
+  const request = {
+    definition: { kind: "morning_routine" as const, localTime: "10:00" },
+    timeZone,
+  };
+  await source.read(request, { now: new Date("2026-09-07T09:01:30.000Z") });
+  expect(read).toHaveBeenCalledOnce();
+  await source.read(request, { now: new Date("2026-09-07T09:16:00.000Z") });
+  expect(read).toHaveBeenCalledOnce();
+});

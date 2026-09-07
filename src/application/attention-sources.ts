@@ -7,7 +7,7 @@ import type { CalendarSearchPort } from "../ports/calendar.js";
 import type { TaskStore } from "../ports/task-store.js";
 import type { WeatherProviderPort } from "../ports/weather.js";
 import { readCalendarAttention } from "./attention-calendar-source.js";
-import { zonedParts } from "./local-date-time.js";
+import { resolveLocalDateTime, zonedParts } from "./local-date-time.js";
 import {
   metricWeatherUnits,
   validateWeatherForecast,
@@ -143,8 +143,19 @@ export function createAttentionSourceReader(
           return required(sources.health).read(now);
         case "morning_routine": {
           const local = zonedParts(now, timeZone);
-          const time = `${String(local.hour).padStart(2, "0")}:${String(local.minute).padStart(2, "0")}`;
-          if (time !== definition.localTime) return [];
+          const [hour, minute] = definition.localTime.split(":").map(Number);
+          const scheduled = resolveLocalDateTime(
+            {
+              ...local,
+              hour: hour!,
+              minute: minute!,
+              second: 0,
+              millisecond: 0,
+            },
+            timeZone,
+          );
+          const lateness = now.getTime() - scheduled.getTime();
+          if (lateness < 0 || lateness > 15 * 60_000) return [];
           return required(sources.morning).read(now, timeZone, signal);
         }
       }
