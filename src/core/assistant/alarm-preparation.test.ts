@@ -1,11 +1,11 @@
 import { createCapabilityRoutingIndex } from "../../application/capability-catalog.js";
-import { validateAssistantPlan } from "../../core/assistant/plan-validation.js";
+import { validateAssistantPlan } from "./plan-validation.js";
 import { createTestAlarmStore } from "../../test-support/alarm-store.js";
 import {
   createAssistantConfig,
   createCommand,
 } from "../../test-support/core-assistant.js";
-import { createAlarmFeature } from "./alarm-feature.js";
+import { createAlarmFeature } from "../../features/alarms/alarm-feature.js";
 
 describe("alarm action preparation", () => {
   it.each(["alarm.create", "alarm.reschedule"])(
