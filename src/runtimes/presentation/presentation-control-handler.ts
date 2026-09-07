@@ -166,6 +166,5 @@ function admitInput(
     return;
   const interaction = options.presentation.continueInteraction(active.id);
   if (!interaction.continuationAvailable()) return;
-  if (active.phase !== "listening") interaction.followUpListening();
   return interaction.claimContinuation() ? interaction : undefined;
 }

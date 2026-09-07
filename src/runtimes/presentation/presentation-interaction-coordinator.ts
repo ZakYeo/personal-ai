@@ -28,6 +28,7 @@ export interface PresentationInteraction {
 
 export interface PresentationInteractionCoordinator {
   beginInteraction(): PresentationInteraction;
+  beginVoiceInteraction(): PresentationInteraction;
   continueInteraction(interactionId: string): PresentationInteraction;
   wakeListening(): void;
 }
@@ -62,6 +63,7 @@ export function createPresentationInteractionCoordinator(
   if (!publisher) {
     return Object.freeze({
       beginInteraction: () => noOpInteraction,
+      beginVoiceInteraction: () => noOpInteraction,
       continueInteraction: () => noOpInteraction,
       wakeListening: noOperation,
     });
@@ -85,6 +87,18 @@ export function createPresentationInteractionCoordinator(
   return Object.freeze({
     beginInteraction: () =>
       createInteraction(publisher, continuationOwner, undefined),
+    beginVoiceInteraction: () => {
+      const interaction = createInteraction(
+        publisher,
+        continuationOwner,
+        pending?.id,
+      );
+      if (pending) {
+        interaction.interrupted();
+        interaction.followUpListening();
+      }
+      return interaction;
+    },
     continueInteraction: (interactionId: string) =>
       createInteraction(publisher, continuationOwner, interactionId),
     wakeListening: () => publisher.publish({ type: "wake_listening" }),

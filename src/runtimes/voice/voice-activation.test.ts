@@ -438,7 +438,7 @@ describe("voice activation", () => {
     expect(stream.snapshot().interaction?.phase).toBe("completed");
   });
 
-  it("ends a capped follow-up so the next wake can start cleanly", async () => {
+  it("pauses a capped follow-up so the next wake can resume it", async () => {
     let interactionId = 0;
     const stream = createAssistantRuntimeEventStream({
       instanceId: "service-1",
@@ -467,10 +467,8 @@ describe("voice activation", () => {
 
     await runVoiceActivation(followUpDependencies, { presentation });
     expect(stream.snapshot().interaction).toMatchObject({
-      failure: {
-        message: "This interaction needs another reply. Please start it again.",
-      },
-      phase: "failed",
+      response: { text: "Tell me more." },
+      phase: "response",
     });
 
     await runVoiceActivation(
@@ -478,7 +476,7 @@ describe("voice activation", () => {
       { presentation },
     );
     expect(stream.snapshot().interaction).toMatchObject({
-      id: "interaction-2",
+      id: "interaction-1",
       phase: "completed",
     });
   });

@@ -4,6 +4,25 @@ import { createPresentationControlHandler } from "./presentation-control-handler
 import { createPresentationInteractionCoordinator } from "./presentation-interaction-coordinator.js";
 
 describe("presentation control handler", () => {
+  it("does not mark the microphone as capturing when a typed reply claims a prompt", async () => {
+    const eventStream = createStream();
+    const presentation = createCoordinator(eventStream);
+    const pending = presentation.beginInteraction();
+    pending.processing();
+    pending.confirmation("Approve?");
+    const microphones: string[] = [];
+    eventStream.subscribe(() => {
+      microphones.push(eventStream.snapshot().microphone);
+    });
+    const handle = createPresentationControlHandler({
+      assistant: createAssistant([]),
+      eventStream,
+      presentation,
+    });
+    await handle({ type: "submit_text", requestId: "typed", text: "yes" });
+    expect(microphones).not.toContain("capturing");
+  });
+
   it("awaits voice interruption without interpreting a command or discarding confirmation", async () => {
     const handled: string[] = [];
     const eventStream = createStream();

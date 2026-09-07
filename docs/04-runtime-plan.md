@@ -383,7 +383,13 @@ cleanup bounds, not revisions to the 300 ms acoustic stop target.
 Late transcript and assistant callbacks cannot publish new output after
 cancellation. Pausing follow-up capture restores the already-retained confirmation
 or clarification prompt, while a voice callback whose continuation was claimed
-by the UI cannot change that UI-owned state. Neutral service-turn metadata
+by the UI cannot change that UI-owned state.
+A later wake resumes the same retained prompt and claims its continuation only
+after capture completes. If the desktop answered during capture, late transcript
+and execution callbacks are discarded. Reaching the voice follow-up cap pauses
+the prompt for a later wake rather than replacing it with a terminal failure.
+Follow-up listening clears the previous transcript and marks actual voice
+capture; a typed continuation can publish final input without a listening event. Neutral service-turn metadata
 excludes cancelled activations from the completed-turn count; this does not erase
 completed feature actions from their canonical stores or conversation history.
 The desktop overlay's explicit Stop voice control cancels the active voice turn

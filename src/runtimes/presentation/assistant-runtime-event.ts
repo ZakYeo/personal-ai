@@ -96,20 +96,26 @@ export function reduceAssistantRuntimeEvent(
         },
       });
     }
-    case "follow_up_listening":
-      return transition(
+    case "follow_up_listening": {
+      const next = transition(
         snapshot,
-        base,
+        { ...base, microphone: "capturing", wakeListening: false },
         event,
         ["confirmation", "response"],
         "listening",
       );
+      return freezeSnapshot({
+        ...next,
+        interaction: { ...requireInteraction(next, event), transcript: "" },
+      });
+    }
     case "follow_up_paused": {
       assertTransition(snapshot, event, [
         "listening",
         "confirmation",
         "response",
         "speaking",
+        "failed",
       ]);
       const current = requireInteraction(snapshot, event);
       if (!current.confirmation && !current.response)
@@ -125,7 +131,11 @@ export function reduceAssistantRuntimeEvent(
       });
     }
     case "transcript_final": {
-      assertTransition(snapshot, event, ["listening"]);
+      assertTransition(snapshot, event, [
+        "listening",
+        "confirmation",
+        "response",
+      ]);
       validateText(
         event.text,
         assistantPresentationLimits.transcriptCharacters,

@@ -67,9 +67,7 @@ export async function runVoiceCommandSequence(
 
   if (metadata.presentationInteraction) {
     if (assistantResponseExpectsFollowUp(result.response)) {
-      metadata.presentationInteraction.failed(
-        "This interaction needs another reply. Please start it again.",
-      );
+      metadata.presentationInteraction.interrupted();
     } else {
       metadata.presentationInteraction.completed();
     }

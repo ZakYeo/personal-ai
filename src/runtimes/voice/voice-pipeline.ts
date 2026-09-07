@@ -126,7 +126,7 @@ async function runVoicePipelineActivation(
     instrumentation.mark("wake_detected");
     logWakeDetected(io);
 
-    const presentationInteraction = presentation.beginInteraction();
+    const presentationInteraction = presentation.beginVoiceInteraction();
     if (io.presentation || io.progressOutput)
       instrumentation.mark("local_feedback");
 
@@ -178,7 +178,7 @@ async function runVoicePipelineActivation(
   instrumentation.mark("wake_detected");
   logWakeDetected(io);
 
-  const presentationInteraction = presentation.beginInteraction();
+  const presentationInteraction = presentation.beginVoiceInteraction();
   if (io.presentation || io.progressOutput)
     instrumentation.mark("local_feedback");
 
@@ -203,6 +203,8 @@ async function runPostWakeVoiceCommand(
   },
 ): Promise<VoicePipelineResult> {
   try {
+    const pendingContinuation =
+      metadata.presentationInteraction.continuationAvailable();
     const commandTranscript =
       metadata.initialCommandTranscript !== undefined
         ? { text: metadata.initialCommandTranscript }
@@ -211,11 +213,26 @@ async function runPostWakeVoiceCommand(
             io,
             metadata.instrumentation,
             metadata.presentationInteraction,
+            () =>
+              !pendingContinuation ||
+              metadata.presentationInteraction.continuationAvailable(),
           );
 
     if (metadata.initialCommandTranscript !== undefined) {
       metadata.instrumentation.mark("first_transcript");
       metadata.presentationInteraction.transcriptFinal(commandTranscript.text);
+    }
+
+    if (
+      pendingContinuation &&
+      !metadata.presentationInteraction.claimContinuation()
+    ) {
+      return {
+        response: { status: "ok", text: "Stopped." },
+        status: "cancelled",
+        textOutputWritten: false,
+        ...timingsResult(metadata.instrumentation),
+      };
     }
 
     return await runVoiceCommandSequence(
