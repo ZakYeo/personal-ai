@@ -33,7 +33,7 @@ describe("voice interruption monitor", () => {
       onRequest,
       onCleanupFailure: vi.fn(),
       reportFailure: vi.fn(),
-      speechText: () => {},
+      speechText: () => "",
       wakePhrases: ["hey jarvis"],
     });
     await vi.waitUntil(() => capture.mock.calls.length === 3);
@@ -56,7 +56,7 @@ describe("voice interruption monitor", () => {
       onRequest,
       onCleanupFailure: vi.fn(),
       reportFailure: vi.fn(),
-      speechText: () => {},
+      speechText: () => "",
       wakePhrases: ["hey jarvis"],
     });
     const stopped = monitor.stop();
@@ -75,7 +75,7 @@ describe("voice interruption monitor", () => {
         onRequest: vi.fn(),
         onCleanupFailure,
         reportFailure: vi.fn(),
-        speechText: () => {},
+        speechText: () => "",
         wakePhrases: ["hey jarvis"],
       });
       const stopped = monitor.stop();
