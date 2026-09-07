@@ -20,6 +20,45 @@ import { createServiceSignalController } from "../../test-support/service-runtim
 import { runDesktopVoiceServiceRuntime } from "./desktop-voice-service-runtime.js";
 
 describe("runDesktopVoiceServiceRuntime", () => {
+  it.each([false, true])(
+    "fails the service after uncooperative output cleanup even if diagnostics fail: %s",
+    async (brokenDiagnostics) => {
+      const signals = createServiceSignalController();
+      const observedShutdown: boolean[] = [];
+      const result = await runDesktopVoiceServiceRuntime({
+        config: createDesktopVoiceConfig("list alarms"),
+        processSignals: signals,
+        io: {
+          stderr: {
+            write: () => {
+              if (brokenDiagnostics)
+                throw new Error("diagnostic writer failed");
+            },
+          },
+        },
+        runVoiceActivation: async ({ outputCoordinator, shutdownSignal }) => {
+          if (!outputCoordinator) throw new Error("Missing output coordinator");
+          const operation = outputCoordinator.run(
+            () => new Promise<void>(() => {}),
+          );
+          const observed = Promise.allSettled([operation]);
+          await Promise.resolve();
+          await outputCoordinator.interrupt().catch(() => {});
+          await observed;
+          observedShutdown.push(shutdownSignal?.aborted === true);
+          signals.emit("SIGTERM");
+          return {
+            response: { status: "ok", text: "Stopped." },
+            status: "cancelled",
+            textOutputWritten: false,
+          };
+        },
+      });
+      expect(result.status).toBe("failed");
+      expect(observedShutdown).toEqual([true]);
+    },
+  );
+
   it("composes on-demand and scheduled briefing support for desktop voice", async () => {
     const signals = createServiceSignalController();
     const backgroundTaskIds: string[] = [];

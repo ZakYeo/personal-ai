@@ -1,3 +1,4 @@
+import { createServiceFailureBoundary } from "../service/service-failure-boundary.js";
 import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
 import { createNodeProcessControl } from "../process-control.js";
@@ -84,7 +85,13 @@ export function runConfiguredVoiceServiceRuntime(
   const fetch = options.fetch ?? globalThis.fetch;
   const processControl =
     options.processControl ?? createNodeProcessControl(process);
-  const outputCoordinator = createVoiceOutputCoordinator();
+  const failures = createServiceFailureBoundary({
+    failureReason: "voice output cleanup failed",
+    reportFailure: (error) => logRuntimeFailure(error, options.io ?? {}),
+  });
+  const outputCoordinator = createVoiceOutputCoordinator({
+    onCleanupFailure: (error) => failures.report(error),
+  });
   const presentationRuntime = options.desktopPresentation
     ? createDesktopPresentationRuntime({
         env,
@@ -134,7 +141,10 @@ export function runConfiguredVoiceServiceRuntime(
     },
     {
       validateConfig: (config) => validateVoiceServiceConfig(config, env),
-      runTurn: async ({ assistant, config, services, shutdownSignal }) => {
+      runTurn: async (context) => {
+        const { assistant, config, services, shutdownSignal } = context;
+        failures.bindShutdown((reason) => context.requestShutdown(reason));
+        if (shutdownSignal.aborted) return;
         if (presentationRuntime) {
           await presentationRuntime
             .start(assistant, { config, services })
@@ -188,7 +198,7 @@ export function runConfiguredVoiceServiceRuntime(
         }
       },
     },
-  );
+  ).then((result) => failures.finish(result));
 }
 
 async function validateVoiceServiceConfig(

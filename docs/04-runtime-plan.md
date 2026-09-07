@@ -349,8 +349,10 @@ presentation receipt. It does not capture another reply; terminal answers show
 cancelled state while pending confirmations and clarification prompts remain
 available. Queued notifications are rejected before adapters are constructed;
 their existing scheduler owns durable delivery outcomes and no output is replayed.
-Turn control and fatal cleanup supervision are added in subsequent Milestone 19
-slices.
+A runtime-owned failure boundary requests service shutdown on output cleanup
+failure and preserves a failed service result through cleanup, even when diagnostic
+IO fails or the normal loop would otherwise report a clean stop. Turn control is
+added in subsequent Milestone 19 slices.
 
 #### Native shell decision
 
