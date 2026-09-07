@@ -679,7 +679,9 @@ Acceptance criteria:
 
 ## Milestone 18.1: Daily-Use Reliability
 
-Status: planned; follows implemented Milestone 18 and precedes Milestone 19.
+Status: in progress; history fallback is implemented in tested slices, with
+remaining reliability work and the milestone review still pending. Follows
+implemented Milestone 18 and precedes Milestone 19.
 
 Goal: preserve completed work and present honest state before expanding the
 ambient experience. These are follow-up fixes, not claims that the
@@ -692,7 +694,7 @@ Included and thin slices, each with a failing regression test first:
    summaries, recovery, concurrency, and result-reference aging. Retain core
    transaction ownership; any later background compaction needs revision-checked
    installation and must not overwrite newer turns. This deliberately revises
-   the current documented policy of retaining only the previous valid state.
+   the former policy of retaining only the previous valid state.
 2. Enforce read-only briefing generation: intermediate reads cannot save the
    last-presented baseline. Separate generation from recording presentation or
    delivery through an application-owned contract; terminal-only exposure is an

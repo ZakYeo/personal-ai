@@ -779,11 +779,15 @@ Provider instructions set the signal for direct questions addressed to the user
 whose answers the assistant intends to receive, including reciprocal
 conversation such as asking how the user is doing. They reject rhetorical
 questions and generic invitations to continue chatting.
-History compaction failure preserves the already completed human response, keeps
-the last valid state, and emits an internal conversation diagnostic.
-Planned Milestone 18.1 will revise this behavior to retain the completed exchange
-under a bounded fallback policy even when compaction fails; until its tested
-implementation, the preceding description remains the current runtime contract.
+History compaction failure preserves the completed human response and commits
+the newest safe exchanges alongside the last valid summary. Fallback history
+retains at most ten complete exchanges and 32,000 recent-text characters,
+truncates individual entries to 16,000 characters, and evicts oldest pairs first.
+Failures and retention trimming remain internal conversation diagnostics.
+Core retries compaction after each subsequent completed exchange until recovery,
+even when trimming reduced history below the configured threshold. The candidate
+state is frozen before compaction; fallback installation remains inside the
+serialized assistant transaction and does not signal successful compaction.
 The deterministic compactor removes summaries echoed by its own responder and
 caps retained summary text at 2,000 characters, preventing repeated compaction
 from multiplying stored history.

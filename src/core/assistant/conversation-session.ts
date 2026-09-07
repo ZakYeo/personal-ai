@@ -36,15 +36,35 @@ export function createConversationSession(
   dependencies: ConversationSessionDependencies,
 ): ConversationSession {
   let state = freezeConversationState({ recentTurns: [] });
+  let retryCompaction = false;
   return {
     async commit(input, response, context) {
-      const candidateState = appendConversationTurn(state, input, response);
-      const compaction = await compactConversationIfNeeded(
-        candidateState,
-        dependencies,
-        context,
+      const candidateState = freezeConversationState(
+        appendConversationTurn(state, input, response),
       );
+      let compaction: { compacted: boolean; state: ConversationState };
+      try {
+        compaction = await compactConversationIfNeeded(
+          candidateState,
+          dependencies,
+          context,
+          retryCompaction,
+        );
+      } catch (error) {
+        const fallback = boundFallbackHistory(candidateState);
+        state = freezeConversationState(fallback.state);
+        retryCompaction = true;
+        if (fallback.truncated) {
+          throw new AggregateError(
+            [error],
+            "Conversation compaction failed; fallback history was trimmed to its retention bounds.",
+            { cause: error },
+          );
+        }
+        throw error;
+      }
       state = freezeConversationState(compaction.state);
+      retryCompaction = false;
       if (compaction.compacted) dependencies.onCompacted?.();
     },
     respond: (input, snapshot, context) =>
@@ -57,10 +77,12 @@ async function compactConversationIfNeeded(
   state: ConversationState,
   dependencies: ConversationSessionDependencies,
   context: AssistantContext,
+  retry: boolean,
 ): Promise<{ compacted: boolean; state: ConversationState }> {
   if (
+    !retry &&
     countUserTurns(state.recentTurns) <
-    dependencies.history.maxTurnsBeforeCompaction
+      dependencies.history.maxTurnsBeforeCompaction
   ) {
     return { compacted: false, state };
   }
@@ -71,6 +93,34 @@ async function compactConversationIfNeeded(
   return {
     compacted: true,
     state: { recentTurns: [], summary },
+  };
+}
+
+function boundFallbackHistory(state: ConversationState): {
+  state: ConversationState;
+  truncated: boolean;
+} {
+  const recentTurns = state.recentTurns.slice(-20).map((turn) => ({
+    ...turn,
+    content:
+      turn.content.length > 16_000
+        ? `${turn.content.slice(0, 15_999)}…`
+        : turn.content,
+  }));
+  let characters = recentTurns.reduce(
+    (sum, turn) => sum + turn.content.length,
+    0,
+  );
+  while (characters > 32_000 && recentTurns.length > 2) {
+    characters -= recentTurns
+      .splice(0, 2)
+      .reduce((sum, turn) => sum + turn.content.length, 0);
+  }
+  return {
+    state: { ...state, recentTurns },
+    truncated:
+      recentTurns.length !== state.recentTurns.length ||
+      state.recentTurns.some((turn) => turn.content.length > 16_000),
   };
 }
 

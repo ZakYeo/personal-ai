@@ -11,6 +11,66 @@ const context = {
 };
 
 describe("createConversationSession", () => {
+  it("bounds repeated failures and retries compaction after history was pruned", async () => {
+    const compact = vi
+      .fn()
+      .mockRejectedValue(new Error("provider unavailable"));
+    const session = createConversationSession({
+      compactor: { compact },
+      history: { maxTurnsBeforeCompaction: 11 },
+      responder: { respond: vi.fn() },
+    });
+    for (let index = 0; index < 14; index += 1) {
+      await session
+        .commit(`turn ${index}`, { status: "ok", text: "reply" }, context)
+        .catch(() => {});
+    }
+    expect(compact).toHaveBeenCalledTimes(4);
+    expect(session.snapshot().recentTurns).toHaveLength(20);
+    expect(session.snapshot().recentTurns[0]?.content).toBe("turn 4");
+    compact.mockResolvedValue("recovered summary");
+    await session.commit("recovery", { status: "ok", text: "reply" }, context);
+    expect(session.snapshot()).toEqual({
+      summary: "recovered summary",
+      recentTurns: [],
+    });
+  });
+
+  it("preserves the previous summary and newest pair within a fixed character bound", async () => {
+    const compact = vi
+      .fn()
+      .mockResolvedValueOnce("previous summary")
+      .mockRejectedValue(new Error("failed"));
+    const onCompacted = vi.fn();
+    const session = createConversationSession({
+      compactor: { compact },
+      history: { maxTurnsBeforeCompaction: 1 },
+      onCompacted,
+      responder: { respond: vi.fn() },
+    });
+    await session.commit("initial", { status: "ok", text: "reply" }, context);
+    for (let index = 0; index < 3; index += 1) {
+      await expect(
+        session.commit(
+          "u".repeat(20_000),
+          { status: "ok", text: "a".repeat(20_000) },
+          context,
+        ),
+      ).rejects.toThrow();
+    }
+    const snapshot = session.snapshot();
+    expect(snapshot.summary).toBe("previous summary");
+    expect(snapshot.recentTurns).toHaveLength(2);
+    expect(
+      snapshot.recentTurns.reduce((sum, turn) => sum + turn.content.length, 0),
+    ).toBe(32_000);
+    expect(snapshot.recentTurns.map((turn) => turn.role)).toEqual([
+      "user",
+      "assistant",
+    ]);
+    expect(onCompacted).toHaveBeenCalledOnce();
+    expect(Object.isFrozen(snapshot.recentTurns[0])).toBe(true);
+  });
   it("shares committed turns with subsequent responders", async () => {
     const states: ConversationState[] = [];
     const respond = vi.fn((input: string, state: ConversationState) => {
@@ -62,7 +122,12 @@ describe("createConversationSession", () => {
     await expect(
       session.commit("first", { status: "ok", text: "reply" }, context),
     ).rejects.toThrow("Conversation summary exceeded the application limit.");
-    expect(session.snapshot()).toEqual({ recentTurns: [] });
+    expect(session.snapshot()).toEqual({
+      recentTurns: [
+        { role: "user", content: "first" },
+        { role: "assistant", content: "reply" },
+      ],
+    });
   });
 
   it("keeps ownership of recent turns when installing a compacted summary", async () => {
@@ -102,6 +167,11 @@ describe("createConversationSession", () => {
     await expect(
       session.commit("first", { status: "ok", text: "reply" }, context),
     ).rejects.toThrow("Conversation summary must be a non-empty string.");
-    expect(session.snapshot()).toEqual({ recentTurns: [] });
+    expect(session.snapshot()).toEqual({
+      recentTurns: [
+        { role: "user", content: "first" },
+        { role: "assistant", content: "reply" },
+      ],
+    });
   });
 });

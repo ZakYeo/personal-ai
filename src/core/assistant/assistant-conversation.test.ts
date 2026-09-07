@@ -378,7 +378,7 @@ describe("createAssistant", () => {
     });
   });
 
-  it("does not commit conversation history when compaction fails", async () => {
+  it("preserves concurrent completed conversation turns when compaction fails", async () => {
     const cause = new Error("compaction failed");
     const respond = vi.fn((input: string, state: ConversationState) =>
       Promise.resolve({
@@ -400,21 +400,9 @@ describe("createAssistant", () => {
       intentInterpreter: createInterpreter({ kind: "conversation" }),
     });
 
-    await expect(assistant.handleTextWithDiagnostics("first")).resolves.toEqual(
-      {
-        diagnostics: [
-          {
-            category: "conversation_failure",
-            cause,
-            message: "compaction failed",
-          },
-        ],
-        response: { status: "ok", text: "answered first after 0 turns" },
-      },
-    );
-    await expect(
-      assistant.handleTextWithDiagnostics("second"),
-    ).resolves.toEqual({
+    const first = assistant.handleTextWithDiagnostics("first");
+    const second = assistant.handleTextWithDiagnostics("second");
+    await expect(first).resolves.toEqual({
       diagnostics: [
         {
           category: "conversation_failure",
@@ -422,12 +410,27 @@ describe("createAssistant", () => {
           message: "compaction failed",
         },
       ],
-      response: { status: "ok", text: "answered second after 0 turns" },
+      response: { status: "ok", text: "answered first after 0 turns" },
+    });
+    await expect(second).resolves.toEqual({
+      diagnostics: [
+        {
+          category: "conversation_failure",
+          cause,
+          message: "compaction failed",
+        },
+      ],
+      response: { status: "ok", text: "answered second after 2 turns" },
     });
     expect(respond).toHaveBeenNthCalledWith(
       2,
       "second",
-      { recentTurns: [] },
+      {
+        recentTurns: [
+          { role: "user", content: "first" },
+          { role: "assistant", content: "answered first after 0 turns" },
+        ],
+      },
       { clock, config },
     );
   });
