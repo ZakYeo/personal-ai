@@ -66,7 +66,7 @@ export function createAssistant(
         onCompacted: () => resultReferences.invalidateForCompaction(),
       })
     : undefined;
-  const interaction = createInteractionSession();
+  const interaction = createInteractionSession(dependencies.clock);
 
   async function handleTextWithDiagnostics(
     text: string,

@@ -735,9 +735,10 @@ Acceptance criteria:
 ## Milestone 19: Voice Interruption and Responsiveness
 
 Status: in progress; monotonic software events, per-operation cancellation,
-pending-workflow signal ownership, shared output cancellation, and bounded turn
-ownership are implemented in tested slices. Public interruption controls,
-barge-in, draft corrections, expiry, and independent review remain. Depends on
+pending-workflow signal ownership, shared output cancellation, bounded turn
+ownership, desktop voice stop, and two-minute confirmation expiry are implemented
+in tested slices. Spoken stop, barge-in, draft corrections, and independent review
+remain. Depends on
 implemented Milestones 18 and 18.1.
 
 Goal: reduce real and perceived response latency and let the user interrupt the

@@ -334,7 +334,12 @@ shared Responses HTTP client; caller cancellation has its own diagnostic message
 and retains the underlying cause instead of being reported as a timeout.
 Core resumes confirmation and clarification through the originating workflow with
 the current request signal, including an explicit signal-free text continuation.
-It never reinterprets the frozen confirmation plan. Already-cancelled queued
+It never reinterprets the frozen confirmation plan. Confirmation expires two
+minutes after creation using the injected clock, checked after queued input gains
+transaction ownership. Repeated prompts do not renew it. Expired approvals return
+a terminal request to prepare the action again, without provider continuation;
+repeated approvals remain inert until an explicit new request begins a workflow.
+Clock rollback or an invalid reading also expires the pending action. Already-cancelled queued
 requests leave pending state intact; late interpretations cannot execute, and
 cancellation between plan steps preserves completed facts while blocking later
 steps. Provider session continuation has an optional per-call signal so a previous

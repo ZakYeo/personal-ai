@@ -1,5 +1,5 @@
 import { unexpectedOutcome } from "./assistant-outcome.js";
-import type { AssistantOutcome } from "../../ports/assistant.js";
+import type { AssistantOutcome, ClockPort } from "../../ports/assistant.js";
 import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
 
 export interface InteractionSession {
@@ -39,6 +39,7 @@ export type ClarificationResolution =
 type PendingInteraction =
   | {
       kind: "confirmation";
+      createdAt: number;
       plan: ValidatedAssistantPlan;
       prompt: AssistantOutcome;
       execute?: (
@@ -55,14 +56,17 @@ type PendingInteraction =
       ) => Promise<ClarificationResolution>;
     };
 
-export function createInteractionSession(): InteractionSession {
+export function createInteractionSession(clock: ClockPort): InteractionSession {
   let pending: PendingInteraction | undefined;
+  let confirmationExpired = false;
   let queue = Promise.resolve();
 
   return {
     requestConfirmation(plan, prompt, execute) {
+      confirmationExpired = false;
       pending = {
         kind: "confirmation",
+        createdAt: clock.now().getTime(),
         plan,
         prompt,
         ...(execute ? { execute } : {}),
@@ -70,6 +74,7 @@ export function createInteractionSession(): InteractionSession {
       return prompt;
     },
     requestClarification(prompt, resume) {
+      confirmationExpired = false;
       pending = { kind: "clarification", prompt, resume };
       return prompt;
     },
@@ -79,7 +84,18 @@ export function createInteractionSession(): InteractionSession {
         const complete = async (outcome: AssistantOutcome) =>
           (await onCompleted(outcome)) ?? outcome;
         let outcome: AssistantOutcome;
+        if (pending?.kind === "confirmation") {
+          const elapsed = clock.now().getTime() - pending.createdAt;
+          if (!Number.isFinite(elapsed) || elapsed < 0 || elapsed >= 120_000) {
+            pending = undefined;
+            confirmationExpired = true;
+            return complete(expiredConfirmationOutcome);
+          }
+        }
         if (!pending) {
+          if (confirmationExpired && parseConfirmation(input) !== "pending")
+            return complete(expiredConfirmationOutcome);
+          confirmationExpired = false;
           outcome = await handle();
           return complete(outcome);
         }
@@ -160,4 +176,11 @@ function normalizeDecision(input: string): string {
 
 const cancelledOutcome: AssistantOutcome = {
   response: { status: "ok", text: "Okay, I did not do that." },
+};
+
+const expiredConfirmationOutcome: AssistantOutcome = {
+  response: {
+    status: "ok",
+    text: "That confirmation expired. Please ask me to prepare the action again.",
+  },
 };

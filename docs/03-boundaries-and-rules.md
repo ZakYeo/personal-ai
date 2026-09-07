@@ -163,7 +163,13 @@ every high-risk capability in `confirmationRequiredCapabilities`.
 After a confirmation prompt, the assistant must not send the next input back to
 the intent provider. An explicit yes executes the already decoded command, an
 explicit no discards it, and unrelated input leaves it pending. Pending
-confirmation state is process-local and is discarded on restart.
+confirmation state is process-local and is discarded on restart. Milestone 19
+bounds it to two minutes from prompt creation using the injected clock. The
+serialized interaction checks expiry when a reply acquires ownership, including
+at the exact deadline; repeating the prompt does not extend it. Backwards or
+invalid clock readings fail closed. Expiry discards the validated plan and asks
+for an explicit fresh request; repeated stale approvals never re-enter the
+provider or execute the expired action.
 
 Milestone 10 extends the same fail-closed rule from one command to a bounded
 plan. The core must validate every step before any execution, aggregate every

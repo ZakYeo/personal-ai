@@ -226,7 +226,7 @@ describe("assistant compound plans", () => {
       text: "Please confirm this plan: 1. set the tea alarm for 10:10am today. Say yes or no.",
     });
 
-    now = new Date("2026-06-26T09:05:00.000Z");
+    now = new Date("2026-06-26T09:01:00.000Z");
     await expect(
       assistant.handleTextWithDiagnostics("yes"),
     ).resolves.toMatchObject({
