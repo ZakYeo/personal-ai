@@ -1,3 +1,4 @@
+import { playVoiceSpeech } from "./play-voice-speech.js";
 import type { AssistantResponse } from "../../ports/assistant.js";
 import type { AudioOutputPort, TextToSpeechPort } from "../../ports/voice.js";
 import { logRuntimeFailure } from "../human-boundary.js";
@@ -59,53 +60,11 @@ async function speakResponseSession(
   response: AssistantResponse,
   signal?: AbortSignal,
 ): Promise<VoiceSpeechOutputResult> {
-  signal?.throwIfAborted();
-  const operation = signal ? { signal } : undefined;
-  if (dependencies.streamingOutput) {
-    const { audioOutput, textToSpeech } = dependencies.streamingOutput;
-    const speech = await textToSpeech.synthesizeStream(
-      response.text,
-      operation,
-    );
-    signal?.throwIfAborted();
-    await audioOutput.playStream(
-      markFirstChunk(speech.chunks, dependencies.onFirstAudioSubmitted, signal),
-      operation,
-    );
-    signal?.throwIfAborted();
-    return {
-      spokenText: speech.text,
-      status: "spoken",
-      textOutputWritten: false,
-    };
-  }
-  const speech = await dependencies.textToSpeech.synthesize(
-    response.text,
-    operation,
-  );
-  signal?.throwIfAborted();
-  dependencies.onFirstAudioSubmitted?.();
-  await dependencies.audioOutput.play(speech, operation);
-  signal?.throwIfAborted();
-  return {
-    spokenText: speech.text,
-    status: "spoken",
-    textOutputWritten: false,
-  };
-}
-
-async function* markFirstChunk(
-  chunks: AsyncIterable<Uint8Array>,
-  onFirst?: () => void,
-  signal?: AbortSignal,
-): AsyncIterable<Uint8Array> {
-  let submitted = false;
-  for await (const chunk of chunks) {
-    signal?.throwIfAborted();
-    if (chunk.byteLength && !submitted) {
-      submitted = true;
-      onFirst?.();
-    }
-    yield chunk;
-  }
+  const spokenText = await playVoiceSpeech(dependencies, response.text, {
+    ...(signal ? { signal } : {}),
+    ...(dependencies.onFirstAudioSubmitted
+      ? { onFirstAudioSubmitted: dependencies.onFirstAudioSubmitted }
+      : {}),
+  });
+  return { spokenText, status: "spoken", textOutputWritten: false };
 }

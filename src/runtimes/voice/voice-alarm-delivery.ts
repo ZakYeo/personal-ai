@@ -1,3 +1,4 @@
+import { playVoiceSpeech } from "./play-voice-speech.js";
 import type { NotificationDeliveryPort } from "../../ports/notification-delivery.js";
 import type { DesktopVoiceOutputAdapters } from "./desktop-voice-adapter-types.js";
 import { cleanupVoiceAdapters } from "./voice-cleanup.js";
@@ -24,25 +25,7 @@ export function createVoiceAlarmDelivery(
           const text = notification.text;
 
           try {
-            if (adapters.streamingOutput) {
-              const speech =
-                await adapters.streamingOutput.textToSpeech.synthesizeStream(
-                  text,
-                  { signal },
-                );
-              signal.throwIfAborted();
-              await adapters.streamingOutput.audioOutput.playStream(
-                speech.chunks,
-                { signal },
-              );
-              return;
-            }
-
-            const speech = await adapters.textToSpeech.synthesize(text, {
-              signal,
-            });
-            signal.throwIfAborted();
-            await adapters.audioOutput.play(speech, { signal });
+            await playVoiceSpeech(adapters, text, { signal });
           } finally {
             await cleanupVoiceAdapters(() => adapters.cleanup?.(), io);
           }

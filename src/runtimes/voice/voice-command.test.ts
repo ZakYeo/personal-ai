@@ -108,7 +108,9 @@ describe("runDetectedVoiceCommand", () => {
       {},
     );
 
-    expect(synthesize).toHaveBeenCalledWith(response.text, undefined);
+    expect(synthesize).toHaveBeenCalledWith(response.text, {
+      signal: expect.any(AbortSignal) as AbortSignal,
+    });
     expect(JSON.stringify(synthesize.mock.calls)).not.toContain("https://");
   });
 

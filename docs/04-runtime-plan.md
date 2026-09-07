@@ -363,6 +363,11 @@ presentation receipt. It does not capture another reply; terminal answers show
 cancelled state while pending confirmations and clarification prompts remain
 available. Queued notifications are rejected before adapters are constructed;
 their existing scheduler owns durable delivery outcomes and no output is replayed.
+Ordinary and notification output share one playback helper. Streaming speech
+counts as delivered only after the player consumes a complete, non-empty stream;
+empty, ignored, or partially consumed streams fail without a presentation
+receipt or notification success. Each helper call owns a local cancellation
+scope that closes on every exit, including a player that never consumes audio.
 A runtime-owned failure boundary requests service shutdown on output cleanup
 failure and preserves a failed service result through cleanup, even when diagnostic
 IO fails or the normal loop would otherwise report a clean stop.
