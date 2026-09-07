@@ -208,78 +208,109 @@ describe("OpenAIIntentInterpreter", () => {
     );
   });
 
-  it("uses the provider-selected clarification parameter", async () => {
-    const fetch = vi
-      .fn<typeof globalThis.fetch>()
-      .mockResolvedValueOnce(
-        jsonResponse({
-          id: "resp_clarification",
-          output_text: openAIIntentOutput({
-            clarificationCapability: "internet.search",
-            clarificationCommand: {
-              capability: "internet.search",
-              parameters: [],
-              rawText: "Search the internet for myself",
-            },
-            clarificationParameter: "query",
-            kind: "clarification",
-            response: { status: "ok", text: "What should I search for?" },
+  it.each(["intent_interpreter", "confirmation_correction"] as const)(
+    "projects only declared draft context for %s",
+    async (origin) => {
+      const fetch = vi
+        .fn<typeof globalThis.fetch>()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            id: "resp_clarification",
+            output_text: openAIIntentOutput({
+              clarificationCapability: "internet.search",
+              clarificationCommand: {
+                capability: "internet.search",
+                parameters: [],
+                rawText: "Search the internet for myself",
+              },
+              clarificationParameter: "query",
+              kind: "clarification",
+              response: { status: "ok", text: "What should I search for?" },
+            }),
           }),
-        }),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          id: "resp_terminal",
-          output_text: openAIIntentOutput({
-            command: {
-              capability: "internet.search",
-              parameters: [{ name: "query", value: "Zak" }],
-              rawText: "Zak",
-            },
-            kind: "command",
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            id: "resp_terminal",
+            output_text: openAIIntentOutput({
+              command: {
+                capability: "internet.search",
+                parameters: [{ name: "query", value: "Zak" }],
+                rawText: "Zak",
+              },
+              kind: "command",
+            }),
           }),
-        }),
+        );
+      const session = createInterpreter({
+        fetch,
+        capabilityCatalog: [calendarReadCapability],
+      }).start("Search the internet for myself", context);
+
+      await session.next();
+      await session.next({
+        clarification: {
+          capability: "internet.search",
+          draft: Object.assign(
+            {
+              capability: "internet.search",
+              parameters: { location: "London" },
+              missingParameters: ["query"],
+              references: ["source-1"],
+              expiresAt: "2026-09-07T10:05:00Z",
+              remainingReplies: 2,
+              steps: [
+                Object.assign(
+                  {
+                    capability: "internet.search",
+                    parameters: { query: "original" },
+                  },
+                  { privateTarget: "nested-must-not-leak" },
+                ),
+              ],
+            },
+            { privateTarget: "must-not-leak" },
+          ),
+          origin,
+          originalText: "Search the internet for myself",
+          parameter: "query",
+          prompt: "What is your preferred name?",
+          session: "resume",
+        },
+        kind: "user_reply",
+        text: "Zak",
+      });
+
+      const continuation = readJsonRequestBody<Record<string, unknown>>(
+        fetch,
+        1,
       );
-    const session = createInterpreter({ fetch }).start(
-      "Search the internet for myself",
-      context,
-    );
-
-    await session.next();
-    await session.next({
-      clarification: {
-        capability: "internet.search",
-        draft: Object.assign(
-          {
-            capability: "internet.search",
-            parameters: { location: "London" },
-            missingParameters: ["query"],
-            references: ["source-1"],
-            expiresAt: "2026-09-07T10:05:00Z",
-            remainingReplies: 2,
-          },
-          { privateTarget: "must-not-leak" },
+      expect(String(continuation.instructions)).toContain(
+        '"parameter":"query"',
+      );
+      expect(String(continuation.instructions)).toContain(
+        '"parameters":{"location":"London"}',
+      );
+      expect(String(continuation.instructions)).toContain(
+        '"references":["source-1"]',
+      );
+      expect(String(continuation.instructions)).not.toContain("must-not-leak");
+      expect(String(continuation.instructions)).toContain(
+        '"steps":[{"capability":"internet.search","parameters":{"query":"original"}}]',
+      );
+      expect(
+        readJsonRequestBody<Record<string, unknown>>(fetch, 0).tools,
+      ).toHaveLength(1);
+      expect(continuation.tools).toHaveLength(
+        origin === "confirmation_correction" ? 0 : 1,
+      );
+      expect(
+        String(continuation.instructions).includes(
+          "parameters contain only changed fields",
         ),
-        origin: "intent_interpreter",
-        originalText: "Search the internet for myself",
-        parameter: "query",
-        prompt: "What is your preferred name?",
-        session: "resume",
-      },
-      kind: "user_reply",
-      text: "Zak",
-    });
-
-    const continuation = readJsonRequestBody<Record<string, unknown>>(fetch, 1);
-    expect(String(continuation.instructions)).toContain('"parameter":"query"');
-    expect(String(continuation.instructions)).toContain(
-      '"parameters":{"location":"London"}',
-    );
-    expect(String(continuation.instructions)).toContain(
-      '"references":["source-1"]',
-    );
-    expect(String(continuation.instructions)).not.toContain("must-not-leak");
-  });
+      ).toBe(origin === "confirmation_correction");
+    },
+  );
   it("provides only safe opaque calendar references to the provider", async () => {
     const unsafeFacts = {
       date: "2026-07-17",
