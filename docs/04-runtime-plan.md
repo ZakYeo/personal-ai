@@ -421,6 +421,8 @@ Concurrent interruption capture is opt-in through `voice.bargeIn.enabled: true`
 and an explicit `inputIsolation` of `headphones` or `echo_cancelled`. The operator
 must provide that audio isolation; the runtime does not claim to implement acoustic
 echo cancellation. Default configurations leave concurrent capture off. The speech
+interruption option requires a long-running desktop or Pi service; single-turn
+voice composition rejects it before constructing adapters. The speech
 output owner admits at most three wake-qualified captures during a 30-second
 window, rejects exact output echo, and joins capture cleanup before releasing
 output. Capture cleanup has a one-second deadline; failure quarantines the turn

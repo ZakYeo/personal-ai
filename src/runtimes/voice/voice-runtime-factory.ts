@@ -55,6 +55,8 @@ export async function createVoiceRuntime(
   const configSource = await resolveConfiguredRuntimeConfigSource(options);
   const { config } = configSource;
   const voiceConfig = requireVoiceConfig(config);
+  if (voiceConfig.bargeIn)
+    throw new Error("Barge-in requires a long-running voice service.");
   const voiceAdapters = options.resolveAdapters(config, voiceConfig);
 
   const dependencies: VoiceRuntimeDependencies = {

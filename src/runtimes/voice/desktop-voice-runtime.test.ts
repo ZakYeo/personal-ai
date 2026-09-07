@@ -12,6 +12,18 @@ import { deterministicScenarios } from "../../test-support/deterministic-scenari
 import { withVoiceAdapterId } from "../../test-support/runtime-composition.js";
 
 describe("desktop voice runtime", () => {
+  it("rejects service-only interruption configuration before constructing adapters", async () => {
+    const config = createDesktopVoiceConfig("list my alarms");
+    await expect(
+      createDesktopVoiceRuntime({
+        config: {
+          ...config,
+          voice: { ...config.voice, bargeIn: { inputIsolation: "headphones" } },
+        },
+      }),
+    ).rejects.toThrow("Barge-in requires a long-running voice service.");
+  });
+
   it("speaks one aggregate confirmation for a compound command plan", async () => {
     const runtime = await createDesktopVoiceRuntime({
       config: createDesktopVoiceConfig(
