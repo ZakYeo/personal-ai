@@ -328,7 +328,10 @@ shutdown signal through one adapter-owned helper, reject already-cancelled work
 before allocating files or opening transports, and preserve existing timeout and
 cleanup behavior. Cancelling a turn does not abort the service signal. Runtime
 turn ownership and interruption wiring follow in subsequent Milestone 19 slices;
-no completed external action is described as rolled back.
+no completed external action is described as rolled back. Intent, conversation,
+compaction, and response rewriting forward the assistant context signal to the
+shared Responses HTTP client; caller cancellation has its own diagnostic message
+and retains the underlying cause instead of being reported as a timeout.
 
 #### Native shell decision
 

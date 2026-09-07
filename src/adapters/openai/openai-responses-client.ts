@@ -32,9 +32,9 @@ export function requestOpenAIResponse(
   );
 
   return fetchProviderJson({
-    ...(options.cancelledMessage
-      ? { cancelledMessage: options.cancelledMessage }
-      : {}),
+    cancelledMessage:
+      options.cancelledMessage ??
+      `OpenAI ${options.operation} request was cancelled.`,
     createError: (errorOptions) => options.createError(errorOptions),
     fetch: options.fetch,
     invalidJsonMessage: `OpenAI ${options.operation} response body was not valid JSON.`,

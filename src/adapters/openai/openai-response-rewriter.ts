@@ -21,6 +21,7 @@ export class OpenAIResponseRewriter implements ResponseRewriterPort {
 
   async rewrite(request: ResponseRewriteRequest, context: AssistantContext) {
     const response = await requestOpenAIResponse({
+      ...(context.signal ? { signal: context.signal } : {}),
       body: createOpenAIResponseRewriteRequestBody(
         request,
         context,

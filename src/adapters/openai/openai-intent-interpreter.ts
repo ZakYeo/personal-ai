@@ -78,7 +78,7 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
               undefined,
               history,
             );
-        const response = await this.request(body);
+        const response = await this.request(body, context.signal);
         const parsed = parseOpenAIIntentSessionResponse(
           response,
           toolNames,
@@ -94,8 +94,10 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
 
   private async request(
     body: OpenAIIntentContinuationRequestBody | OpenAIIntentRequestBody,
+    signal?: AbortSignal,
   ): Promise<unknown> {
     return requestOpenAIResponse({
+      ...(signal ? { signal } : {}),
       body,
       config: this.options.config,
       createError: ({ cause, message, requestId, responseBody, status }) =>

@@ -1,6 +1,7 @@
 import type { AssistantContext } from "../../ports/assistant.js";
 import type { ResponseRewriteRequest } from "../../ports/response-rewriter.js";
 import {
+  createAbortingFetchStub,
   createFetchStub,
   createMissingProviderCredentialEnv,
   createProviderCredentialEnv,
@@ -56,6 +57,16 @@ const request = {
 } satisfies ResponseRewriteRequest;
 
 describe("OpenAIResponseRewriter", () => {
+  it("cancels provider work through the assistant context with accurate diagnostics", async () => {
+    const turn = new AbortController();
+    const result = createRewriter({ fetch: createAbortingFetchStub() }).rewrite(
+      request,
+      { ...context, signal: turn.signal },
+    );
+    turn.abort(new Error("turn cancelled"));
+    await expect(result).rejects.toThrow(/cancelled/iu);
+  });
+
   it("returns rewritten text from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({

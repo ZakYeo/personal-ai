@@ -41,6 +41,15 @@ const state: ConversationState = {
 };
 
 describe("OpenAIConversationResponder", () => {
+  it("cancels provider work through the assistant context with accurate diagnostics", async () => {
+    const turn = new AbortController();
+    const result = createResponder({
+      fetch: createAbortingFetchStub(),
+    }).respond("hello", state, { ...context, signal: turn.signal });
+    turn.abort(new Error("turn cancelled"));
+    await expect(result).rejects.toThrow(/cancelled/iu);
+  });
+
   it("returns a safe assistant response from structured provider output", async () => {
     const fetch = createFetchStub(
       jsonResponse({
@@ -334,6 +343,15 @@ describe("OpenAIConversationResponder", () => {
 });
 
 describe("OpenAIConversationCompactor", () => {
+  it("cancels provider work through the assistant context with accurate diagnostics", async () => {
+    const turn = new AbortController();
+    const result = createCompactor({
+      fetch: createAbortingFetchStub(),
+    }).compact(state, { ...context, signal: turn.signal });
+    turn.abort(new Error("turn cancelled"));
+    await expect(result).rejects.toThrow(/cancelled/iu);
+  });
+
   it("compacts conversation state into a provider summary", async () => {
     const fetch = createFetchStub(
       jsonResponse({

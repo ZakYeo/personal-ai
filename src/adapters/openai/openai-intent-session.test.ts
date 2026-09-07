@@ -1,5 +1,6 @@
 import { interpretOnce } from "../../application/intent.js";
 import {
+  createAbortingFetchStub,
   createFetchStub,
   jsonResponse,
   readJsonRequestBody,
@@ -25,6 +26,15 @@ const calendarReadCapability: OpenAIIntentCapability = {
 };
 
 describe("OpenAIIntentInterpreter", () => {
+  it("cancels provider work through the assistant context with accurate diagnostics", async () => {
+    const turn = new AbortController();
+    const result = createInterpreter({ fetch: createAbortingFetchStub() })
+      .start("list alarms", { ...context, signal: turn.signal })
+      .next();
+    turn.abort(new Error("turn cancelled"));
+    await expect(result).rejects.toThrow(/cancelled/iu);
+  });
+
   it("continues a provider tool call with previous_response_id and a safe observation", async () => {
     const fetch = vi
       .fn<typeof globalThis.fetch>()

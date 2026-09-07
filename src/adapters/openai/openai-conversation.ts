@@ -43,6 +43,7 @@ export class OpenAIConversationResponder implements ConversationResponderPort {
         this.options.capabilityCatalog ?? [],
       ),
       options: this.options,
+      ...(context.signal ? { signal: context.signal } : {}),
     });
 
     return {
@@ -63,6 +64,7 @@ export class OpenAIConversationCompactor implements ConversationCompactorPort {
         this.options.config,
       ),
       options: this.options,
+      ...(context.signal ? { signal: context.signal } : {}),
     });
 
     return parseOpenAIConversationSummary(outputText);
@@ -72,8 +74,10 @@ export class OpenAIConversationCompactor implements ConversationCompactorPort {
 async function fetchConversationOutputText(input: {
   body: OpenAIConversationRequestBody;
   options: OpenAIConversationOptions;
+  signal?: AbortSignal;
 }): Promise<string> {
   const response = await requestOpenAIResponse({
+    ...(input.signal ? { signal: input.signal } : {}),
     body: input.body,
     config: input.options.config,
     createError: ({ cause, message, requestId, responseBody, status }) =>
