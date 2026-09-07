@@ -45,8 +45,22 @@ export function parseGoogleCalendarEvent(value: unknown): CalendarEvent {
       ? { location: value.location }
       : {}),
     ...start,
+    ...parseEventEnd(value.end, start),
     title: value.summary,
   };
+}
+
+function parseEventEnd(
+  value: unknown,
+  start: ReturnType<typeof parseEventStart>,
+): { endAt?: string } {
+  if (value === undefined || !("startAt" in start)) return {};
+  const end = parseEventStart(value);
+  if (!("startAt" in end) || end.startAt <= start.startAt)
+    throw new GoogleCalendarError(
+      "Google Calendar event end must follow its timed start.",
+    );
+  return { endAt: end.startAt };
 }
 
 function parseEventStart(
