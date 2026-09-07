@@ -56,7 +56,10 @@ export interface IntentInterpreterPort {
 }
 
 export interface IntentInterpreterSession {
-  next(input?: IntentSessionContinuation): Promise<IntentInterpretation>;
+  next(
+    input?: IntentSessionContinuation,
+    options?: { readonly signal?: AbortSignal },
+  ): Promise<IntentInterpretation>;
 }
 
 export type IntentClarificationMetadata =

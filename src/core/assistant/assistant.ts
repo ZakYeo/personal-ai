@@ -165,6 +165,7 @@ export function createAssistant(
         resultReferences.completeTurn();
         return completedOutcome;
       },
+      options.signal,
     );
 
     return outcome;

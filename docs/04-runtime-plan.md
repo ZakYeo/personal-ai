@@ -332,6 +332,13 @@ no completed external action is described as rolled back. Intent, conversation,
 compaction, and response rewriting forward the assistant context signal to the
 shared Responses HTTP client; caller cancellation has its own diagnostic message
 and retains the underlying cause instead of being reported as a timeout.
+Core resumes confirmation and clarification through the originating workflow with
+the current request signal, including an explicit signal-free text continuation.
+It never reinterprets the frozen confirmation plan. Already-cancelled queued
+requests leave pending state intact; late interpretations cannot execute, and
+cancellation between plan steps preserves completed facts while blocking later
+steps. Provider session continuation has an optional per-call signal so a previous
+turn's cancelled transport cannot poison a later reply.
 
 #### Native shell decision
 

@@ -65,7 +65,7 @@ export function createIntentWorkflow(input: {
   const normalizedText = input.text.trim();
   const conversationState = input.dependencies.conversation?.snapshot();
   let activeUserText = normalizedText;
-  const context = createContext(input.dependencies, input.signal);
+  let context = createContext(input.dependencies, input.signal);
   let session: IntentInterpreterSession | undefined;
   const toolChain = createToolChainState();
   const resultReferences = createWorkflowResultReferenceOverlay(
@@ -86,18 +86,26 @@ export function createIntentWorkflow(input: {
     }
 
     try {
+      context.signal?.throwIfAborted();
+      const providerSession = conversationState
+        ? input.dependencies.intentInterpreter.start(
+            normalizedText,
+            context,
+            conversationState,
+          )
+        : input.dependencies.intentInterpreter.start(normalizedText, context);
       session = createSemanticallyValidatedIntentSession({
         capabilityCatalog: input.dependencies.capabilityRouting.catalog,
         originalText: normalizedText,
-        session: conversationState
-          ? input.dependencies.intentInterpreter.start(
-              normalizedText,
-              context,
-              conversationState,
-            )
-          : input.dependencies.intentInterpreter.start(normalizedText, context),
+        session: {
+          next: (continuation) =>
+            providerSession.next(
+              continuation,
+              context.signal ? { signal: context.signal } : {},
+            ),
+        },
       });
-      return handleInterpretation(await session.next());
+      return await handleInterpretation(await session.next());
     } catch (error) {
       return decorate(unexpectedOutcome(error));
     }
@@ -106,6 +114,7 @@ export function createIntentWorkflow(input: {
   async function handleInterpretation(
     current: IntentInterpretation,
   ): Promise<AssistantOutcome> {
+    context.signal?.throwIfAborted();
     if (current.kind === "tool_call") {
       try {
         const resolved = await resolveToolCalls({
@@ -190,7 +199,10 @@ export function createIntentWorkflow(input: {
       return input.dependencies.interaction.requestConfirmation(
         validation.plan,
         decorate(createPlanConfirmationPrompt(validation.plan)),
-        executePlan,
+        (plan, signal) => {
+          context = createContext(input.dependencies, signal);
+          return executePlan(plan);
+        },
       );
     }
     return executePlan(validation.plan);
@@ -279,8 +291,10 @@ export function createIntentWorkflow(input: {
     clarificationUsed = true;
     return input.dependencies.interaction.requestClarification(
       decorate({ response: { ...response, expectsFollowUp: true } }),
-      async (reply) => {
+      async (reply, signal) => {
         try {
+          context = createContext(input.dependencies, signal);
+          context.signal?.throwIfAborted();
           activeUserText = reply.trim();
           const replyCommand = metadata.replyCommand;
           const clarificationMetadata = {

@@ -1,3 +1,4 @@
+import { unexpectedOutcome } from "./assistant-outcome.js";
 import type { AssistantOutcome } from "../../ports/assistant.js";
 import type { ValidatedAssistantPlan } from "../../ports/assistant-plan.js";
 
@@ -5,19 +6,29 @@ export interface InteractionSession {
   requestConfirmation(
     plan: ValidatedAssistantPlan,
     prompt: AssistantOutcome,
-    execute?: (plan: ValidatedAssistantPlan) => Promise<AssistantOutcome>,
+    execute?: (
+      plan: ValidatedAssistantPlan,
+      signal?: AbortSignal,
+    ) => Promise<AssistantOutcome>,
   ): AssistantOutcome;
   requestClarification(
     prompt: AssistantOutcome,
-    resume: (reply: string) => Promise<ClarificationResolution>,
+    resume: (
+      reply: string,
+      signal?: AbortSignal,
+    ) => Promise<ClarificationResolution>,
   ): AssistantOutcome;
   run(
     input: string,
     handle: () => Promise<AssistantOutcome>,
-    execute: (plan: ValidatedAssistantPlan) => Promise<AssistantOutcome>,
+    execute: (
+      plan: ValidatedAssistantPlan,
+      signal?: AbortSignal,
+    ) => Promise<AssistantOutcome>,
     onCompleted: (
       outcome: AssistantOutcome,
     ) => AssistantOutcome | Promise<AssistantOutcome> | void,
+    signal?: AbortSignal,
   ): Promise<AssistantOutcome>;
 }
 
@@ -30,12 +41,18 @@ type PendingInteraction =
       kind: "confirmation";
       plan: ValidatedAssistantPlan;
       prompt: AssistantOutcome;
-      execute?: (plan: ValidatedAssistantPlan) => Promise<AssistantOutcome>;
+      execute?: (
+        plan: ValidatedAssistantPlan,
+        signal?: AbortSignal,
+      ) => Promise<AssistantOutcome>;
     }
   | {
       kind: "clarification";
       prompt: AssistantOutcome;
-      resume: (reply: string) => Promise<ClarificationResolution>;
+      resume: (
+        reply: string,
+        signal?: AbortSignal,
+      ) => Promise<ClarificationResolution>;
     };
 
 export function createInteractionSession(): InteractionSession {
@@ -56,8 +73,9 @@ export function createInteractionSession(): InteractionSession {
       pending = { kind: "clarification", prompt, resume };
       return prompt;
     },
-    run(input, handle, execute, onCompleted) {
+    run(input, handle, execute, onCompleted, signal) {
       const turn = queue.then(async () => {
+        if (signal?.aborted) return unexpectedOutcome(signal.reason as unknown);
         const complete = async (outcome: AssistantOutcome) =>
           (await onCompleted(outcome)) ?? outcome;
         let outcome: AssistantOutcome;
@@ -73,7 +91,7 @@ export function createInteractionSession(): InteractionSession {
           } else {
             const resume = pending.resume;
             pending = undefined;
-            const resolution = await resume(input);
+            const resolution = await resume(input, signal);
             outcome =
               resolution.kind === "replacement"
                 ? await handle()
@@ -92,7 +110,7 @@ export function createInteractionSession(): InteractionSession {
         pending = undefined;
         outcome =
           decision === "confirmed"
-            ? await (executePending ?? execute)(plan)
+            ? await (executePending ?? execute)(plan, signal)
             : cancelledOutcome;
         return complete(outcome);
       });

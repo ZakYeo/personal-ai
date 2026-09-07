@@ -239,6 +239,7 @@ async function executeFeatureCommand(
   input: CommandExecutionInput,
 ): Promise<CommandExecutionOutcome> {
   try {
+    input.context.signal?.throwIfAborted();
     const result = await input.feature.execute(
       {
         capability: input.command.capability,

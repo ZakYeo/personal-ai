@@ -51,7 +51,7 @@ describe("interaction session clarification", () => {
     await expect(
       session.run("10am", unexpectedHandling, unexpectedExecution, vi.fn()),
     ).resolves.toEqual(completedOutcome);
-    expect(resume).toHaveBeenCalledWith("10am");
+    expect(resume).toHaveBeenCalledWith("10am", undefined);
   });
 });
 

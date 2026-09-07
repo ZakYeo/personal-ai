@@ -44,7 +44,10 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
     let started = false;
 
     return {
-      next: async (input?: IntentSessionContinuation) => {
+      next: async (
+        input?: IntentSessionContinuation,
+        operation?: { readonly signal?: AbortSignal },
+      ) => {
         if (!started && input) {
           throw new OpenAIIntentError(
             "OpenAI intent session cannot be continued before it starts.",
@@ -78,7 +81,10 @@ export class OpenAIIntentInterpreter implements IntentInterpreterPort {
               undefined,
               history,
             );
-        const response = await this.request(body, context.signal);
+        const response = await this.request(
+          body,
+          operation === undefined ? context.signal : operation.signal,
+        );
         const parsed = parseOpenAIIntentSessionResponse(
           response,
           toolNames,

@@ -26,6 +26,30 @@ const calendarReadCapability: OpenAIIntentCapability = {
 };
 
 describe("OpenAIIntentInterpreter", () => {
+  it.each([true, false])(
+    "uses explicit session-call cancellation instead of stale starting context: %s",
+    async (withSignal) => {
+      const original = AbortSignal.abort(new Error("old turn stopped"));
+      const fresh = new AbortController();
+      const fetch = vi.fn(
+        createFetchStub(
+          jsonResponse({
+            id: "resp_fresh",
+            output_text: openAIIntentOutput({ kind: "conversation" }),
+          }),
+        ),
+      );
+      const session = createInterpreter({ fetch }).start("hello", {
+        ...context,
+        signal: original,
+      });
+      await expect(
+        session.next(undefined, withSignal ? { signal: fresh.signal } : {}),
+      ).resolves.toEqual({ kind: "conversation" });
+      expect(fetch.mock.calls[0]?.[1]?.signal?.aborted).toBe(false);
+    },
+  );
+
   it("cancels provider work through the assistant context with accurate diagnostics", async () => {
     const turn = new AbortController();
     const result = createInterpreter({ fetch: createAbortingFetchStub() })
