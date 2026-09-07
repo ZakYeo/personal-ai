@@ -21,6 +21,7 @@ export function validateCommandForCapability(
 export function decodeCommandForCapability(
   command: AssistantCommand,
   capability: FeatureCapability,
+  options: { allowMissingRequired?: boolean } = {},
 ): CommandDecodeResult {
   if (command.capability !== capability.name) {
     return {
@@ -43,7 +44,10 @@ export function decodeCommandForCapability(
     const value = parameters[parameterName];
 
     if (value === undefined || value === null) {
-      if (definition.required === true) {
+      if (
+        definition.required === true &&
+        options.allowMissingRequired !== true
+      ) {
         return {
           ok: false,
           error: createAppError({

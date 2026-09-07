@@ -34,6 +34,108 @@ const capabilityCatalog: CapabilityCatalog = [
 ];
 
 describe("intent semantic validation", () => {
+  it("applies request-echo safety when a partial draft is promoted to a complete command", async () => {
+    const session = createSemanticallyValidatedIntentSession({
+      capabilityCatalog,
+      originalText: "Can you search the internet?",
+      session: {
+        next: () =>
+          Promise.resolve({
+            kind: "clarification",
+            clarification: {
+              origin: "intent_interpreter",
+              capability: "internet.search",
+              parameter: "location",
+              partialCommand: command("internet.search", {
+                query: "Can you search the internet?",
+              }),
+              session: "resume",
+            },
+            response: { status: "ok", text: "Where?" },
+          }),
+      },
+    });
+    await expect(session.next()).resolves.toEqual(
+      canonicalClarification("internet.search", "resume"),
+    );
+  });
+
+  it.each([
+    { location: 12 },
+    { unexpected: "value" },
+    { location: "x".repeat(8_001) },
+  ])(
+    "rejects malformed or oversized partial draft fields: %j",
+    async (parameters) => {
+      const session = createSemanticallyValidatedIntentSession({
+        capabilityCatalog,
+        originalText: "Search for something",
+        session: {
+          next: () =>
+            Promise.resolve({
+              kind: "clarification",
+              clarification: {
+                origin: "intent_interpreter",
+                capability: "internet.search",
+                parameter: "query",
+                partialCommand: command("internet.search", parameters),
+                session: "resume",
+              },
+              response: { status: "ok", text: "What should I search for?" },
+            }),
+        },
+      });
+      await expect(session.next()).resolves.toMatchObject({
+        kind: "clarification",
+        clarification: { origin: "semantic_validation" },
+        response: { text: "What details should I use for this request?" },
+      });
+    },
+  );
+
+  it("accepts one declared missing field from a partial draft with several missing fields", async () => {
+    const session = createSemanticallyValidatedIntentSession({
+      capabilityCatalog: [
+        {
+          featureId: "test",
+          featureName: "Test",
+          parameterText: "",
+          capability: {
+            name: "test.draft",
+            risk: "low",
+            parameters: {
+              label: { type: "string", required: true },
+              time: { type: "string", required: true },
+            },
+          },
+        },
+      ],
+      originalText: "Prepare the action",
+      session: {
+        next: () =>
+          Promise.resolve({
+            kind: "clarification",
+            clarification: {
+              origin: "intent_interpreter",
+              capability: "test.draft",
+              parameter: "label",
+              partialCommand: command("test.draft"),
+              session: "resume",
+            },
+            response: { status: "ok", text: "What label should I use?" },
+          }),
+      },
+    });
+    await expect(session.next()).resolves.toMatchObject({
+      clarification: {
+        origin: "intent_interpreter",
+        parameter: "label",
+        partialCommand: { parameters: {} },
+      },
+      response: { text: "What label should I use?" },
+    });
+  });
+
   it("blocks an unsafe compound plan before any step executes", async () => {
     const execute = vi.fn(() => Promise.resolve({ text: "Executed." }));
     const feature = createFeature({

@@ -1,3 +1,4 @@
+import { decodeCommandForCapability } from "./command-validation.js";
 import type { AssistantCommand } from "../../ports/assistant.js";
 import type { CapabilityCatalog } from "../../ports/capability-catalog.js";
 import type {
@@ -54,10 +55,14 @@ function validateIntentSemantics(
       interpretation.kind === "clarification" &&
       interpretation.clarification.origin === "intent_interpreter"
     ) {
-      return validateProviderClarification(
-        interpretation,
+      return validateCommandSemantics(
+        validateProviderClarification(
+          interpretation,
+          capabilityCatalog,
+          text.allowOptionalClarification,
+        ),
+        text,
         capabilityCatalog,
-        text.allowOptionalClarification,
       );
     }
     return {
@@ -66,6 +71,14 @@ function validateIntentSemantics(
     };
   }
 
+  return validateCommandSemantics(interpretation, text, capabilityCatalog);
+}
+
+function validateCommandSemantics(
+  interpretation: IntentInterpretation,
+  text: { activeUserText: string; originalText: string },
+  capabilityCatalog: CapabilityCatalog,
+): IntentInterpretation {
   const unsafeCommand = commandsFromInterpretation(interpretation).find(
     (command) =>
       isNarrowCapabilityListRequest(command, text.activeUserText) ||
@@ -104,6 +117,25 @@ function validateProviderClarification(
     return createCanonicalClarification(capability, session);
   }
 
+  const decoded = decodeCommandForCapability(partialCommand, declaration, {
+    allowMissingRequired: true,
+  });
+  if (
+    !decoded.ok ||
+    JSON.stringify(decoded.args).length > 8_000 ||
+    Object.keys(decoded.args).length > 32
+  )
+    return createCanonicalClarification(capability, session);
+
+  const validatedCommand = Object.freeze({
+    ...partialCommand,
+    parameters: Object.freeze(decoded.args),
+  });
+  const validatedInterpretation = {
+    ...interpretation,
+    clarification: { ...clarification, partialCommand: validatedCommand },
+    response: { ...interpretation.response, status: "ok" as const },
+  };
   const missingRequiredParameters = Object.entries(declaration.parameters ?? {})
     .filter(
       ([name, candidate]) =>
@@ -120,25 +152,18 @@ function validateProviderClarification(
       (partialCommand.parameters[parameter] === undefined ||
         partialCommand.parameters[parameter] === null)
     ) {
-      return {
-        ...interpretation,
-        response: { ...interpretation.response, status: "ok" },
-      };
+      return validatedInterpretation;
     }
-    return { command: partialCommand, kind: "command" };
+    return { command: validatedCommand, kind: "command" };
   }
   if (
     parameterDeclaration.required !== true ||
-    missingRequiredParameters.length !== 1 ||
-    missingRequiredParameters[0] !== parameter
+    !missingRequiredParameters.includes(parameter)
   ) {
     return createCanonicalClarification(capability, session);
   }
 
-  return {
-    ...interpretation,
-    response: { ...interpretation.response, status: "ok" },
-  };
+  return validatedInterpretation;
 }
 
 function createCanonicalClarification(
