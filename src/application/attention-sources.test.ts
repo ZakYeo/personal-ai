@@ -133,6 +133,7 @@ describe("fixed proactive attention sources", () => {
       },
       timeZone,
     };
+    const getForecast = vi.spyOn(weather, "getForecast");
     const source = createAttentionSourceReader({ weather });
     expect((await source.read(request, { now }))[0]?.facts).toMatchObject({
       threshold: 1,
@@ -141,8 +142,21 @@ describe("fixed proactive attention sources", () => {
       fetchedAt: now.toISOString(),
       location: "London",
     });
+    await source.read(
+      {
+        ...request,
+        definition: {
+          ...request.definition,
+          condition: { ...request.definition.condition, threshold: 2 },
+        },
+      },
+      { now },
+    );
+    expect(getForecast).toHaveBeenCalledOnce();
     weather.getForecast = base;
-    await expect(source.read(request, { now })).rejects.toThrow("fresh");
+    await expect(
+      source.read(request, { now: new Date(now.getTime() + 60_000) }),
+    ).rejects.toThrow("fresh");
   });
   it("does not read the morning workflow outside its explicit local minute", async () => {
     const read = vi.fn(() => Promise.resolve([]));

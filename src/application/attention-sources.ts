@@ -1,3 +1,4 @@
+import { createAttentionForecastCache } from "./attention-forecast-cache.js";
 import type {
   AttentionCandidate,
   AttentionSourceReaderPort,
@@ -34,6 +35,9 @@ interface AttentionSources {
 export function createAttentionSourceReader(
   sources: AttentionSources,
 ): AttentionSourceReaderPort {
+  const weather = sources.weather
+    ? createAttentionForecastCache(sources.weather)
+    : undefined;
   return {
     read: async ({ definition, timeZone }, { now, signal }) => {
       if (signal?.aborted) return [];
@@ -86,7 +90,7 @@ export function createAttentionSourceReader(
               now.getTime() + definition.periodHours * 3_600_000,
             ).toISOString(),
           };
-          const forecast = await required(sources.weather).getForecast(
+          const forecast = await required(weather).getForecast(
             {
               location: definition.location,
               period,
