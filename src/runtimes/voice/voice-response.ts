@@ -1,4 +1,5 @@
 import { playVoiceSpeech } from "./play-voice-speech.js";
+import { startVoiceInterruptionMonitor } from "./voice-interruption-monitor.js";
 import type { AssistantResponse } from "../../ports/assistant.js";
 import type { AudioOutputPort, TextToSpeechPort } from "../../ports/voice.js";
 import { logRuntimeFailure } from "../human-boundary.js";
@@ -9,7 +10,13 @@ import {
   type VoiceOutputCoordinator,
 } from "./voice-output-coordinator.js";
 
+export type VoiceSpeechInterruption = Omit<
+  Parameters<typeof startVoiceInterruptionMonitor>[0],
+  "speechText"
+>;
+
 interface VoiceSpeechDependencies {
+  interruption?: VoiceSpeechInterruption;
   audioOutput: AudioOutputPort;
   outputCoordinator?: VoiceOutputCoordinator;
   shutdownSignal?: AbortSignal;
@@ -60,11 +67,21 @@ async function speakResponseSession(
   response: AssistantResponse,
   signal?: AbortSignal,
 ): Promise<VoiceSpeechOutputResult> {
-  const spokenText = await playVoiceSpeech(dependencies, response.text, {
-    ...(signal ? { signal } : {}),
-    ...(dependencies.onFirstAudioSubmitted
-      ? { onFirstAudioSubmitted: dependencies.onFirstAudioSubmitted }
-      : {}),
-  });
-  return { spokenText, status: "spoken", textOutputWritten: false };
+  const monitor = dependencies.interruption
+    ? startVoiceInterruptionMonitor({
+        ...dependencies.interruption,
+        speechText: () => response.text,
+      })
+    : undefined;
+  try {
+    const spokenText = await playVoiceSpeech(dependencies, response.text, {
+      ...(signal ? { signal } : {}),
+      ...(dependencies.onFirstAudioSubmitted
+        ? { onFirstAudioSubmitted: dependencies.onFirstAudioSubmitted }
+        : {}),
+    });
+    return { spokenText, status: "spoken", textOutputWritten: false };
+  } finally {
+    await monitor?.stop();
+  }
 }

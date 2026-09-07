@@ -9,6 +9,7 @@ export interface VoiceTurnSession {
 
 export interface VoiceTurnController {
   readonly failed: boolean;
+  quarantine(error: Error): void;
   begin(shutdownSignal?: AbortSignal): VoiceTurnSession;
   cancel(): Promise<void>;
 }
@@ -28,6 +29,10 @@ export function createVoiceTurnController(
     }
   };
   return {
+    quarantine(error) {
+      fail(error);
+      active?.abort();
+    },
     get failed() {
       return failure !== undefined;
     },

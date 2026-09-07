@@ -1,6 +1,19 @@
 import { createVoiceTurnController } from "./voice-turn-controller.js";
 
 describe("voice turn controller", () => {
+  it("quarantines an active turn after a sibling capture cleanup failure", () => {
+    const onCleanupFailure = vi.fn();
+    const controller = createVoiceTurnController({ onCleanupFailure });
+    const turn = controller.begin();
+    const failure = new Error("capture cleanup failed");
+    controller.quarantine(failure);
+    expect(turn.signal.aborted).toBe(true);
+    expect(controller.failed).toBe(true);
+    turn.dispose();
+    expect(() => controller.begin()).toThrow(failure);
+    expect(onCleanupFailure).toHaveBeenCalledExactlyOnceWith(failure);
+  });
+
   it("fails closed if a caller releases ownership before an operation settles", async () => {
     const controller = createVoiceTurnController();
     const turn = controller.begin();
