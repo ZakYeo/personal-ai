@@ -77,6 +77,10 @@ export type IntentClarificationMetadata =
     };
 
 export interface IntentDraftSnapshot {
+  readonly steps?: readonly {
+    readonly capability: string;
+    readonly parameters: Readonly<AssistantCommand["parameters"]>;
+  }[];
   readonly capability: string;
   readonly parameters: Readonly<AssistantCommand["parameters"]>;
   readonly missingParameters: readonly string[];
