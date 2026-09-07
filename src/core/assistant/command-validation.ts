@@ -150,7 +150,7 @@ export function decodeCommandForCapability(
   }
 
   for (const parameterName of Object.keys(parameters)) {
-    if (!(parameterName in parameterDefinitions)) {
+    if (!Object.hasOwn(parameterDefinitions, parameterName)) {
       return {
         ok: false,
         error: createAppError({

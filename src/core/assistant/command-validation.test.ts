@@ -20,6 +20,16 @@ const capability: FeatureCapability = {
 };
 
 describe("validateCommandForCapability", () => {
+  it.each(["constructor", "toString", "__proto__"])(
+    "rejects inherited object names as undeclared parameters: %s",
+    (name) => {
+      const command = createCommand({
+        minutesFromNow: 10,
+        ...Object.fromEntries([[name, "unexpected"]]),
+      });
+      expect(decodeCommandForCapability(command, capability).ok).toBe(false);
+    },
+  );
   it("accepts a command matching capability parameter metadata", () => {
     expect(
       validateCommandForCapability(
