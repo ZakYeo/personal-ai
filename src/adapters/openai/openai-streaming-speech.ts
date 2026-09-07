@@ -1,4 +1,6 @@
+import { resolveVoiceOperationSignal } from "../voice-operation-signal.js";
 import type {
+  VoiceOperationOptions,
   StreamingTextToSpeechPort,
   SynthesizedSpeechStream,
 } from "../../ports/voice.js";
@@ -24,11 +26,18 @@ interface OpenAIStreamingSpeechOptions {
 export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
   constructor(private readonly options: OpenAIStreamingSpeechOptions) {}
 
-  async synthesizeStream(text: string): Promise<SynthesizedSpeechStream> {
+  async synthesizeStream(
+    text: string,
+    operation?: VoiceOperationOptions,
+  ): Promise<SynthesizedSpeechStream> {
+    const signal = resolveVoiceOperationSignal(
+      this.options.shutdownSignal,
+      operation,
+    );
     const apiKey = resolveOpenAIApiKey(this.options.config, this.options.env);
     const abortScope = createSpeechAbortScope(
       this.options.config.timeoutMs,
-      this.options.shutdownSignal,
+      signal,
     );
 
     try {

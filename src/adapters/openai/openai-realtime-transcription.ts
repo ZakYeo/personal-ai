@@ -1,4 +1,6 @@
+import { resolveVoiceOperationSignal } from "../voice-operation-signal.js";
 import type {
+  VoiceOperationOptions,
   CapturedAudioStream,
   SpeechTranscript,
   StreamingSpeechToTextEvents,
@@ -35,7 +37,12 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
   async transcribeStream(
     audio: CapturedAudioStream,
     events: StreamingSpeechToTextEvents = {},
+    operation?: VoiceOperationOptions,
   ): Promise<SpeechTranscript> {
+    const signal = resolveVoiceOperationSignal(
+      this.options.shutdownSignal,
+      operation,
+    );
     const apiKey = resolveOpenAIApiKey(this.options.config, this.options.env);
 
     const socket = this.options.webSocketFactory({
@@ -46,7 +53,7 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
       socket,
       events,
       this.options.config.timeoutMs,
-      this.options.shutdownSignal,
+      signal,
     );
     let primaryError: Error | undefined;
 

@@ -8,6 +8,48 @@ import {
 } from "./desktop-streaming-voice-adapters.js";
 
 describe("desktop streaming voice adapters", () => {
+  it.each(["turn", "service"] as const)(
+    "cancels live capture through the %s signal",
+    async (source) => {
+      const turn = new AbortController();
+      const service = new AbortController();
+      const adapter = new CommandStreamingAudioInput(
+        createShellCommand("printf ready; sleep 10"),
+        undefined,
+        service.signal,
+      );
+      const audio = await adapter.captureStream({ signal: turn.signal });
+      const reader = audio.chunks[Symbol.asyncIterator]();
+      expect((await reader.next()).done).toBe(false);
+      const next = reader.next();
+      (source === "turn" ? turn : service).abort(
+        new Error("capture cancelled"),
+      );
+      await expect(next).rejects.toThrow(/abort|cancel/iu);
+      expect((source === "turn" ? service : turn).signal.aborted).toBe(false);
+    },
+  );
+
+  it("cancels playback and closes a waiting producer", async () => {
+    const turn = new AbortController();
+    const close = vi.fn(() =>
+      Promise.resolve({ done: true as const, value: undefined }),
+    );
+    const chunks: AsyncIterable<Uint8Array> = {
+      [Symbol.asyncIterator]: () => ({
+        next: () => new Promise(() => {}),
+        return: close,
+      }),
+    };
+    const adapter = new CommandStreamingAudioOutput(
+      createShellCommand("cat >/dev/null"),
+    );
+    const result = adapter.playStream(chunks, { signal: turn.signal });
+    turn.abort(new Error("playback cancelled"));
+    await expect(result).rejects.toThrow(/abort|cancel/iu);
+    expect(close).toHaveBeenCalledOnce();
+  });
+
   it("captures streaming audio chunks from a configured command", async () => {
     const adapter = new CommandStreamingAudioInput(
       createShellCommand("printf audio"),

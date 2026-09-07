@@ -8,6 +8,21 @@ import {
 } from "./openai-realtime-limits.js";
 
 describe("OpenAIRealtimeTranscription", () => {
+  it("cancels one transcription session while preserving service lifetime", async () => {
+    const turn = new AbortController();
+    const socket = new TestRealtimeSocket();
+    const adapter = createRealtimeTranscriptionAdapter({ socket });
+    const result = adapter.transcribeStream(
+      { chunks: chunksFromText("audio") },
+      {},
+      { signal: turn.signal },
+    );
+    turn.abort(new Error("turn cancelled"));
+    await expect(result).rejects.toThrow(/abort|cancel/iu);
+    expect(socket.closed).toBe(true);
+    expect(socket.listenerCount()).toBe(0);
+  });
+
   it("streams audio chunks and emits transcript deltas", async () => {
     const socket = new TestRealtimeSocket();
     let requestUrl = "";

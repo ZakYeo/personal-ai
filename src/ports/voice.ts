@@ -1,3 +1,7 @@
+export interface VoiceOperationOptions {
+  readonly signal?: AbortSignal;
+}
+
 export interface CapturedAudio {
   filePath?: string;
   text: string;
@@ -36,19 +40,25 @@ export interface WakeActivation {
 }
 
 export interface AudioInputPort {
-  capture(): Promise<CapturedAudio>;
+  capture(options?: VoiceOperationOptions): Promise<CapturedAudio>;
 }
 
 export interface StreamingAudioInputPort {
-  captureStream(): Promise<CapturedAudioStream>;
+  captureStream(options?: VoiceOperationOptions): Promise<CapturedAudioStream>;
 }
 
 export interface WakeWordPort {
-  detect(request: WakeWordRequest): Promise<WakeWordDetection>;
+  detect(
+    request: WakeWordRequest,
+    options?: VoiceOperationOptions,
+  ): Promise<WakeWordDetection>;
 }
 
 export interface WakeActivationPort {
-  waitForWake(request: { wakePhrases: string[] }): Promise<WakeActivation>;
+  waitForWake(
+    request: { wakePhrases: string[] },
+    options?: VoiceOperationOptions,
+  ): Promise<WakeActivation>;
 }
 
 export interface VoiceTempFilePort {
@@ -57,7 +67,10 @@ export interface VoiceTempFilePort {
 }
 
 export interface SpeechToTextPort {
-  transcribe(audio: CapturedAudio): Promise<SpeechTranscript>;
+  transcribe(
+    audio: CapturedAudio,
+    options?: VoiceOperationOptions,
+  ): Promise<SpeechTranscript>;
 }
 
 export interface StreamingSpeechToTextEvents {
@@ -68,21 +81,34 @@ export interface StreamingSpeechToTextPort {
   transcribeStream(
     audio: CapturedAudioStream,
     events?: StreamingSpeechToTextEvents,
+    options?: VoiceOperationOptions,
   ): Promise<SpeechTranscript>;
 }
 
 export interface TextToSpeechPort {
-  synthesize(text: string): Promise<SynthesizedSpeech>;
+  synthesize(
+    text: string,
+    options?: VoiceOperationOptions,
+  ): Promise<SynthesizedSpeech>;
 }
 
 export interface StreamingTextToSpeechPort {
-  synthesizeStream(text: string): Promise<SynthesizedSpeechStream>;
+  synthesizeStream(
+    text: string,
+    options?: VoiceOperationOptions,
+  ): Promise<SynthesizedSpeechStream>;
 }
 
 export interface AudioOutputPort {
-  play(speech: SynthesizedSpeech): Promise<void>;
+  play(
+    speech: SynthesizedSpeech,
+    options?: VoiceOperationOptions,
+  ): Promise<void>;
 }
 
 export interface StreamingAudioOutputPort {
-  playStream(chunks: AsyncIterable<Uint8Array>): Promise<void>;
+  playStream(
+    chunks: AsyncIterable<Uint8Array>,
+    options?: VoiceOperationOptions,
+  ): Promise<void>;
 }

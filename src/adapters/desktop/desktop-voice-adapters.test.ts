@@ -13,6 +13,34 @@ import {
 } from "./desktop-voice-adapters.js";
 
 describe("desktop voice adapters", () => {
+  it("rejects a cancelled operation before allocating files or starting commands", async () => {
+    const signal = AbortSignal.abort(new Error("turn cancelled"));
+    const createFile = vi.fn();
+    const files: VoiceTempFilePort = { createFile, cleanup: vi.fn() };
+    const command = { command: "must-not-start", stdin: "{text}" as const };
+    const operations: Array<() => Promise<unknown>> = [
+      () => new SoxAudioInput(command, files).capture({ signal }),
+      () =>
+        new CommandSpeechToText(command).transcribe({ text: "" }, { signal }),
+      () =>
+        new CommandTextToSpeech(command, files).synthesize("safe reply", {
+          signal,
+        }),
+      () =>
+        new SoxAudioOutput(command).play({ text: "safe reply" }, { signal }),
+      () =>
+        new CommandWakeActivation(command).waitForWake(
+          { wakePhrases: ["hey jarvis"] },
+          { signal },
+        ),
+    ];
+    for (const operation of operations)
+      await expect(Promise.resolve().then(operation)).rejects.toThrow(
+        "turn cancelled",
+      );
+    expect(createFile).not.toHaveBeenCalled();
+  });
+
   it("captures audio to a file with a configured command", async () => {
     const adapter = new SoxAudioInput(
       {

@@ -1,8 +1,10 @@
+import { resolveVoiceOperationSignal } from "../voice-operation-signal.js";
 import type {
   DesktopCommandConfig,
   DesktopTextToSpeechCommandConfig,
 } from "./desktop-command-config.js";
 import type {
+  VoiceOperationOptions,
   AudioInputPort,
   AudioOutputPort,
   CapturedAudio,
@@ -29,7 +31,8 @@ export class SoxAudioInput implements AudioInputPort {
     private readonly environment: Record<string, string | undefined> = {},
   ) {}
 
-  async capture(): Promise<CapturedAudio> {
+  async capture(options?: VoiceOperationOptions): Promise<CapturedAudio> {
+    const signal = resolveVoiceOperationSignal(this.signal, options);
     const filePath = await this.tempFiles.createFile("capture.wav");
 
     await runConfiguredCommand(
@@ -38,7 +41,7 @@ export class SoxAudioInput implements AudioInputPort {
         output: filePath,
       },
       this.processControl,
-      this.signal,
+      signal,
       this.environment,
     );
 
@@ -57,7 +60,11 @@ export class CommandSpeechToText implements SpeechToTextPort {
     private readonly environment: Record<string, string | undefined> = {},
   ) {}
 
-  async transcribe(audio: CapturedAudio): Promise<{ text: string }> {
+  async transcribe(
+    audio: CapturedAudio,
+    options?: VoiceOperationOptions,
+  ): Promise<{ text: string }> {
+    const signal = resolveVoiceOperationSignal(this.signal, options);
     const result = await runConfiguredCommand(
       this.commandConfig,
       {
@@ -65,7 +72,7 @@ export class CommandSpeechToText implements SpeechToTextPort {
         text: audio.text,
       },
       this.processControl,
-      this.signal,
+      signal,
       this.environment,
     );
 
@@ -89,14 +96,18 @@ export class CommandWakeActivation implements WakeActivationPort {
     private readonly environment: Record<string, string | undefined> = {},
   ) {}
 
-  async waitForWake(request: { wakePhrases: string[] }): Promise<{
+  async waitForWake(
+    request: { wakePhrases: string[] },
+    options?: VoiceOperationOptions,
+  ): Promise<{
     phrase?: string;
   }> {
+    const signal = resolveVoiceOperationSignal(this.signal, options);
     const result = await runCommandUntilStdoutLine(
       {
         ...this.commandConfig,
         ...(this.processControl ? { processControl: this.processControl } : {}),
-        ...(this.signal ? { signal: this.signal } : {}),
+        ...(signal ? { signal } : {}),
         environment: this.environment,
       },
       (line) => parseWakeActivationLine(line, request.wakePhrases),
@@ -115,7 +126,11 @@ export class CommandTextToSpeech implements TextToSpeechPort {
     private readonly environment: Record<string, string | undefined> = {},
   ) {}
 
-  async synthesize(text: string): Promise<SynthesizedSpeech> {
+  async synthesize(
+    text: string,
+    options?: VoiceOperationOptions,
+  ): Promise<SynthesizedSpeech> {
+    const signal = resolveVoiceOperationSignal(this.signal, options);
     const filePath = await this.tempFiles.createFile("speech.wav");
 
     await runConfiguredCommand(
@@ -125,7 +140,7 @@ export class CommandTextToSpeech implements TextToSpeechPort {
         text,
       },
       this.processControl,
-      this.signal,
+      signal,
       this.environment,
     );
 
@@ -184,7 +199,11 @@ export class SoxAudioOutput implements AudioOutputPort {
     private readonly environment: Record<string, string | undefined> = {},
   ) {}
 
-  async play(speech: SynthesizedSpeech): Promise<void> {
+  async play(
+    speech: SynthesizedSpeech,
+    options?: VoiceOperationOptions,
+  ): Promise<void> {
+    const signal = resolveVoiceOperationSignal(this.signal, options);
     await runConfiguredCommand(
       this.commandConfig,
       {
@@ -192,7 +211,7 @@ export class SoxAudioOutput implements AudioOutputPort {
         text: speech.text,
       },
       this.processControl,
-      this.signal,
+      signal,
       this.environment,
     );
   }

@@ -322,8 +322,13 @@ CLI and Raspberry Pi runtimes must not depend on that shell.
 Milestone 19 extends this runtime path with turn-wide cancellation, immediate
 local activation feedback, bounded speech interruption and barge-in, and
 measured wake-to-feedback, speech-end-to-transcript, and first-audio latency.
-Cancellation propagates through capture, providers, synthesis, playback, and
-bounded cleanup but never claims to roll back an accepted external action.
+Voice ports accept one optional per-operation cancellation signal. Desktop
+command and OpenAI voice adapters combine it with their constructor's service
+shutdown signal through one adapter-owned helper, reject already-cancelled work
+before allocating files or opening transports, and preserve existing timeout and
+cleanup behavior. Cancelling a turn does not abort the service signal. Runtime
+turn ownership and interruption wiring follow in subsequent Milestone 19 slices;
+no completed external action is described as rolled back.
 
 #### Native shell decision
 
