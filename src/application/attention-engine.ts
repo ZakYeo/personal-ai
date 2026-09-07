@@ -55,11 +55,17 @@ export async function processAttentionCycle(
       )
         throw new Error("Attention source returned duplicate candidate keys.");
     } catch (error) {
-      await saveAttentionCandidates(store, rule, [], now, true);
+      await saveAttentionCandidates(store, rule, [], now, !!delivery, true);
       await report(error);
       continue;
     }
-    const items = await saveAttentionCandidates(store, rule, candidates, now);
+    const items = await saveAttentionCandidates(
+      store,
+      rule,
+      candidates,
+      now,
+      !!delivery,
+    );
     for (const item of items) {
       if (signal?.aborted) return;
       const claimed = await claimAttentionDelivery(

@@ -1,4 +1,4 @@
-import { attentionEvictionIndex } from "./attention-capacity.js";
+import { reconcileAttentionCandidates } from "./attention-inbox-reconciliation.js";
 import type {
   AttentionCandidate,
   AttentionEvaluation,
@@ -59,6 +59,7 @@ export async function saveAttentionCandidates(
   rule: AttentionRule,
   candidates: readonly AttentionCandidate[],
   now: Date,
+  hasOutput: boolean,
   failed = false,
 ): Promise<AttentionInboxItem[]> {
   return updateAttentionState(store, (state) => {
@@ -79,50 +80,13 @@ export async function saveAttentionCandidates(
       )
     )
       return { result: [] };
-    let nextId = state.nextId;
-    const inbox = [...state.inbox];
-    const matched: AttentionInboxItem[] = [];
-    let full = false;
-    for (const candidate of candidates) {
-      const index = inbox.findIndex(
-        (item) => item.ruleId === rule.id && item.key === candidate.key,
-      );
-      const previous = inbox[index];
-      if (
-        previous &&
-        (previous.delivery.status !== "not_sent" || previous.status !== "open")
-      )
-        continue;
-      if (!previous && inbox.length >= 256) {
-        const eviction = attentionEvictionIndex(inbox, rule, state.rules);
-        if (eviction < 0) {
-          full = true;
-          continue;
-        }
-        inbox.splice(eviction, 1);
-      }
-      const item: AttentionInboxItem = {
-        ...previous,
-        id: previous?.id ?? `attention-item-${nextId++}`,
-        ruleId: rule.id,
-        ruleName: rule.name,
-        key: candidate.key,
-        text: candidate.text,
-        explanation: candidate.explanation,
-        timeZone: candidate.timeZone,
-        facts: candidate.facts,
-        provenance: previous?.provenance ?? rule.provenance,
-        observedAt: now.toISOString(),
-        createdAt: previous?.createdAt ?? now.toISOString(),
-        updatedAt: now.toISOString(),
-        revision: (previous?.revision ?? 0) + 1,
-        status: "open",
-        delivery: { status: "not_sent", reason: "eligible" },
-      };
-      if (previous) inbox[index] = item;
-      else inbox.push(item);
-      matched.push(item);
-    }
+    const { inbox, nextId, matched, full } = reconcileAttentionCandidates(
+      state,
+      rule,
+      candidates,
+      now,
+      hasOutput,
+    );
     const reason = failed
       ? "source_unavailable"
       : full

@@ -147,6 +147,43 @@ describe("durable proactive attention evaluation", () => {
     await h.run(new Date("2026-09-08T07:00:00.000Z"));
     expect(h.deliver).not.toHaveBeenCalled();
   });
+  it("preserves unchanged suppressed notice revisions and batches policy reconciliation", async () => {
+    const h = await harness();
+    h.read.mockResolvedValue(
+      Array.from({ length: 10 }, (_, index) => ({
+        ...candidate,
+        key: `task-${index}`,
+      })),
+    );
+    await h.run(new Date("2026-09-07T21:00:00.000Z"));
+    const previous = (await h.store.read()).inbox;
+    const replace = vi.spyOn(h.store, "replace");
+    await h.run(new Date("2026-09-07T21:01:00.000Z"));
+    expect((await h.store.read()).inbox).toEqual(previous);
+    expect(replace).toHaveBeenCalledTimes(2);
+    h.read.mockResolvedValue([
+      {
+        ...candidate,
+        key: "task-0",
+        text: "Review the revised plan.",
+        facts: { ...candidate.facts, label: "Revised plan" },
+      },
+    ]);
+    await h.run(new Date("2026-09-07T21:02:00.000Z"));
+    const changed = (await h.store.read()).inbox.find(
+      (item) => item.facts.label === "Revised plan",
+    )!;
+    expect(changed.revision).toBe(
+      previous.find((item) => item.id === changed.id)!.revision + 1,
+    );
+    expect(changed.observedAt).toBe("2026-09-07T21:02:00.000Z");
+    expect(changed.delivery).toEqual({
+      status: "not_sent",
+      reason: "quiet_hours",
+    });
+    await h.run(new Date("2026-09-08T07:00:00.000Z"));
+    expect(h.deliver).toHaveBeenCalledOnce();
+  });
   it("shares identical reads and delivers the higher-priority match first under a one-item budget", async () => {
     const task = createTestAttentionRule();
     const health: AttentionRule = {

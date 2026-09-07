@@ -3,8 +3,7 @@ import type {
   AttentionRule,
   AttentionStore,
 } from "../ports/attention.js";
-import { attentionClaims } from "./attention-candidate.js";
-import { attentionDeliveryDecision } from "./attention-policy.js";
+import { attentionSuppressionReason } from "./attention-inbox-reconciliation.js";
 import { updateAttentionState } from "./attention-transaction.js";
 
 export async function claimAttentionDelivery(
@@ -29,17 +28,16 @@ export async function claimAttentionDelivery(
       item.delivery.status !== "not_sent"
     )
       return { result: undefined };
-    const reason =
-      item.snoozedUntil && item.snoozedUntil > now.toISOString()
-        ? "snoozed"
-        : attentionDeliveryDecision({
-            rule: currentRule,
-            key: item.key,
-            now,
-            claims: attentionClaims(state.inbox),
-            preferences: state.preferences,
-          });
-    const claimed = reason === "eligible" && hasOutput;
+    const reason = attentionSuppressionReason(
+      state,
+      currentRule,
+      item,
+      now,
+      hasOutput,
+    );
+    const claimed = reason === "eligible";
+    if (!claimed && item.delivery.reason === reason)
+      return { result: undefined };
     const updated: AttentionInboxItem = {
       ...item,
       revision: item.revision + 1,
@@ -48,7 +46,7 @@ export async function claimAttentionDelivery(
         ? { status: "unknown", attemptedAt: now.toISOString() }
         : {
             status: "not_sent",
-            reason: reason === "eligible" ? "output_unavailable" : reason,
+            reason,
           },
     };
     return {
