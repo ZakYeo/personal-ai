@@ -21,6 +21,7 @@ interface PresentationControlContext {
   readonly eventStream: AssistantRuntimeEventStream;
   readonly io?: VoiceRuntimeIo;
   readonly interruptVoice?: () => Promise<void>;
+  readonly interruptTurn?: () => Promise<void>;
   readonly presentation: PresentationInteractionCoordinator;
   readonly profileControl?: (
     control: Extract<
@@ -68,8 +69,9 @@ async function handleProfileControl(
   if (!options.profileControl) {
     return { message: "Profile controls are unavailable.", status: "rejected" };
   }
-  const interaction = admitInput(options, false);
-  if (!interaction) return busyResult;
+  const admitted = admitInput(options, false);
+  if (!admitted) return busyResult;
+  const { interaction } = admitted;
   interaction.transcriptFinal("Update personal profile");
   interaction.processing();
   let response: Awaited<ReturnType<Assistant["handleText"]>>;
@@ -105,6 +107,7 @@ async function handleConfirmationControl(
       status: "rejected",
     };
   }
+  await options.interruptTurn?.();
   interaction.processing();
   const outcome = await readAssistantOutcome(
     options.assistant,
@@ -120,8 +123,10 @@ async function handleTextControl(
   options: PresentationControlContext,
   text: string,
 ): Promise<PresentationControlResult> {
-  const interaction = admitInput(options, true);
-  if (!interaction) return busyResult;
+  const admitted = admitInput(options, true);
+  if (!admitted) return busyResult;
+  const { interaction, continuation } = admitted;
+  if (continuation) await options.interruptTurn?.();
   interaction.transcriptFinal(text);
   interaction.processing();
   const outcome = await readAssistantOutcome(
@@ -154,10 +159,13 @@ const busyResult: PresentationControlResult = {
 function admitInput(
   options: PresentationControlContext,
   allowContinuation: boolean,
-): PresentationInteraction | undefined {
+): { interaction: PresentationInteraction; continuation: boolean } | undefined {
   const active = options.eventStream.snapshot().interaction;
   if (!active || ["completed", "cancelled", "failed"].includes(active.phase)) {
-    return options.presentation.beginInteraction();
+    return {
+      interaction: options.presentation.beginInteraction(),
+      continuation: false,
+    };
   }
   if (
     !allowContinuation ||
@@ -166,5 +174,7 @@ function admitInput(
     return;
   const interaction = options.presentation.continueInteraction(active.id);
   if (!interaction.continuationAvailable()) return;
-  return interaction.claimContinuation() ? interaction : undefined;
+  return interaction.claimContinuation()
+    ? { interaction, continuation: true }
+    : undefined;
 }

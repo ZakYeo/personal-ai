@@ -4,6 +4,42 @@ import { createPresentationControlHandler } from "./presentation-control-handler
 import { createPresentationInteractionCoordinator } from "./presentation-interaction-coordinator.js";
 
 describe("presentation control handler", () => {
+  it.each(["confirm", "submit_text"] as const)(
+    "joins voice capture before executing a %s reply",
+    async (type) => {
+      const handled: string[] = [];
+      const eventStream = createStream();
+      const presentation = createCoordinator(eventStream);
+      const pending = presentation.beginInteraction();
+      pending.processing();
+      pending.confirmation("Approve?");
+      let finish = () => {};
+      const interruptTurn = vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          }),
+      );
+      const handle = createPresentationControlHandler({
+        assistant: createAssistant(handled),
+        eventStream,
+        presentation,
+        interruptTurn,
+      });
+      const result = handle(
+        type === "confirm"
+          ? { type, requestId: "reply", interactionId: "interaction-1" }
+          : { type, requestId: "reply", text: "yes" },
+      );
+      await Promise.resolve();
+      expect(interruptTurn).toHaveBeenCalledOnce();
+      expect(pending.continuationAvailable()).toBe(false);
+      expect(handled).toEqual([]);
+      finish();
+      await result;
+      expect(handled).toEqual(["yes"]);
+    },
+  );
   it("does not mark the microphone as capturing when a typed reply claims a prompt", async () => {
     const eventStream = createStream();
     const presentation = createCoordinator(eventStream);

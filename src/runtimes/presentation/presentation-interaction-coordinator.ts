@@ -1,4 +1,5 @@
 import type { AssistantResponse } from "../../ports/assistant.js";
+import type { AssistantMicrophoneState } from "../../ports/presentation.js";
 import type {
   AssistantRuntimeEvent,
   PendingAssistantRuntimeEvent,
@@ -27,6 +28,7 @@ export interface PresentationInteraction {
 }
 
 export interface PresentationInteractionCoordinator {
+  microphoneChanged(microphone: AssistantMicrophoneState): void;
   beginInteraction(): PresentationInteraction;
   beginVoiceInteraction(): PresentationInteraction;
   continueInteraction(interactionId: string): PresentationInteraction;
@@ -62,6 +64,7 @@ export function createPresentationInteractionCoordinator(
 ): PresentationInteractionCoordinator {
   if (!publisher) {
     return Object.freeze({
+      microphoneChanged: noOperation,
       beginInteraction: () => noOpInteraction,
       beginVoiceInteraction: () => noOpInteraction,
       continueInteraction: () => noOpInteraction,
@@ -85,6 +88,8 @@ export function createPresentationInteractionCoordinator(
   };
 
   return Object.freeze({
+    microphoneChanged: (microphone: AssistantMicrophoneState) =>
+      publisher.publish({ type: "microphone_changed", microphone }),
     beginInteraction: () =>
       createInteraction(publisher, continuationOwner, undefined),
     beginVoiceInteraction: () => {
