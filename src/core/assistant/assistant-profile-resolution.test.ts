@@ -11,6 +11,26 @@ import {
 import { createAssistant } from "./assistant.js";
 
 describe("assistant profile resolution", () => {
+  it("pins the exact save reply while a draft asks a later question", async () => {
+    const harness = createProfileResolutionHarness([
+      profileLookupCall(),
+      targetClarification(),
+      targetClarification(),
+      {
+        kind: "command",
+        command: command("internet.search", { query: "Zak programming" }),
+      },
+    ]);
+    await harness.assistant.handleText("Search the internet for myself");
+    await harness.assistant.handleText("Zak");
+    await harness.assistant.handleText("programming");
+    expect(harness.executions).toEqual([
+      ["profile.lookup", { field: "preferredName" }],
+      ["profile.set", { field: "preferredName", value: "Zak" }],
+      ["internet.search", { query: "Zak programming" }],
+    ]);
+  });
+
   it("captures a missing narrow profile fact before resuming any selected capability", async () => {
     const harness = createProfileResolutionHarness([
       profileLookupCall(),
@@ -52,6 +72,14 @@ describe("assistant profile resolution", () => {
       {
         clarification: {
           capability: "internet.search",
+          draft: {
+            capability: "internet.search",
+            parameters: {},
+            missingParameters: ["query"],
+            references: [],
+            expiresAt: "2026-06-26T09:05:00.000Z",
+            remainingReplies: 2,
+          },
           origin: "intent_interpreter",
           originalText: "Search the internet for myself",
           parameter: "query",

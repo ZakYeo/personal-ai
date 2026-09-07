@@ -628,6 +628,14 @@ describe("assistant bounded tool chains", () => {
       {
         clarification: {
           capability: "alarm.create",
+          draft: {
+            capability: "alarm.create",
+            parameters: {},
+            missingParameters: ["scheduledFor"],
+            references: [],
+            expiresAt: "2026-06-26T09:05:00.000Z",
+            remainingReplies: 2,
+          },
           origin: "intent_interpreter",
           originalText: "remind me before it",
           parameter: "scheduledFor",
@@ -640,7 +648,7 @@ describe("assistant bounded tool chains", () => {
     ]);
   });
 
-  it("fails closed when a provider asks a second clarification", async () => {
+  it("retains a second clarification within the bounded draft", async () => {
     const steps: IntentInterpretation[] = [
       {
         clarification: {
@@ -673,8 +681,8 @@ describe("assistant bounded tool chains", () => {
     await assistant.handleText("start");
     await expect(assistant.handleText("answer")).resolves.toEqual({
       expectsFollowUp: true,
-      status: "unknown",
-      text: "I still need more information. Please restate the request with the missing details.",
+      status: "ok",
+      text: "Second question?",
     });
   });
 

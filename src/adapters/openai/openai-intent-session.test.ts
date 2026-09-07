@@ -249,6 +249,17 @@ describe("OpenAIIntentInterpreter", () => {
     await session.next({
       clarification: {
         capability: "internet.search",
+        draft: Object.assign(
+          {
+            capability: "internet.search",
+            parameters: { location: "London" },
+            missingParameters: ["query"],
+            references: ["source-1"],
+            expiresAt: "2026-09-07T10:05:00Z",
+            remainingReplies: 2,
+          },
+          { privateTarget: "must-not-leak" },
+        ),
         origin: "intent_interpreter",
         originalText: "Search the internet for myself",
         parameter: "query",
@@ -261,6 +272,13 @@ describe("OpenAIIntentInterpreter", () => {
 
     const continuation = readJsonRequestBody<Record<string, unknown>>(fetch, 1);
     expect(String(continuation.instructions)).toContain('"parameter":"query"');
+    expect(String(continuation.instructions)).toContain(
+      '"parameters":{"location":"London"}',
+    );
+    expect(String(continuation.instructions)).toContain(
+      '"references":["source-1"]',
+    );
+    expect(String(continuation.instructions)).not.toContain("must-not-leak");
   });
   it("provides only safe opaque calendar references to the provider", async () => {
     const unsafeFacts = {

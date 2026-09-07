@@ -76,7 +76,17 @@ export type IntentClarificationMetadata =
       readonly session: "restart" | "resume";
     };
 
+export interface IntentDraftSnapshot {
+  readonly capability: string;
+  readonly parameters: Readonly<AssistantCommand["parameters"]>;
+  readonly missingParameters: readonly string[];
+  readonly references: readonly string[];
+  readonly expiresAt: string;
+  readonly remainingReplies: number;
+}
+
 export interface IntentClarificationContext {
+  readonly draft?: IntentDraftSnapshot;
   readonly capability?: string;
   readonly origin:
     | IntentClarificationMetadata["origin"]

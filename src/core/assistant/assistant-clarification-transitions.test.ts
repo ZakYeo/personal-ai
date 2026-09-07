@@ -90,6 +90,14 @@ describe("assistant clarification transitions", () => {
       {
         clarification: {
           capability: "weather.watch.create",
+          draft: {
+            capability: "weather.watch.create",
+            parameters: {},
+            missingParameters: ["location"],
+            references: [],
+            expiresAt: "2026-06-26T09:05:00.000Z",
+            remainingReplies: 2,
+          },
           origin: "feature_execution",
           originalText: "Watch the weather in London",
           parameter: "location",
@@ -166,6 +174,14 @@ describe("assistant clarification transitions", () => {
       {
         clarification: {
           capability: "weather.current",
+          draft: {
+            capability: "weather.current",
+            parameters: {},
+            missingParameters: ["location"],
+            references: [],
+            expiresAt: "2026-06-26T09:05:00.000Z",
+            remainingReplies: 2,
+          },
           origin: "feature_execution",
           originalText: "What is the weather in London?",
           parameter: "location",
@@ -297,6 +313,14 @@ describe("assistant clarification transitions", () => {
       {
         clarification: {
           capability: "assistant.capabilities.list",
+          draft: {
+            capability: "assistant.capabilities.list",
+            parameters: {},
+            missingParameters: [],
+            references: [],
+            expiresAt: "2026-06-26T09:05:00.000Z",
+            remainingReplies: 2,
+          },
           origin: "semantic_validation",
           originalText: "Set an alarm",
           prompt: "What time?",

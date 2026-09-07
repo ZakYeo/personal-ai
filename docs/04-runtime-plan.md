@@ -339,7 +339,16 @@ minutes after creation using the injected clock, checked after queued input gain
 transaction ownership. Repeated prompts do not renew it. Expired approvals return
 a terminal request to prepare the action again, without provider continuation;
 repeated approvals remain inert until an explicit new request begins a workflow.
-Clock rollback or an invalid reading also expires the pending action. Already-cancelled queued
+Clock rollback or an invalid reading also expires the pending action.
+Clarification drafts have a separate five-minute lifetime and consume at most
+three replies in the originating workflow. They retain only frozen decoded
+parameters (32 fields and 8,000 serialized characters), declared missing fields,
+and ten public opaque references. Further questions do not renew their lifetime,
+and a late provider command cannot execute after expiry. Exhaustion returns a
+terminal request to restate the task without keeping voice capture open. This
+slice supports successive missing-field questions; edits to a pending confirmed
+action are implemented separately. OpenAI receives a field-by-field draft
+projection as context, never permissions, private targets, or diagnostics. Already-cancelled queued
 requests leave pending state intact; late interpretations cannot execute, and
 cancellation between plan steps preserves completed facts while blocking later
 steps. Provider session continuation has an optional per-call signal so a previous

@@ -1,3 +1,7 @@
+import {
+  createClarificationDraft,
+  expiredDraftOutcome,
+} from "./clarification-draft.js";
 import type {
   AssistantCommand,
   AssistantContext,
@@ -71,7 +75,13 @@ export function createIntentWorkflow(input: {
   const resultReferences = createWorkflowResultReferenceOverlay(
     input.dependencies.resultReferences,
   );
-  let clarificationUsed = false;
+  let clarificationReply:
+    | { declaration: FeatureClarificationReplyCommand; text: string }
+    | undefined;
+  const draft = createClarificationDraft(
+    input.dependencies.clock,
+    input.dependencies.capabilityRouting.catalog,
+  );
 
   return { run };
 
@@ -115,6 +125,7 @@ export function createIntentWorkflow(input: {
     current: IntentInterpretation,
   ): Promise<AssistantOutcome> {
     context.signal?.throwIfAborted();
+    if (draft.expired()) return decorate(expiredDraftOutcome);
     if (current.kind === "tool_call") {
       try {
         const resolved = await resolveToolCalls({
@@ -285,18 +296,41 @@ export function createIntentWorkflow(input: {
       replyCommand?: FeatureClarificationReplyCommand;
     },
   ): AssistantOutcome {
-    if (clarificationUsed) {
-      return decorate(clarificationLimitOutcome);
-    }
-    clarificationUsed = true;
+    if (
+      !draft.open(
+        metadata,
+        resultReferences
+          .publicReferences()
+          .map((reference) => reference.reference),
+      )
+    )
+      return decorate(
+        draft.expired() ? expiredDraftOutcome : clarificationLimitOutcome,
+      );
     return input.dependencies.interaction.requestClarification(
       decorate({ response: { ...response, expectsFollowUp: true } }),
       async (reply, signal) => {
+        if (!draft.takeReply())
+          return {
+            kind: "completed",
+            outcome: decorate(
+              draft.expired() ? expiredDraftOutcome : clarificationLimitOutcome,
+            ),
+          };
         try {
           context = createContext(input.dependencies, signal);
           context.signal?.throwIfAborted();
           activeUserText = reply.trim();
-          const replyCommand = metadata.replyCommand;
+          if (metadata.replyCommand) {
+            if (clarificationReply)
+              throw new Error(
+                "A draft cannot collect another application-owned save reply.",
+              );
+            clarificationReply = {
+              declaration: metadata.replyCommand,
+              text: activeUserText,
+            };
+          }
           const clarificationMetadata = {
             capability: metadata.capability,
             origin: metadata.origin,
@@ -306,6 +340,7 @@ export function createIntentWorkflow(input: {
           const interpretation = await requireSession().next({
             clarification: {
               ...clarificationMetadata,
+              draft: draft.snapshot(),
               originalText: normalizedText,
               prompt: response.text,
             },
@@ -318,11 +353,11 @@ export function createIntentWorkflow(input: {
             : {
                 kind: "completed",
                 outcome: await handleInterpretation(
-                  replyCommand
+                  clarificationReply
                     ? prependClarificationReplyCommand(
                         interpretation,
-                        replyCommand,
-                        activeUserText,
+                        clarificationReply.declaration,
+                        clarificationReply.text,
                       )
                     : interpretation,
                 ),
@@ -344,6 +379,9 @@ export function createIntentWorkflow(input: {
     if (!clarifiedCapability) return false;
     if (interpretation.kind === "command") {
       return interpretation.command.capability !== clarifiedCapability;
+    }
+    if (interpretation.kind === "clarification") {
+      return interpretation.clarification.capability !== clarifiedCapability;
     }
     if (interpretation.kind === "plan") {
       return interpretation.plan.commands.every(
@@ -482,11 +520,10 @@ const clarificationLimitOutcome: AssistantOutcome = {
       capability: "intent.clarification",
       category: "validation",
       message:
-        "An intent workflow may ask at most one resumable clarification.",
+        "An intent workflow may consume at most three clarification replies within five minutes.",
     },
   ],
   response: {
-    expectsFollowUp: true,
     status: "unknown",
     text: "I still need more information. Please restate the request with the missing details.",
   },

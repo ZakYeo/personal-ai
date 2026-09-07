@@ -120,12 +120,7 @@ function validateProviderClarification(
   const decoded = decodeCommandForCapability(partialCommand, declaration, {
     allowMissingRequired: true,
   });
-  if (
-    !decoded.ok ||
-    JSON.stringify(decoded.args).length > 8_000 ||
-    Object.keys(decoded.args).length > 32
-  )
-    return createCanonicalClarification(capability, session);
+  if (!decoded.ok) return createCanonicalClarification(capability, session);
 
   const validatedCommand = Object.freeze({
     ...partialCommand,

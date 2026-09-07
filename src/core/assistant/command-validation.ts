@@ -34,6 +34,21 @@ export function decodeCommandForCapability(
     };
   }
 
+  if (
+    options.allowMissingRequired === true &&
+    (Object.keys(command.parameters).length > 32 ||
+      JSON.stringify(command.parameters).length > 8_000)
+  ) {
+    return {
+      ok: false,
+      error: createAppError({
+        category: "validation",
+        capability: command.capability,
+        message: "Partial command exceeded the bounded draft field limit.",
+      }),
+    };
+  }
+
   const parameterDefinitions = capability.parameters ?? {};
   const parameters = command.parameters;
   const args: FeatureArguments = {};

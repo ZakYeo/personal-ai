@@ -207,8 +207,8 @@ remain visible to the exhaustive human-boundary logging policy.
 One specific clarification may be retained process-locally and resumed against
 the exact intent-provider session. No/cancel discards it; an answer resumes it;
 a provider-classified changed-topic reply discards it and starts one fresh
-workflow from the exact trusted reply. Core also treats a resumed command or
-plan with no occurrence of the selected clarification capability as a changed
+workflow from the exact trusted reply. Core also treats a clarification for a
+different capability, or a resumed command or plan with no occurrence of the selected clarification capability as a changed
 workflow, so provider omission of the replacement marker cannot keep a new
 request in the old session. Open rephrase prompts request a follow-up without
 retaining provider-session state. A resulting high-risk action replaces the
@@ -220,7 +220,8 @@ assistant IANA timezone.
 
 Clarification continuations expose only typed, safe workflow context: the
 original trusted request, human-safe prompt, application-owned origin, stable
-capability name, and requested parameter when one is selected. Confirmed
+capability name, requested parameter when one is selected, and the bounded draft
+snapshot with remaining replies and its deadline. Confirmed
 execution retains its originating workflow callback so a feature clarification
 does not lose the exact provider session. Provider diagnostics, response
 payloads, IDs, credentials, and tool internals are excluded. Core owns
@@ -236,11 +237,21 @@ canonical clarification, and provider clarification statuses are normalized to
 the clarification branch's safe status. Provider-authored clarifications must
 identify the exact selected enabled capability at the structured-output
 boundary. Scope checks after a user reply use the latest trusted turn, while
-unresolved-restatement checks retain the original request. A second unresolved
-clarification ends the old workflow with a safe open rephrase response rather
-than entering an unbounded loop.
+unresolved-restatement checks retain the original request. Milestone 19 permits
+at most three clarification replies within five minutes of the first prompt.
+The core-owned draft retains frozen decoded parameter values, declared missing
+fields, and at most ten public opaque references. Parameter state is capped at
+32 fields and 8,000 serialized characters through the canonical decoder. A new
+question does not renew the deadline; expiry is checked before provider resume
+and before acting on late provider output. Exhaustion ends the workflow without
+requesting another voice turn. One pending interaction and the existing tool-read
+and compound-plan limits remain unchanged. An application-owned
+save reply remains pinned to the exact trusted answer across later draft
+questions; it is prepended through the existing validated save-before-resume
+path only when the target resolves. Changed-topic replies discard the unsaved
+value, and the draft cannot collect a second application-owned save reply.
 Provider instructions distinguish required from optional capability parameters:
-missing required information may produce one clarification, while absent
+missing required information may produce one question at a time, while absent
 optional values are omitted without an extra user turn. A provider-authored
 clarification carries its selected capability, partial command parameters, and
 the exact requested parameter. Core promotes the partial command when the
