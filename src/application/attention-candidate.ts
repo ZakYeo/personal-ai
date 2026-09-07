@@ -41,6 +41,7 @@ export function prepareAttentionCandidate(
       throw new Error("Attention source returned invalid text.");
     const safe = humanizeSpokenText(value, {
       now,
+      dateStyle: "absolute",
       timeZone: candidate.timeZone,
       assistantTimeZone: rule.timeZone,
     });

@@ -4,7 +4,7 @@ import {
   resolveTimeZoneIdentifier,
 } from "./temporal-policy.js";
 
-type SpokenDateStyle = "calendar" | "contextual";
+type SpokenDateStyle = "calendar" | "contextual" | "absolute";
 
 interface SpokenTextContext {
   assistantTimeZone: string;
@@ -94,6 +94,7 @@ export function renderSpokenFact(
 
   const date = parseCanonicalIsoDate(value);
   if (date) {
+    if (context.dateStyle === "absolute") return renderAbsoluteDate(date);
     return context.dateStyle === "calendar"
       ? renderCalendarDate(date, context.now)
       : renderContextualDate(date, context.now, context.timeZone);
@@ -127,9 +128,13 @@ function renderInstant(value: string, context: SpokenTextContext): string {
 
   const parts = zonedParts(instant, context.timeZone);
   const time = formatTime(parts.hour, parts.minute);
-  const date = renderContextualDate(parts, context.now, context.timeZone);
+  const date =
+    context.dateStyle === "absolute"
+      ? renderAbsoluteDate(parts)
+      : renderContextualDate(parts, context.now, context.timeZone);
   const timeZone =
-    context.timeZone === context.assistantTimeZone
+    context.timeZone === context.assistantTimeZone &&
+    context.dateStyle !== "absolute"
       ? ""
       : `, ${formatTimeZoneLabel(context.timeZone)}`;
   return `${time} ${date}${timeZone}`;
@@ -152,6 +157,14 @@ function containsIanaTimeZone(value: string): boolean {
 function replaceRawUrl(url: string, replacement: string): string {
   const punctuation = /[.,!?;:]+$/u.exec(url)?.[0] ?? "";
   return `${replacement}${punctuation}`;
+}
+
+function renderAbsoluteDate(date: {
+  day: number;
+  month: number;
+  year: number;
+}): string {
+  return `on ${date.day} ${monthNames[date.month - 1]} ${date.year}`;
 }
 
 function renderContextualDate(

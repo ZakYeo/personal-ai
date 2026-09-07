@@ -38,6 +38,7 @@ export function createTestAttentionItem(
     timeZone: rule.timeZone,
     facts: { taskLabel: "Review the plan", dueDate: "2026-09-07" },
     provenance: rule.provenance,
+    observedAt: recordedAt,
     createdAt: recordedAt,
     updatedAt: recordedAt,
     revision: 1,

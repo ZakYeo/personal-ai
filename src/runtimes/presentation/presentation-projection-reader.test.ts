@@ -272,4 +272,7 @@ it("projects durable attention notices with opaque controls and no internal targ
     },
   ]);
   expect(projection.attention[0]).not.toHaveProperty("facts");
+  expect(projection.attention[0]?.text).toContain(
+    "Recorded at 1pm on 7 September 2026, London time:",
+  );
 });

@@ -112,6 +112,7 @@ export async function saveAttentionCandidates(
         timeZone: candidate.timeZone,
         facts: candidate.facts,
         provenance: previous?.provenance ?? rule.provenance,
+        observedAt: now.toISOString(),
         createdAt: previous?.createdAt ?? now.toISOString(),
         updatedAt: now.toISOString(),
         revision: (previous?.revision ?? 0) + 1,

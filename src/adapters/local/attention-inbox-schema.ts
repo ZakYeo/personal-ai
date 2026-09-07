@@ -21,6 +21,7 @@ export function parseAttentionInboxItem(value: unknown): AttentionInboxItem {
     "timeZone",
     "facts",
     "provenance",
+    "observedAt",
     "createdAt",
     "updatedAt",
     "revision",
@@ -39,6 +40,7 @@ export function parseAttentionInboxItem(value: unknown): AttentionInboxItem {
     timeZone: field.timeZone(item.timeZone),
     facts: parseFacts(item.facts),
     provenance: parseAttentionProvenance(item.provenance),
+    observedAt: field.timestamp(item.observedAt),
     createdAt: field.timestamp(item.createdAt),
     updatedAt: field.timestamp(item.updatedAt),
     revision: field.integer(item.revision),
@@ -49,7 +51,8 @@ export function parseAttentionInboxItem(value: unknown): AttentionInboxItem {
     delivery: parseDelivery(item.delivery),
   };
   if (
-    parsed.updatedAt < parsed.createdAt ||
+    parsed.observedAt < parsed.createdAt ||
+    parsed.updatedAt < parsed.observedAt ||
     parsed.provenance.recordedAt > parsed.createdAt ||
     (parsed.delivery.status !== "not_sent" &&
       (parsed.delivery.attemptedAt < parsed.createdAt ||

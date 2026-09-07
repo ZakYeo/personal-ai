@@ -1,3 +1,4 @@
+import { renderAttentionHistory } from "../../application/attention-presentation.js";
 import type {
   AssistantPresentationProjection,
   PresentationProfileItem,
@@ -115,10 +116,10 @@ export async function readPresentationProjection(options: {
         id: item.id,
         revision: item.revision,
         title: item.ruleName,
-        text: item.text,
+        text: renderAttentionHistory(item),
         explanation: `${item.explanation}${item.delivery.status === "not_sent" ? ` Notification withheld: ${item.delivery.reason.replaceAll("_", " ")}.` : ""}`,
         provenance: item.provenance.request,
-        recordedAt: renderDateTime(item.createdAt, item.timeZone),
+        recordedAt: renderDateTime(item.observedAt, item.timeZone),
         status:
           item.status === "open" &&
           item.snoozedUntil &&

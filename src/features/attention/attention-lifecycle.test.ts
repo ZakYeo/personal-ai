@@ -49,3 +49,22 @@ it("acknowledges only the chosen current inbox item without changing delivery st
     delivery: { status: "unknown" },
   });
 });
+
+it.each(["2026-09-08T12:00:00.000Z", "2026-10-26T12:00:00.000Z"])(
+  "attributes saved wording to its original date when read on %s",
+  async (date) => {
+    const { feature, context } = await setup();
+    context.clock.now = () => new Date(date);
+    for (const command of ["attention.inbox.list", "attention.inbox.explain"]) {
+      const result = await executeFeature(
+        feature,
+        command,
+        command.endsWith("explain") ? { id: "attention-item-2" } : {},
+        context,
+      );
+      expect(result.text).toContain(
+        "Recorded at 1pm on 7 September 2026, London time:",
+      );
+    }
+  },
+);

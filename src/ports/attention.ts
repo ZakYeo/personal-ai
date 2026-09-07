@@ -81,6 +81,7 @@ export interface AttentionInboxItem {
   readonly timeZone: string;
   readonly facts: Readonly<Record<string, string | number | boolean>>;
   readonly provenance: AttentionRule["provenance"];
+  readonly observedAt: string;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly revision: number;

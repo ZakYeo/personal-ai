@@ -1,3 +1,4 @@
+import { renderAttentionHistory } from "../../application/attention-presentation.js";
 import { applyAttentionInboxControl } from "../../application/attention-inbox-control.js";
 import { attentionInboxActions } from "../../ports/attention.js";
 import { defineCapability } from "../../application/feature.js";
@@ -45,7 +46,7 @@ export function createAttentionInboxCapabilities(
           toolObservationData: { count: items.length, ...references },
           responseRewrite: "disabled",
           text: items.length
-            ? `Recorded notices: ${items.map((item) => `${item.ruleName}: ${item.text.slice(0, 150)}`).join(" ")}`
+            ? `Recorded notices: ${items.map((item) => `${item.ruleName}: ${renderAttentionHistory(item, 150)}`).join(" ")}`
             : "Your attention inbox has no open notices.",
         };
       },
@@ -68,11 +69,11 @@ export function createAttentionInboxCapabilities(
             ...item.facts,
             id: item.id,
             revision: item.revision,
-            recordedAt: item.createdAt,
+            recordedAt: item.observedAt,
             request: item.provenance.request,
           },
           responseRewrite: "disabled",
-          text: `Recorded at ${item.createdAt}: ${item.text} ${item.explanation} The rule was enabled by your request: ${item.provenance.request}. Delivery status is ${item.delivery.status.replaceAll("_", " ")}; inbox status is ${item.status}.`,
+          text: `${renderAttentionHistory(item)} ${item.explanation} The rule was enabled by your request: ${item.provenance.request}. Delivery status is ${item.delivery.status.replaceAll("_", " ")}; inbox status is ${item.status}.`,
           spokenText: { dateStyle: "contextual", timeZone: item.timeZone },
         };
       },
