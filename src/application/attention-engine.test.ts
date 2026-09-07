@@ -1,0 +1,168 @@
+import {
+  createTestAttentionStore,
+  createTestAttentionRule,
+} from "../test-support/attention.js";
+import { processAttentionCycle } from "./attention-engine.js";
+import type { AttentionRule } from "../ports/attention.js";
+
+const now = new Date("2026-09-07T12:00:00.000Z");
+const candidate = {
+  key: "due-task",
+  text: "Review the plan is due.",
+  explanation: "An open task reached its due date.",
+  timeZone: "Europe/London",
+  facts: { label: "Review the plan", dueDate: "2026-09-07" },
+};
+
+async function harness(rules: AttentionRule[] = [createTestAttentionRule()]) {
+  const store = createTestAttentionStore({ timeZone: "Europe/London" });
+  const state = await store.read();
+  await store.replace(1, { ...state, revision: 2, nextId: 20, rules });
+  const read = vi.fn(() => Promise.resolve([candidate]));
+  const delivered: string[] = [];
+  const deliver = vi.fn(async ({ id }: { id: string }) => {
+    expect(
+      (await store.read()).inbox.find((item) => item.id === id)?.delivery
+        .status,
+    ).toBe("unknown");
+    delivered.push(id);
+  });
+  const reportFailure = vi.fn();
+  return {
+    store,
+    read,
+    delivered,
+    deliver,
+    reportFailure,
+    run: (time = now, signal?: AbortSignal) =>
+      processAttentionCycle({
+        store,
+        reader: { read },
+        delivery: { deliver },
+        clock: { now: () => time },
+        reportFailure,
+        ...(signal ? { signal } : {}),
+      }),
+  };
+}
+
+describe("durable proactive attention evaluation", () => {
+  it("performs no source read or notification without an explicitly enabled rule", async () => {
+    const h = await harness([{ ...createTestAttentionRule(), enabled: false }]);
+    await h.run();
+    expect(h.read).not.toHaveBeenCalled();
+    expect(h.deliver).not.toHaveBeenCalled();
+  });
+  it("claims before output, records completion separately from acknowledgement, and deduplicates after restart", async () => {
+    const h = await harness();
+    await h.run();
+    expect((await h.store.read()).inbox).toMatchObject([
+      { status: "open", delivery: { status: "delivered" } },
+    ]);
+    await h.run();
+    await h.run(new Date("2026-09-07T12:01:00.000Z"));
+    expect(h.deliver).toHaveBeenCalledOnce();
+    expect(h.read).toHaveBeenCalledTimes(2);
+  });
+  it("never replays uncertain output even when diagnostic reporting also fails", async () => {
+    const h = await harness();
+    h.deliver.mockRejectedValue(new Error("private output failure"));
+    h.reportFailure.mockImplementation(() => {
+      throw new Error("logger failed");
+    });
+    await h.run();
+    await h.run(new Date("2026-09-07T14:00:00.000Z"));
+    expect(h.deliver).toHaveBeenCalledOnce();
+    expect((await h.store.read()).inbox).toMatchObject([
+      { status: "open", delivery: { status: "unknown" } },
+    ]);
+  });
+  it("retains a quiet-hour inbox result and delivers only a refreshed match after quiet hours", async () => {
+    const h = await harness();
+    await h.run(new Date("2026-09-07T21:00:00.000Z"));
+    expect(h.deliver).not.toHaveBeenCalled();
+    expect((await h.store.read()).inbox).toMatchObject([
+      { delivery: { status: "not_sent", reason: "quiet_hours" } },
+    ]);
+    h.read.mockResolvedValue([]);
+    await h.run(new Date("2026-09-08T07:00:00.000Z"));
+    expect(h.deliver).not.toHaveBeenCalled();
+  });
+  it("shares identical reads and delivers the higher-priority match first under a one-item budget", async () => {
+    const task = createTestAttentionRule();
+    const health: AttentionRule = {
+      ...task,
+      id: "health",
+      name: "Runtime problems",
+      definition: { kind: "runtime_health" },
+    };
+    const h = await harness([
+      task,
+      { ...task, id: "other-task", name: "Other tasks" },
+      health,
+    ]);
+    const state = await h.store.read();
+    await h.store.replace(state.revision, {
+      ...state,
+      revision: state.revision + 1,
+      preferences: { ...state.preferences, dailyBudget: 1 },
+    });
+    await h.run();
+    expect(h.read).toHaveBeenCalledTimes(2);
+    expect(
+      (await h.store.read()).inbox.find((item) => item.id === h.delivered[0])
+        ?.ruleId,
+    ).toBe("health");
+    expect(h.delivered).toHaveLength(1);
+  });
+  it("stops queued reads and output on shutdown", async () => {
+    const h = await harness();
+    const controller = new AbortController();
+    h.read.mockImplementation(() => {
+      controller.abort();
+      return Promise.resolve([candidate]);
+    });
+    await h.run(now, controller.signal);
+    expect(h.deliver).not.toHaveBeenCalled();
+    expect((await h.store.read()).inbox).toEqual([]);
+  });
+  it("does not let a slower prior slot overwrite a newer evaluation", async () => {
+    const h = await harness();
+    let finish!: (value: (typeof candidate)[]) => void;
+    h.read.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const first = h.run();
+    await vi.waitFor(() => expect(h.read).toHaveBeenCalledOnce());
+    h.read.mockResolvedValue([]);
+    await h.run(new Date("2026-09-07T12:01:00.000Z"));
+    finish([candidate]);
+    await first;
+    expect(h.deliver).not.toHaveBeenCalled();
+    expect((await h.store.read()).evaluations[0]?.reason).toBe("no_match");
+  });
+  it("isolates a failed source while recording a safe evaluation reason", async () => {
+    const task = createTestAttentionRule();
+    const h = await harness([
+      task,
+      {
+        ...task,
+        id: "health",
+        name: "Health",
+        definition: { kind: "runtime_health" },
+      },
+    ]);
+    h.read.mockRejectedValueOnce(new Error("private provider details"));
+    await h.run();
+    expect(h.deliver).toHaveBeenCalledOnce();
+    expect(h.reportFailure).toHaveBeenCalledOnce();
+    expect(
+      (await h.store.read()).evaluations.some(
+        (evaluation) => evaluation.reason === "source_unavailable",
+      ),
+    ).toBe(true);
+  });
+});

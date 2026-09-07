@@ -1,5 +1,6 @@
 import type { WeatherLocation } from "./weather.js";
 import type { WeatherWatchCondition } from "./weather-watch-store.js";
+import type { ResponsePresentationReceipt } from "./response-presentation.js";
 
 export type AttentionRuleDefinition =
   | { readonly kind: "upcoming_calendar"; readonly leadMinutes: number }
@@ -116,4 +117,23 @@ export interface AttentionState {
 export interface AttentionStore {
   read(): Promise<AttentionState>;
   replace(expectedRevision: number, next: AttentionState): Promise<boolean>;
+}
+
+export interface AttentionCandidate {
+  readonly key: string;
+  readonly text: string;
+  readonly explanation: string;
+  readonly timeZone: string;
+  readonly facts: AttentionInboxItem["facts"];
+  readonly presentation?: ResponsePresentationReceipt;
+}
+
+export interface AttentionSourceReaderPort {
+  read(
+    request: {
+      readonly definition: AttentionRuleDefinition;
+      readonly timeZone: string;
+    },
+    context: { readonly now: Date; readonly signal?: AbortSignal },
+  ): Promise<readonly AttentionCandidate[]>;
 }

@@ -1,8 +1,6 @@
+import { createOpaqueKey as stableKey } from "./opaque-key.js";
 import type { AlarmStore } from "../ports/alarm-store.js";
-import type {
-  BriefingSourcePort,
-  BriefingSourceResult,
-} from "../ports/briefing.js";
+import type { BriefingSourcePort } from "../ports/briefing.js";
 import type { CalendarSearchPort } from "../ports/calendar.js";
 import type {
   InternetSearchPort,
@@ -336,15 +334,4 @@ function projectInternetAnswer(response: InternetSearchResponse) {
 function localDate(date: Date, timeZone: string): string {
   const parts = zonedParts(date, timeZone);
   return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
-}
-
-function stableKey(section: BriefingSourceResult["section"], identity: string) {
-  let first = 0x811c9dc5;
-  let second = 0x9e3779b9;
-  for (const character of identity) {
-    const code = character.codePointAt(0)!;
-    first = Math.imul(first ^ code, 0x01000193);
-    second = Math.imul(second ^ code, 0x85ebca6b);
-  }
-  return `${section}:${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0).toString(16).padStart(8, "0")}`;
 }
