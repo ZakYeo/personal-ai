@@ -57,3 +57,63 @@ export type AttentionDeliveryDecision =
   | "daily_budget"
   | "duplicate"
   | "invalid_clock";
+
+export type AttentionDeliveryState =
+  | {
+      readonly status: "not_sent";
+      readonly reason: AttentionDeliveryDecision | "output_unavailable";
+    }
+  | { readonly status: "unknown"; readonly attemptedAt: string }
+  | {
+      readonly status: "delivered";
+      readonly attemptedAt: string;
+      readonly deliveredAt: string;
+    };
+
+export interface AttentionInboxItem {
+  readonly id: string;
+  readonly ruleId: string;
+  readonly ruleName: string;
+  readonly key: string;
+  readonly text: string;
+  readonly explanation: string;
+  readonly timeZone: string;
+  readonly facts: Readonly<Record<string, string | number | boolean>>;
+  readonly provenance: AttentionRule["provenance"];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly revision: number;
+  readonly status: "open" | "acknowledged" | "dismissed";
+  readonly snoozedUntil?: string;
+  readonly delivery: AttentionDeliveryState;
+}
+
+export interface AttentionEvaluation {
+  readonly ruleId: string;
+  readonly ruleRevision: number;
+  readonly slot: number;
+  readonly evaluatedAt: string;
+  readonly reason:
+    | "evaluating"
+    | "matched"
+    | "no_match"
+    | "source_unavailable"
+    | "inbox_full"
+    | "disabled"
+    | "snoozed";
+}
+
+export interface AttentionState {
+  readonly version: 1;
+  readonly revision: number;
+  readonly nextId: number;
+  readonly preferences: AttentionPreferences;
+  readonly rules: readonly AttentionRule[];
+  readonly inbox: readonly AttentionInboxItem[];
+  readonly evaluations: readonly AttentionEvaluation[];
+}
+
+export interface AttentionStore {
+  read(): Promise<AttentionState>;
+  replace(expectedRevision: number, next: AttentionState): Promise<boolean>;
+}
