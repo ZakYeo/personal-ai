@@ -64,6 +64,7 @@ describe("durable proactive attention evaluation", () => {
       attention: h.store,
       timeZone: "Europe/London",
     });
+    let failed = true;
     const reader = {
       read: (
         request: { definition: AttentionRule["definition"] },
@@ -71,6 +72,7 @@ describe("durable proactive attention evaluation", () => {
       ) => {
         if (request.definition.kind === "runtime_health")
           return health.read(context.now);
+        if (!failed) return Promise.resolve([]);
         throw new Error("private source failure");
       },
     };
@@ -87,6 +89,22 @@ describe("durable proactive attention evaluation", () => {
     expect((await h.store.read()).inbox[0]?.facts.problem).toBe(
       "source_unavailable",
     );
+    failed = false;
+    for (let minute = 3; minute < 5; minute += 1) {
+      await processAttentionCycle({
+        store: h.store,
+        reader,
+        delivery: { deliver: h.deliver },
+        clock: { now: () => new Date(now.getTime() + minute * 60_000) },
+        reportFailure: h.reportFailure,
+      });
+    }
+    expect(
+      (await h.store.read()).evaluations.every(
+        (entry) => entry.completed?.reason === "no_match",
+      ),
+    ).toBe(true);
+    expect(h.deliver).toHaveBeenCalledOnce();
   });
   it("performs no source read or notification without an explicitly enabled rule", async () => {
     const h = await harness([{ ...createTestAttentionRule(), enabled: false }]);
@@ -207,6 +225,30 @@ describe("durable proactive attention evaluation", () => {
         (evaluation) => evaluation.completed?.reason === "source_unavailable",
       ),
     ).toBe(true);
+  });
+  it("isolates duplicate candidate keys before persistence while another rule proceeds", async () => {
+    const task = createTestAttentionRule();
+    const h = await harness([
+      task,
+      {
+        ...task,
+        id: "health",
+        name: "Health",
+        definition: { kind: "runtime_health" },
+      },
+    ]);
+    await h.run(new Date("2026-09-07T21:00:00.000Z"));
+    h.read.mockResolvedValueOnce([candidate, candidate]);
+    await expect(
+      h.run(new Date("2026-09-08T07:00:00.000Z")),
+    ).resolves.toBeUndefined();
+    expect(h.reportFailure).toHaveBeenCalledOnce();
+    expect(h.deliver).toHaveBeenCalledOnce();
+    expect(
+      (await h.store.read()).evaluations.find(
+        (entry) => entry.ruleId === task.id,
+      )?.completed?.reason,
+    ).toBe("source_unavailable");
   });
   it("does not start output when shutdown arrives during the durable claim", async () => {
     const h = await harness();

@@ -49,6 +49,11 @@ export async function processAttentionCycle(
             : {}),
         }))
         .sort((a, b) => a.key.localeCompare(b.key));
+      if (
+        new Set(candidates.map((candidate) => candidate.key)).size !==
+        candidates.length
+      )
+        throw new Error("Attention source returned duplicate candidate keys.");
     } catch (error) {
       await saveAttentionCandidates(store, rule, [], now, true);
       await report(error);
