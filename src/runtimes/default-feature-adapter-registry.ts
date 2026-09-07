@@ -1,3 +1,4 @@
+import { createAttentionFeatureRegistryEntry } from "./feature-adapters/attention-feature-adapters.js";
 import type { FileAlarmStoreDependencies } from "../adapters/local/file-alarm-store.js";
 import type { FileWeatherWatchStoreDependencies } from "../adapters/local/file-weather-watch-store.js";
 import type { FileTaskStoreDependencies } from "../adapters/local/file-task-store.js";
@@ -15,6 +16,10 @@ import type { FeatureAdapterRegistry } from "./feature-adapter-registry.js";
 import { createBriefingFeatureRegistryEntry } from "./feature-adapters/briefing-feature-adapters.js";
 
 interface DefaultFeatureAdapterRegistryOptions {
+  attention?: {
+    configDirectory?: string;
+    notificationDelivery?: NotificationDeliveryPort;
+  };
   briefing?: {
     configDirectory?: string;
     notificationDelivery?: NotificationDeliveryPort;
@@ -54,6 +59,7 @@ export function createDefaultFeatureAdapterRegistry(
   options: DefaultFeatureAdapterRegistryOptions = {},
 ): FeatureAdapterRegistry {
   return {
+    attention: createAttentionFeatureRegistryEntry(options.attention),
     briefing: createBriefingFeatureRegistryEntry(options.briefing),
     alarms: createAlarmFeatureRegistryEntry({
       ...options.alarms?.store,
@@ -118,6 +124,7 @@ export function createRuntimeFeatureAdapterRegistry(dependencies: {
   };
 
   return createDefaultFeatureAdapterRegistry({
+    attention: localStateDependencies,
     briefing: localStateDependencies,
     alarms: localStateDependencies,
     calendar: { env: dependencies.env, fetch: dependencies.fetch },

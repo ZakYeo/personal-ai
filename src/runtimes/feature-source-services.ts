@@ -1,3 +1,4 @@
+import type { AttentionStore } from "../ports/attention.js";
 import type { BriefingStore } from "../ports/briefing.js";
 import type { AlarmStore } from "../ports/alarm-store.js";
 import type { CalendarSearchPort } from "../ports/calendar.js";
@@ -19,3 +20,6 @@ export const weatherProviderService =
 
 export const briefingStoreService =
   defineRuntimeServiceToken<BriefingStore>("briefing store");
+
+export const attentionStoreService =
+  defineRuntimeServiceToken<AttentionStore>("attention store");
