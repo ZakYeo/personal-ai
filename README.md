@@ -653,7 +653,8 @@ Common development commands:
 - `npm run test:e2e:openai:weather` - run the focused opt-in live OpenAI
   weather-routing, clothing-adviser, and Open-Meteo ranked-location smoke; requires
   `OPENAI_API_KEY`.
-- `npm run test:coverage` - run Vitest once with V8 coverage thresholds.
+- `npm run test:coverage` - run Vitest once with V8 coverage thresholds. CI
+  publishes this as an advisory report; it does not replace the full check gate.
 - `npm run lint` - run ESLint.
 - `npm run format:check` - check Prettier formatting.
 - `npm run typecheck` - run TypeScript without emitting files.

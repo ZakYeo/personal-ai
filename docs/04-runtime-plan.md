@@ -632,6 +632,17 @@ it does not certify unrelated write permissions. Failed reads show degraded,
 missing expected readers show unchecked, and enabled integrations without a
 reader show configured. The strict desktop protocol includes a safe last-check
 label; upgrade service and desktop together.
+
+Application CI runs `npm run check` on Ubuntu with pinned Node, Rust, and
+Semgrep, GTK/WebKit development packages, and Playwright Chromium dependencies.
+The runner needs loopback sockets for authenticated IPC and browser tests; it
+must not use a sandbox that denies those binds. A separate advisory coverage job
+publishes V8 reports. Repository branch protection should require
+`Application / confidence` and `Desktop Windows / native-shell` after their
+first successful runs, using GitHub's exact displayed check names. Coverage is
+not a required status. Workflow configuration is committed here; hosted run
+results and branch-protection settings must be verified in GitHub. Live provider
+tests and real microphone/latency measurements remain explicit opt-in work.
 Planned proactive attention contributes
 separate user-enabled typed rules with durable evaluation slots, quiet hours,
 cooling-off periods, budgets, and deduplication. Neither background path may ask
