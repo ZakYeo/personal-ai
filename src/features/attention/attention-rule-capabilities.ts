@@ -35,7 +35,7 @@ export const attentionRuleParameters = {
 } as const satisfies FeatureCapabilityParameters;
 type CommonArgs = FeatureArgsFromParameters<typeof attentionRuleParameters>;
 
-export function attentionRuleInput(
+function attentionRuleInput(
   args: CommonArgs,
   definition: AttentionRuleDefinition,
   context: AssistantContext,
