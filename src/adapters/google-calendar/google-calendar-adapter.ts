@@ -16,6 +16,7 @@ import {
   parseGoogleCalendarEvents,
 } from "./google-calendar-events-parser.js";
 import { GoogleCalendarError } from "./google-calendar-error.js";
+import { fetchGoogleCalendarLocalDayEvents } from "./google-calendar-local-day.js";
 
 export { GoogleCalendarError } from "./google-calendar-error.js";
 
@@ -62,6 +63,14 @@ async function searchEvents(
 ): Promise<CalendarEvent[]> {
   const accessToken = await resolveAccessToken(options);
 
+  if (criteria.localDay)
+    return fetchGoogleCalendarLocalDayEvents({
+      accessToken,
+      config: options.config,
+      criteria,
+      fetch: options.fetch,
+      now: searchOptions.now,
+    });
   return parseGoogleCalendarEvents(
     await fetchGoogleCalendarEvents({
       accessToken,

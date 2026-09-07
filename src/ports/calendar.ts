@@ -23,6 +23,8 @@ export interface CalendarSearchPort {
 }
 
 export interface CalendarSearchCriteria {
+  /** Select event starts in this local day, including date-only events. */
+  localDay?: { date: string; timeZone: string };
   endDate?: string;
   query?: string;
   startDate?: string;

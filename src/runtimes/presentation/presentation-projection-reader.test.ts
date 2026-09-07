@@ -110,7 +110,7 @@ describe("presentation projection reader", () => {
       "completed · due 5 Sept",
     ]);
     expect(searchEvents).toHaveBeenCalledWith(
-      { startDate: "2026-09-04", endDate: "2026-09-06" },
+      { localDay: { date: "2026-09-05", timeZone: "Europe/London" } },
       { now: new Date("2026-09-04T23:45:00Z") },
     );
   });

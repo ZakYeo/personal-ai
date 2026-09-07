@@ -4,6 +4,7 @@ import type {
 } from "../../ports/presentation.js";
 import type { ProfileFact } from "../../ports/profile-store.js";
 import type { TaskRecord } from "../../ports/task-store.js";
+import { calendarLocalDayWindow } from "../../application/calendar-local-day.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
 import {
   alarmStoreService,
@@ -23,6 +24,10 @@ export async function readPresentationProjection(options: {
   ) => readonly PresentationProfileItem[];
 }): Promise<AssistantPresentationProjection> {
   const day = localDate(options.now, options.config.assistant.timeZone);
+  const calendarCriteria = {
+    localDay: { date: day, timeZone: options.config.assistant.timeZone },
+  };
+  const calendarWindow = calendarLocalDayWindow(calendarCriteria)!;
   const [alarmRead, calendarRead, profileRead, taskRead] = await Promise.all([
     readSource(
       options.services.get(alarmStoreService),
@@ -32,10 +37,7 @@ export async function readPresentationProjection(options: {
     readSource(
       options.services.get(calendarSearchService),
       (calendar) =>
-        calendar.searchEvents(
-          { endDate: adjacentDay(day, 1), startDate: adjacentDay(day, -1) },
-          { now: options.now },
-        ),
+        calendar.searchEvents(calendarCriteria, { now: options.now }),
       options,
     ),
     readSource(
@@ -65,15 +67,7 @@ export async function readPresentationProjection(options: {
   }));
   const today = [
     ...calendarRead.value
-      .filter(
-        (event) =>
-          (event.startAt
-            ? localDate(
-                new Date(event.startAt),
-                options.config.assistant.timeZone,
-              )
-            : event.startDate) === day,
-      )
+      .filter(calendarWindow.matches)
       .map(
         (event) =>
           `${event.startAt ? renderDateTime(event.startAt, options.config.assistant.timeZone) : "All day"} · ${event.title}`,
@@ -183,12 +177,6 @@ function renderDate(value: string): string {
         month: "short",
         timeZone: "UTC",
       }).format(parsed);
-}
-
-function adjacentDay(day: string, offset: number): string {
-  return new Date(Date.parse(`${day}T12:00:00Z`) + offset * 86_400_000)
-    .toISOString()
-    .slice(0, 10);
 }
 
 function taskPresentationStatus(task: TaskRecord, day: string): string {

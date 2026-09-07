@@ -3,6 +3,7 @@ import type {
   CalendarSearchCriteria,
   CalendarSearchPort,
 } from "../../ports/calendar.js";
+import { calendarLocalDayWindow } from "../../application/calendar-local-day.js";
 
 const calendarEvents: CalendarEvent[] = [
   {
@@ -42,6 +43,9 @@ function matchesCriteria(
   if (query && !event.title.toLowerCase().includes(query)) {
     return false;
   }
+
+  const localDay = calendarLocalDayWindow(criteria);
+  if (localDay) return localDay.matches(event);
 
   if (event.startDate < startDate) {
     return false;

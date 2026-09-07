@@ -622,8 +622,19 @@ briefing. Receipt persistence failures remain internal diagnostics without
 replaying output. Scheduled delivery retains its durable delivery-slot policy.
 The desktop Today projection filters calendar instants and scheduled alarms by
 the configured assistant timezone before rendering; date-only events and task
-due dates use their calendar day. Calendar reads include adjacent dates to
-cover timezone boundaries. Overdue, future, and undated tasks stay in the task
+due dates use their calendar day. Calendar reads declare the intended local day
+and timezone at the port. Google searches an adjacent-date discovery envelope
+to include date-only events from differently configured calendar timezones,
+then applies the canonical local-day predicate before retaining results.
+It follows at most five validated pages of at most fifty rows each (also bounded
+by the configured result limit), including empty pages with a continuation token.
+Repeated or invalid tokens, duplicate events, or an exhausted page budget fail
+the source read and report degraded health instead of claiming an empty day.
+Timed-event filtering uses exact exclusive local-midnight bounds across DST.
+Google's event-list lower bound filters event end rather than start, so merely
+tightening request timestamps cannot replace filtered pagination; see the
+[Events.list contract](https://developers.google.com/workspace/calendar/api/v3/reference/events/list).
+Overdue, future, and undated tasks stay in the task
 view with explicit status labels; future alarms stay in the alarm view.
 Integration health distinguishes configured, connected, degraded, disabled, and
 unchecked. A successful narrow source read establishes connected status for that

@@ -1,14 +1,16 @@
 import type { CalendarSearchCriteria } from "../../ports/calendar.js";
+import { calendarLocalDayWindow } from "../../application/calendar-local-day.js";
 import { fetchProviderJson, trimTrailingSlash } from "../http-json-client.js";
 import type { GoogleCalendarConfig } from "./google-calendar-config.js";
 import { GoogleCalendarError } from "./google-calendar-error.js";
 
-interface FetchGoogleCalendarEventsOptions {
+export interface FetchGoogleCalendarEventsOptions {
   accessToken: string;
   config: GoogleCalendarConfig;
   criteria: CalendarSearchCriteria;
   fetch: typeof fetch;
   now: Date;
+  pageToken?: string;
 }
 
 export async function fetchGoogleCalendarEvents(
@@ -70,6 +72,7 @@ function createEventsUrl({
   config,
   criteria,
   now,
+  pageToken,
 }: FetchGoogleCalendarEventsOptions): string {
   const url = new URL(
     `${trimTrailingSlash(config.baseUrl)}/calendars/${encodeURIComponent(
@@ -85,13 +88,30 @@ function createEventsUrl({
 
   url.searchParams.set("singleEvents", "true");
   url.searchParams.set("orderBy", "startTime");
-  url.searchParams.set("timeMin", formatTimeMin(criteria.startDate, now));
+  const localDay = calendarLocalDayWindow(criteria);
+  // Date-only events use the calendar's timezone, which can differ from the
+  // assistant's. Discover adjacent dates, then paginate/filter before capping.
+  const dateStart = localDay
+    ? Date.parse(`${localDay.date}T00:00:00Z`)
+    : undefined;
+  url.searchParams.set(
+    "timeMin",
+    dateStart === undefined
+      ? formatTimeMin(criteria.startDate, now)
+      : new Date(dateStart - 86_400_000).toISOString(),
+  );
 
-  if (criteria.endDate) {
-    url.searchParams.set("timeMax", formatEndOfDay(criteria.endDate));
+  if (localDay || criteria.endDate) {
+    url.searchParams.set(
+      "timeMax",
+      dateStart === undefined
+        ? formatEndOfDay(criteria.endDate!)
+        : new Date(dateStart + 2 * 86_400_000).toISOString(),
+    );
   }
 
   url.searchParams.set("maxResults", String(config.maxResults));
+  if (pageToken) url.searchParams.set("pageToken", pageToken);
 
   return url.toString();
 }
