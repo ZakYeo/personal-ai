@@ -75,6 +75,7 @@ describe("createAssistant", () => {
         ],
         clock,
         config,
+        trustedInputText: "echo hello",
       },
     );
   });

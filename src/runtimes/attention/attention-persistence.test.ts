@@ -39,7 +39,9 @@ it("persists confirmed rules relative to the config file and reopens them after 
     ).toBe("needs_confirmation");
     await expect(readFile(statePath)).rejects.toMatchObject({ code: "ENOENT" });
     expect((await first.handleText("yes")).status).toBe("ok");
-    expect(await readFile(statePath, "utf8")).toContain("user_authored");
+    expect(await readFile(statePath, "utf8")).toContain(
+      "enable health attention named Delivery health",
+    );
     const restarted = await createConfiguredTextRuntime(options);
     expect(
       (await restarted.handleText("show my attention rules")).text,

@@ -63,7 +63,7 @@ export async function saveAttentionRule(
     args,
     definition,
     context,
-    context.trustedInputText ?? `Enable ${args.name}`,
+    context.trustedInputText ?? "",
   );
   const rule = await enableAttentionRule(store, input, context.clock.now());
   return {

@@ -176,11 +176,11 @@ export function createTrustedCommandContext(
   const publicReferences = resultReferences.publicReferences();
   return {
     ...context,
+    trustedInputText,
     ...(publicReferences.length > 0
       ? {
           selectResultReference: (request: ResultReferenceSelectionRequest) =>
             resultReferences.select({ ...request, referenceMatching }),
-          trustedInputText,
         }
       : {}),
   };
