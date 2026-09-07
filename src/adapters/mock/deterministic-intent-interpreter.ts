@@ -53,6 +53,29 @@ export class DeterministicIntentInterpreter implements IntentInterpreterPort {
       input.text,
       context,
     );
+    if (input.clarification.origin === "confirmation_correction") {
+      const steps = input.clarification.draft?.steps;
+      if (
+        steps?.length &&
+        normalizeCommandText(
+          input.text,
+          context.config.assistant.wakePhrases,
+        ) ===
+          normalizeCommandText(
+            input.clarification.originalText,
+            context.config.assistant.wakePhrases,
+          )
+      ) {
+        const commands = steps.map((step) =>
+          createCommand(step.capability, input.text, {}),
+        );
+        return commands.length === 1
+          ? { kind: "command", command: commands[0]! }
+          : { kind: "plan", plan: { commands } };
+      }
+      if (directInterpretation.kind !== "unknown")
+        return { kind: "replacement" };
+    }
     if (directInterpretation.kind !== "unknown") {
       return directInterpretation;
     }

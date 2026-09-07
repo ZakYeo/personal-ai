@@ -20,6 +20,56 @@ const context: AssistantContext = {
 };
 
 describe("DeterministicIntentInterpreter", () => {
+  it.each([
+    {
+      reply: "Hey Jarvis, prepare",
+      expected: {
+        kind: "command",
+        command: { capability: "test.action", parameters: {} },
+      },
+    },
+    { reply: "list", expected: { kind: "replacement" } },
+  ])(
+    "classifies a prepared-action reply without rebasing its facts: $reply",
+    async ({ reply, expected }) => {
+      const interpreter = new DeterministicIntentInterpreter([
+        {
+          capability: "test.action",
+          match: (text) => (text === "prepare" ? { label: "Tea" } : undefined),
+        },
+        {
+          capability: "test.list",
+          match: (text) => (text === "list" ? {} : undefined),
+        },
+      ]);
+      const session = interpreter.start("prepare", context);
+      await session.next();
+      await expect(
+        session.next({
+          kind: "user_reply",
+          text: reply,
+          clarification: {
+            capability: "test.action",
+            origin: "confirmation_correction",
+            originalText: "prepare",
+            prompt: "Approve?",
+            session: "resume",
+            draft: {
+              capability: "test.action",
+              parameters: { label: "Tea" },
+              missingParameters: [],
+              references: [],
+              expiresAt: "2026-06-26T09:05:00.000Z",
+              remainingReplies: 2,
+              steps: [
+                { capability: "test.action", parameters: { label: "Tea" } },
+              ],
+            },
+          },
+        }),
+      ).resolves.toMatchObject(expected);
+    },
+  );
   it("provides case-preserving command text to feature rules", async () => {
     const interpreter = new DeterministicIntentInterpreter([
       {
