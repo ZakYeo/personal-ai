@@ -49,6 +49,8 @@ export function createPresentationClientSession(options: {
   readonly token: string;
 }): PresentationClientSession {
   let authenticated = false;
+  let closed = false;
+  let outstandingControls = 0;
   let controlWindowStartedAt = 0;
   let controlsInWindow = 0;
   let controlQueue = Promise.resolve();
@@ -59,6 +61,7 @@ export function createPresentationClientSession(options: {
   authenticationTimer.unref();
 
   options.socket.on("message", (raw, isBinary) => {
+    if (closed) return;
     if (isBinary) return closeWithError(options.socket, "invalid_message");
     const parsed = parseJson(rawDataToText(raw));
     if (!authenticated) {
@@ -68,6 +71,8 @@ export function createPresentationClientSession(options: {
     receiveControl(parsed);
   });
   options.socket.on("close", () => {
+    closed = true;
+    authenticated = false;
     options.clearTimer(authenticationTimer);
     options.onClosed();
   });
@@ -106,23 +111,36 @@ export function createPresentationClientSession(options: {
   }
 
   function receiveControl(value: unknown): void {
-    if (!withinControlRateLimit()) {
-      sendError(options.socket, "rate_limited");
-      return;
-    }
     const control = parsePresentationControl(value);
     if (!control) {
       sendError(options.socket, "invalid_message");
       return;
     }
-    controlQueue = controlQueue.then(() =>
-      handleControl(
-        options.socket,
-        control,
-        options.handleControl,
-        options.reportFailure,
-      ),
-    );
+    if (!withinControlRateLimit() || outstandingControls >= 10) {
+      sendJson(options.socket, {
+        type: "control_result",
+        protocolVersion: presentationProtocolVersion,
+        requestId: control.requestId,
+        status: "rejected",
+        message: "Presentation controls are busy. Please try again later.",
+      });
+      return;
+    }
+    outstandingControls += 1;
+    const queued = controlQueue
+      .then(async () => {
+        if (closed || options.socket.readyState !== WebSocket.OPEN) return;
+        await handleControl(
+          options.socket,
+          control,
+          options.handleControl,
+          options.reportFailure,
+        );
+      })
+      .finally(() => {
+        outstandingControls -= 1;
+      });
+    controlQueue = queued.catch(() => {});
   }
 
   function withinControlRateLimit(): boolean {
@@ -152,7 +170,11 @@ export function createPresentationClientSession(options: {
   }
 
   const session: PresentationClientSession = {
-    close: () => options.socket.terminate(),
+    close: () => {
+      closed = true;
+      authenticated = false;
+      options.socket.terminate();
+    },
     isAuthenticated: () => authenticated,
     sendEvent,
     sendProjection,

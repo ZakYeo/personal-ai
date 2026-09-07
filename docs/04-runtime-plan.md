@@ -348,6 +348,10 @@ buttons; conflicting profile controls return a safe busy result. Continuation
 ownership is specific to each prompt, so an old voice capture cannot consume
 a newer prompt opened by a desktop reply. Required typed follow-ups remain
 pending rather than being presented as completed interactions.
+Authenticated IPC admits at most ten outstanding controls per session, in
+addition to its arrival-rate limit. Overload receives a correlated safe
+rejection. Disconnect or shutdown discards controls that have not started;
+already-started operations retain their outcome without claiming rollback.
 
 ### Raspberry Pi Runtime
 

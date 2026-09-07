@@ -7,6 +7,72 @@ import { emptyAssistantPresentationProjection } from "../../application/presenta
 const token = "a-secure-presentation-token-with-32-characters";
 
 describe("presentation websocket server", () => {
+  it.each(["disconnect", "shutdown"])(
+    "discards unstarted controls after %s",
+    async (exit) => {
+      const started: string[] = [];
+      let finish: (() => void) | undefined;
+      const pending = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      const server = await startPresentationWebSocketServer({
+        eventStream: createStream(),
+        port: 0,
+        token,
+        handleControl: async (control) => {
+          started.push(control.requestId);
+          await pending;
+          return { status: "accepted" };
+        },
+      });
+      const client = await authenticatedClient(server.port);
+      client.send(controlMessage("first"));
+      client.send(controlMessage("queued"));
+      await vi.waitFor(() => expect(started).toEqual(["first"]));
+      if (exit === "shutdown") await server.stop();
+      else {
+        client.close();
+        await closed(client);
+      }
+      finish?.();
+      await new Promise<void>((resolve) => setTimeout(resolve, 20));
+      expect(started).toEqual(["first"]);
+      if (exit !== "shutdown") await server.stop();
+    },
+  );
+
+  it("bounds outstanding controls independently of their arrival rate", async () => {
+    let time = 0;
+    let finish: (() => void) | undefined;
+    const pending = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const server = await startPresentationWebSocketServer({
+      eventStream: createStream(),
+      port: 0,
+      token,
+      now: () => (time += 1_001),
+      handleControl: async () => {
+        await pending;
+        return { status: "accepted" };
+      },
+    });
+    const client = await authenticatedClient(server.port);
+    const messages = collectMessages(client);
+    for (let index = 0; index < 11; index += 1)
+      client.send(controlMessage(`request-${index}`));
+    try {
+      expect(await messages.next()).toMatchObject({
+        type: "control_result",
+        requestId: "request-10",
+        status: "rejected",
+      });
+    } finally {
+      client.close();
+      finish?.();
+      await server.stop();
+    }
+  });
   it("authenticates before returning a snapshot and streams later events", async () => {
     const stream = createStream();
     const projections = createPresentationProjectionStream();
