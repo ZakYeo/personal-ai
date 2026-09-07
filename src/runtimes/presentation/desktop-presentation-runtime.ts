@@ -48,6 +48,7 @@ export function createDesktopPresentationRuntime(options: {
   readonly createInstanceId?: () => string;
   readonly env: Record<string, string | undefined>;
   readonly io?: VoiceRuntimeIo;
+  readonly interruptVoice?: () => Promise<void>;
   readonly now: () => Date;
   readonly projectionRefreshIntervalMs?: number;
   readonly readProjection?: typeof readPresentationProjection;
@@ -160,6 +161,9 @@ export function createDesktopPresentationRuntime(options: {
           eventStream,
           ...(options.io ? { io: options.io } : {}),
           presentation,
+          ...(options.interruptVoice
+            ? { interruptVoice: options.interruptVoice }
+            : {}),
           ...(profileControl
             ? {
                 profileControl: profileControl.handle,

@@ -364,8 +364,14 @@ cancellation. Pausing follow-up capture restores the already-retained confirmati
 or clarification prompt, while a voice callback whose continuation was claimed
 by the UI cannot change that UI-owned state. Neutral service-turn metadata
 excludes cancelled activations from the completed-turn count; this does not erase
-completed feature actions from their canonical stores or conversation history. Public stop and barge-in controls
-are added in subsequent Milestone 19 slices.
+completed feature actions from their canonical stores or conversation history.
+The desktop overlay's explicit Stop voice control cancels the active voice turn
+and all currently admitted output together, awaiting both cleanup boundaries.
+It does not decline a pending action or cancel unrelated typed work. The service
+then returns to normal wake listening. Repeated concurrent stop requests share
+one interruption operation; cleanup failures retain internal diagnostics and
+produce a safe rejected control result. Spoken stop and barge-in are added in
+subsequent Milestone 19 slices.
 
 #### Native shell decision
 
@@ -413,8 +419,10 @@ buttons; conflicting profile controls return a safe busy result. Continuation
 ownership is specific to each prompt, so an old voice capture cannot consume
 a newer prompt opened by a desktop reply. Required typed follow-ups remain
 pending rather than being presented as completed interactions.
-Authenticated IPC admits at most ten outstanding controls per session, in
-addition to its arrival-rate limit. Overload receives a correlated safe
+Authenticated IPC admits at most ten outstanding controls per session: nine
+ordinary controls and one reserved voice stop. Stop bypasses the ordinary queue
+while retaining authentication, validation, arrival-rate limits, and correlated
+results; a second outstanding stop is rejected. Overload receives a safe
 rejection. Disconnect or shutdown discards controls that have not started;
 already-started operations retain their outcome without claiming rollback.
 Profile projections carry process-local opaque references separate from their

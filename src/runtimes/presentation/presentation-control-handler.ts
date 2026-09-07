@@ -20,6 +20,7 @@ interface PresentationControlContext {
   readonly assistant: Assistant;
   readonly eventStream: AssistantRuntimeEventStream;
   readonly io?: VoiceRuntimeIo;
+  readonly interruptVoice?: () => Promise<void>;
   readonly presentation: PresentationInteractionCoordinator;
   readonly profileControl?: (
     control: Extract<
@@ -40,10 +41,13 @@ export function createPresentationControlHandler(
       case "dismiss_overlay":
         return { status: "accepted" };
       case "stop_listening":
-        return {
-          message: "Voice interruption is not available yet.",
-          status: "rejected",
-        };
+        if (!options.interruptVoice)
+          return {
+            message: "Voice interruption is unavailable in this service.",
+            status: "rejected",
+          };
+        await options.interruptVoice();
+        return { status: "accepted" };
       case "submit_text":
         return handleTextControl(options, control.text);
       case "profile_explain":

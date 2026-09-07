@@ -10,6 +10,7 @@ export interface DesktopAppViewModel {
   readonly confirm: (interactionId: string) => void;
   readonly decline: (interactionId: string) => void;
   readonly dismissOverlay: () => void;
+  readonly stopVoice: () => void;
   readonly getSnapshot: () => DesktopAppViewState;
   readonly openSource: (sourceId: string) => void;
   readonly correctProfileFact: (id: string, field: string) => void;
@@ -92,6 +93,8 @@ export function createDesktopAppViewModel(options: {
         value,
       });
     },
+    stopVoice: () =>
+      dispatch({ requestId: requestId(), type: "stop_listening" }),
     dismissOverlay: () => {
       void options.host.hideCurrentWindow().catch(showSafeControlFailure);
       dispatch({ requestId: requestId(), type: "dismiss_overlay" });

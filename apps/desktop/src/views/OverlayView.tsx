@@ -6,6 +6,7 @@ interface OverlayViewIntents {
   readonly confirm: (interactionId: string) => void;
   readonly decline: (interactionId: string) => void;
   readonly dismiss: () => void;
+  readonly stopVoice: () => void;
   readonly openSource: (sourceId: string) => void;
 }
 
@@ -67,11 +68,12 @@ export function OverlayView(properties: {
           label={state.connectionLabel}
           state={state.connectionState}
         />
-        {state.phase === "listening" ? (
-          <small className="deferred-control">
-            Voice stop arrives with interruption support.
-          </small>
-        ) : null}
+        <button
+          disabled={state.connectionState !== "connected"}
+          onClick={intents.stopVoice}
+        >
+          Stop voice
+        </button>
         <button className="quiet-button" onClick={intents.dismiss}>
           Hide
         </button>

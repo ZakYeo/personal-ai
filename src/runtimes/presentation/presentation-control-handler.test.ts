@@ -4,6 +4,42 @@ import { createPresentationControlHandler } from "./presentation-control-handler
 import { createPresentationInteractionCoordinator } from "./presentation-interaction-coordinator.js";
 
 describe("presentation control handler", () => {
+  it("awaits voice interruption without interpreting a command or discarding confirmation", async () => {
+    const handled: string[] = [];
+    const eventStream = createStream();
+    const presentation = createCoordinator(eventStream);
+    const interaction = presentation.beginInteraction();
+    interaction.processing();
+    interaction.confirmation("Approve the exact action?");
+    let finish = () => {};
+    const interruptVoice = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const handle = createPresentationControlHandler({
+      assistant: createAssistant(handled),
+      eventStream,
+      presentation,
+      interruptVoice,
+    });
+    let settled = false;
+    const result = handle({ requestId: "stop", type: "stop_listening" }).then(
+      (value) => {
+        settled = true;
+        return value;
+      },
+    );
+    await Promise.resolve();
+    expect(interruptVoice).toHaveBeenCalledOnce();
+    expect(settled).toBe(false);
+    finish();
+    await expect(result).resolves.toEqual({ status: "accepted" });
+    expect(handled).toEqual([]);
+    expect(eventStream.snapshot().interaction?.phase).toBe("confirmation");
+  });
+
   it.each(["yes", "no", "change the label"])(
     "admits typed continuation %s and invalidates voice capture",
     async (text) => {
@@ -134,7 +170,7 @@ describe("presentation control handler", () => {
     await expect(
       handle({ requestId: "request-4", type: "stop_listening" }),
     ).resolves.toEqual({
-      message: "Voice interruption is not available yet.",
+      message: "Voice interruption is unavailable in this service.",
       status: "rejected",
     });
     expect(handled).toEqual(["Hello"]);

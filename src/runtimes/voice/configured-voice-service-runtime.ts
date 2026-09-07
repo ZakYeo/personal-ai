@@ -1,3 +1,4 @@
+import { createVoiceInterruption } from "./voice-interruption.js";
 import { createVoiceTurnController } from "./voice-turn-controller.js";
 import { createServiceFailureBoundary } from "../service/service-failure-boundary.js";
 import type { ConfiguredTextRuntimeOptions } from "../configured-text-runtime.js";
@@ -99,6 +100,10 @@ export function runConfiguredVoiceServiceRuntime(
   const presentationRuntime = options.desktopPresentation
     ? createDesktopPresentationRuntime({
         env,
+        interruptVoice: createVoiceInterruption(
+          turnController,
+          outputCoordinator,
+        ),
         ...(options.io ? { io: options.io } : {}),
         now: options.now ?? (() => new Date()),
       })

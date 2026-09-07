@@ -51,6 +51,7 @@ export function createPresentationClientSession(options: {
   let authenticated = false;
   let closed = false;
   let outstandingControls = 0;
+  let interruptionPending = false;
   let controlWindowStartedAt = 0;
   let controlsInWindow = 0;
   let controlQueue = Promise.resolve();
@@ -116,7 +117,11 @@ export function createPresentationClientSession(options: {
       sendError(options.socket, "invalid_message");
       return;
     }
-    if (!withinControlRateLimit() || outstandingControls >= 10) {
+    const interruption = control.type === "stop_listening";
+    if (
+      !withinControlRateLimit() ||
+      (interruption ? interruptionPending : outstandingControls >= 9)
+    ) {
       sendJson(options.socket, {
         type: "control_result",
         protocolVersion: presentationProtocolVersion,
@@ -126,8 +131,9 @@ export function createPresentationClientSession(options: {
       });
       return;
     }
-    outstandingControls += 1;
-    const queued = controlQueue
+    if (interruption) interruptionPending = true;
+    else outstandingControls += 1;
+    const queued = (interruption ? Promise.resolve() : controlQueue)
       .then(async () => {
         if (closed || options.socket.readyState !== WebSocket.OPEN) return;
         await handleControl(
@@ -138,9 +144,11 @@ export function createPresentationClientSession(options: {
         );
       })
       .finally(() => {
-        outstandingControls -= 1;
+        if (interruption) interruptionPending = false;
+        else outstandingControls -= 1;
       });
-    controlQueue = queued.catch(() => {});
+    const settled = queued.catch(() => {});
+    if (!interruption) controlQueue = settled;
   }
 
   function withinControlRateLimit(): boolean {

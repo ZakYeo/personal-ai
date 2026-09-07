@@ -77,6 +77,21 @@ function createHost(sendFails = false) {
 }
 
 describe("desktop application", () => {
+  it("dispatches an explicit voice stop without confirming or declining a pending action", async () => {
+    const { controls, host } = createHost();
+    const viewModel = createDesktopAppViewModel({
+      host,
+      initialState: state,
+      mode: "overlay",
+    });
+    render(<AppView viewModel={viewModel} />);
+    await userEvent.click(screen.getByRole("button", { name: "Stop voice" }));
+    expect(controls).toEqual([
+      expect.objectContaining({ type: "stop_listening" }),
+    ]);
+    expect(screen.getByText("Set an alarm for 11am?")).toBeVisible();
+  });
+
   it("renders exact confirmation controls in the compact overlay", async () => {
     const { controls, host } = createHost();
     const viewModel = createDesktopAppViewModel({

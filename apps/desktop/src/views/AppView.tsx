@@ -25,6 +25,7 @@ export function AppView({
         confirm: viewModel.confirm,
         decline: viewModel.decline,
         dismiss: viewModel.dismissOverlay,
+        stopVoice: viewModel.stopVoice,
         openSource: viewModel.openSource,
       }}
       state={state.overlay}

@@ -7,6 +7,59 @@ import { emptyAssistantPresentationProjection } from "../../application/presenta
 const token = "a-secure-presentation-token-with-32-characters";
 
 describe("presentation websocket server", () => {
+  it.each([1, 9])(
+    "admits one stop independently of %s blocked ordinary controls",
+    async (count) => {
+      const started: string[] = [];
+      let finish = () => {};
+      const pending = new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+      const server = await startPresentationWebSocketServer({
+        eventStream: createStream(),
+        port: 0,
+        token,
+        handleControl: async (control) => {
+          started.push(control.requestId);
+          await pending;
+          return { status: "accepted" };
+        },
+      });
+      const client = await authenticatedClient(server.port);
+      const messages = collectMessages(client);
+      try {
+        for (let index = 0; index < count; index += 1)
+          client.send(
+            controlMessage(index === 0 ? "ordinary" : `queued-${index}`),
+          );
+        client.send(
+          JSON.stringify({
+            protocolVersion: 1,
+            requestId: "stop",
+            type: "stop_listening",
+          }),
+        );
+        await vi.waitFor(() => expect(started).toEqual(["ordinary", "stop"]));
+        client.send(
+          JSON.stringify({
+            protocolVersion: 1,
+            requestId: "duplicate-stop",
+            type: "stop_listening",
+          }),
+        );
+        expect(await messages.next()).toMatchObject({
+          requestId: "duplicate-stop",
+          status: "rejected",
+        });
+        expect(started).toEqual(["ordinary", "stop"]);
+      } finally {
+        finish();
+        client.close();
+        await server.stop();
+      }
+    },
+  );
+
   it.each(["disconnect", "shutdown"])(
     "discards queued controls after %s",
     async (exit) => {
@@ -59,12 +112,12 @@ describe("presentation websocket server", () => {
     });
     const client = await authenticatedClient(server.port);
     const messages = collectMessages(client);
-    for (let index = 0; index < 11; index += 1)
+    for (let index = 0; index < 10; index += 1)
       client.send(controlMessage(`request-${index}`));
     try {
       expect(await messages.next()).toMatchObject({
         type: "control_result",
-        requestId: "request-10",
+        requestId: "request-9",
         status: "rejected",
       });
     } finally {
