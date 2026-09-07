@@ -118,7 +118,7 @@ describe("configured clarification transitions", () => {
     await expect(assistant.handleText("Set an alarm")).resolves.toEqual({
       expectsFollowUp: true,
       status: "ok",
-      text: "What time?",
+      text: "What time should I use for the alarm?",
     });
     await expect(
       assistant.handleText("What are your capabilities?"),

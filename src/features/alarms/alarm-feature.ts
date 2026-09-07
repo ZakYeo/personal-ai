@@ -1,5 +1,9 @@
 import type { AssistantContext } from "../../ports/assistant.js";
-import { prepareAlarmTime, resolveAlarmTime } from "./alarm-time.js";
+import {
+  prepareAlarmTime,
+  resolveAlarmTime,
+  requestAlarmTimeClarification,
+} from "./alarm-time.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
 import { defineCapability, defineFeature } from "../../application/feature.js";
 import { defineDeterministicFeatureRules } from "../../application/deterministic-feature-rules.js";
@@ -76,6 +80,7 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
           requiresConfirmation: true,
           parameters: alarmCreateParameters,
           prepare: prepareAlarmTime,
+          clarification: requestAlarmTimeClarification,
           confirmation: (args, context) => {
             const scheduledFor = resolveAlarmTime(args, context);
             const label = args.label ?? "alarm";
@@ -151,6 +156,7 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
           requiresConfirmation: true,
           parameters: alarmRescheduleParameters,
           prepare: prepareAlarmTime,
+          clarification: requestAlarmTimeClarification,
           confirmation: (args, context) => {
             const scheduledFor = resolveAlarmTime(args, context);
             return {

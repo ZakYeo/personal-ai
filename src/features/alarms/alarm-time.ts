@@ -1,9 +1,19 @@
-import type { AssistantContext } from "../../ports/assistant.js";
+import type {
+  AssistantContext,
+  AssistantResponse,
+} from "../../ports/assistant.js";
 import { isCanonicalIsoTimestamp } from "../../application/temporal-policy.js";
 
 interface AlarmTimeInput {
   minutesFromNow?: number;
   scheduledFor?: string;
+}
+
+export function requestAlarmTimeClarification(
+  args: AlarmTimeInput,
+): AssistantResponse | undefined {
+  if (args.minutesFromNow === undefined && args.scheduledFor === undefined)
+    return { status: "ok", text: "What time should I use for the alarm?" };
 }
 
 export function resolveAlarmTime(
