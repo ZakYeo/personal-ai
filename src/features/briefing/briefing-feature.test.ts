@@ -8,6 +8,20 @@ import {
 import { createBriefingFeature } from "./briefing-feature.js";
 
 describe("briefing feature", () => {
+  it("keeps briefing generation out of intermediate tool reads", () => {
+    const feature = createBriefingFeature(
+      createDailyBriefingAggregator([]),
+      createInMemoryBriefingStore({
+        now: () => new Date("2026-09-04T07:00:00Z"),
+        timeZone: "Europe/London",
+      }),
+    );
+    expect(
+      feature.capabilities.find(
+        (capability) => capability.name === "briefing.get_daily",
+      )?.toolChain,
+    ).toBeUndefined();
+  });
   it("routes deterministic briefing management requests without also fetching a briefing", () => {
     const feature = createBriefingFeature(
       createDailyBriefingAggregator([]),

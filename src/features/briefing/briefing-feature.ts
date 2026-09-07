@@ -40,7 +40,6 @@ export function createBriefingFeature(
           risk: "low",
           spokenSummary: "get a concise daily briefing",
           summary: "Get today's configured daily briefing.",
-          toolChain: "read",
         }),
         ...createBriefingPreferenceCapabilities(store),
       },
@@ -125,6 +124,5 @@ async function getDailyBriefing(
       timeZone: result.snapshot.timeZone,
     },
     text: result.text,
-    toolObservationData: { briefingCreatedAt: result.snapshot.createdAt },
   };
 }
