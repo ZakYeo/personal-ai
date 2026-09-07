@@ -19,6 +19,7 @@ import {
 import { createPresentationProjectionStream } from "./presentation-projection-stream.js";
 import { readPresentationProjection } from "./presentation-projection-reader.js";
 import { profileStoreService } from "../profile-runtime-services.js";
+import { createPresentationRefresh } from "./presentation-refresh.js";
 
 type PresentationServerStarterOptions = Parameters<
   typeof startPresentationWebSocketServer
@@ -80,8 +81,7 @@ export function createDesktopPresentationRuntime(options: {
   let interactions: AssistantPresentationProjection["interactions"] = [];
   let sources: AssistantPresentationProjection["sources"] = [];
   let timeZone = "UTC";
-  let refreshProjection: (() => Promise<void>) | undefined;
-  let refreshQueue = Promise.resolve();
+  let refresh: ReturnType<typeof createPresentationRefresh> | undefined;
   let refreshTimer: NodeJS.Timeout | undefined;
   eventStream.subscribe((event) => {
     if (event.type === "response_ready") sources = event.citations ?? [];
@@ -108,7 +108,7 @@ export function createDesktopPresentationRuntime(options: {
       ].slice(0, 50);
     }
     publishProjection();
-    void enqueueProjectionRefresh();
+    void refresh?.request();
   });
   let server: PresentationWebSocketServer | undefined;
   let startAttempted = false;
@@ -121,29 +121,28 @@ export function createDesktopPresentationRuntime(options: {
     ) {
       if (startAttempted) return;
       startAttempted = true;
-      if (context) {
-        timeZone = context.config.assistant.timeZone;
-        refreshProjection = () =>
-          (options.readProjection ?? readPresentationProjection)({
-            config: context.config,
-            now: options.now(),
-            reportFailure: (error) =>
-              logRuntimeFailure(error, options.io ?? {}),
-            services: context.services,
-          }).then((projection) => {
-            baseProjection = projection;
-            publishProjection();
-          });
-        await enqueueProjectionRefresh();
-        refreshTimer = (options.setRefreshTimer ?? setInterval)(
-          () => void enqueueProjectionRefresh(),
-          options.projectionRefreshIntervalMs ?? 30_000,
-        );
-        refreshTimer.unref();
-      }
       const port = parsePresentationPort(
         options.env.PERSONAL_AI_PRESENTATION_PORT,
       );
+      if (context) {
+        timeZone = context.config.assistant.timeZone;
+        refresh = createPresentationRefresh({
+          read: () =>
+            (options.readProjection ?? readPresentationProjection)({
+              config: context.config,
+              now: options.now(),
+              reportFailure: (error) =>
+                logRuntimeFailure(error, options.io ?? {}),
+              services: context.services,
+            }),
+          publish: (projection) => {
+            baseProjection = projection;
+            publishProjection();
+          },
+          reportFailure: (error) => logRuntimeFailure(error, options.io ?? {}),
+        });
+        await refresh.request();
+      }
       const profileStore = context?.services.get(profileStoreService);
       server = await (options.startServer ?? startPresentationWebSocketServer)({
         eventStream,
@@ -166,13 +165,20 @@ export function createDesktopPresentationRuntime(options: {
         reportFailure: (error) => logRuntimeFailure(error, options.io ?? {}),
         token,
       });
+      if (refresh) {
+        refreshTimer = (options.setRefreshTimer ?? setInterval)(
+          () => void refresh?.request(),
+          options.projectionRefreshIntervalMs ?? 30_000,
+        );
+        refreshTimer.unref();
+      }
     },
     async stop() {
       if (refreshTimer) {
         (options.clearRefreshTimer ?? clearInterval)(refreshTimer);
         refreshTimer = undefined;
       }
-      await refreshQueue;
+      refresh?.stop();
       await server?.stop();
     },
   });
@@ -184,14 +190,6 @@ export function createDesktopPresentationRuntime(options: {
       interactions,
       sources,
     });
-  }
-
-  function enqueueProjectionRefresh(): Promise<void> {
-    if (!refreshProjection) return refreshQueue;
-    refreshQueue = refreshQueue
-      .then(refreshProjection)
-      .catch((error) => logRuntimeFailure(error, options.io ?? {}));
-    return refreshQueue;
   }
 }
 

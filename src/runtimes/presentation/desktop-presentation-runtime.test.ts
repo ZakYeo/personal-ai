@@ -59,19 +59,28 @@ describe("desktop presentation runtime", () => {
 
   it("rejects malformed configured ports before opening transport", async () => {
     const startServer = vi.fn();
+    const readProjection = vi.fn();
+    const setRefreshTimer = vi.fn();
     const runtime = createDesktopPresentationRuntime({
       env: {
         PERSONAL_AI_PRESENTATION_PORT: "70000",
         PERSONAL_AI_PRESENTATION_TOKEN: token,
       },
       now: () => new Date("2026-09-04T10:00:00.000Z"),
+      readProjection,
+      setRefreshTimer,
       startServer,
     });
 
-    await expect(runtime.start(createAssistant([]))).rejects.toThrow(
-      "Presentation port",
-    );
+    await expect(
+      runtime.start(createAssistant([]), {
+        config: createLoadedRuntimeConfig({}),
+        services: createRuntimeServiceRegistry([]),
+      }),
+    ).rejects.toThrow("Presentation port");
     expect(startServer).not.toHaveBeenCalled();
+    expect(readProjection).not.toHaveBeenCalled();
+    expect(setRefreshTimer).not.toHaveBeenCalled();
   });
 
   it("serially refreshes live command projections after background changes", async () => {

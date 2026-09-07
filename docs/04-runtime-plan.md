@@ -331,6 +331,13 @@ and the committed Windows workflow compiles, tests, and packages the native
 shell. `npm run desktop:native:test` and `npm run desktop:tauri:build` are the
 explicit native validation and packaging commands.
 
+Desktop projection refresh owns one read at a time and coalesces overlapping
+triggers. Startup waits at most five seconds for the initial projection; a
+timed-out read cannot publish stale results or accumulate further reads while
+it remains unsettled. Shutdown invalidates refresh publication and closes IPC
+without waiting for a stalled source. Refresh timers start only after the
+presentation server starts successfully, and port validation precedes reads.
+
 ### Raspberry Pi Runtime
 
 The Raspberry Pi runtime runs the assistant as a long-lived service process.
