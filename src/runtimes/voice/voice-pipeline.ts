@@ -95,9 +95,12 @@ async function runVoicePipelineActivation(
       }),
     );
 
+    instrumentation.mark("wake_detected");
     logWakeDetected(io);
 
     const presentationInteraction = presentation.beginInteraction();
+    if (io.presentation || io.progressOutput)
+      instrumentation.mark("local_feedback");
 
     return runPostWakeVoiceCommand(dependencies, io, {
       instrumentation,
@@ -136,9 +139,12 @@ async function runVoicePipelineActivation(
     };
   }
 
+  instrumentation.mark("wake_detected");
   logWakeDetected(io);
 
   const presentationInteraction = presentation.beginInteraction();
+  if (io.presentation || io.progressOutput)
+    instrumentation.mark("local_feedback");
 
   return runPostWakeVoiceCommand(dependencies, io, {
     instrumentation,
@@ -172,6 +178,7 @@ async function runPostWakeVoiceCommand(
           );
 
     if (metadata.initialCommandTranscript !== undefined) {
+      metadata.instrumentation.mark("first_transcript");
       metadata.presentationInteraction.transcriptFinal(commandTranscript.text);
     }
 
@@ -250,14 +257,20 @@ async function transcribeCommand(
 
     return instrumentation
       .measure("command transcription", () =>
-        speechToText.transcribeStream(audio, {
-          onTranscriptDelta: (delta) => {
-            io.progressOutput?.write(delta);
-            if (shouldPublish()) presentationInteraction.transcriptDelta(delta);
+        speechToText.transcribeStream(
+          { chunks: markStreamEnd(audio.chunks, instrumentation) },
+          {
+            onTranscriptDelta: (delta) => {
+              if (delta) instrumentation.mark("first_transcript");
+              io.progressOutput?.write(delta);
+              if (shouldPublish())
+                presentationInteraction.transcriptDelta(delta);
+            },
           },
-        }),
+        ),
       )
       .then((transcript) => {
+        instrumentation.mark("first_transcript");
         if (shouldPublish())
           presentationInteraction.transcriptFinal(transcript.text);
         return transcript;
@@ -269,11 +282,13 @@ async function transcribeCommand(
     () => dependencies.commandAudioInput.capture(),
   );
 
+  instrumentation.mark("capture_completed");
   return instrumentation
     .measure("command speech-to-text", () =>
       dependencies.speechToText.transcribe(commandAudio),
     )
     .then((transcript) => {
+      instrumentation.mark("first_transcript");
       if (shouldPublish())
         presentationInteraction.transcriptFinal(transcript.text);
       return transcript;
@@ -286,4 +301,12 @@ function timingsResult(
   const timings = instrumentation.snapshotIfEnabled();
 
   return timings ? { timings } : {};
+}
+
+async function* markStreamEnd(
+  chunks: AsyncIterable<Uint8Array>,
+  instrumentation: VoiceTurnInstrumentation,
+): AsyncIterable<Uint8Array> {
+  yield* chunks;
+  instrumentation.mark("capture_completed");
 }

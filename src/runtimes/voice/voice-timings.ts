@@ -1,14 +1,28 @@
+export type VoiceTimingEventName =
+  | "wake_detected"
+  | "local_feedback"
+  | "capture_completed"
+  | "first_transcript"
+  | "first_audio_submitted";
+
+interface VoiceTimingEvent {
+  name: VoiceTimingEventName;
+  offsetMs: number;
+}
+
 export interface VoiceTimingPhase {
   durationMs: number;
   name: string;
 }
 
 export interface VoiceTurnTimings {
+  events?: readonly VoiceTimingEvent[];
   phases: VoiceTimingPhase[];
   totalMs: number;
 }
 
 interface VoiceTimingRecorder {
+  mark(name: VoiceTimingEventName): void;
   measure<T>(name: string, operation: () => Promise<T>): Promise<T>;
   snapshot(): VoiceTurnTimings;
 }
@@ -20,6 +34,7 @@ export interface VoiceTimingOptions {
 }
 
 export interface VoiceTurnInstrumentation {
+  mark(name: VoiceTimingEventName): void;
   measure<T>(name: string, operation: () => Promise<T>): Promise<T>;
   snapshotIfEnabled(): VoiceTurnTimings | undefined;
 }
@@ -28,9 +43,13 @@ export function createVoiceTimingRecorder(
   nowMs: MonotonicNow = defaultMonotonicNow,
 ): VoiceTimingRecorder {
   const phases: VoiceTimingPhase[] = [];
+  const events = new Map<VoiceTimingEventName, number>();
   const startedAt = nowMs();
 
   return {
+    mark(name) {
+      if (!events.has(name)) events.set(name, elapsedMs(nowMs(), startedAt));
+    },
     async measure(name, operation) {
       const phaseStartedAt = nowMs();
 
@@ -45,6 +64,14 @@ export function createVoiceTimingRecorder(
     },
     snapshot() {
       return {
+        ...(events.size
+          ? {
+              events: [...events].map(([name, offsetMs]) => ({
+                name,
+                offsetMs,
+              })),
+            }
+          : {}),
         phases: [...phases],
         totalMs: elapsedMs(nowMs(), startedAt),
       };
@@ -57,6 +84,7 @@ export function createVoiceTurnInstrumentation(
 ): VoiceTurnInstrumentation {
   if (!options) {
     return {
+      mark: () => {},
       measure: (_name, operation) => operation(),
       snapshotIfEnabled: noTimings,
     };
@@ -65,6 +93,7 @@ export function createVoiceTurnInstrumentation(
   const recorder = createVoiceTimingRecorder(options.nowMs);
 
   return {
+    mark: (name) => recorder.mark(name),
     measure: (name, operation) => recorder.measure(name, operation),
     snapshotIfEnabled: () => recorder.snapshot(),
   };
@@ -76,6 +105,7 @@ export function formatVoiceTimings(timings: VoiceTurnTimings): string[] {
     ...timings.phases.map(
       (phase) => `- ${phase.name}: ${formatDurationMs(phase.durationMs)}`,
     ),
+    ...formatResponsiveness(timings),
     `- total: ${formatDurationMs(timings.totalMs)}`,
   ];
 }
@@ -94,4 +124,37 @@ function formatDurationMs(durationMs: number): string {
 
 function defaultMonotonicNow(): number {
   return performance.now();
+}
+
+function formatResponsiveness(timings: VoiceTurnTimings): string[] {
+  const events = new Map(
+    timings.events?.map((event) => [event.name, event.offsetMs]),
+  );
+  const intervals: readonly [
+    VoiceTimingEventName,
+    VoiceTimingEventName,
+    string,
+    string,
+  ][] = [
+    ["wake_detected", "local_feedback", "detected wake to local feedback", ""],
+    [
+      "capture_completed",
+      "first_transcript",
+      "capture completion to first transcript",
+      "",
+    ],
+    [
+      "capture_completed",
+      "first_audio_submitted",
+      "capture completion to first audio submission",
+      " (software boundary; acoustic onset unmeasured)",
+    ],
+  ];
+  return intervals.flatMap(([start, end, label, note]) => {
+    const from = events.get(start);
+    const to = events.get(end);
+    return from === undefined || to === undefined
+      ? []
+      : [`- ${label}: ${formatDurationMs(to - from)}${note}`];
+  });
 }

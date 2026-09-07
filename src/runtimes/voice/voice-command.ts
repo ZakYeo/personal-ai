@@ -67,7 +67,15 @@ export async function runDetectedVoiceCommand(
   }
 
   const speechOutput = await instrumentation.measure("speech output", () =>
-    speakResponse(dependencies, response, io),
+    speakResponse(
+      {
+        ...dependencies,
+        onFirstAudioSubmitted: () =>
+          instrumentation.mark("first_audio_submitted"),
+      },
+      response,
+      io,
+    ),
   );
   if (speechOutput.status === "spoken")
     await recordPresentedOutcome(outcome, io);

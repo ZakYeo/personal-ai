@@ -5,6 +5,37 @@ import {
 } from "./voice-timings.js";
 
 describe("voice timings", () => {
+  it("retains first monotonic event offsets without mixing follow-up measurements", () => {
+    let now = 100;
+    const recorder = createVoiceTimingRecorder(() => now);
+    recorder.mark("wake_detected");
+    now = 120;
+    recorder.mark("local_feedback");
+    now = 300;
+    recorder.mark("capture_completed");
+    now = 320;
+    recorder.mark("first_transcript");
+    now = 500;
+    recorder.mark("first_audio_submitted");
+    const first = recorder.snapshot();
+    now = 900;
+    recorder.mark("capture_completed");
+    expect(recorder.snapshot().events).toEqual(first.events);
+    expect(first.events).toEqual([
+      { name: "wake_detected", offsetMs: 0 },
+      { name: "local_feedback", offsetMs: 20 },
+      { name: "capture_completed", offsetMs: 200 },
+      { name: "first_transcript", offsetMs: 220 },
+      { name: "first_audio_submitted", offsetMs: 400 },
+    ]);
+    expect(formatVoiceTimings(first)).toContain(
+      "- capture completion to first audio submission: 200ms (software boundary; acoustic onset unmeasured)",
+    );
+    expect(formatVoiceTimings(first)).toContain(
+      "- detected wake to local feedback: 20ms",
+    );
+  });
+
   it("records measured phase durations and total elapsed time", async () => {
     const now = createScriptedClock([100, 110, 145, 150, 180, 205]);
     const recorder = createVoiceTimingRecorder(now);

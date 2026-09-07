@@ -555,46 +555,71 @@ describe("voice activation", () => {
     expect(progressOutput.writes).toContain("alarms");
   });
 
-  it("returns opt-in timing metadata for the streaming activation path", async () => {
+  it("records streaming phase and responsiveness events with an injected clock", async () => {
+    let now = 0;
     const dependencies = createVoiceActivationDependencies({
-      wakeUtterance: "Hey Jarvis",
+      assistant: {
+        handleText: vi.fn(),
+        handleTextWithDiagnostics: () => {
+          now += 15;
+          return Promise.resolve({
+            response: deterministicScenarios.alarmListEmpty.response,
+          });
+        },
+      },
     });
-
-    await expect(
-      runVoiceActivation({
+    const result = await runVoiceActivation(
+      {
         ...dependencies,
         streamingInput: {
           audioInput: {
-            captureStream: () =>
-              Promise.resolve({ chunks: chunksFromText("audio") }),
+            captureStream: () => {
+              now += 5;
+              return Promise.resolve({ chunks: chunksFromText("audio") });
+            },
           },
           speechToText: {
-            transcribeStream: () =>
-              Promise.resolve({
-                text: deterministicScenarios.alarmListEmpty.text,
-              }),
+            transcribeStream: async (audio, events) => {
+              now += 30;
+              await readChunksAsText(audio.chunks);
+              now += 15;
+              events?.onTranscriptDelta?.("list alarms");
+              return { text: deterministicScenarios.alarmListEmpty.text };
+            },
           },
         },
-        timing: {
-          nowMs: createScriptedClock([
-            0, 10, 20, 25, 30, 35, 80, 85, 100, 105, 130, 140,
-          ]),
+        textToSpeech: {
+          synthesize: (text) => {
+            now += 25;
+            return Promise.resolve({ text });
+          },
         },
+        timing: { nowMs: () => now },
         wakeActivation: {
-          waitForWake: () => Promise.resolve({ phrase: "hey jarvis" }),
+          waitForWake: () => {
+            now += 10;
+            return Promise.resolve({ phrase: "hey jarvis" });
+          },
         },
-      }),
-    ).resolves.toMatchObject({
-      timings: {
-        phases: [
-          { durationMs: 10, name: "wake activation" },
-          { durationMs: 5, name: "command stream setup" },
-          { durationMs: 45, name: "command transcription" },
-          { durationMs: 15, name: "assistant handling" },
-          { durationMs: 25, name: "speech output" },
-        ],
-        totalMs: 140,
       },
+      { progressOutput: createCapturedWriter() },
+    );
+    expect(result.timings).toEqual({
+      phases: [
+        { durationMs: 10, name: "wake activation" },
+        { durationMs: 5, name: "command stream setup" },
+        { durationMs: 45, name: "command transcription" },
+        { durationMs: 15, name: "assistant handling" },
+        { durationMs: 25, name: "speech output" },
+      ],
+      totalMs: 100,
+      events: [
+        { name: "wake_detected", offsetMs: 10 },
+        { name: "local_feedback", offsetMs: 10 },
+        { name: "capture_completed", offsetMs: 45 },
+        { name: "first_transcript", offsetMs: 60 },
+        { name: "first_audio_submitted", offsetMs: 100 },
+      ],
     });
   });
 
@@ -646,18 +671,3 @@ describe("voice activation", () => {
     },
   );
 });
-
-function createScriptedClock(values: number[]): () => number {
-  let index = 0;
-
-  return () => {
-    const value = values[index] ?? values.at(-1);
-    index += 1;
-
-    if (value === undefined) {
-      throw new Error("Scripted clock requires at least one value.");
-    }
-
-    return value;
-  };
-}

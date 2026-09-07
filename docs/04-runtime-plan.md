@@ -279,6 +279,29 @@ provider latency varies; local samples after adding the summary were roughly
 6.0s to 8.4s total across realtime transcription, intent routing, and streaming
 speech.
 
+Milestone 19 timing instrumentation additionally records one bounded set of first
+software events per activation using the same injected monotonic clock: detected
+wake, submitted local feedback when a presentation/progress sink exists, observed
+capture completion, first command transcript, and first nonempty audio submitted
+to playback. Follow-up turns cannot overwrite those first observations. Streaming
+capture completion is observed when transcription consumes the input to its end;
+it is not the acoustic end of speech. Partial transcription can precede capture
+completion, so that interval may be negative. Audio submission is not speaker
+onset, and absent events remain unmeasured rather than becoming zero-duration
+successes. Existing phase totals include failed operations and no content is added
+to timing metadata.
+
+Physical acceptance still requires at least thirty simple-command samples per
+host/audio setup, with background-noise and back-to-back scenarios, sample counts,
+failures, and p50/p95. Record OS, microphone, speaker, selected adapters, and
+local/remote processing alongside content-free measurements. The unchanged device
+targets are detected-wake feedback under 150 ms, recognized-stop silence under
+300 ms, and simple-command acoustic utterance-end to useful-audio p95 under
+1.5 seconds. Acoustic stop-to-silence is measured separately from recognized stop.
+Software submission intervals are diagnostic proxies and cannot pass these
+acoustic acceptance gates. Long external work, interruption, and cancellation
+instrumentation are completed in the remaining Milestone 19 slices.
+
 ### Desktop Presence Runtime
 
 Milestone 18 adds presentation around the existing long-running desktop voice

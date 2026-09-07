@@ -1,8 +1,55 @@
+import { createVoiceTurnInstrumentation } from "./voice-timings.js";
 import { deterministicScenarios } from "../../test-support/deterministic-scenarios.js";
 import { createVoiceRuntimeDependencies } from "../../test-support/voice-runtime.js";
 import { runDetectedVoiceCommand } from "./voice-command.js";
 
 describe("runDetectedVoiceCommand", () => {
+  it("marks audio submission only when the consumer receives the first nonempty chunk", async () => {
+    let now = 0;
+    const instrumentation = createVoiceTurnInstrumentation({
+      nowMs: () => now,
+    });
+    instrumentation.mark("capture_completed");
+    const submitted: number[] = [];
+    const dependencies = createVoiceRuntimeDependencies();
+    const result = await runDetectedVoiceCommand(
+      {
+        ...dependencies,
+        streamingOutput: {
+          textToSpeech: {
+            synthesizeStream: (text) =>
+              Promise.resolve({
+                text,
+                chunks: (async function* () {
+                  await Promise.resolve();
+                  now = 10;
+                  yield new Uint8Array();
+                  now = 50;
+                  yield new Uint8Array([1, 2]);
+                  now = 100;
+                })(),
+              }),
+          },
+          audioOutput: {
+            playStream: async (chunks) => {
+              for await (const chunk of chunks) {
+                if (chunk.byteLength) submitted.push(now);
+              }
+            },
+          },
+        },
+      },
+      "list alarms",
+      {},
+      { instrumentation },
+    );
+    expect(submitted).toEqual([50]);
+    expect(result.timings?.events).toEqual([
+      { name: "capture_completed", offsetMs: 0 },
+      { name: "first_audio_submitted", offsetMs: 50 },
+    ]);
+  });
+
   it.each([true, false])(
     "records presentation only when speech succeeds: %s",
     async (succeeds) => {
