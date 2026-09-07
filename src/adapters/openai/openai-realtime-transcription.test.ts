@@ -8,6 +8,22 @@ import {
 } from "./openai-realtime-limits.js";
 
 describe("OpenAIRealtimeTranscription", () => {
+  it("preserves pre-start cancellation diagnostics without opening a socket", async () => {
+    const webSocketFactory = vi.fn();
+    const adapter = createRealtimeTranscriptionAdapter({ webSocketFactory });
+    await expect(
+      adapter.transcribeStream(
+        { chunks: chunksFromText("audio") },
+        {},
+        { signal: AbortSignal.abort(new Error("turn cancelled")) },
+      ),
+    ).rejects.toMatchObject({
+      message: "Realtime transcription was aborted.",
+      cause: { message: "turn cancelled" },
+    });
+    expect(webSocketFactory).not.toHaveBeenCalled();
+  });
+
   it("cancels one transcription session while preserving service lifetime", async () => {
     const turn = new AbortController();
     const socket = new TestRealtimeSocket();

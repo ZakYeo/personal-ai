@@ -67,8 +67,11 @@ describe("desktop voice service OpenAI streaming", () => {
     expect(fallbackOutput.writes).toEqual([
       deterministicScenarios.alarmListEmpty.response.text + "\n",
     ]);
+    // Shutdown may win before playback starts or while provider audio is consumed.
     expect(stderr.writes).toEqual([
-      line("Runtime failure: OpenAI speech request was aborted."),
+      expect.stringMatching(
+        /^Runtime failure: (?:OpenAI speech request was aborted\.|signal:SIGTERM)\n$/u,
+      ),
     ]);
   });
 
@@ -185,7 +188,9 @@ describe("desktop voice service OpenAI streaming", () => {
     ]);
     expect(stderr.writes).toEqual([
       line("Runtime failure: Realtime transcription timed out after 100ms."),
-      line("Runtime failure: OpenAI speech request was aborted."),
+      expect.stringMatching(
+        /^Runtime failure: (?:OpenAI speech request was aborted\.|signal:SIGTERM)\n$/u,
+      ),
     ]);
   });
 
@@ -221,7 +226,9 @@ describe("desktop voice service OpenAI streaming", () => {
     ]);
     expect(stderr.writes).toEqual([
       line("Runtime failure: Realtime transcription was aborted."),
-      line("Runtime failure: OpenAI speech request was aborted."),
+      expect.stringMatching(
+        /^Runtime failure: (?:OpenAI speech request was aborted\.|signal:SIGTERM)\n$/u,
+      ),
     ]);
   });
 
@@ -274,7 +281,9 @@ describe("desktop voice service OpenAI streaming", () => {
     ]);
     expect(stderr.writes).toEqual([
       line("Runtime failure: Realtime transcription failed."),
-      line("Runtime failure: OpenAI speech request was aborted."),
+      expect.stringMatching(
+        /^Runtime failure: (?:OpenAI speech request was aborted\.|signal:SIGTERM)\n$/u,
+      ),
     ]);
   });
 });

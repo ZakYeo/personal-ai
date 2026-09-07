@@ -3,6 +3,20 @@ import { defaultOpenAIStreamingSpeechMaxAudioBytes } from "./openai-streaming-vo
 import { createAbortingFetchStub } from "../../test-support/adapter-contract.js";
 
 describe("OpenAIStreamingSpeech", () => {
+  it("preserves provider diagnostics for cancellation before startup without making a request", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const adapter = createAdapter({ fetch });
+    await expect(
+      adapter.synthesizeStream("safe reply", {
+        signal: AbortSignal.abort(new Error("turn cancelled")),
+      }),
+    ).rejects.toMatchObject({
+      message: "OpenAI speech request was aborted.",
+      cause: { message: "turn cancelled" },
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("cancels an individual request without shutting down the provider", async () => {
     const turn = new AbortController();
     const shutdown = new AbortController();

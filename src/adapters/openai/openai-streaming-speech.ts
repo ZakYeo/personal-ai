@@ -33,6 +33,11 @@ export class OpenAIStreamingSpeech implements StreamingTextToSpeechPort {
     const signal = resolveVoiceOperationSignal(
       this.options.shutdownSignal,
       operation,
+      (cause) =>
+        createOpenAIVoiceProviderError({
+          cause,
+          message: "OpenAI speech request was aborted.",
+        }),
     );
     const apiKey = resolveOpenAIApiKey(this.options.config, this.options.env);
     const abortScope = createSpeechAbortScope(

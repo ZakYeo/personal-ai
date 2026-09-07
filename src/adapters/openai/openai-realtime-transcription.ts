@@ -1,3 +1,4 @@
+import { createOpenAIVoiceProviderError } from "./openai-voice-provider-error.js";
 import { resolveVoiceOperationSignal } from "../voice-operation-signal.js";
 import type {
   VoiceOperationOptions,
@@ -42,6 +43,11 @@ export class OpenAIRealtimeTranscription implements StreamingSpeechToTextPort {
     const signal = resolveVoiceOperationSignal(
       this.options.shutdownSignal,
       operation,
+      (cause) =>
+        createOpenAIVoiceProviderError({
+          cause,
+          message: "Realtime transcription was aborted.",
+        }),
     );
     const apiKey = resolveOpenAIApiKey(this.options.config, this.options.env);
 
