@@ -334,7 +334,7 @@ command and OpenAI voice adapters combine it with their constructor's service
 shutdown signal through one adapter-owned helper, reject already-cancelled work
 before allocating files or opening transports, and preserve existing timeout and
 cleanup behavior. Cancelling a turn does not abort the service signal. Runtime
-turn ownership and interruption wiring follow in subsequent Milestone 19 slices;
+turn ownership and interruption wiring are implemented;
 no completed external action is described as rolled back. Intent, conversation,
 compaction, and response rewriting forward the assistant context signal to the
 shared Responses HTTP client; caller cancellation has its own diagnostic message
@@ -829,12 +829,19 @@ Verification is bounded to thirty seconds, propagates shutdown to network work,
 and never starts notification schedulers, executes assistant commands, or certifies
 write/send permissions. Stop any service owning the files before standalone
 verification; future multi-client setup must run inside the authenticated owner.
-Planned proactive attention contributes
-separate user-enabled typed rules with durable evaluation slots, quiet hours,
-cooling-off periods, budgets, and deduplication. Neither background path may ask
-an intent provider to choose additional tools or actions. The briefing
-aggregator and runtime task are implemented; no attention-engine wiring exists
-yet.
+Proactive attention contributes a separate runtime task over the exact composed
+attention store. It evaluates explicit typed rules once per minute, uses at most
+four independent reads, persists claims before notification output, and preserves
+unknown outcomes without automatic retry. Startup and daily retention remain
+active even without notification output. The default config disables the feature;
+local/file adapters require an explicit timezone, and relative file paths resolve
+beside the selected config. Quiet hours, cooling-off, daily budgets, stable
+priorities and inbox deduplication are application-owned. The desktop receives a
+bounded safe inbox projection and uses authenticated revision-pinned controls.
+The morning routine reuses fixed briefing aggregation and its shared presentation
+baseline, with a fifteen-minute scheduling grace window. Neither background path
+may ask an intent provider to choose additional tools or actions. Milestone 20's
+independent review remains pending.
 
 The selected weather provider is Open-Meteo's free non-commercial forecast and
 geocoding service. Runtime config may select endpoint and timeout policy but has

@@ -282,7 +282,12 @@ import or invoke one another:
   stream. Voice/service runtimes produce typed state changes; an authenticated
   local IPC adapter transports them; native or development UIs render them. The
   UI does not parse human log text or become a dependency of core and features.
-- Planned attention rules, computer context/actions, Home Assistant,
+- Proactive attention uses application-owned fixed reads, deterministic policy,
+  revision-checked durable rules/inbox state, and claim-before-output delivery.
+  Desktop and voice controls share canonical lifecycle commands; the UI receives
+  only bounded human-safe notices and opaque revisions. Morning routines reuse
+  the composed briefing store and presentation baseline.
+- Planned computer context/actions, Home Assistant,
   communications, personal knowledge, and adaptive memory each retain narrow
   application contracts. Fixed orchestration and permission policy remain
   application owned; host APIs, provider transports, persistence, native UI, and

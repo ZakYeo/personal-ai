@@ -21,6 +21,11 @@
     "audioOutput": "mock"
   },
   "features": {
+    "attention": {
+      "enabled": false,
+      "adapter": "local",
+      "timeZone": "Europe/London"
+    },
     "briefing": {
       "enabled": true,
       "adapter": "local"

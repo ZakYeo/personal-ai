@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { createConfiguredTextRuntimeHarness } from "../../test-support/runtime-composition.js";
 import { parseAssistantConfig } from "../config/config.js";
 
@@ -35,4 +36,16 @@ it("keeps rules empty until explicit confirmation and supports ordinary inbox an
   expect((await assistant.handleText("help me plan my day")).text).toContain(
     "suggestions",
   );
+});
+
+it("keeps proactive attention explicitly disabled in the checked-in default", async () => {
+  const config = parseAssistantConfig(
+    JSON.parse(
+      await readFile(
+        new URL("../../../config/default.json", import.meta.url),
+        "utf8",
+      ),
+    ),
+  );
+  expect(config.features.attention?.enabled).toBe(false);
 });

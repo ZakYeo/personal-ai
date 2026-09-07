@@ -173,8 +173,71 @@ remain operator-deferred. Milestone 20 adds a morning routine and a durable
 attention inbox. A narrow Milestone 24
 project/meeting-preparation pilot precedes broad computer control and real
 communications. A 30-day trial of ten user-selected jobs supplies product evidence;
-the attention and knowledge additions remain planned. See the
+the attention implementation awaits its independent review; knowledge remains planned. See the
 [delivery priorities](docs/06-implementation-roadmap.md#delivery-priorities-and-daily-use-evidence).
+
+## Proactive attention
+
+Milestone 20 implementation is available for local validation; its independent
+review is still pending. The checked-in configuration keeps attention disabled.
+To opt in, set this section in the config used by your desktop or Pi service:
+
+```json
+"attention": {
+  "enabled": true,
+  "adapter": "file",
+  "timeZone": "Europe/London",
+  "state": { "path": "state/attention.json" }
+}
+```
+
+Place it under `features`. Relative paths resolve beside the selected config file.
+For Pi deployment, use `/var/lib/personal-ai/attention.json`. One service process
+owns the file. Enabling the feature creates no rules or automatic notifications.
+The `local` adapter provides deterministic in-memory state for tests and trials.
+
+Explicit text or voice commands enable named rules only after confirmation. These
+examples also work with the deterministic intent provider:
+
+- `enable task attention named Due work within 1 day`
+- `enable calendar attention named Meetings within 30 minutes`
+- `enable conflict attention named Double bookings within 24 hours`
+- `enable health attention named Delivery health`
+- `enable weather attention named Rain for precipitation at least 1 in London within 6 hours`
+- `enable morning routine named Morning at 08:00`
+- `show my attention rules`, `show my attention inbox`, `help me plan my day`
+
+Every rule retains your explicit request as provenance. Defaults are at most 24
+saved rules, one evaluation per minute, four independent source reads, five
+notification attempts per local day, quiet hours from 22:00 to 08:00, and a
+60-minute cooling-off period per rule. The typed rule commands accept explicit
+quiet hours, timezone and cooling-off settings; the confirmed budget command
+accepts 1 to 20 notifications per local day. Identical weather requests share a
+forecast within the evaluation cycle. Weather notices are conveniences, not
+emergency alerts.
+
+The desktop **Inbox** shows recorded notices, explanations, provenance, delivery
+status and acknowledgement status. It supports acknowledgement, one-hour snooze,
+dismissal, disabling the originating rule, and canonical uncertain-reminder
+acknowledgement without completing the task. Text/voice lifecycle commands use
+the same revision-checked application operations. Failed or uncertain delivery is
+never automatically retried. A notice being delivered does not acknowledge it.
+
+Inbox history expires after 30 days at service startup and daily. The bounded
+inbox holds 256 notices; a higher-priority incoming notice may replace an
+undelivered lower-priority notice, but cannot evict claimed delivery history.
+Retention runs even without a notification output. Quiet-hour and budget
+suppression remain visible in notice explanations; a full inbox is recorded in
+the rule's evaluation status.
+
+The morning routine uses the configured briefing store and only fixed profile,
+calendar, task and weather readers. Enable `briefing` and disable any separate
+briefing schedule before using it. It has a 15-minute scheduling grace window,
+reads current facts, identifies missing sources, and records the shared briefing
+baseline only after successful presentation. Planning offers at most three
+read-only priorities and leaves the microphone free for a later wake-word turn.
+Physical voice measurements and the 30-day useful-notice/interruption trial
+remain operator-run acceptance evidence, as described in the roadmap.
 
 ## Requirements
 
