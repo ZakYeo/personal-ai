@@ -620,6 +620,11 @@ delivery boundaries, not proof that a person read or heard the answer. Failed
 speech, including successful fallback speech, does not record the original
 briefing. Receipt persistence failures remain internal diagnostics without
 replaying output. Scheduled delivery retains its durable delivery-slot policy.
+The desktop Today projection filters calendar instants and scheduled alarms by
+the configured assistant timezone before rendering; date-only events and task
+due dates use their calendar day. Calendar reads include adjacent dates to
+cover timezone boundaries. Overdue, future, and undated tasks stay in the task
+view with explicit status labels; future alarms stay in the alarm view.
 Planned proactive attention contributes
 separate user-enabled typed rules with durable evaluation slots, quiet hours,
 cooling-off periods, budgets, and deduplication. Neither background path may ask

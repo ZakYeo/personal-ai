@@ -3,6 +3,7 @@ import type {
   PresentationProfileItem,
 } from "../../ports/presentation.js";
 import type { ProfileFact } from "../../ports/profile-store.js";
+import type { TaskRecord } from "../../ports/task-store.js";
 import type { LoadedRuntimeConfig } from "../config/config.js";
 import {
   alarmStoreService,
@@ -32,7 +33,7 @@ export async function readPresentationProjection(options: {
       options.services.get(calendarSearchService),
       (calendar) =>
         calendar.searchEvents(
-          { endDate: day, startDate: day },
+          { endDate: adjacentDay(day, 1), startDate: adjacentDay(day, -1) },
           { now: options.now },
         ),
       options,
@@ -60,19 +61,38 @@ export async function readPresentationProjection(options: {
   const tasks = taskRead.value.slice(0, 100).map((task) => ({
     id: task.id,
     label: task.label,
-    status: task.dueDate
-      ? `${task.status} · due ${renderDate(task.dueDate)}`
-      : task.status,
+    status: taskPresentationStatus(task, day),
   }));
   const today = [
-    ...calendarRead.value.map(
-      (event) => `${event.startTime ?? "All day"} · ${event.title}`,
-    ),
-    ...alarms
-      .filter((alarm) => alarm.status === "scheduled")
-      .map((alarm) => `${alarm.scheduledFor} · ${alarm.label}`),
-    ...tasks
-      .filter((task) => task.status.startsWith("open"))
+    ...calendarRead.value
+      .filter(
+        (event) =>
+          (event.startAt
+            ? localDate(
+                new Date(event.startAt),
+                options.config.assistant.timeZone,
+              )
+            : event.startDate) === day,
+      )
+      .map(
+        (event) =>
+          `${event.startAt ? renderDateTime(event.startAt, options.config.assistant.timeZone) : "All day"} · ${event.title}`,
+      ),
+    ...alarmRead.value
+      .filter(
+        (alarm) =>
+          alarm.status === "scheduled" &&
+          localDate(
+            new Date(alarm.scheduledFor),
+            options.config.assistant.timeZone,
+          ) === day,
+      )
+      .map(
+        (alarm) =>
+          `${renderDateTime(alarm.scheduledFor, options.config.assistant.timeZone)} · ${alarm.label}`,
+      ),
+    ...taskRead.value
+      .filter((task) => task.status === "open" && task.dueDate === day)
       .map((task) => task.label),
   ].slice(0, 50);
   const degraded = new Set([
@@ -148,7 +168,22 @@ function renderDate(value: string): string {
     : new Intl.DateTimeFormat("en-GB", {
         day: "numeric",
         month: "short",
+        timeZone: "UTC",
       }).format(parsed);
+}
+
+function adjacentDay(day: string, offset: number): string {
+  return new Date(Date.parse(`${day}T12:00:00Z`) + offset * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+function taskPresentationStatus(task: TaskRecord, day: string): string {
+  if (!task.dueDate) return `${task.status} · undated`;
+  const due = `due ${renderDate(task.dueDate)}`;
+  if (task.status !== "open") return `${task.status} · ${due}`;
+  if (task.dueDate === day) return "open · due today";
+  return `open · ${task.dueDate < day ? "overdue" : "future"} · ${due}`;
 }
 
 function readableIdentifier(value: string): string {

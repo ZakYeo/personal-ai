@@ -17,6 +17,103 @@ import {
 import { readPresentationProjection } from "./presentation-projection-reader.js";
 
 describe("presentation projection reader", () => {
+  it("filters Today by the configured local day and labels other work separately", async () => {
+    const alarms = alarmStore();
+    const baseAlarm = (await alarms.list())[0]!;
+    alarms.list = () =>
+      Promise.resolve([
+        {
+          ...baseAlarm,
+          id: "today",
+          label: "Local today",
+          scheduledFor: "2026-09-04T23:30:00Z",
+        },
+        {
+          ...baseAlarm,
+          id: "yesterday",
+          label: "Yesterday",
+          scheduledFor: "2026-09-04T22:30:00Z",
+        },
+        {
+          ...baseAlarm,
+          id: "tomorrow",
+          label: "Tomorrow",
+          scheduledFor: "2026-09-05T23:30:00Z",
+        },
+      ]);
+    const tasks = taskStore();
+    const baseTask = (await tasks.listTasks())[0]!;
+    delete baseTask.dueDate;
+    tasks.listTasks = () =>
+      Promise.resolve([
+        { ...baseTask, id: "due", label: "Due today", dueDate: "2026-09-05" },
+        {
+          ...baseTask,
+          id: "overdue",
+          label: "Old task",
+          dueDate: "2026-09-04",
+        },
+        {
+          ...baseTask,
+          id: "future",
+          label: "Future task",
+          dueDate: "2026-09-06",
+        },
+        {
+          ...baseTask,
+          id: "undated",
+          label: "Undated task",
+        },
+        {
+          ...baseTask,
+          id: "done",
+          label: "Done task",
+          dueDate: "2026-09-05",
+          status: "completed",
+        },
+      ]);
+    const events = calendar();
+    const searchEvents = vi.fn().mockResolvedValue([
+      {
+        id: "1",
+        title: "Late UTC event",
+        startAt: "2026-09-04T23:30:00Z",
+        startDate: "2026-09-04",
+        startTime: "23:30",
+      },
+      { id: "2", title: "All day today", startDate: "2026-09-05" },
+      { id: "3", title: "Outside local day", startDate: "2026-09-04" },
+    ]);
+    events.searchEvents = searchEvents;
+    const projection = await readPresentationProjection({
+      config: createLoadedRuntimeConfig({}),
+      now: new Date("2026-09-04T23:45:00Z"),
+      projectProfile: () => [],
+      reportFailure: vi.fn(),
+      services: createRuntimeServiceRegistry([
+        bindRuntimeService(alarmStoreService, alarms),
+        bindRuntimeService(taskStoreService, tasks),
+        bindRuntimeService(calendarSearchService, events),
+      ]),
+    });
+    expect(projection.today).toEqual([
+      "5 Sept, 0:30 · Late UTC event",
+      "All day · All day today",
+      "5 Sept, 0:30 · Local today",
+      "Due today",
+    ]);
+    expect(projection.tasks.map((task) => task.status)).toEqual([
+      "open · due today",
+      "open · overdue · due 4 Sept",
+      "open · future · due 6 Sept",
+      "open · undated",
+      "completed · due 5 Sept",
+    ]);
+    expect(searchEvents).toHaveBeenCalledWith(
+      { startDate: "2026-09-04", endDate: "2026-09-06" },
+      { now: new Date("2026-09-04T23:45:00Z") },
+    );
+  });
   it("projects narrow safe feature state with natural human dates", async () => {
     const projection = await readPresentationProjection({
       config: createLoadedRuntimeConfig({
@@ -43,11 +140,11 @@ describe("presentation projection reader", () => {
     expect(projection).toMatchObject({
       alarms: [{ label: "Tea", scheduledFor: "4 Sept, 11:00" }],
       profile: [{ field: "preferredName", value: "Zak" }],
-      tasks: [{ label: "Review notes", status: "open · due 4 Sept" }],
+      tasks: [{ label: "Review notes", status: "open · due today" }],
     });
     expect(projection.today).toEqual(
       expect.arrayContaining([
-        "11:00 · Planning",
+        "4 Sept, 11:00 · Planning",
         "4 Sept, 11:00 · Tea",
         "Review notes",
       ]),
