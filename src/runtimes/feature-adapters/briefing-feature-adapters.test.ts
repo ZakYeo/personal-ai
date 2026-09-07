@@ -1,5 +1,11 @@
-import { briefingStoreService, calendarSearchService  } from "../feature-source-services.js";
-import { createBriefingFeatureRegistryEntry, createBriefingSources  } from "./briefing-feature-adapters.js";
+import {
+  briefingStoreService,
+  calendarSearchService,
+} from "../feature-source-services.js";
+import {
+  createBriefingFeatureRegistryEntry,
+  createBriefingSources,
+} from "./briefing-feature-adapters.js";
 import type { CalendarSearchPort } from "../../ports/calendar.js";
 import {
   bindRuntimeService,

@@ -1,10 +1,12 @@
 import { bindRuntimeService } from "../runtime-service-registry.js";
-import { briefingStoreService,
+import {
+  briefingStoreService,
   alarmStoreService,
   calendarSearchService,
   internetSearchService,
   taskStoreService,
-  weatherProviderService } from "../feature-source-services.js";
+  weatherProviderService,
+} from "../feature-source-services.js";
 import { createDailyBriefingAggregator } from "../../application/briefing-policy.js";
 import {
   createAlarmBriefingSource,
