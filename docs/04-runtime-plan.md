@@ -95,8 +95,10 @@ Shared voice runtime composition also belongs in a neutral voice runtime factory
 runtime-specific entry points supply adapter construction, while the factory
 loads config, creates the assistant, assembles the voice-turn dependencies, and
 returns the `runOnce` entry point.
-Text wake phrase normalization and prefix matching are shared by the mock and
-desktop voice adapters so user-facing wake behavior stays consistent.
+Text wake phrase normalization and matching live in one application-owned helper
+shared by mock and desktop adapters. A wake phrase must end at the transcript
+boundary or the shared punctuation/space boundary; empty phrases and embedded
+word prefixes cannot trigger wake detection.
 
 Bounded workflows use the same follow-up signal as conversation and calendar
 detail turns. Voice command sequencing allows an all-day-time clarification and

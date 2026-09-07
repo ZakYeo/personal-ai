@@ -1,5 +1,5 @@
 import type { WakeWordDetection, WakeWordRequest } from "../ports/voice.js";
-import { detectWakePhrase } from "./spoken-text.js";
+import { detectWakePhrase } from "../application/spoken-text.js";
 
 export function detectTextWakePhrase(
   request: WakeWordRequest,

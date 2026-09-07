@@ -29,9 +29,7 @@ export function detectWakePhrase(
   wakePhrases: string[],
 ): WakePhraseTextDetection {
   const normalizedText = normalizeSpokenText(text);
-  const phrase = wakePhrases.find((candidate) =>
-    normalizedText.startsWith(normalizeSpokenText(candidate)),
-  );
+  const phrase = findWakePhrase(normalizedText, wakePhrases);
 
   if (!phrase) {
     return {
@@ -52,9 +50,7 @@ export function stripWakePhrase(
   wakePhrases: string[] = ["hey jarvis"],
 ): string {
   const normalizedText = normalizeSpokenText(text);
-  const phrase = wakePhrases.find((candidate) =>
-    normalizedText.startsWith(normalizeSpokenText(candidate)),
-  );
+  const phrase = findWakePhrase(normalizedText, wakePhrases);
 
   if (!phrase) {
     return normalizedText;
@@ -72,12 +68,23 @@ export function stripWakePhrasePreservingCase(
 ): string {
   const originalText = normalizeSpokenTextPreservingCase(text);
   const normalizedText = originalText.toLocaleLowerCase("en");
-  const phrase = wakePhrases.find((candidate) =>
-    normalizedText.startsWith(normalizeSpokenText(candidate)),
-  );
+  const phrase = findWakePhrase(normalizedText, wakePhrases);
   if (!phrase) return originalText;
   return originalText
     .slice(normalizeSpokenText(phrase).length)
     .replace(leadingPunctuationPattern, "")
     .trim();
+}
+
+function findWakePhrase(
+  normalizedText: string,
+  wakePhrases: readonly string[],
+): string | undefined {
+  return wakePhrases.find((candidate) => {
+    const normalizedPhrase = normalizeSpokenText(candidate);
+    if (!normalizedPhrase || !normalizedText.startsWith(normalizedPhrase))
+      return false;
+    const remainder = normalizedText.slice(normalizedPhrase.length);
+    return remainder.length === 0 || leadingPunctuationPattern.test(remainder);
+  });
 }

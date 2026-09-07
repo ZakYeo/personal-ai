@@ -11,7 +11,7 @@ import type { DeterministicCapabilityRule } from "../../ports/deterministic-feat
 import {
   stripWakePhrase,
   stripWakePhrasePreservingCase,
-} from "../spoken-text.js";
+} from "../../application/spoken-text.js";
 
 export interface DeterministicIntentRule {
   capability: string;
