@@ -58,6 +58,7 @@ export function createProfileBriefingSource(readers: {
 
 export function createCalendarBriefingSource(
   calendar: CalendarSearchPort,
+  maxItems: 1 | 10 = 10,
 ): BriefingSourcePort {
   return {
     section: "calendar",
@@ -65,7 +66,7 @@ export function createCalendarBriefingSource(
       const date = localDate(now, timeZone);
       const events = (
         await calendar.searchEvents({ endDate: date, startDate: date }, { now })
-      ).slice(0, 10);
+      ).slice(0, maxItems);
       const facts = Object.fromEntries(
         events.flatMap((event, index) => [
           [`calendar${index}Date`, event.startDate],
@@ -152,6 +153,7 @@ export function createAlarmBriefingSource(
 
 export function createTaskBriefingSource(
   store: Pick<TaskStore, "listLists" | "listTasks">,
+  maxItems: 1 | 10 = 10,
 ): BriefingSourcePort {
   return {
     section: "tasks",
@@ -165,7 +167,7 @@ export function createTaskBriefingSource(
           (task) =>
             task.status === "open" && task.dueDate && task.dueDate <= today,
         )
-        .slice(0, 10);
+        .slice(0, maxItems);
       return {
         attention: tasks.map((task) => stableKey("tasks", task.id)),
         facts: tasks.reduce<AssistantCommandParameters>(
