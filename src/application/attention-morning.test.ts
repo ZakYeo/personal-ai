@@ -61,3 +61,35 @@ it("bounds morning calendar facts before aggregation", async () => {
   expect(result.items).toHaveLength(1);
   expect(Object.keys(result.facts)).toHaveLength(3);
 });
+
+it("keeps every unavailable source disclosure when an early section exhausts the short briefing", async () => {
+  const source = createAttentionMorningSource({
+    store: createInMemoryBriefingStore({
+      now: () => new Date("2026-09-07T08:00:00.000Z"),
+      timeZone: "Europe/London",
+    }),
+    sources: [
+      {
+        section: "calendar",
+        read: () =>
+          Promise.resolve({
+            section: "calendar",
+            attention: [],
+            facts: {},
+            items: [
+              { key: "event", text: "A long calendar detail. ".repeat(30) },
+            ],
+          }),
+      },
+    ],
+    reportDiagnostic: () => {},
+  });
+  const [candidate] = await source.read(
+    new Date("2026-09-07T08:00:00.000Z"),
+    "Europe/London",
+  );
+  expect(candidate?.text).toContain("Profile is unavailable.");
+  expect(candidate?.text).toContain("Weather is unavailable.");
+  expect(candidate?.text).toContain("Tasks is unavailable.");
+  expect(candidate?.text.length).toBeLessThanOrEqual(400);
+});

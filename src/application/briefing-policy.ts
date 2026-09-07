@@ -108,9 +108,22 @@ export function createDailyBriefingAggregator(
       const renderedItems = request.sinceLast
         ? changedItems(items, snapshotSections, context.lastSnapshot)
         : items;
+      const mandatory = items.filter((item) =>
+        resolved.some(
+          (entry) =>
+            !entry.available && item.key === `${entry.section}:unavailable`,
+        ),
+      );
       const selectedItems = fitWithin(
-        renderedItems,
+        [
+          ...renderedItems,
+          ...mandatory.filter(
+            (item) =>
+              !renderedItems.some((rendered) => rendered.key === item.key),
+          ),
+        ],
         lengthLimits[request.length],
+        new Set(mandatory.map((item) => item.key)),
       );
       return {
         citations: uniqueCitations(
@@ -252,18 +265,23 @@ function selectItems(
 function fitWithin(
   items: readonly BriefingItem[],
   limit: number,
+  mandatory: ReadonlySet<string>,
 ): readonly BriefingItem[] {
   const selected: BriefingItem[] = [];
   let used = 0;
+  let reserved = items
+    .filter((item) => mandatory.has(item.key))
+    .reduce((sum, item) => sum + item.text.length + 1, 0);
   for (const item of items) {
+    const required = mandatory.has(item.key);
+    if (required) reserved -= item.text.length + 1;
     const separator = selected.length > 0 ? 1 : 0;
-    const remaining = limit - used - separator;
-    if (remaining <= 0) break;
+    const remaining = limit - used - separator - reserved;
+    if (remaining <= 0) continue;
     const text = truncateText(item.text, remaining);
-    if (text.length === 0) break;
+    if (text.length === 0) continue;
     selected.push({ ...item, text });
     used += separator + text.length;
-    if (text.length < item.text.length) break;
   }
   return selected;
 }
