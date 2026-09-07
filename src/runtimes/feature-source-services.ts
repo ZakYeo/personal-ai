@@ -1,3 +1,4 @@
+import type { BriefingStore } from "../ports/briefing.js";
 import type { AlarmStore } from "../ports/alarm-store.js";
 import type { CalendarSearchPort } from "../ports/calendar.js";
 import type { InternetSearchPort } from "../ports/internet-search.js";
@@ -15,3 +16,6 @@ export const taskStoreService =
   defineRuntimeServiceToken<TaskStore>("task store");
 export const weatherProviderService =
   defineRuntimeServiceToken<WeatherProviderPort>("weather provider");
+
+export const briefingStoreService =
+  defineRuntimeServiceToken<BriefingStore>("briefing store");

@@ -1,3 +1,10 @@
+import { bindRuntimeService } from "../runtime-service-registry.js";
+import { briefingStoreService,
+  alarmStoreService,
+  calendarSearchService,
+  internetSearchService,
+  taskStoreService,
+  weatherProviderService } from "../feature-source-services.js";
 import { createDailyBriefingAggregator } from "../../application/briefing-policy.js";
 import {
   createAlarmBriefingSource,
@@ -29,13 +36,6 @@ import {
 } from "../profile-runtime-services.js";
 import type { RuntimeServiceRegistry } from "../runtime-service-registry.js";
 import { runBriefingScheduler } from "../briefing/briefing-scheduler.js";
-import {
-  alarmStoreService,
-  calendarSearchService,
-  internetSearchService,
-  taskStoreService,
-  weatherProviderService,
-} from "../feature-source-services.js";
 
 const fileBriefingAdapter = defineFeatureAdapter({
   parseConfig: (featureConfig) => {
@@ -68,8 +68,9 @@ export function createBriefingFeatureRegistryEntry(
           processing: [{ name: "State storage", location: "local" }],
           statePaths: [config.filePath],
         }),
-        create: ({ adapterConfig, runtime }, services) =>
-          createComposition(
+        provideServices: ({ adapterConfig, runtime }) => [
+          bindRuntimeService(
+            briefingStoreService,
             createFileBriefingStore({
               filePath: resolveLocalStatePath(
                 adapterConfig.filePath,
@@ -78,6 +79,11 @@ export function createBriefingFeatureRegistryEntry(
               now: () => runtime.clock.now(),
               timeZone: "UTC",
             }),
+          ),
+        ],
+        create: (_context, services) =>
+          createComposition(
+            services.require(briefingStoreService),
             services,
             dependencies.notificationDelivery,
           ),
@@ -87,12 +93,18 @@ export function createBriefingFeatureRegistryEntry(
           processing: [{ name: "Local operations", location: "local" }],
           statePaths: [],
         }),
-        create: ({ runtime }, services) =>
-          createComposition(
+        provideServices: ({ runtime }) => [
+          bindRuntimeService(
+            briefingStoreService,
             createInMemoryBriefingStore({
               now: () => runtime.clock.now(),
               timeZone: "UTC",
             }),
+          ),
+        ],
+        create: (_context, services) =>
+          createComposition(
+            services.require(briefingStoreService),
             services,
             dependencies.notificationDelivery,
           ),
@@ -135,6 +147,7 @@ function createComposition(
 
 export function createBriefingSources(
   services: RuntimeServiceRegistry,
+  maxItems: 1 | 10 = 10,
 ): BriefingSourcePort[] {
   const sources: BriefingSourcePort[] = [];
   const personalization = services.get(assistantPersonalizationReaderService);
@@ -152,12 +165,12 @@ export function createBriefingSources(
       }),
     );
   }
-  if (calendar) sources.push(createCalendarBriefingSource(calendar));
+  if (calendar) sources.push(createCalendarBriefingSource(calendar, maxItems));
   if (weather) {
     sources.push(createWeatherBriefingSource(weather, personalContext));
   }
   if (alarms) sources.push(createAlarmBriefingSource(alarms));
-  if (tasks) sources.push(createTaskBriefingSource(tasks));
+  if (tasks) sources.push(createTaskBriefingSource(tasks, maxItems));
   if (internet) sources.push(createInternetBriefingSource(internet, 2));
   return sources;
 }

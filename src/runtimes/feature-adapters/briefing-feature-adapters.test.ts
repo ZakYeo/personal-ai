@@ -1,10 +1,10 @@
+import { briefingStoreService, calendarSearchService  } from "../feature-source-services.js";
+import { createBriefingFeatureRegistryEntry, createBriefingSources  } from "./briefing-feature-adapters.js";
 import type { CalendarSearchPort } from "../../ports/calendar.js";
 import {
   bindRuntimeService,
   createRuntimeServiceRegistry,
 } from "../runtime-service-registry.js";
-import { calendarSearchService } from "../feature-source-services.js";
-import { createBriefingSources } from "./briefing-feature-adapters.js";
 
 describe("briefing feature source composition", () => {
   it("omits disabled sources and reads through the exact shared service", async () => {
@@ -27,4 +27,22 @@ describe("briefing feature source composition", () => {
     });
     expect(searchEvents).toHaveBeenCalledOnce();
   });
+});
+
+it("publishes the exact briefing store used by feature composition", async () => {
+  const entry = createBriefingFeatureRegistryEntry().adapters.local!.parse({});
+  const runtime = {
+    clock: { now: () => new Date("2026-09-07T08:00:00.000Z") },
+  };
+  const services = createRuntimeServiceRegistry(
+    entry.provideServices?.(runtime) ?? [],
+  );
+  expect(services.require(briefingStoreService)).toBeDefined();
+  const composed = entry.create(runtime, services);
+  expect("feature" in composed ? composed.feature.id : composed.id).toBe(
+    "briefing",
+  );
+  expect(
+    await services.require(briefingStoreService).getLastSnapshot(),
+  ).toBeUndefined();
 });
