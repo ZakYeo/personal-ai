@@ -15,7 +15,7 @@ import type {
   WakeWordPort,
 } from "../../ports/voice.js";
 import type { ParsedDesktopVoiceConfig } from "../config/desktop-voice-config.js";
-import type { ResolvedVoiceConfig } from "../config/voice-config.js";
+import type { VoiceAdapterKey } from "../config/voice-config.js";
 import type {
   DesktopVoiceAdapterContext,
   ResolvedDesktopVoiceProviderAdapter,
@@ -82,7 +82,7 @@ export interface DesktopVoiceAdapterEntry<TConfig, TAdapter> {
 
 export interface DesktopVoiceSlotDescriptor<TConfig, TAdapter> {
   registry: Record<string, DesktopVoiceAdapterEntry<TConfig, TAdapter>>;
-  voiceKey: keyof ResolvedVoiceConfig;
+  voiceKey: VoiceAdapterKey;
 }
 
 export interface DesktopVoiceSlotTopology {

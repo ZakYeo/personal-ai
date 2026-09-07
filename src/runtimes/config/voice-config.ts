@@ -1,6 +1,6 @@
 import { isRecord } from "./config-parse-utils.js";
 
-export interface ParsedVoiceConfig {
+interface VoiceAdapterConfig {
   audioOutput?: string;
   input?: string;
   speechToText?: string;
@@ -13,7 +13,18 @@ export interface ParsedVoiceConfig {
   wakeWord?: string;
 }
 
+export type VoiceAdapterKey = keyof VoiceAdapterConfig;
+
+interface VoiceBargeInConfig {
+  readonly inputIsolation: "headphones" | "echo_cancelled";
+}
+
+export interface ParsedVoiceConfig extends VoiceAdapterConfig {
+  bargeIn?: VoiceBargeInConfig;
+}
+
 interface ResolvedVoiceBaseConfig {
+  bargeIn?: VoiceBargeInConfig;
   audioOutput: string;
   input: string;
   speechToText: string;
@@ -47,6 +58,7 @@ export function parseVoiceConfig(value: unknown): {
 
   return {
     voice: {
+      ...parseBargeInConfig(value.bargeIn),
       ...parseVoiceAdapter("input", value.input),
       ...parseVoiceAdapter("streamingAudioInput", value.streamingAudioInput),
       ...parseVoiceAdapter("streamingAudioOutput", value.streamingAudioOutput),
@@ -71,6 +83,7 @@ export function requireVoiceConfig(config: {
   voice?: ParsedVoiceConfig;
 }): ResolvedVoiceConfig {
   return {
+    ...(config.voice?.bargeIn ? { bargeIn: config.voice.bargeIn } : {}),
     input: requireVoiceAdapterConfig(config, "input"),
     ...resolveStreamingPair(
       config.voice,
@@ -94,7 +107,7 @@ export function requireVoiceConfig(config: {
 
 function requireVoiceAdapterConfig(
   config: { voice?: ParsedVoiceConfig },
-  key: keyof ParsedVoiceConfig,
+  key: VoiceAdapterKey,
 ): string {
   const adapterId = config.voice?.[key];
 
@@ -106,15 +119,15 @@ function requireVoiceAdapterConfig(
 }
 
 type ResolvedStreamingPair<
-  TFirst extends keyof ParsedVoiceConfig,
-  TSecond extends keyof ParsedVoiceConfig,
+  TFirst extends VoiceAdapterKey,
+  TSecond extends VoiceAdapterKey,
 > =
   | ({ [TKey in TFirst | TSecond]: string } & Record<never, never>)
   | { [TKey in TFirst | TSecond]?: never };
 
 function resolveStreamingPair<
-  TFirst extends keyof ParsedVoiceConfig,
-  TSecond extends keyof ParsedVoiceConfig,
+  TFirst extends VoiceAdapterKey,
+  TSecond extends VoiceAdapterKey,
 >(
   voice: ParsedVoiceConfig | undefined,
   firstKey: TFirst,
@@ -139,7 +152,7 @@ function resolveStreamingPair<
   } as { [TKey in TFirst | TSecond]: string };
 }
 
-function parseVoiceAdapter<TKey extends keyof ParsedVoiceConfig>(
+function parseVoiceAdapter<TKey extends VoiceAdapterKey>(
   key: TKey,
   value: unknown,
 ): Partial<Pick<ParsedVoiceConfig, TKey>> {
@@ -154,4 +167,23 @@ function parseVoiceAdapter<TKey extends keyof ParsedVoiceConfig>(
   return {
     [key]: value,
   } as Pick<ParsedVoiceConfig, TKey>;
+}
+
+function parseBargeInConfig(
+  value: unknown,
+): Pick<ParsedVoiceConfig, "bargeIn"> {
+  if (value === undefined) return {};
+  if (!isRecord(value) || typeof value.enabled !== "boolean")
+    throw new Error(
+      "Config voice.bargeIn must declare a boolean enabled setting.",
+    );
+  if (value.enabled === false) return {};
+  if (
+    value.inputIsolation !== "headphones" &&
+    value.inputIsolation !== "echo_cancelled"
+  )
+    throw new Error(
+      "Config voice.bargeIn.inputIsolation must explicitly select headphones or echo_cancelled input.",
+    );
+  return { bargeIn: { inputIsolation: value.inputIsolation } };
 }

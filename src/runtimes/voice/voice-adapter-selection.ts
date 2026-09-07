@@ -1,7 +1,8 @@
-import type { ResolvedVoiceConfig } from "../config/voice-config.js";
+import type {
+  ResolvedVoiceConfig,
+  VoiceAdapterKey,
+} from "../config/voice-config.js";
 import { selectConfiguredRuntimeEntry } from "../runtime-selector.js";
-
-type VoiceAdapterKey = keyof ResolvedVoiceConfig;
 
 export function selectConfiguredVoiceAdapter<
   TAdapter,
