@@ -339,6 +339,12 @@ requests leave pending state intact; late interpretations cannot execute, and
 cancellation between plan steps preserves completed facts while blocking later
 steps. Provider session continuation has an optional per-call signal so a previous
 turn's cancelled transport cannot poison a later reply.
+The shared output coordinator admits at most 32 active/queued sessions and can
+interrupt the admitted set without replay. Every operation receives its own
+cancellation signal. On interruption it allows one second for the active
+operation to settle, then quarantines output if cleanup remains pending so a
+replacement cannot overlap an uncooperative player. Runtime playback and control
+wiring use this contract in subsequent Milestone 19 slices.
 
 #### Native shell decision
 
