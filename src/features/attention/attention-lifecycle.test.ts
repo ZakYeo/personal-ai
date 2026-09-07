@@ -68,3 +68,48 @@ it.each(["2026-09-08T12:00:00.000Z", "2026-10-26T12:00:00.000Z"])(
     }
   },
 );
+
+it("keeps a full rule store within tool-observation bounds and can select a later named rule", async () => {
+  const { store, feature, context } = await setup();
+  const state = await store.read();
+  await store.replace(state.revision, {
+    ...state,
+    revision: state.revision + 1,
+    rules: Array.from({ length: 24 }, (_, index) => ({
+      ...createTestAttentionRule(),
+      id: `rule-${index}`,
+      name: `Rule ${index}`,
+    })),
+  });
+  const first = await executeFeature(
+    feature,
+    "attention.rules.list",
+    {},
+    context,
+  );
+  expect(
+    Object.keys(first.toolObservationData ?? {}).length,
+  ).toBeLessThanOrEqual(24);
+  expect(first.toolObservationData).toMatchObject({ count: 7, totalCount: 24 });
+  const second = await executeFeature(
+    feature,
+    "attention.rules.list",
+    { offset: 7 },
+    context,
+  );
+  expect(second.toolObservationData).toMatchObject({
+    rule0Id: "rule-7",
+    count: 7,
+  });
+  const named = await executeFeature(
+    feature,
+    "attention.rules.list",
+    { name: "rule 23" },
+    context,
+  );
+  expect(named.toolObservationData).toMatchObject({
+    rule0Id: "rule-23",
+    count: 1,
+    totalCount: 1,
+  });
+});
