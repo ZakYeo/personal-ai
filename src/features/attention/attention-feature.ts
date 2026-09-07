@@ -1,3 +1,5 @@
+import type { CalendarSearchPort } from "../../ports/calendar.js";
+import { createAttentionPlanningCapability } from "./attention-planning-capability.js";
 import { createAttentionInboxCapabilities } from "./attention-inbox-capabilities.js";
 import { createAttentionLifecycleCapabilities } from "./attention-lifecycle-capabilities.js";
 import type { TaskStore } from "../../ports/task-store.js";
@@ -9,20 +11,24 @@ import { createAttentionWeatherCapability } from "./attention-weather-capability
 
 export function createAttentionFeature(
   store: AttentionStore,
-  weather?: WeatherProviderPort,
-  tasks?: TaskStore,
+  sources: {
+    weather?: WeatherProviderPort;
+    tasks?: TaskStore;
+    calendar?: CalendarSearchPort;
+  } = {},
 ) {
   return defineFeature({
     id: "attention",
     displayName: "Proactive Attention",
     spokenSummary: "manage explicit proactive rules and your attention inbox",
     capabilities: {
+      "attention.plan_day": createAttentionPlanningCapability(sources),
       ...createAttentionRuleCapabilities(store),
-      ...createAttentionInboxCapabilities(store, tasks),
+      ...createAttentionInboxCapabilities(store, sources.tasks),
       ...createAttentionLifecycleCapabilities(store),
       "attention.weather.enable": createAttentionWeatherCapability(
         store,
-        weather,
+        sources.weather,
       ),
     },
   });

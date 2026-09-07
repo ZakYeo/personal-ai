@@ -110,7 +110,11 @@ function composeAttention(
   const weather = services.get(weatherProviderService);
   const alarms = services.get(alarmStoreService);
   const briefing = services.get(briefingStoreService);
-  const feature = createAttentionFeature(store, weather, tasks);
+  const feature = createAttentionFeature(store, {
+    ...(weather ? { weather } : {}),
+    ...(tasks ? { tasks } : {}),
+    ...(calendar ? { calendar } : {}),
+  });
   return {
     feature,
     backgroundTasks: [

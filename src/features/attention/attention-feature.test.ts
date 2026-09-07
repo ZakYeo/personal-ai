@@ -1,6 +1,7 @@
 import { createAttentionFeature } from "./attention-feature.js";
 import { createTestAttentionStore } from "../../test-support/attention.js";
 import {
+  executeFeature,
   createFeatureContext,
   expectDecodedFeatureExecution,
 } from "../../test-support/feature-contract.js";
@@ -68,4 +69,23 @@ it("rejects invalid weather quiet hours before requesting confirmation", () => {
       createFeatureContext(),
     ),
   ).toThrow();
+});
+
+it("exposes bounded day planning as a terminal read without requiring another reply", async () => {
+  const feature = createAttentionFeature(
+    createTestAttentionStore({ timeZone: "Europe/London" }),
+  );
+  const result = await executeFeature(
+    feature,
+    "attention.plan_day",
+    {},
+    createFeatureContext(),
+  );
+  expect(result.text).toContain("suggestions");
+  expect(result).not.toHaveProperty("expectsFollowUp");
+  expect(
+    feature.capabilities.find(
+      (capability) => capability.name === "attention.plan_day",
+    )?.toolChain,
+  ).toBeUndefined();
 });
