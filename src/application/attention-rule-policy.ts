@@ -17,7 +17,9 @@ export interface NewAttentionRuleInput {
   readonly request: string;
 }
 
-export function normalizeAttentionRuleInput(input: NewAttentionRuleInput) {
+export function normalizeAttentionRuleSettings(
+  input: Omit<NewAttentionRuleInput, "definition">,
+) {
   const name = input.name.trim();
   if (
     !name ||
@@ -43,6 +45,17 @@ export function normalizeAttentionRuleInput(input: NewAttentionRuleInput) {
       "Attention quiet hours require different valid local start and end times.",
     );
   requireInteger(cooldownMinutes, 1, 1_440);
+  return {
+    name,
+    timeZone: input.timeZone,
+    quietHours,
+    cooldownMinutes,
+    request: input.request,
+  };
+}
+
+export function normalizeAttentionRuleInput(input: NewAttentionRuleInput) {
+  const settings = normalizeAttentionRuleSettings(input);
   const definition = structuredClone(input.definition);
   switch (definition.kind) {
     case "upcoming_calendar":
@@ -67,14 +80,7 @@ export function normalizeAttentionRuleInput(input: NewAttentionRuleInput) {
     case "runtime_health":
       break;
   }
-  return {
-    name,
-    definition,
-    timeZone: input.timeZone,
-    quietHours,
-    cooldownMinutes,
-    request: input.request,
-  };
+  return { ...settings, definition };
 }
 
 export function attentionSnoozeUntil(now: Date, minutes: number): string {
