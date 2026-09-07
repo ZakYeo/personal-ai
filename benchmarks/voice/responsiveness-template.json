@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "evidence": "synthetic",
+  "setup": {
+    "hostId": "example-desktop",
+    "os": "replace with the measured operating system",
+    "microphone": "replace with microphone model",
+    "speaker": "replace with headphones or speaker model",
+    "wakeProvider": "replace with selected provider",
+    "sttProvider": "replace with selected provider",
+    "intentProvider": "replace with selected provider",
+    "ttsProvider": "replace with selected provider",
+    "processing": "mixed",
+    "inputIsolation": "headphones"
+  },
+  "samples": [
+    {
+      "id": "example-command",
+      "kind": "command",
+      "scenario": "quiet",
+      "success": true,
+      "duplicateActions": 0,
+      "falseWake": false,
+      "measurements": {
+        "wakeToVisibleFeedbackMs": 50,
+        "utteranceEndToFirstTranscriptMs": 100,
+        "utteranceEndToUsefulAudioMs": 1000
+      }
+    },
+    {
+      "id": "example-stop",
+      "kind": "stop",
+      "scenario": "background_noise",
+      "success": true,
+      "duplicateActions": 0,
+      "falseWake": false,
+      "measurements": {
+        "recognizedStopToSilenceMs": 150,
+        "acousticStopToSilenceMs": 400,
+        "softwareStopToCleanupMs": 100
+      }
+    },
+    {
+      "id": "example-replacement",
+      "kind": "barge_in",
+      "scenario": "back_to_back",
+      "success": true,
+      "duplicateActions": 0,
+      "falseWake": false,
+      "measurements": {}
+    }
+  ]
+}

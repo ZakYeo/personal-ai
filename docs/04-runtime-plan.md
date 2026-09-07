@@ -302,7 +302,12 @@ targets are detected-wake feedback under 150 ms, recognized-stop silence under
 1.5 seconds. Acoustic stop-to-silence is measured separately from recognized stop.
 Software submission intervals are diagnostic proxies and cannot pass these
 acoustic acceptance gates. Long external work, interruption, and cancellation
-instrumentation are completed in the remaining Milestone 19 slices.
+use truthful local processing state before provider work; no filler is counted
+as useful audio. The content-free responsiveness template and
+`benchmark:voice:responsiveness` command in `benchmarks/voice/README.md` calculate
+coverage, p50/p95, failures, and physical acceptance separately from software
+proxies. No rewriting or compaction optimization is claimed without measured
+benefit; their existing integrity and serialized history contracts remain.
 
 ### Desktop Presence Runtime
 
