@@ -22,7 +22,12 @@ describe("createAlarmFeature", () => {
       requiresConfirmation: true,
       parameters: {
         label: { type: "string" },
-        minutesFromNow: { type: "number", required: true, positive: true },
+        minutesFromNow: { type: "number", positive: true },
+        scheduledFor: {
+          type: "string",
+          description:
+            "An exact UTC ISO instant; supply either this or minutesFromNow, never both.",
+        },
         recurrenceFrequency: { type: "string" },
         recurrenceTimeZone: { type: "string" },
       },
@@ -64,7 +69,12 @@ describe("createAlarmFeature", () => {
       parameters: {
         id: { type: "string" },
         label: { type: "string" },
-        minutesFromNow: { type: "number", required: true, positive: true },
+        minutesFromNow: { type: "number", positive: true },
+        scheduledFor: {
+          type: "string",
+          description:
+            "An exact UTC ISO instant; supply either this or minutesFromNow, never both.",
+        },
       },
     });
     expectCapabilityMetadata(feature, {
@@ -304,7 +314,6 @@ describe("createAlarmFeature", () => {
     ).toEqual({
       facts: {
         label: "tea",
-        minutesFromNow: 10,
         scheduledFor: "2026-06-26T09:10:00.000Z",
       },
       text: "set the tea alarm for 2026-06-26T09:10:00.000Z",

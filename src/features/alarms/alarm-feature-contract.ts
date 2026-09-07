@@ -6,7 +6,12 @@ import type { DeterministicFeatureRule } from "../../ports/deterministic-feature
 
 export const alarmCreateParameters = {
   label: { type: "string" },
-  minutesFromNow: { type: "number", required: true, positive: true },
+  minutesFromNow: { type: "number", positive: true },
+  scheduledFor: {
+    type: "string",
+    description:
+      "An exact UTC ISO instant; supply either this or minutesFromNow, never both.",
+  },
   recurrenceFrequency: { type: "string" },
   recurrenceTimeZone: { type: "string" },
 } as const satisfies FeatureCapabilityParameters;
@@ -34,6 +39,12 @@ export const alarmDelayTargetParameters = {
   minutesFromNow: { type: "number", required: true, positive: true },
 } as const satisfies FeatureCapabilityParameters;
 
+export const alarmRescheduleParameters = {
+  ...alarmTargetParameters,
+  minutesFromNow: alarmCreateParameters.minutesFromNow,
+  scheduledFor: alarmCreateParameters.scheduledFor,
+} as const satisfies FeatureCapabilityParameters;
+
 export const alarmEditParameters = {
   ...alarmTargetParameters,
   newLabel: { type: "string", required: true },
@@ -50,6 +61,9 @@ export type AlarmTargetArgs = FeatureArgsFromParameters<
 >;
 export type AlarmDelayTargetArgs = FeatureArgsFromParameters<
   typeof alarmDelayTargetParameters
+>;
+export type AlarmRescheduleArgs = FeatureArgsFromParameters<
+  typeof alarmRescheduleParameters
 >;
 export type AlarmEditArgs = FeatureArgsFromParameters<
   typeof alarmEditParameters

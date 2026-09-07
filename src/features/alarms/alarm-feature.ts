@@ -1,4 +1,5 @@
 import type { AssistantContext } from "../../ports/assistant.js";
+import { prepareAlarmTime, resolveAlarmTime } from "./alarm-time.js";
 import type { FeaturePlugin } from "../../ports/feature.js";
 import { defineCapability, defineFeature } from "../../application/feature.js";
 import { defineDeterministicFeatureRules } from "../../application/deterministic-feature-rules.js";
@@ -7,6 +8,7 @@ import {
   alarmCreateParameters,
   alarmCalendarReminderParameters,
   alarmDelayTargetParameters,
+  alarmRescheduleParameters,
   alarmDeterministicIntentRules,
   alarmEditParameters,
   alarmListParameters,
@@ -66,23 +68,20 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
         }),
         "alarm.create": defineCapability({
           description:
-            "Create a one-shot, daily, or weekly local alarm scheduled a number of minutes from now. Recurrence requires an explicit IANA timezone. This requires confirmation before the alarm is saved.",
+            "Create a one-shot, daily, or weekly local alarm at an exact UTC instant or after a relative delay; provide exactly one time form. Recurrence requires an explicit IANA timezone. This requires confirmation before the alarm is saved.",
           risk: "high",
           summary:
-            "Create a one-shot or recurring local alarm after a relative delay.",
+            "Create a one-shot or recurring local alarm at a selected time.",
           spokenSummary: "manage local alarms",
           requiresConfirmation: true,
           parameters: alarmCreateParameters,
+          prepare: prepareAlarmTime,
           confirmation: (args, context) => {
-            const scheduledFor = relativeTime(
-              context.clock.now(),
-              args.minutesFromNow,
-            );
+            const scheduledFor = resolveAlarmTime(args, context);
             const label = args.label ?? "alarm";
             return {
               facts: {
                 label,
-                minutesFromNow: args.minutesFromNow,
                 ...(args.recurrenceFrequency
                   ? { recurrenceFrequency: args.recurrenceFrequency }
                   : {}),
@@ -145,22 +144,19 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
         }),
         "alarm.reschedule": defineCapability({
           description:
-            "Move a scheduled or snoozed alarm to a new relative time. This requires confirmation.",
+            "Move a scheduled or snoozed alarm to an exact UTC instant or after a relative delay; provide exactly one time form. This requires confirmation.",
           risk: "high",
           summary: "Reschedule a pending local alarm.",
           spokenSummary: "manage local alarms",
           requiresConfirmation: true,
-          parameters: alarmDelayTargetParameters,
+          parameters: alarmRescheduleParameters,
+          prepare: prepareAlarmTime,
           confirmation: (args, context) => {
-            const scheduledFor = relativeTime(
-              context.clock.now(),
-              args.minutesFromNow,
-            );
+            const scheduledFor = resolveAlarmTime(args, context);
             return {
               facts: {
                 ...(args.id ? { id: args.id } : {}),
                 ...(args.label ? { label: args.label } : {}),
-                minutesFromNow: args.minutesFromNow,
                 scheduledFor,
               },
               text: `reschedule the ${formatAlarmTarget(args)} alarm for ${scheduledFor}`,
@@ -183,10 +179,6 @@ export function createAlarmFeature(store: AlarmStore): FeaturePlugin {
     }),
     alarmDeterministicIntentRules,
   );
-}
-
-function relativeTime(now: Date, minutesFromNow: number): string {
-  return new Date(now.getTime() + minutesFromNow * 60_000).toISOString();
 }
 
 function formatAlarmTarget(input: { id?: string; label?: string }): string {

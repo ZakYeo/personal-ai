@@ -27,6 +27,11 @@ type MaybePromise<TValue> = TValue | Promise<TValue>;
 type DefinedCapability<
   TParameters extends FeatureCapabilityParameters = FeatureCapabilityParameters,
 > = Omit<FeatureCapability, "name" | "parameters"> & {
+  prepare?(
+    this: void,
+    args: FeatureArgsFromParameters<TParameters>,
+    context: AssistantContext,
+  ): FeatureArgsFromParameters<TParameters>;
   confirmation?(
     this: void,
     args: FeatureArgsFromParameters<TParameters>,
@@ -55,6 +60,7 @@ export function defineCapability<
 }
 
 type AnyDefinedCapability = Omit<FeatureCapability, "name" | "parameters"> & {
+  prepare?: unknown;
   confirmation?: unknown;
   clarification?: unknown;
   parameters: FeatureCapabilityParameters;
@@ -137,6 +143,13 @@ export function defineFeature<
         ? {
             renderConfirmation: handler.confirmation as NonNullable<
               FeatureCapability["renderConfirmation"]
+            >,
+          }
+        : {}),
+      ...(typeof handler.prepare === "function"
+        ? {
+            prepareArguments: handler.prepare as NonNullable<
+              FeatureCapability["prepareArguments"]
             >,
           }
         : {}),

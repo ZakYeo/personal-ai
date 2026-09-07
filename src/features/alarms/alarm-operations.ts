@@ -1,4 +1,5 @@
 import type { AssistantContext } from "../../ports/assistant.js";
+import { resolveAlarmTime } from "./alarm-time.js";
 import type { FeatureResult } from "../../ports/feature.js";
 import type {
   AlarmLifecycleUpdate,
@@ -12,6 +13,7 @@ import type {
   AlarmDelayTargetArgs,
   AlarmEditArgs,
   AlarmTargetArgs,
+  AlarmRescheduleArgs,
 } from "./alarm-feature-contract.js";
 
 export async function createAlarm(
@@ -20,7 +22,7 @@ export async function createAlarm(
   store: AlarmStore,
 ): Promise<FeatureResult> {
   const label = args.label ?? "alarm";
-  const scheduledFor = relativeTime(context, args.minutesFromNow);
+  const scheduledFor = resolveAlarmTime(args, context);
   const recurrence = parseRecurrence(args);
   const alarm = await store.add({
     label,
@@ -168,11 +170,11 @@ export function snoozeAlarm(
 }
 
 export function rescheduleAlarm(
-  args: AlarmDelayTargetArgs,
+  args: AlarmRescheduleArgs,
   context: AssistantContext,
   store: AlarmStore,
 ): Promise<FeatureResult> {
-  const scheduledFor = relativeTime(context, args.minutesFromNow);
+  const scheduledFor = resolveAlarmTime(args, context);
   return updateSelectedAlarm(
     args,
     context,
