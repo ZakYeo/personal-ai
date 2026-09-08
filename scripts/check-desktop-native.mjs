@@ -3,8 +3,9 @@ import { spawnSync } from "node:child_process";
 const manifest = "apps/desktop/src-tauri/Cargo.toml";
 import { checkDesktopDependencies } from "./desktop-dependencies.mjs";
 
+let env;
 try {
-  checkDesktopDependencies();
+  env = checkDesktopDependencies();
 } catch (error) {
   process.stdout.write(`Native compile skipped: ${error.message}\n`);
   process.exit(0);
@@ -12,5 +13,6 @@ try {
 
 const result = spawnSync("cargo", ["check", "--manifest-path", manifest], {
   stdio: "inherit",
+  env,
 });
 process.exit(result.status ?? 1);

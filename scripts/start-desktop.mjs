@@ -4,14 +4,14 @@ import { checkDesktopDependencies } from "./desktop-dependencies.mjs";
 import { launchDesktop } from "./desktop-launcher.mjs";
 
 try {
-  checkDesktopDependencies();
+  const env = checkDesktopDependencies();
   if (!process.env.npm_execpath)
     throw new Error("Start with npm run start:desktop.");
   process.stdout.write(
     "Starting Jarvis and its desktop UI. Open the UI from the system tray; Ctrl+C stops both.\n",
   );
   process.exitCode = await launchDesktop({
-    env: process.env,
+    env,
     signals: process,
     write: (message) => process.stderr.write(message),
     spawnChild: (name, env) =>

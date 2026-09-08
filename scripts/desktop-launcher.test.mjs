@@ -172,3 +172,34 @@ test("npm parent exit does not cut short the descendants' cleanup grace", async 
   assert.deepEqual(h.stopped, ["SIGTERM", "SIGTERM"]);
   assert.equal(await done, 130);
 });
+
+test("falls back to system pkg-config and returns its selection for Cargo", () => {
+  const env = { PATH: "/custom/bin:/usr/bin" };
+  const selected = checkDesktopDependencies(
+    "linux",
+    (command, _args, options) => {
+      assert.equal(options.env.PATH, env.PATH);
+      return { status: command === "/usr/bin/pkg-config" ? 0 : 1 };
+    },
+    env,
+  );
+  assert.equal(selected.PKG_CONFIG, "/usr/bin/pkg-config");
+  assert.equal(env.PKG_CONFIG, undefined);
+});
+
+test("respects an explicit pkg-config override without silently replacing it", () => {
+  const commands = [];
+  assert.throws(
+    () =>
+      checkDesktopDependencies(
+        "linux",
+        (command) => {
+          commands.push(command);
+          return { status: 1 };
+        },
+        { PKG_CONFIG: "/custom/pkg-config" },
+      ),
+    /\/custom\/pkg-config/,
+  );
+  assert.ok(commands.every((command) => command === "/custom/pkg-config"));
+});

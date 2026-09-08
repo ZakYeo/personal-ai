@@ -394,7 +394,10 @@ sudo apt install build-essential pkg-config libwebkit2gtk-4.1-dev libayatana-app
 These packages supply the missing Cairo, GLib, GTK, Pango, Soup, and WebKit
 headers. See the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
 for other operating systems. Desktop startup checks these libraries before
-starting the service or compiling Rust.
+starting the service or compiling Rust. On Linux, the launcher tries the PATH
+`pkg-config` and then `/usr/bin/pkg-config`, so a Homebrew installation does
+not hide system libraries. The selected executable is passed to Cargo through
+`PKG_CONFIG`. An explicit `PKG_CONFIG` override is respected.
 
 The separate commands remain available: `npm start` for the voice service and
 `npm run desktop:tauri:dev` for the UI. To connect separate processes, set the

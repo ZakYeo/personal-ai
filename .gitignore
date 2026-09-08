@@ -4,6 +4,7 @@ apps/*/dist/
 apps/*/playwright-report/
 apps/*/test-results/
 apps/*/src-tauri/target/
+apps/*/src-tauri/gen/
 coverage/
 .venv/
 .env

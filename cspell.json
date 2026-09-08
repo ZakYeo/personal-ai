@@ -6,6 +6,7 @@
     "apps/*/dist/**",
     "apps/*/playwright-report/**",
     "apps/*/src-tauri/target/**",
+    "apps/*/src-tauri/gen/**",
     "apps/*/test-results/**",
     "coverage/**",
     "benchmarks/voice/results/*.json",
