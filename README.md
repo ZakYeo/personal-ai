@@ -404,7 +404,10 @@ The separate commands remain available: `npm start` for the voice service and
 same `PERSONAL_AI_PRESENTATION_TOKEN` (at least 32 characters) in both terminals.
 The optional `PERSONAL_AI_PRESENTATION_PORT` must also match; the combined
 command forwards it automatically. `npm run desktop:dev` remains a browser UI
-preview without a normal service connection.
+preview without a normal service connection. Native development uses
+`http://127.0.0.1:5173` for both Vite and the window. If that port is occupied,
+startup fails explicitly; stop the previous desktop development session and
+retry instead of letting Vite select another port.
 
 Start the default desktop OpenAI voice service:
 

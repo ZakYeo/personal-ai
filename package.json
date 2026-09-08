@@ -32,7 +32,7 @@
     "desktop:dev": "vite --config apps/desktop/vite.config.ts",
     "desktop:duplicates": "jscpd apps/desktop/src",
     "desktop:e2e": "playwright test --config apps/desktop/playwright.config.ts",
-    "desktop:launcher:test": "node --test scripts/desktop-launcher.test.mjs",
+    "desktop:launcher:test": "node --test scripts/desktop-launcher.test.mjs scripts/desktop-server.test.mjs",
     "desktop:lint": "eslint apps/desktop/src apps/desktop/vite.config.ts",
     "desktop:native:check": "node scripts/check-desktop-native.mjs",
     "desktop:native:format": "cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml -- --check",

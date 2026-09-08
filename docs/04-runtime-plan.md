@@ -482,7 +482,9 @@ Ubuntu installation commands are documented in the README. The shared native
 dependency resolver selects a working PATH or system `pkg-config` and passes
 that selection to native dev, build, test, and check processes via `PKG_CONFIG`.
 Explicit overrides are respected; a separate preflight process cannot configure
-the environment of a later Cargo process.
+the environment of a later Cargo process. Native development and Vite share
+the explicit IPv4 endpoint `http://127.0.0.1:5173`; Vite requires that port and
+fails on a conflict instead of serving a different address from the webview.
 
 Desktop projection refresh owns one read at a time and coalesces overlapping
 triggers. Startup waits at most five seconds for the initial projection; a
