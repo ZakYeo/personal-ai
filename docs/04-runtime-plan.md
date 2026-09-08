@@ -467,10 +467,18 @@ The shell starts with both windows hidden; tray, single-instance activation,
 and the configured global shortcut make the appropriate window visible. Run
 `npm run desktop:check` for the complete UI gate. Native Rust compilation runs
 locally when `pkg-config` can resolve `gio-2.0`, `gtk+-3.0`, and
-`webkit2gtk-4.1`; otherwise the local check reports the missing host capability
+`webkit2gtk-4.1`, and the Ayatana indicator development library; otherwise the local check reports the missing host capability
 and the committed Windows workflow compiles, tests, and packages the native
 shell. `npm run desktop:native:test` and `npm run desktop:tauri:build` are the
 explicit native validation and packaging commands.
+
+`npm run start:desktop` starts the existing voice service and native development
+UI together, loading `.env` and giving both children one fresh in-memory token.
+The separate service and UI commands remain supported. The launcher checks
+Linux prerequisites before starting either child, owns child process cleanup,
+and stops both on interruption or either child exiting. A five-second grace
+period precedes forced process-tree cleanup. It never saves or prints the token.
+Ubuntu installation commands are documented in the README.
 
 Desktop projection refresh owns one read at a time and coalesces overlapping
 triggers. Startup waits at most five seconds for the initial projection; a

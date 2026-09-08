@@ -117,6 +117,14 @@
     "wslg",
     "xhigh",
     "zakyeomanson",
-    "pactl"
+    "pactl",
+    "appindicator",
+    "Ayatana",
+    "libayatana",
+    "librsvg",
+    "libwebkit",
+    "Pango",
+    "patchelf",
+    "taskkill"
   ]
 }

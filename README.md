@@ -371,6 +371,38 @@ Run the default deterministic CLI:
 npm run cli -- ask "Hey Jarvis, list my alarms"
 ```
 
+Start Jarvis and the native desktop UI together:
+
+```sh
+npm run start:desktop
+```
+
+This loads `.env`, generates a fresh in-memory presentation token, and passes it
+and the same environment to both processes. The token is never printed or saved.
+Open the initially hidden UI from the system tray. Ctrl+C or either process
+exiting stops both processes, with forced cleanup after five seconds if needed.
+Stop any separately running Jarvis service before using this command, since the
+file-backed stores have one process owner.
+
+On Ubuntu 24.04, install the native UI build prerequisites once:
+
+```sh
+sudo apt update
+sudo apt install build-essential pkg-config libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+```
+
+These packages supply the missing Cairo, GLib, GTK, Pango, Soup, and WebKit
+headers. See the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
+for other operating systems. Desktop startup checks these libraries before
+starting the service or compiling Rust.
+
+The separate commands remain available: `npm start` for the voice service and
+`npm run desktop:tauri:dev` for the UI. To connect separate processes, set the
+same `PERSONAL_AI_PRESENTATION_TOKEN` (at least 32 characters) in both terminals.
+The optional `PERSONAL_AI_PRESENTATION_PORT` must also match; the combined
+command forwards it automatically. `npm run desktop:dev` remains a browser UI
+preview without a normal service connection.
+
 Start the default desktop OpenAI voice service:
 
 ```bash
