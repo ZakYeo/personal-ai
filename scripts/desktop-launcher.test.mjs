@@ -45,6 +45,7 @@ test("starts both with a fresh shared token without changing the parent environm
   assert.match(token, /^[a-f0-9]{64}$/);
   assert.equal(h.children[1].env.PERSONAL_AI_PRESENTATION_TOKEN, token);
   assert.equal(h.children[1].env.PERSONAL_AI_PRESENTATION_PORT, "43119");
+  assert.equal(h.children[1].env.PERSONAL_AI_DESKTOP_OPEN_ON_START, "1");
   assert.equal(h.options.env.PERSONAL_AI_PRESENTATION_TOKEN, undefined);
   h.signals.emit("SIGINT");
   assert.equal(await done, 130);

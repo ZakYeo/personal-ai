@@ -463,8 +463,12 @@ enhancement offline without affecting CLI, voice, service, or Pi operation.
 External source targets remain hidden metadata and are revalidated as HTTPS by
 the native opener adapter immediately before use.
 
-The shell starts with both windows hidden; tray, single-instance activation,
-and the configured global shortcut make the appropriate window visible. Run
+The standalone shell starts with both windows hidden; tray, single-instance
+activation, and the configured global shortcut make the appropriate window
+visible. The combined `npm run start:desktop` command sets
+`PERSONAL_AI_DESKTOP_OPEN_ON_START=1` to create the command center visible, so
+manual startup does not depend on tray availability. The overlay stays hidden.
+Saved window geometry is restored without restoring visibility. Run
 `npm run desktop:check` for the complete UI gate. Native Rust compilation runs
 locally when `pkg-config` can resolve `gio-2.0`, `gtk+-3.0`, and
 `webkit2gtk-4.1`, and the Ayatana indicator development library; otherwise the local check reports the missing host capability

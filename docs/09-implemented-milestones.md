@@ -184,7 +184,7 @@ Included:
   parsing, payload and rate bounds, single-client ownership, correlated control
   results, safe reconnect/replay, and cross-window state relay without token
   sharing.
-- A Windows-first Tauri 2 shell with hidden-at-start windows, tray,
+- A Windows-first Tauri 2 shell with background windows hidden at startup, tray,
   single-instance activation, autostart, persistent window state, global
   shortcut, HTTPS-only source opening, and an always-on-top overlay.
 - A React and TypeScript MVVM interface whose framework-neutral models and view

@@ -8,7 +8,7 @@ try {
   if (!process.env.npm_execpath)
     throw new Error("Start with npm run start:desktop.");
   process.stdout.write(
-    "Starting Jarvis and its desktop UI. Open the UI from the system tray; Ctrl+C stops both.\n",
+    "Starting Jarvis and opening its desktop UI. Ctrl+C stops both.\n",
   );
   process.exitCode = await launchDesktop({
     env,

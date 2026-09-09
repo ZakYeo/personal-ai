@@ -13,6 +13,7 @@ export async function launchDesktop({
   const childEnv = {
     ...env,
     PERSONAL_AI_PRESENTATION_TOKEN: randomBytes(32).toString("hex"),
+    PERSONAL_AI_DESKTOP_OPEN_ON_START: "1",
   };
   const children = [];
   let settle;

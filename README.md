@@ -379,7 +379,8 @@ npm run start:desktop
 
 This loads `.env`, generates a fresh in-memory presentation token, and passes it
 and the same environment to both processes. The token is never printed or saved.
-Open the initially hidden UI from the system tray. Ctrl+C or either process
+The command center opens immediately, including on WSL desktops without an
+accessible tray. Ctrl+C or either process
 exiting stops both processes, with forced cleanup after five seconds if needed.
 Stop any separately running Jarvis service before using this command, since the
 file-backed stores have one process owner.
