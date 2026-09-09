@@ -385,6 +385,13 @@ exiting stops both processes, with forced cleanup after five seconds if needed.
 Stop any separately running Jarvis service before using this command, since the
 file-backed stores have one process owner.
 
+On WSL, native desktop commands default to software rendering and disable
+WebKit DMA buffer rendering and compositing to avoid EGL device discovery
+failures. No extra launch flags are needed. Explicit values for
+`LIBGL_ALWAYS_SOFTWARE`, `WEBKIT_DISABLE_DMABUF_RENDERER`, and
+`WEBKIT_DISABLE_COMPOSITING_MODE` override these defaults. Other operating
+environments keep their existing graphics settings.
+
 On Ubuntu 24.04, install the native UI build prerequisites once:
 
 ```sh

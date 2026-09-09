@@ -18,6 +18,8 @@
   "language": "en",
   "version": "0.2",
   "words": [
+    "DMABUF",
+    "LIBGL",
     "Anthropic",
     "apikey",
     "AppError",

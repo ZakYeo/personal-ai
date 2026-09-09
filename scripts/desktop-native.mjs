@@ -1,9 +1,13 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { checkDesktopDependencies } from "./desktop-dependencies.mjs";
+import { desktopGraphicsEnvironment } from "./desktop-graphics.mjs";
 
 try {
-  const env = checkDesktopDependencies();
+  const env = desktopGraphicsEnvironment(
+    process.platform,
+    checkDesktopDependencies(),
+  );
   const [operation, ...args] = process.argv.slice(2);
   let command;
   let commandArgs;

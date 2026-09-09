@@ -5,6 +5,23 @@ import { setImmediate } from "node:timers/promises";
 import { test } from "node:test";
 import { launchDesktop } from "./desktop-launcher.mjs";
 import { checkDesktopDependencies } from "./desktop-dependencies.mjs";
+import { desktopGraphicsEnvironment } from "./desktop-graphics.mjs";
+
+test("WSL native graphics use software defaults without changing explicit overrides", () => {
+  const source = { WSL_DISTRO_NAME: "Ubuntu", LIBGL_ALWAYS_SOFTWARE: "0" };
+  const env = desktopGraphicsEnvironment("linux", source);
+  assert.equal(env.LIBGL_ALWAYS_SOFTWARE, "0");
+  assert.equal(env.WEBKIT_DISABLE_DMABUF_RENDERER, "1");
+  assert.equal(env.WEBKIT_DISABLE_COMPOSITING_MODE, "1");
+  assert.equal(source.WEBKIT_DISABLE_DMABUF_RENDERER, undefined);
+  assert.equal(
+    desktopGraphicsEnvironment("linux", { WSL_INTEROP: "/run/WSL/1" })
+      .LIBGL_ALWAYS_SOFTWARE,
+    "1",
+  );
+  assert.deepEqual(desktopGraphicsEnvironment("linux", {}), {});
+  assert.deepEqual(desktopGraphicsEnvironment("win32", source), source);
+});
 
 function harness() {
   const signals = new EventEmitter();
