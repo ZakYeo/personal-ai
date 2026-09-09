@@ -13,6 +13,12 @@ test("WSL native graphics use software defaults without changing explicit overri
   assert.equal(env.LIBGL_ALWAYS_SOFTWARE, "0");
   assert.equal(env.WEBKIT_DISABLE_DMABUF_RENDERER, "1");
   assert.equal(env.WEBKIT_DISABLE_COMPOSITING_MODE, "1");
+  assert.equal(env.GDK_BACKEND, "x11");
+  assert.equal(
+    desktopGraphicsEnvironment("linux", { ...source, GDK_BACKEND: "wayland" })
+      .GDK_BACKEND,
+    "wayland",
+  );
   assert.equal(source.WEBKIT_DISABLE_DMABUF_RENDERER, undefined);
   assert.equal(
     desktopGraphicsEnvironment("linux", { WSL_INTEROP: "/run/WSL/1" })
